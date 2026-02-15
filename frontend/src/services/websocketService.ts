@@ -7,6 +7,10 @@ export class WebSocketService {
   private socket: Socket | null = null;
   private roomCode: string | null = null;
 
+  getRoomCode(): string | null {
+    return this.roomCode;
+  }
+
   connect(roomCode: string): Promise<void> {
     return new Promise((resolve, reject) => {
       this.roomCode = roomCode;

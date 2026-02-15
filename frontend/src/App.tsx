@@ -8,6 +8,7 @@ import CreateGamePage from './pages/game/CreateGamePage';
 import JoinGamePage from './pages/game/JoinGamePage';
 import GameLobbyPage from './pages/game/GameLobbyPage';
 import GamePlayPage from './pages/game/GamePlayPage';
+import GameResultsPage from './pages/game/GameResultsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
@@ -26,6 +27,7 @@ function App() {
           <Route path="game/join" element={<JoinGamePage />} />
           <Route path="game/lobby/:roomCode" element={<GameLobbyPage />} />
           <Route path="game/play/:roomCode" element={<GamePlayPage />} />
+          <Route path="game/:roomCode/results" element={<GameResultsPage />} />
         </Route>
         
         <Route path="*" element={<NotFoundPage />} />

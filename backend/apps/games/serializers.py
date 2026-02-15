@@ -58,7 +58,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
 
 
 class GameRoundSerializer(serializers.ModelSerializer):
-    """Serializer for GameRound."""
+    """Serializer for GameRound (hides correct answer during play)."""
     
     class Meta:
         model = GameRound
@@ -69,6 +69,27 @@ class GameRoundSerializer(serializers.ModelSerializer):
             'track_id',
             'track_name',
             'artist_name',
+            'options',
+            'duration',
+            'started_at',
+            'ended_at',
+        ]
+        read_only_fields = ['id', 'started_at']
+
+
+class GameRoundResultSerializer(serializers.ModelSerializer):
+    """Serializer for GameRound with correct answer revealed."""
+    
+    class Meta:
+        model = GameRound
+        fields = [
+            'id',
+            'game',
+            'round_number',
+            'track_id',
+            'track_name',
+            'artist_name',
+            'correct_answer',
             'options',
             'duration',
             'started_at',

@@ -291,6 +291,10 @@ class SpotifyService:
             
             return tracks
         
+        except SpotifyAPIError as e:
+            logger.error(f"Failed to get playlist tracks: {e}")
+            # Re-raise SpotifyAPIError so callers can handle it appropriately
+            raise
         except Exception as e:
             logger.error(f"Failed to get playlist tracks: {e}")
             return []

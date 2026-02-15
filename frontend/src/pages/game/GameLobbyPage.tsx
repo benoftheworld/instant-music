@@ -94,15 +94,25 @@ export default function GameLobbyPage() {
   };
 
   const handleSelectPlaylist = async (playlist: SpotifyPlaylist) => {
+    if (!game || !roomCode) return;
+    
     setSelectedPlaylist(playlist);
     setShowPlaylistSelector(false);
     
-    // TODO: Update game with playlist ID
-    // This would require an API endpoint to update the game
+    try {
+      // Update game with playlist ID via API
+      const updatedGame = await gameService.updateGame(roomCode, {
+        playlist_id: playlist.spotify_id
+      });
+      setGame(updatedGame);
+    } catch (err) {
+      console.error('Failed to update playlist:', err);
+      alert('Erreur lors de la mise à jour de la playlist');
+    }
   };
 
   const handleStartGame = async () => {
-    if (!game || !user) return;
+    if (!game || !user || !roomCode) return;
 
     // Check if user is the host
     if (game.host !== user.id) {
@@ -124,14 +134,21 @@ export default function GameLobbyPage() {
     }
 
     try {
-      // Send start game message via WebSocket
+      // Call API to start the game (generates rounds)
+      await gameService.startGame(roomCode);
+      
+      // Notify other players via WebSocket
       sendMessage({
         type: 'start_game',
         room_code: roomCode
       });
-    } catch (err) {
+      
+      // Navigate to game play page
+      navigate(`/game/play/${roomCode}`);
+    } catch (err: any) {
       console.error('Failed to start game:', err);
-      alert('Erreur lors du démarrage de la partie');
+      const errorMessage = err?.response?.data?.error || 'Erreur lors du démarrage de la partie';
+      alert(errorMessage);
     }
   };
 

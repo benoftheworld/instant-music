@@ -49,8 +49,14 @@ class GameConsumer(AsyncWebsocketConsumer):
                 await self.player_answer(data)
             elif message_type == 'start_game':
                 await self.start_game(data)
+            elif message_type == 'start_round':
+                await self.start_round(data)
+            elif message_type == 'end_round':
+                await self.end_round(data)
             elif message_type == 'next_round':
                 await self.next_round(data)
+            elif message_type == 'finish_game':
+                await self.finish_game(data)
             else:
                 await self.send(text_data=json.dumps({
                     'type': 'error',
@@ -93,32 +99,78 @@ class GameConsumer(AsyncWebsocketConsumer):
     
     async def player_answer(self, data):
         """Handle player submitting an answer."""
-        # TODO: Validate answer and calculate score
+        player_username = data.get('player')
+        answer = data.get('answer')
+        response_time = data.get('response_time', 0)
+        
+        # Broadcast that player answered (without revealing correctness yet)
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'broadcast_player_answer',
-                'player': data.get('player'),
-                'answer': data.get('answer')
+                'player': player_username,
+                'answered': True
             }
         )
     
     async def start_game(self, data):
         """Handle game start."""
+        # Get initial game data
+        game_data = await self.get_game_data()
+        
         await self.channel_layer.group_send(
             self.room_group_name,
             {
-                'type': 'broadcast_game_start'
+                'type': 'broadcast_game_start',
+                'game_data': game_data
+            }
+        )
+    
+    async def start_round(self, data):
+        """Handle round start."""
+        round_data = data.get('round_data')
+        
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'broadcast_round_start',
+                'round_data': round_data
+            }
+        )
+    
+    async def end_round(self, data):
+        """Handle round end."""
+        round_results = data.get('results')
+        
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'broadcast_round_end',
+                'results': round_results
             }
         )
     
     async def next_round(self, data):
         """Handle next round."""
+        round_data = data.get('round_data')
+        
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'broadcast_next_round',
-                'round_data': data.get('round_data')
+                'round_data': round_data
+            }
+        )
+    
+    async def finish_game(self, data):
+        """Handle game finish."""
+        results = data.get('results')
+        
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'broadcast_game_finish',
+                'results': results
             }
         )
     
@@ -132,22 +184,44 @@ class GameConsumer(AsyncWebsocketConsumer):
         }))
     
     async def broadcast_player_answer(self, event):
-        """Send player answer to WebSocket."""
+        """Send player answer notification to WebSocket."""
         await self.send(text_data=json.dumps({
             'type': 'player_answered',
             'player': event['player'],
-            'answer': event['answer']
+            'answered': event.get('answered', True)
         }))
     
     async def broadcast_game_start(self, event):
         """Send game start to WebSocket."""
         await self.send(text_data=json.dumps({
-            'type': 'game_started'
+            'type': 'game_started',
+            'game_data': event.get('game_data')
+        }))
+    
+    async def broadcast_round_start(self, event):
+        """Send round start to WebSocket."""
+        await self.send(text_data=json.dumps({
+            'type': 'round_started',
+            'round_data': event['round_data']
+        }))
+    
+    async def broadcast_round_end(self, event):
+        """Send round end with results to WebSocket."""
+        await self.send(text_data=json.dumps({
+            'type': 'round_ended',
+            'results': event['results']
         }))
     
     async def broadcast_next_round(self, event):
         """Send next round data to WebSocket."""
         await self.send(text_data=json.dumps({
-            'type': 'round_started',
+            'type': 'next_round',
             'round_data': event['round_data']
+        }))
+    
+    async def broadcast_game_finish(self, event):
+        """Send game finish with final results to WebSocket."""
+        await self.send(text_data=json.dumps({
+            'type': 'game_finished',
+            'results': event['results']
         }))
