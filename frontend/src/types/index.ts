@@ -103,3 +103,54 @@ export interface WebSocketMessage {
   type: string;
   [key: string]: any;
 }
+
+// Spotify / Playlist types
+export interface SpotifyPlaylist {
+  spotify_id: string;
+  name: string;
+  description: string;
+  image_url: string;
+  total_tracks: number;
+  owner: string;
+  external_url: string;
+}
+
+export interface SpotifyTrack {
+  spotify_id: string;
+  name: string;
+  artists: string[];
+  album: string;
+  album_image: string;
+  duration_ms: number;
+  preview_url: string | null;
+  external_url: string;
+}
+
+export interface Playlist {
+  id: number;
+  spotify_id: string;
+  name: string;
+  description: string;
+  image_url: string;
+  total_tracks: number;
+  owner: string;
+  external_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Track {
+  id: number;
+  spotify_id: string;
+  name: string;
+  artists: string[];
+  artists_display: string;
+  album: string;
+  album_image: string;
+  duration_ms: number;
+  preview_url: string | null;
+  external_url: string;
+  created_at: string;
+  updated_at: string;
+}
+

@@ -65,14 +65,31 @@ class GameConsumer(AsyncWebsocketConsumer):
     
     async def player_join(self, data):
         """Handle player joining the game."""
-        # Broadcast to room group
+        # Get updated game data
+        game_data = await self.get_game_data()
+        
+        # Broadcast to room group with updated player list
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'broadcast_player_join',
-                'player': data.get('player')
+                'player': data.get('player'),
+                'game_data': game_data
             }
         )
+    
+    @database_sync_to_async
+    def get_game_data(self):
+        """Get game data with players."""
+        from .models import Game
+        from .serializers import GameSerializer
+        
+        try:
+            game = Game.objects.get(room_code=self.room_code)
+            serializer = GameSerializer(game)
+            return serializer.data
+        except Game.DoesNotExist:
+            return None
     
     async def player_answer(self, data):
         """Handle player submitting an answer."""
@@ -110,7 +127,8 @@ class GameConsumer(AsyncWebsocketConsumer):
         """Send player join notification to WebSocket."""
         await self.send(text_data=json.dumps({
             'type': 'player_joined',
-            'player': event['player']
+            'player': event['player'],
+            'game_data': event.get('game_data')
         }))
     
     async def broadcast_player_answer(self, event):
