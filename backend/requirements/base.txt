@@ -1,0 +1,11 @@
+Django>=4.2
+djangorestframework
+psycopg2-binary
+django-environ
+channels>=4.0
+redis
+celery
+python-dotenv
+django-allauth
+djangorestframework-simplejwt
+drf-spectacular
