@@ -59,7 +59,7 @@ class Game(models.Model):
     max_players = models.IntegerField(_('nombre max de joueurs'), default=8)
     num_rounds = models.IntegerField(_('nombre de rounds'), default=10)
     playlist_id = models.CharField(
-        _('ID playlist YouTube'),
+        _('ID playlist Deezer'),
         max_length=255,
         null=True,
         blank=True
@@ -124,6 +124,12 @@ class GameRound(models.Model):
     artist_name = models.CharField(_('nom de l\'artiste'), max_length=255)
     correct_answer = models.CharField(_('bonne réponse'), max_length=255)
     options = models.JSONField(_('options'), default=list)
+    preview_url = models.URLField(
+        _('URL preview audio'),
+        max_length=500,
+        blank=True,
+        default='',
+    )
     duration = models.IntegerField(_('durée (secondes)'), default=30)
     
     started_at = models.DateTimeField(_('démarré le'), null=True, blank=True)

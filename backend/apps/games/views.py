@@ -419,11 +419,24 @@ class GameViewSet(viewsets.ModelViewSet):
         round_json = JSONRenderer().render(round_serializer.data)
         round_data = json.loads(round_json)
         
+        # Build updated player list with total scores
+        updated_players = []
+        for p in game.players.select_related('user').order_by('-score'):
+            updated_players.append({
+                'id': p.id,
+                'user': p.user.id,
+                'username': p.user.username,
+                'score': p.score,
+                'rank': p.rank,
+                'is_connected': p.is_connected,
+            })
+        
         async_to_sync(channel_layer.group_send)(
             room_group_name,
             {
                 'type': 'broadcast_next_round',
-                'round_data': round_data
+                'round_data': round_data,
+                'updated_players': updated_players,
             }
         )
         
@@ -481,7 +494,7 @@ class GameViewSet(viewsets.ModelViewSet):
         serializer = GameSerializer(games, many=True)
         return Response(serializer.data)
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[])
     def history(self, request):
         """Get game history (finished games)."""
         # Get query params for pagination
@@ -501,7 +514,7 @@ class GameViewSet(viewsets.ModelViewSet):
         serializer = GameHistorySerializer(games, many=True, context={'request': request})
         return Response(serializer.data)
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[])
     def leaderboard(self, request):
         """Get global leaderboard of top players."""
         from apps.users.models import User

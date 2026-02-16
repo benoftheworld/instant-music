@@ -12,6 +12,7 @@ interface Round {
   track_id: string;
   track_name: string;
   artist_name: string;
+  preview_url?: string;
   options: string[];
   duration: number;
   started_at: string;
@@ -160,9 +161,9 @@ export default function GamePlayPage() {
             ...data.results,
             points_earned: data.results?.player_scores?.[user?.username || '']?.points_earned ?? myPointsEarned,
           });
-          // Update players with fresh scores from backend
-          if (data.results?.updated_players && game) {
-            setGame({ ...game, players: data.results.updated_players });
+          // Update players with fresh scores from backend (functional update to avoid stale closure)
+          if (data.results?.updated_players) {
+            setGame(prev => prev ? { ...prev, players: data.results.updated_players } : prev);
           }
           break;
           
@@ -176,6 +177,10 @@ export default function GamePlayPage() {
           setShowResults(false);
           setRoundResults(null);
           setMyPointsEarned(0);
+          // Update players with fresh scores (functional update to avoid stale closure)
+          if (data.updated_players) {
+            setGame(prev => prev ? { ...prev, players: data.updated_players } : prev);
+          }
           break;
           
         case 'game_finished':

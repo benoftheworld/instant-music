@@ -87,6 +87,7 @@ export interface GameRound {
   track_id: string;
   track_name: string;
   artist_name: string;
+  preview_url?: string;
   options: string[];
   duration: number;
   started_at: string;
@@ -196,3 +197,38 @@ export interface LeaderboardEntry {
   win_rate: number;
 }
 
+// Achievement types
+export interface Achievement {
+  id: number;
+  name: string;
+  description: string;
+  icon: string | null;
+  points: number;
+  condition_type: string;
+  condition_value: number;
+  unlocked: boolean;
+  unlocked_at: string | null;
+}
+
+export interface UserAchievement {
+  id: number;
+  achievement: Achievement;
+  unlocked_at: string;
+}
+
+// Stats types
+export interface UserDetailedStats {
+  total_games_played: number;
+  total_wins: number;
+  total_points: number;
+  win_rate: number;
+  avg_score_per_game: number;
+  best_score: number;
+  total_correct_answers: number;
+  total_answers: number;
+  accuracy: number;
+  avg_response_time: number;
+  achievements_unlocked: number;
+  achievements_total: number;
+  recent_games: GameHistory[];
+}

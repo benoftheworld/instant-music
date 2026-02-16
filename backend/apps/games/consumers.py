@@ -251,10 +251,13 @@ class GameConsumer(AsyncWebsocketConsumer):
     
     async def broadcast_next_round(self, event):
         """Send next round data to WebSocket."""
-        await self.send(text_data=json.dumps({
+        message = {
             'type': 'next_round',
-            'round_data': event['round_data']
-        }))
+            'round_data': event['round_data'],
+        }
+        if 'updated_players' in event:
+            message['updated_players'] = event['updated_players']
+        await self.send(text_data=json.dumps(message))
     
     async def broadcast_game_finish(self, event):
         """Send game finish with final results to WebSocket."""

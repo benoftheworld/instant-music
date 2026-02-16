@@ -1,6 +1,6 @@
 """
 Services for game logic.
-Uses YouTube Data API for music content.
+Uses Deezer API for music content (30-second MP3 previews).
 """
 import random
 import logging
@@ -9,18 +9,19 @@ from django.utils import timezone
 from django.db import transaction
 
 from .models import Game, GamePlayer, GameRound, GameAnswer, GameStatus
-from apps.playlists.youtube_service import youtube_service, YouTubeAPIError
+from apps.playlists.deezer_service import deezer_service, DeezerAPIError
+from apps.achievements.services import achievement_service
 
 logger = logging.getLogger(__name__)
 
 
 class QuestionGeneratorService:
-    """Service to generate quiz questions from YouTube music playlists."""
+    """Service to generate quiz questions from Deezer music playlists."""
     
     QUESTION_TYPES = ['guess_title', 'guess_artist']
     
     def __init__(self):
-        self.youtube = youtube_service
+        self.deezer = deezer_service
     
     def generate_questions(
         self,
@@ -30,33 +31,33 @@ class QuestionGeneratorService:
         user=None
     ) -> List[Dict]:
         """
-        Generate quiz questions from a YouTube playlist.
+        Generate quiz questions from a Deezer playlist.
         
         Args:
-            playlist_id: YouTube playlist ID
+            playlist_id: Deezer playlist ID
             num_questions: Number of questions to generate
             question_type: Type of question ('guess_title' or 'guess_artist')
-            user: Django user (unused for YouTube, kept for interface compat)
+            user: Django user (unused, kept for interface compat)
         
         Returns:
             List of question dictionaries
         """
         try:
-            logger.info("Fetching tracks from YouTube playlist %s", playlist_id)
-            tracks = self.youtube.get_playlist_tracks(playlist_id, limit=50)
-        except YouTubeAPIError as e:
+            logger.info("Fetching tracks from Deezer playlist %s", playlist_id)
+            tracks = self.deezer.get_playlist_tracks(playlist_id, limit=50)
+        except DeezerAPIError as e:
             error_msg = str(e)
-            logger.error("Failed to get tracks from YouTube playlist %s: %s", playlist_id, error_msg)
-            raise ValueError(f"Erreur lors de l'accès à la playlist YouTube: {error_msg}")
+            logger.error("Failed to get tracks from Deezer playlist %s: %s", playlist_id, error_msg)
+            raise ValueError(f"Erreur lors de l'accès à la playlist Deezer: {error_msg}")
         
         # If playlist provides too few tracks, try a fallback search by playlist title
         if not tracks or len(tracks) < 4:
             found = len(tracks) if tracks else 0
-            logger.warning("YouTube playlist %s returned %d tracks, attempting fallback search", playlist_id, found)
+            logger.warning("Deezer playlist %s returned %d tracks, attempting fallback search", playlist_id, found)
 
             # Try to retrieve playlist metadata to use its title as a search query
             try:
-                playlist_meta = self.youtube.get_playlist(playlist_id)
+                playlist_meta = self.deezer.get_playlist(playlist_id)
                 playlist_query = None
                 if playlist_meta and playlist_meta.get('name'):
                     playlist_query = playlist_meta['name']
@@ -66,7 +67,7 @@ class QuestionGeneratorService:
             # Use playlist title or the playlist id as a fallback search query
             search_query = playlist_query or playlist_id
             try:
-                fallback_tracks = self.youtube.search_music_videos(search_query, limit=50)
+                fallback_tracks = self.deezer.search_music_videos(search_query, limit=50)
             except Exception as e:
                 logger.error("Fallback search failed for %s: %s", search_query, e)
                 fallback_tracks = []
@@ -127,7 +128,7 @@ class QuestionGeneratorService:
             'track_id': correct_track['youtube_id'],
             'track_name': correct_track['name'],
             'artist_name': ', '.join(correct_track['artists']),
-            'preview_url': correct_track.get('external_url'),
+            'preview_url': correct_track.get('preview_url'),
             'album_image': correct_track.get('album_image'),
             'question_type': 'guess_title',
             'question_text': 'Quel est le titre de ce morceau ?',
@@ -164,7 +165,7 @@ class QuestionGeneratorService:
             'track_id': correct_track['youtube_id'],
             'track_name': correct_track['name'],
             'artist_name': correct_answer,
-            'preview_url': correct_track.get('external_url'),
+            'preview_url': correct_track.get('preview_url'),
             'album_image': correct_track.get('album_image'),
             'question_type': 'guess_artist',
             'question_text': 'Qui interprète ce morceau ?',
@@ -181,7 +182,7 @@ class GameService:
     
     @transaction.atomic
     def start_game(self, game: Game) -> Tuple[Game, List[GameRound]]:
-        """Start a game and generate rounds from a YouTube playlist."""
+        """Start a game and generate rounds from a Deezer playlist."""
         if game.status != GameStatus.WAITING:
             raise ValueError("Game is not in waiting status")
         
@@ -208,6 +209,7 @@ class GameService:
                 artist_name=question['artist_name'],
                 correct_answer=question['correct_answer'],
                 options=question['options'],
+                preview_url=question.get('preview_url', ''),
                 duration=30,
             )
             rounds.append(round_obj)
@@ -250,19 +252,36 @@ class GameService:
         return round_obj
     
     def calculate_score(self, is_correct: bool, response_time: float, max_time: int = 30) -> int:
-        """Calculate points for an answer."""
+        """Calculate base points for an answer (Option C — Linear + Rank).
+        
+        Correct answer: 100 - (response_time * 3), minimum 10 points.
+        Wrong answer: 0 points.
+        Rank bonus is added separately in submit_answer().
+        """
         if not is_correct:
             return 0
-        base_points = 1000
-        time_bonus = int((1 - (response_time / max_time)) * 500)
-        time_bonus = max(0, time_bonus)
-        return base_points + time_bonus
+        base_points = max(10, 100 - int(response_time * 3))
+        return base_points
     
     @transaction.atomic
     def submit_answer(self, player: GamePlayer, round_obj: GameRound, answer: str, response_time: float) -> GameAnswer:
         """Submit and score a player's answer."""
         is_correct = answer == round_obj.correct_answer
         points = self.calculate_score(is_correct, response_time, round_obj.duration)
+        
+        # Rank bonus: +10 for 1st correct, +5 for 2nd, +2 for 3rd
+        rank_bonus = 0
+        if is_correct:
+            correct_before = GameAnswer.objects.filter(
+                round=round_obj, is_correct=True
+            ).count()
+            if correct_before == 0:
+                rank_bonus = 10
+            elif correct_before == 1:
+                rank_bonus = 5
+            elif correct_before == 2:
+                rank_bonus = 2
+            points += rank_bonus
         
         game_answer = GameAnswer.objects.create(
             round=round_obj,
@@ -285,6 +304,8 @@ class GameService:
         game.save()
         
         players = game.players.order_by('-score')
+        total_rounds = game.rounds.count()
+        
         for rank, player in enumerate(players, start=1):
             player.rank = rank
             player.save()
@@ -296,6 +317,18 @@ class GameService:
             if rank == 1:
                 user.total_wins += 1
             user.save()
+            
+            # Check for perfect game (all answers correct)
+            correct_answers = GameAnswer.objects.filter(
+                player=player,
+                round__game=game,
+                is_correct=True,
+            ).count()
+            perfect_game = total_rounds > 0 and correct_answers == total_rounds
+            
+            # Check and award achievements
+            round_data = {'perfect_game': perfect_game}
+            achievement_service.check_and_award(user, game=game, round_data=round_data)
         
         return game
 

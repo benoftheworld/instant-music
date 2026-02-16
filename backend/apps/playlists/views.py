@@ -1,5 +1,5 @@
 """
-Views for playlists app (YouTube-backed).
+Views for playlists app (Deezer-backed).
 """
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -9,11 +9,11 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from .models import Playlist, Track
 from .serializers import PlaylistSerializer, TrackSerializer, YouTubePlaylistSerializer
-from .youtube_service import youtube_service, YouTubeAPIError
+from .deezer_service import deezer_service, DeezerAPIError
 
 
 class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for playlists (YouTube-backed)."""
+    """ViewSet for playlists (Deezer-backed)."""
     queryset = Playlist.objects.all()
     serializer_class = PlaylistSerializer
     permission_classes = [IsAuthenticated]
@@ -27,7 +27,7 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['get'])
     def search(self, request):
         """
-        Search playlists on YouTube.
+        Search playlists on Deezer.
         
         Query params:
         - query: Search string (required)
@@ -47,13 +47,13 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
             limit = 20
         
         try:
-            playlists = youtube_service.search_playlists(query, limit)
+            playlists = deezer_service.search_playlists(query, limit)
             serializer = YouTubePlaylistSerializer(playlists, many=True)
             return Response({
                 'playlists': serializer.data,
-                'source': 'youtube'
+                'source': 'deezer'
             })
-        except YouTubeAPIError as e:
+        except DeezerAPIError as e:
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
@@ -64,9 +64,9 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
     )
     @action(detail=False, methods=['get'], url_path='youtube/(?P<youtube_id>[^/.]+)')
     def get_youtube_playlist(self, request, youtube_id=None):
-        """Get playlist details from YouTube by ID."""
+        """Get playlist details from Deezer by ID."""
         try:
-            playlist = youtube_service.get_playlist(youtube_id)
+            playlist = deezer_service.get_playlist(youtube_id)
             
             if not playlist:
                 return Response(
@@ -76,7 +76,7 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
             
             serializer = YouTubePlaylistSerializer(playlist)
             return Response(serializer.data)
-        except YouTubeAPIError as e:
+        except DeezerAPIError as e:
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
@@ -84,16 +84,16 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=False, methods=['get'], url_path='youtube/(?P<youtube_id>[^/.]+)/tracks')
     def get_playlist_tracks(self, request, youtube_id=None):
-        """Get tracks/videos from a YouTube playlist."""
+        """Get tracks from a Deezer playlist."""
         try:
             limit = int(request.query_params.get('limit', 50))
         except ValueError:
             limit = 50
         
         try:
-            tracks = youtube_service.get_playlist_tracks(youtube_id, limit)
+            tracks = deezer_service.get_playlist_tracks(youtube_id, limit)
             return Response(tracks)
-        except YouTubeAPIError as e:
+        except DeezerAPIError as e:
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
@@ -101,19 +101,19 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=False, methods=['get'], url_path='youtube/(?P<youtube_id>[^/.]+)/validate')
     def validate_playlist_access(self, request, youtube_id=None):
-        """Validate if a YouTube playlist is accessible."""
+        """Validate if a Deezer playlist is accessible."""
         try:
-            tracks = youtube_service.get_playlist_tracks(youtube_id, limit=5)
+            tracks = deezer_service.get_playlist_tracks(youtube_id, limit=5)
             return Response({
                 'accessible': True,
                 'track_count': len(tracks),
-                'source': 'youtube'
+                'source': 'deezer'
             })
         except Exception as e:
             return Response({
                 'accessible': False,
                 'error': str(e),
-                'source': 'youtube'
+                'source': 'deezer'
             }, status=status.HTTP_200_OK)
 
 

@@ -250,6 +250,12 @@ class YouTubeService:
             
             details = video_details.get(vid_id, {})
             duration_ms = details.get("duration_ms", 0)
+            embeddable = details.get("embeddable", True)
+            
+            # Skip non-embeddable videos (they won't play in the iframe player)
+            if not embeddable:
+                logger.debug("Skipping non-embeddable video: %s (%s)", vid_id, track_name)
+                continue
             
             tracks.append({
                 "youtube_id": vid_id,
@@ -352,7 +358,7 @@ class YouTubeService:
         for i in range(0, len(video_ids), 50):
             batch = video_ids[i:i + 50]
             params = {
-                "part": "contentDetails",
+                "part": "contentDetails,status",
                 "id": ",".join(batch),
             }
             
@@ -364,9 +370,14 @@ class YouTubeService:
             for item in data.get("items", []):
                 vid_id = item.get("id", "")
                 content = item.get("contentDetails", {})
+                status = item.get("status", {})
                 duration_iso = content.get("duration", "PT0S")
                 duration_ms = self._parse_iso_duration(duration_iso)
-                details[vid_id] = {"duration_ms": duration_ms}
+                embeddable = status.get("embeddable", True)
+                details[vid_id] = {
+                    "duration_ms": duration_ms,
+                    "embeddable": embeddable,
+                }
         
         return details
     

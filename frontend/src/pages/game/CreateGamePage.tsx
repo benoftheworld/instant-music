@@ -4,7 +4,7 @@ import { gameService } from '../../services/gameService';
 import { GameMode, YouTubePlaylist, CreateGameData } from '../../types';
 import PlaylistSelector from '../../components/playlist/PlaylistSelector';
 
-const gameModes: { value: GameMode; label: string; description: string }[] = [
+const gameModes: { value: GameMode; label: string; description: string; disabled?: boolean }[] = [
   {
     value: 'quiz_4',
     label: 'Quiz 4 Réponses',
@@ -13,12 +13,14 @@ const gameModes: { value: GameMode; label: string; description: string }[] = [
   {
     value: 'quiz_fastest',
     label: 'Quiz Le Plus Rapide',
-    description: 'Répondez le plus vite possible pour gagner des points bonus'
+    description: 'Répondez le plus vite possible pour gagner des points bonus',
+    disabled: true,
   },
   {
     value: 'karaoke',
     label: 'Karaoké',
-    description: 'Chantez et devinez les paroles des morceaux'
+    description: 'Chantez et devinez les paroles des morceaux',
+    disabled: true,
   }
 ];
 
@@ -103,17 +105,25 @@ export default function CreateGamePage() {
               {gameModes.map((mode) => (
                 <button
                   key={mode.value}
-                  onClick={() => setGameMode(mode.value)}
+                  onClick={() => !mode.disabled && setGameMode(mode.value)}
+                  disabled={mode.disabled}
                   className={`
-                    p-4 rounded-lg border-2 text-left transition-all
-                    ${gameMode === mode.value
-                      ? 'border-primary-600 bg-primary-50'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                    p-4 rounded-lg border-2 text-left transition-all relative
+                    ${mode.disabled
+                      ? 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed'
+                      : gameMode === mode.value
+                        ? 'border-primary-600 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
                     }
                   `}
                 >
                   <h3 className="font-semibold mb-2">{mode.label}</h3>
                   <p className="text-sm text-gray-600">{mode.description}</p>
+                  {mode.disabled && (
+                    <span className="absolute top-2 right-2 text-xs bg-gray-300 text-gray-600 px-2 py-0.5 rounded-full font-medium">
+                      Bientôt
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

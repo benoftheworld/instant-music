@@ -1,10 +1,10 @@
 /**
- * Default YouTube playlists for easy selection
- * Public playlists from popular YouTube music channels
+ * Default Deezer playlists for easy selection
+ * Public playlists from Deezer editors and popular curators
  */
 
 export interface DefaultPlaylist {
-  youtube_id: string;
+  youtube_id: string;  // kept for interface compat — actually Deezer playlist ID
   name: string;
   description: string;
   image_url: string;
@@ -13,91 +13,140 @@ export interface DefaultPlaylist {
 }
 
 export const DEFAULT_PLAYLISTS: DefaultPlaylist[] = [
-  // Top Charts / Hits - Using verified public playlists
+  // Top Charts / Hits
   {
-    youtube_id: 'RDCLAK5uy_kmPRjHDECCu4Q8i_E-charge',
-    name: 'Top 100 Songs 2024',
-    description: 'Les 100 chansons les plus populaires de 2024',
+    youtube_id: '1363560485',
+    name: 'Deezer Hits',
+    description: 'Les plus grands hits du moment',
     image_url: '',
-    owner: 'YouTube Music',
+    owner: 'Deezer Editors',
     category: 'Charts',
   },
   {
-    youtube_id: 'RDCLAK5uy_kLWIr9gv1XLlPbaDS965-Db4TrBoUTxQ8',
-    name: 'Top Pop Hits',
-    description: 'Les meilleurs hits pop du moment',
+    youtube_id: '53362031',
+    name: 'Les titres du moment',
+    description: 'Les titres les plus écoutés en ce moment',
     image_url: '',
-    owner: 'YouTube Music',
+    owner: 'Deezer Editors',
+    category: 'Charts',
+  },
+  // Pop
+  {
+    youtube_id: '1964085082',
+    name: 'Feel Good Pop',
+    description: 'Pop feel-good pour tous les moments',
+    image_url: '',
+    owner: 'Deezer Editors',
+    category: 'Pop',
+  },
+  {
+    youtube_id: '1282483245',
+    name: 'Pop All Stars',
+    description: 'Les meilleurs hits pop de tous les temps',
+    image_url: '',
+    owner: 'Deezer Editors',
     category: 'Pop',
   },
   // Hip-Hop / Rap
   {
-    youtube_id: 'RDCLAK5uy_n9YRyNW9FJtTCWKZUaYG9Rj_O-0rtdqSg',
-    name: 'Hip Hop Hits',
-    description: 'Les meilleurs morceaux Hip-Hop et Rap',
+    youtube_id: '3272614282',
+    name: 'Rapstars',
+    description: 'Les meilleurs morceaux rap du moment',
     image_url: '',
-    owner: 'YouTube Music',
+    owner: 'Deezer Editors',
+    category: 'Hip-Hop',
+  },
+  {
+    youtube_id: '9563400362',
+    name: 'Rapstars 2020',
+    description: 'Les hits rap des années 2020',
+    image_url: '',
+    owner: 'Deezer Editors',
     category: 'Hip-Hop',
   },
   // Electronic / Dance
   {
-    youtube_id: 'RDCLAK5uy_kK8DIZ8TiNTsRqQE0H-8y2ffJAx8VjTgY',
-    name: 'Electronic Dance Music',
+    youtube_id: '1902101402',
+    name: 'Electronic Hits',
     description: 'Les meilleurs morceaux électro et dance',
     image_url: '',
-    owner: 'YouTube Music',
+    owner: 'Deezer Editors',
+    category: 'Electronic',
+  },
+  {
+    youtube_id: '3801761042',
+    name: 'Electronic Essentials',
+    description: 'Les essentiels de la musique électronique',
+    image_url: '',
+    owner: 'Deezer Editors',
     category: 'Electronic',
   },
   // Rock
   {
-    youtube_id: 'RDCLAK5uy_n_BFjdGMJQjLKYJQmN7l8hWfP9WKXD7Zs',
-    name: 'Rock Classics',
-    description: 'Les classiques du rock',
+    youtube_id: '1306931615',
+    name: 'Rock Essentials',
+    description: 'Les 100 morceaux rock incontournables',
     image_url: '',
-    owner: 'YouTube Music',
+    owner: 'Deezer Editors',
+    category: 'Rock',
+  },
+  {
+    youtube_id: '3126664682',
+    name: 'Rock Road Trip',
+    description: 'Le meilleur du rock pour la route',
+    image_url: '',
+    owner: 'Deezer Editors',
     category: 'Rock',
   },
   // R&B
   {
-    youtube_id: 'RDCLAK5uy_l3ZfFHFGb0Nji4WiN2lNqs4FLoBc94Cxk',
-    name: 'R&B Essentials',
-    description: 'R&B contemporain et classique',
+    youtube_id: '2467857442',
+    name: '90s/00s RnB & Soul',
+    description: 'Le meilleur du R&B des années 90 et 2000',
     image_url: '',
-    owner: 'YouTube Music',
+    owner: 'Deezer',
+    category: 'R&B',
+  },
+  {
+    youtube_id: '7537654182',
+    name: 'RNB/Rap US 90s-2000s',
+    description: 'RnB et Rap US des années 90 à 2000',
+    image_url: '',
+    owner: 'Deezer',
     category: 'R&B',
   },
   // French Music
   {
-    youtube_id: 'RDCLAK5uy_mpJOF4K4iZvgX6TbPpDzxM6IfCZ-MLBE8',
-    name: 'Chanson Française',
-    description: 'Le meilleur de la chanson française',
+    youtube_id: '700895155',
+    name: 'Essentiels chanson française',
+    description: 'Les essentiels de la chanson française',
     image_url: '',
-    owner: 'YouTube Music',
+    owner: 'Deezer Editors',
     category: 'Français',
   },
   {
-    youtube_id: 'RDCLAK5uy_k6Q4jrLg3VNr5_KPToQjk_IfWWF99w3fM',
-    name: 'Rap Français',
-    description: 'Les meilleurs morceaux de rap français',
+    youtube_id: '1071669561',
+    name: 'Actu Rap FR',
+    description: 'Les dernières nouveautés du rap français',
     image_url: '',
-    owner: 'YouTube Music',
+    owner: 'Deezer Editors',
     category: 'Français',
   },
   // Decades
   {
-    youtube_id: 'RDCLAK5uy_n4UBKmikgYl8K5Lf9PKZiNVqGkz5qYXYs',
-    name: 'Hits des années 80',
+    youtube_id: '1163842311',
+    name: 'En mode 80',
     description: 'Les plus grands tubes des années 80',
     image_url: '',
-    owner: 'YouTube Music',
+    owner: 'Deezer Editors',
     category: 'Décennies',
   },
   {
-    youtube_id: 'RDCLAK5uy_mkBUUbZgmQBcqKYNP_fSCDrxvhPTgRoig',
-    name: 'Hits des années 90',
+    youtube_id: '1251125011',
+    name: 'En mode 90',
     description: 'Les plus grands tubes des années 90',
     image_url: '',
-    owner: 'YouTube Music',
+    owner: 'Deezer Editors',
     category: 'Décennies',
   },
 ];

@@ -1,35 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-/* ───────────────────── YouTube IFrame API loader ───────────────────── */
-declare global {
-  interface Window { YT: any; onYouTubeIframeAPIReady: () => void }
-}
-
-let ytApiLoaded = false;
-let ytApiReady = false;
-const ytReadyCallbacks: (() => void)[] = [];
-
-function ensureYTApi(): void {
-  if (ytApiLoaded) return;
-  ytApiLoaded = true;
-  if (window.YT?.Player) { ytApiReady = true; return; }
-  const tag = document.createElement('script');
-  tag.src = 'https://www.youtube.com/iframe_api';
-  document.head.appendChild(tag);
-  const prev = window.onYouTubeIframeAPIReady;
-  window.onYouTubeIframeAPIReady = () => {
-    ytApiReady = true;
-    prev?.();
-    ytReadyCallbacks.forEach(cb => cb());
-    ytReadyCallbacks.length = 0;
-  };
-}
-
-function onYTReady(cb: () => void) {
-  if (ytApiReady && window.YT?.Player) cb();
-  else { ytReadyCallbacks.push(cb); ensureYTApi(); }
-}
-
 /* ───────────────────── Types ───────────────────── */
 interface Round {
   id: string;
@@ -37,6 +7,7 @@ interface Round {
   track_id: string;
   track_name: string;
   artist_name: string;
+  preview_url?: string;
   options: string[];
   duration: number;
   started_at: string;
@@ -66,116 +37,88 @@ const QuizQuestion = ({
   showResults,
   roundResults,
 }: QuizQuestionProps) => {
-  const playerRef = useRef<any>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [needsPlay, setNeedsPlay] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [needsPlay, setNeedsPlay] = useState(false);
   const [playerError, setPlayerError] = useState<string | null>(null);
   const mountedRef = useRef(true);
-  // Track whether we already got a PLAYING state to avoid reacting to transient UNSTARTED
-  const hasPlayedOnceRef = useRef(false);
 
+  /* ── Calculate seek position based on round start time ── */
   const getSeekTime = useCallback(() => {
     if (!round.started_at) return 0;
-    return Math.max(0, Math.floor((Date.now() - new Date(round.started_at).getTime()) / 1000));
+    return Math.max(0, (Date.now() - new Date(round.started_at).getTime()) / 1000);
   }, [round.started_at]);
 
-  /* ── Build a fresh YT.Player ── */
-  const createPlayer = useCallback((divId: string, userGesture = false) => {
-    const seekTime = getSeekTime();
-    return new window.YT.Player(divId, {
-      width: '320',
-      height: '180',
-      videoId: round.track_id,
-      playerVars: {
-        autoplay: userGesture ? 1 : 1,
-        controls: 0,
-        disablekb: 1,
-        fs: 0,
-        modestbranding: 1,
-        rel: 0,
-        start: seekTime,
-        playsinline: 1,
-        origin: window.location.origin,
-      },
-      events: {
-        onReady: (e: any) => {
-          if (!mountedRef.current) return;
-          playerRef.current = e.target;
-          e.target.setVolume(100);
-          e.target.unMute();
-          e.target.seekTo(getSeekTime(), true);
-          e.target.playVideo();
-        },
-        onStateChange: (e: any) => {
-          if (!mountedRef.current) return;
-          const st = e.data;
-          if (st === window.YT.PlayerState.PLAYING) {
-            hasPlayedOnceRef.current = true;
-            setIsPlaying(true);
-            setNeedsPlay(false);
-            setPlayerError(null);
-          } else if (st === window.YT.PlayerState.PAUSED && hasPlayedOnceRef.current) {
-            // Browser paused it (visibility change, etc.)
-            setNeedsPlay(true);
-            setIsPlaying(false);
-          }
-          // Ignore UNSTARTED / CUED — these are transient states before autoplay kicks in
-        },
-        onError: (e: any) => {
-          if (!mountedRef.current) return;
-          const code = e.data;
-          const msgs: Record<number, string> = {
-            2: 'ID vidéo invalide',
-            5: 'Erreur HTML5 player',
-            100: 'Vidéo introuvable ou supprimée',
-            101: 'Lecture intégrée non autorisée',
-            150: 'Lecture intégrée non autorisée',
-          };
-          setPlayerError(msgs[code] || `Erreur YouTube (${code})`);
-          setNeedsPlay(false);
-          setIsPlaying(false);
-        },
-      },
-    });
-  }, [round.track_id, getSeekTime]);
-
-  /* ── Main effect: create player on new round / destroy on results ── */
+  /* ── Main effect: create/destroy audio on round change ── */
   useEffect(() => {
-    // Reset state for new round
     setIsPlaying(false);
     setNeedsPlay(false);
     setPlayerError(null);
-    hasPlayedOnceRef.current = false;
+    mountedRef.current = true;
 
+    // Stop and fully release previous audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.removeAttribute('src');
+      audioRef.current.load(); // reset internal state
+      audioRef.current = null;
+    }
+
+    // Stop audio when showing results
     if (showResults) {
-      if (playerRef.current) {
-        try { playerRef.current.destroy(); } catch (_) { /* */ }
-        playerRef.current = null;
-      }
       return;
     }
 
-    mountedRef.current = true;
-    let ytPlayer: any = null;
+    const previewUrl = round.preview_url;
+    if (!previewUrl) {
+      setPlayerError('Aucun aperçu audio disponible pour ce morceau');
+      return;
+    }
 
-    onYTReady(() => {
-      if (!mountedRef.current || !containerRef.current) return;
+    // Create HTML5 Audio element
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.volume = 1.0;
+    // Do NOT set crossOrigin — it's not needed for playback and can cause
+    // decoding artefacts / CORS preflight issues with some CDNs.
+    audio.src = previewUrl;
+    audioRef.current = audio;
 
-      // Destroy previous player
-      if (playerRef.current) {
-        try { playerRef.current.destroy(); } catch (_) { /* */ }
-        playerRef.current = null;
+    const onCanPlay = () => {
+      if (!mountedRef.current) return;
+      // Seek to elapsed time if round already started
+      const seekTime = getSeekTime();
+      if (seekTime > 0 && seekTime < 30) {
+        try { audio.currentTime = seekTime; } catch (_) { /* ignore */ }
       }
+      audio.play()
+        .then(() => {
+          if (mountedRef.current) {
+            setIsPlaying(true);
+            setNeedsPlay(false);
+          }
+        })
+        .catch(() => {
+          // Autoplay blocked — show play button
+          if (mountedRef.current) {
+            setNeedsPlay(true);
+          }
+        });
+    };
 
-      // Fresh div
-      containerRef.current.innerHTML = '';
-      const div = document.createElement('div');
-      div.id = `yt-${round.id}-${Date.now()}`;
-      containerRef.current.appendChild(div);
+    const onError = () => {
+      if (!mountedRef.current) return;
+      setPlayerError('Impossible de charger l\'aperçu audio');
+      setIsPlaying(false);
+    };
 
-      ytPlayer = createPlayer(div.id);
-    });
+    const onEnded = () => {
+      if (mountedRef.current) setIsPlaying(false);
+    };
+
+    audio.addEventListener('canplaythrough', onCanPlay, { once: true });
+    audio.addEventListener('error', onError);
+    audio.addEventListener('ended', onEnded);
 
     // Fallback: show play button after 3s if not playing
     const fallback = setTimeout(() => {
@@ -187,37 +130,68 @@ const QuizQuestion = ({
     return () => {
       mountedRef.current = false;
       clearTimeout(fallback);
-      if (ytPlayer?.destroy) {
-        try { ytPlayer.destroy(); } catch (_) { /* */ }
-      }
-      playerRef.current = null;
+      audio.removeEventListener('canplaythrough', onCanPlay);
+      audio.removeEventListener('error', onError);
+      audio.removeEventListener('ended', onEnded);
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load(); // fully release resources
+      audioRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [round.track_id, round.id, showResults]);
+  }, [round.track_id, round.id, showResults, round.preview_url]);
 
   /* ── Manual play button (user gesture → no autoplay restriction) ── */
   const handlePlay = () => {
     setPlayerError(null);
 
-    // If player exists, just try playing
-    if (playerRef.current) {
-      try {
-        playerRef.current.setVolume(100);
-        playerRef.current.unMute();
-        playerRef.current.seekTo(getSeekTime(), true);
-        playerRef.current.playVideo();
-        return;
-      } catch (_) { /* recreate below */ }
+    if (audioRef.current) {
+      const seekTime = getSeekTime();
+      if (seekTime > 0 && seekTime < 30) {
+        try { audioRef.current.currentTime = seekTime; } catch (_) { /* */ }
+      }
+      audioRef.current.play()
+        .then(() => {
+          setIsPlaying(true);
+          setNeedsPlay(false);
+        })
+        .catch(() => {
+          setPlayerError('Impossible de lancer la lecture');
+        });
+      return;
     }
 
-    // Recreate player (user gesture context)
-    if (containerRef.current && window.YT?.Player) {
-      containerRef.current.innerHTML = '';
-      const div = document.createElement('div');
-      div.id = `yt-retry-${round.id}-${Date.now()}`;
-      containerRef.current.appendChild(div);
-      createPlayer(div.id, true);
+    // Recreate audio if ref was lost
+    const previewUrl = round.preview_url;
+    if (!previewUrl) {
+      setPlayerError('Aucun aperçu audio disponible');
+      return;
     }
+
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.volume = 1.0;
+    audio.src = previewUrl;
+    audioRef.current = audio;
+
+    const seekTime = getSeekTime();
+    audio.addEventListener('canplaythrough', () => {
+      if (seekTime > 0 && seekTime < 30) {
+        try { audio.currentTime = seekTime; } catch (_) { /* */ }
+      }
+      audio.play()
+        .then(() => {
+          setIsPlaying(true);
+          setNeedsPlay(false);
+        })
+        .catch(() => {
+          setPlayerError('Impossible de lancer la lecture');
+        });
+    }, { once: true });
+    audio.addEventListener('error', () => {
+      setPlayerError('Impossible de charger l\'aperçu audio');
+    }, { once: true });
+    audio.addEventListener('ended', () => setIsPlaying(false), { once: true });
   };
 
   /* ── Option helpers ── */
@@ -261,10 +235,9 @@ const QuizQuestion = ({
               <div className="text-white text-center">
                 <div className="text-4xl mb-2">⚠️</div>
                 <p className="text-sm mb-1">{playerError}</p>
-                <p className="text-xs opacity-70 mb-3">Vidéo : {round.track_id}</p>
                 <button
                   onClick={handlePlay}
-                  className="px-6 py-2 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition font-bold shadow"
+                  className="mt-3 px-6 py-2 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition font-bold shadow"
                 >
                   🔄 Réessayer
                 </button>
@@ -291,34 +264,17 @@ const QuizQuestion = ({
               </div>
             )}
           </div>
-          {/* Off-screen container for YT player (audio only) */}
-          <div
-            ref={containerRef}
-            style={{
-              position: 'fixed',
-              left: '-9999px',
-              top: 0,
-              width: '320px',
-              height: '180px',
-              overflow: 'hidden',
-              opacity: 0,
-              pointerEvents: 'none',
-            }}
-          />
         </div>
       )}
 
-      {/* ── Video player (results phase) ── */}
+      {/* ── Track info (results phase) ── */}
       {showResults && (
-        <div className="mb-6 rounded-lg overflow-hidden shadow-lg">
-          <iframe
-            width="100%"
-            height="315"
-            src={`https://www.youtube.com/embed/${round.track_id}?autoplay=0&controls=1&modestbranding=1&rel=0`}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="w-full"
-          />
+        <div className="mb-6 rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-purple-600 to-blue-600 p-6">
+          <div className="text-white text-center">
+            <div className="text-4xl mb-2">🎶</div>
+            <p className="text-lg font-bold">{round.track_name}</p>
+            <p className="text-sm opacity-80">{round.artist_name}</p>
+          </div>
         </div>
       )}
 

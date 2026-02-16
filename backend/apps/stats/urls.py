@@ -2,7 +2,8 @@
 URL configuration for stats app.
 """
 from django.urls import path
+from . import views
 
 urlpatterns = [
-    # TODO: Add stats endpoints
+    path('me/', views.UserDetailedStatsView.as_view(), name='user-detailed-stats'),
 ]

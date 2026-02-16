@@ -1,6 +1,6 @@
 /**
  * PlaylistSelector component
- * Search and select YouTube playlists
+ * Search and select Deezer playlists
  */
 import { useState } from 'react';
 import { YouTubePlaylist } from '../../types';
@@ -33,7 +33,7 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
       image_url: p.image_url,
       total_tracks: 50,
       owner: p.owner,
-      external_url: `https://www.youtube.com/playlist?list=${p.youtube_id}`,
+      external_url: `https://www.deezer.com/playlist/${p.youtube_id}`,
     }));
   };
 
@@ -77,15 +77,13 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
   return (
     <div className="space-y-4">
       {/* Info Banner */}
-      <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
+      <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
         <div className="flex items-start gap-2">
-          <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0C.488 3.45.029 5.804 0 12c.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0C23.512 20.55 23.971 18.196 24 12c-.029-6.185-.484-8.549-4.385-8.816zM9 16V8l8 4-8 4z"/>
-          </svg>
+          <span className="text-2xl flex-shrink-0 mt-0.5">🎵</span>
           <div>
-            <p className="text-red-900 font-medium">🎵 Playlists YouTube recommandées</p>
-            <p className="text-red-700 mt-1">
-              Sélectionnez une playlist ci-dessous ou recherchez-en une sur YouTube.
+            <p className="text-green-900 font-medium">🎶 Playlists Deezer recommandées</p>
+            <p className="text-green-700 mt-1">
+              Sélectionnez une playlist ci-dessous ou recherchez-en une sur Deezer.
             </p>
           </div>
         </div>
@@ -130,7 +128,7 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher une playlist YouTube..."
+              placeholder="Rechercher une playlist Deezer..."
               className="input flex-1"
             />
             <button
@@ -161,7 +159,7 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
 
           {/* Info for search */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-            💡 Recherchez des playlists YouTube publiques. Les playlists privées ne sont pas accessibles.
+            💡 Recherchez des playlists Deezer publiques. Les playlists privées ne sont pas accessibles.
           </div>
         </div>
       )}
