@@ -126,8 +126,8 @@ export default function GameLobbyPage() {
       return;
     }
 
-    // Check if playlist is selected (for quiz modes)
-    if (game.mode !== 'karaoke' && !selectedPlaylist && !game.playlist_id) {
+    // Check if playlist is selected (required for all modes)
+    if (!selectedPlaylist && !game.playlist_id) {
       setStartError('Veuillez sélectionner une playlist avant de démarrer');
       setShowPlaylistSelector(true);
       setStartingGame(false);

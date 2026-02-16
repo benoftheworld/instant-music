@@ -6,10 +6,6 @@ import { achievementService } from '@/services/achievementService';
 import { statsService } from '@/services/achievementService';
 import type { Achievement, UserDetailedStats } from '@/types';
 
-interface ProfileData {
-  avatar: string | null;
-}
-
 interface PasswordData {
   old_password: string;
   new_password: string;
@@ -19,10 +15,6 @@ interface PasswordData {
 export default function ProfilePage() {
   const user = useAuthStore((state) => state.user);
   const updateUser = useAuthStore((state) => state.updateUser);
-
-  const [profileData, setProfileData] = useState<ProfileData>({
-    avatar: user?.avatar || null,
-  });
 
   const [passwordData, setPasswordData] = useState<PasswordData>({
     old_password: '',
@@ -42,9 +34,6 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      setProfileData({
-        avatar: user.avatar || null,
-      });
       setAvatarPreview(getMediaUrl(user.avatar) || null);
     }
   }, [user]);

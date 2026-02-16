@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getMediaUrl } from '@/services/api';
 import { statsService } from '@/services/achievementService';
-import { useAuthStore } from '@/store/authStore';
 import { LEADERBOARD_TABS } from '@/constants/gameModes';
 import type { LeaderboardEntry, TeamLeaderboardEntry, GameMode } from '@/types';
 import { Link } from 'react-router-dom';
@@ -9,7 +8,6 @@ import { Link } from 'react-router-dom';
 type LeaderboardTab = GameMode | 'general' | 'teams';
 
 export default function LeaderboardPage() {
-  const user = useAuthStore((state) => state.user);
   const [players, setPlayers] = useState<LeaderboardEntry[]>([]);
   const [teams, setTeams] = useState<TeamLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);

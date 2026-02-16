@@ -3,27 +3,7 @@
  * Replaces Spotify service
  */
 import { api } from './api';
-
-export interface YouTubePlaylist {
-  youtube_id: string;
-  name: string;
-  description: string;
-  image_url: string;
-  total_tracks?: number;
-  owner: string;
-  external_url: string;
-}
-
-export interface YouTubeTrack {
-  youtube_id: string;
-  name: string;
-  artists: string[];
-  album: string;
-  album_image: string;
-  duration_ms: number;
-  preview_url: string | null;
-  external_url: string;
-}
+import type { YouTubePlaylist, YouTubeTrack } from '@/types';
 
 class YouTubeService {
   /**

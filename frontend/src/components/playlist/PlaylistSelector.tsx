@@ -70,10 +70,6 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
     handleSearch();
   };
 
-  const handleSelectPlaylist = (playlist: YouTubePlaylist) => {
-    onSelectPlaylist(playlist);
-  };
-
   return (
     <div className="space-y-4">
       {/* Info Banner */}
