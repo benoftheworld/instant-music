@@ -70,7 +70,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             }))
     
     async def player_join(self, data):
-        """Handle player joining the game."""
+        """Handle player joining the game (legacy WS message - prefer API call)."""
         # Get updated game data
         game_data = await self.get_game_data()
         
@@ -88,12 +88,49 @@ class GameConsumer(AsyncWebsocketConsumer):
     def get_game_data(self):
         """Get game data with players."""
         from .models import Game
-        from .serializers import GameSerializer
+        from .serializers import GameSerializer, GamePlayerSerializer
+        from django.conf import settings
         
         try:
             game = Game.objects.get(room_code=self.room_code)
-            serializer = GameSerializer(game)
-            return serializer.data
+            
+            # Build game data manually to include proper avatar URLs
+            players_data = []
+            for player in game.players.select_related('user').all():
+                avatar_url = None
+                if player.user.avatar:
+                    # Build absolute URL for avatar
+                    avatar_url = f"http://localhost:8000{player.user.avatar.url}"
+                
+                players_data.append({
+                    'id': player.id,
+                    'user': player.user.id,
+                    'username': player.user.username,
+                    'avatar': avatar_url,
+                    'score': player.score,
+                    'rank': player.rank,
+                    'is_connected': player.is_connected,
+                    'joined_at': player.joined_at.isoformat()
+                })
+            
+            game_data = {
+                'id': str(game.id),
+                'room_code': game.room_code,
+                'host': game.host.id,
+                'host_username': game.host.username,
+                'mode': game.mode,
+                'status': game.status,
+                'max_players': game.max_players,
+                'playlist_id': game.playlist_id,
+                'is_online': game.is_online,
+                'players': players_data,
+                'player_count': len(players_data),
+                'created_at': game.created_at.isoformat(),
+                'started_at': game.started_at.isoformat() if game.started_at else None,
+                'finished_at': game.finished_at.isoformat() if game.finished_at else None,
+            }
+            
+            return game_data
         except Game.DoesNotExist:
             return None
     

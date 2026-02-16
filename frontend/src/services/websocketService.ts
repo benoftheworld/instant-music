@@ -16,19 +16,31 @@ export class WebSocketService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+  private intentionalDisconnect = false;
+  private connectId = 0; // Track connect generation to ignore stale callbacks
 
   getRoomCode(): string | null {
     return this.roomCode;
   }
 
   connect(roomCode: string): Promise<void> {
+    // Clean up any existing connection first
+    this._cleanupSocket();
+
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
+    this.roomCode = roomCode;
+    this.reconnectAttempts = 0;
+    this.intentionalDisconnect = false;
+    const currentConnectId = ++this.connectId;
+
+    const url = `${WS_BASE_URL}/ws/game/${roomCode}/`;
+    console.log('Connecting to WebSocket:', url);
+
     return new Promise((resolve, reject) => {
-      this.roomCode = roomCode;
-      this.reconnectAttempts = 0;
-
-      const url = `${WS_BASE_URL}/ws/game/${roomCode}/`;
-      console.log('Connecting to WebSocket:', url);
-
       try {
         this.socket = new WebSocket(url);
       } catch (error) {
@@ -37,28 +49,56 @@ export class WebSocketService {
         return;
       }
 
+      let settled = false;
+
       this.socket.onopen = () => {
+        // Ignore if a newer connect() call has taken over
+        if (currentConnectId !== this.connectId) return;
+
         console.log('WebSocket connected to room:', roomCode);
         this.reconnectAttempts = 0;
+        settled = true;
         resolve();
       };
 
-      this.socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        reject(error);
+      this.socket.onerror = () => {
+        // onerror is always followed by onclose — let onclose handle rejection.
+        // Only log if this wasn't an intentional disconnect.
+        if (!this.intentionalDisconnect && currentConnectId === this.connectId) {
+          console.warn('WebSocket connection error (will retry via onclose)');
+        }
       };
 
       this.socket.onclose = (event) => {
-        console.log(`WebSocket closed (code: ${event.code}, reason: ${event.reason})`);
+        // Ignore if a newer connect() call has taken over
+        if (currentConnectId !== this.connectId) return;
+
+        console.log(`WebSocket closed (code: ${event.code}, reason: ${event.reason || 'none'})`);
         this._emitEvent('disconnect', { code: event.code, reason: event.reason });
-        
-        // Auto-reconnect if not intentionally closed
-        if (event.code !== 1000 && this.roomCode) {
+
+        if (!settled) {
+          settled = true;
+          // Connection never opened — reject the promise only if not intentionally disconnected
+          if (this.intentionalDisconnect) {
+            // Resolve silently — disconnect() was called, not a real error
+            resolve();
+          } else {
+            // Actual connection failure — attempt reconnect instead of hard-failing
+            this._attemptReconnect();
+            resolve(); // Don't reject — reconnect will handle it
+          }
+          return;
+        }
+
+        // Connection was open and then dropped — auto-reconnect if appropriate
+        if (!this.intentionalDisconnect && this.roomCode) {
           this._attemptReconnect();
         }
       };
 
       this.socket.onmessage = (event) => {
+        if (currentConnectId !== this.connectId) return;
+
         try {
           const data = JSON.parse(event.data) as WebSocketMessage;
           
@@ -76,9 +116,25 @@ export class WebSocketService {
     });
   }
 
+  private _cleanupSocket() {
+    if (this.socket) {
+      // Detach handlers to prevent ghost events from old sockets
+      this.socket.onopen = null;
+      this.socket.onerror = null;
+      this.socket.onclose = null;
+      this.socket.onmessage = null;
+
+      if (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING) {
+        this.socket.close(1000, 'Cleanup');
+      }
+      this.socket = null;
+    }
+  }
+
   private _attemptReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.log('Max reconnect attempts reached');
+      this._emitEvent('reconnect_failed', {});
       return;
     }
 
@@ -96,18 +152,16 @@ export class WebSocketService {
   }
 
   disconnect(): void {
+    this.intentionalDisconnect = true;
+    this.connectId++; // Invalidate any pending connect callbacks
+
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
 
     this.roomCode = null;
-
-    if (this.socket) {
-      this.socket.close(1000, 'Client disconnect');
-      this.socket = null;
-    }
-
+    this._cleanupSocket();
     this.listeners.clear();
   }
 
@@ -115,7 +169,7 @@ export class WebSocketService {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify(message));
     } else {
-      console.error('WebSocket is not connected (state:', this.socket?.readyState, ')');
+      console.warn('WebSocket is not connected (state:', this.socket?.readyState ?? 'null', ')');
     }
   }
 

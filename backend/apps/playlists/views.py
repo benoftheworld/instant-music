@@ -40,6 +40,7 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
         Query params:
         - query: Search string (required)
         - limit: Max results (optional, default: 20)
+        - public_only: Only show public playlists (optional, default: false)
         """
         query = request.query_params.get('query', '')
         
@@ -54,12 +55,16 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
         except ValueError:
             limit = 20
         
+        # Check if public_only flag is set
+        public_only = request.query_params.get('public_only', 'false').lower() == 'true'
+        
         try:
             # Use hybrid service with current user (OAuth if available)
             playlists = hybrid_spotify_service.search_playlists(
                 query, 
                 limit, 
-                user=request.user if request.user.is_authenticated else None
+                user=request.user if request.user.is_authenticated else None,
+                public_only=public_only
             )
             
             # Add metadata about which mode is being used
@@ -69,7 +74,8 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({
                 'playlists': serializer.data,
                 'using_oauth': using_oauth,
-                'mode': 'oauth' if using_oauth else 'client_credentials'
+                'mode': 'oauth' if using_oauth else 'client_credentials',
+                'public_only': public_only
             })
         
         except SpotifyAPIError as e:

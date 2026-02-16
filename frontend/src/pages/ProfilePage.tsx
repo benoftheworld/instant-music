@@ -4,8 +4,6 @@ import SpotifyConnection from '@/components/spotify/SpotifyConnection';
 import { api } from '@/services/api';
 
 interface ProfileData {
-  first_name: string;
-  last_name: string;
   bio: string;
   avatar: string | null;
 }
@@ -21,8 +19,6 @@ export default function ProfilePage() {
   const updateUser = useAuthStore((state) => state.updateUser);
 
   const [profileData, setProfileData] = useState<ProfileData>({
-    first_name: user?.first_name || '',
-    last_name: user?.last_name || '',
     bio: user?.bio || '',
     avatar: user?.avatar || null,
   });
@@ -43,8 +39,6 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setProfileData({
-        first_name: user.first_name || '',
-        last_name: user.last_name || '',
         bio: user.bio || '',
         avatar: user.avatar || null,
       });
@@ -71,8 +65,6 @@ export default function ProfilePage() {
 
     try {
       const formData = new FormData();
-      formData.append('first_name', profileData.first_name);
-      formData.append('last_name', profileData.last_name);
       formData.append('bio', profileData.bio);
       
       if (avatarFile) {
@@ -250,34 +242,6 @@ export default function ProfilePage() {
                   value={user.email}
                   disabled
                   className="input bg-gray-100 cursor-not-allowed"
-                />
-              </div>
-
-              {/* First Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Prénom
-                </label>
-                <input
-                  type="text"
-                  value={profileData.first_name}
-                  onChange={(e) => setProfileData({ ...profileData, first_name: e.target.value })}
-                  className="input"
-                  placeholder="Votre prénom"
-                />
-              </div>
-
-              {/* Last Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nom
-                </label>
-                <input
-                  type="text"
-                  value={profileData.last_name}
-                  onChange={(e) => setProfileData({ ...profileData, last_name: e.target.value })}
-                  className="input"
-                  placeholder="Votre nom"
                 />
               </div>
 

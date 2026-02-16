@@ -97,14 +97,18 @@ class SpotifyAuthService {
    */
   async getStatus(): Promise<SpotifyTokenInfo | null> {
     try {
-      const response = await api.get<SpotifyTokenInfo>('/playlists/spotify/status/');
-      return response.data;
-    } catch (error: unknown) {
-      const err = error as { response?: { status?: number } };
-      if (err.response?.status === 404) {
-        return null; // Not connected
+      const response = await api.get<SpotifyTokenInfo | { connected: false }>('/playlists/spotify/status/');
+      const data = response.data;
+      
+      // Check if connected
+      if ('connected' in data && data.connected === false) {
+        return null;
       }
-      throw error;
+      
+      return data as SpotifyTokenInfo;
+    } catch (error) {
+      console.error('Failed to get Spotify status:', error);
+      return null;
     }
   }
 

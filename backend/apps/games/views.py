@@ -5,18 +5,19 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import get_object_or_404
-from django.utils import timezone
+from django.db.models import Sum
 import random
 import string
 
-from .models import Game, GamePlayer, GameRound, GameAnswer
+from .models import Game, GamePlayer, GameAnswer
 from .serializers import (
     GameSerializer,
     CreateGameSerializer,
     GamePlayerSerializer,
     GameRoundSerializer,
     GameAnswerSerializer,
+    GameHistorySerializer,
+    LeaderboardSerializer,
 )
 from .services import game_service
 
@@ -98,8 +99,30 @@ class GameViewSet(viewsets.ModelViewSet):
             user=request.user
         )
         
+        # Notify all players via WebSocket
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        
+        channel_layer = get_channel_layer()
+        room_group_name = f'game_{room_code}'
+        
+        # Get updated game data
+        game.refresh_from_db()
+        game_serializer = GameSerializer(game, context={'request': request})
+        player_serializer = GamePlayerSerializer(player, context={'request': request})
+        
+        # Broadcast player join to all clients in the room
+        async_to_sync(channel_layer.group_send)(
+            room_group_name,
+            {
+                'type': 'broadcast_player_join',
+                'player': player_serializer.data,
+                'game_data': game_serializer.data
+            }
+        )
+        
         return Response(
-            GamePlayerSerializer(player).data,
+            player_serializer.data,
             status=status.HTTP_201_CREATED
         )
     
@@ -139,9 +162,20 @@ class GameViewSet(viewsets.ModelViewSet):
                 'first_round': GameRoundSerializer(rounds[0]).data if rounds else None
             }, status=status.HTTP_200_OK)
         except ValueError as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to start game {room_code}: {e}")
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Unexpected error starting game {room_code}: {e}")
+            return Response(
+                {'error': f'Erreur inattendue: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
     @action(detail=True, methods=['get'], url_path='current-round')
@@ -294,4 +328,82 @@ class GameViewSet(viewsets.ModelViewSet):
             is_online=True
         )
         serializer = GameSerializer(games, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def history(self, request):
+        """Get game history (finished games)."""
+        # Get query params for pagination
+        limit = request.query_params.get('limit', None)
+        
+        # Get finished games ordered by finished date
+        games = Game.objects.filter(
+            status='finished'
+        ).select_related('host').prefetch_related('players__user').order_by('-finished_at')
+        
+        if limit:
+            try:
+                games = games[:int(limit)]
+            except ValueError:
+                pass
+        
+        serializer = GameHistorySerializer(games, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def leaderboard(self, request):
+        """Get global leaderboard of top players."""
+        from apps.users.models import User
+        
+        # Get query params
+        limit = request.query_params.get('limit', 10)
+        
+        try:
+            limit = int(limit)
+        except ValueError:
+            limit = 10
+        
+        # Calculate stats for each user who played games
+        leaderboard_data = []
+        users = User.objects.filter(
+            game_participations__isnull=False
+        ).distinct()
+        
+        for user in users:
+            # Get all game participations
+            participations = GamePlayer.objects.filter(
+                user=user,
+                game__status='finished'
+            )
+            
+            total_games = participations.count()
+            if total_games == 0:
+                continue
+            
+            total_points = participations.aggregate(
+                total=Sum('score')
+            )['total'] or 0
+            
+            # Count wins (rank = 1)
+            total_wins = participations.filter(rank=1).count()
+            
+            win_rate = (total_wins / total_games * 100) if total_games > 0 else 0
+            
+            leaderboard_data.append({
+                'user_id': user.id,
+                'username': user.username,
+                'avatar': user.avatar.url if user.avatar else None,
+                'total_games': total_games,
+                'total_wins': total_wins,
+                'total_points': total_points,
+                'win_rate': round(win_rate, 1)
+            })
+        
+        # Sort by total points
+        leaderboard_data.sort(key=lambda x: x['total_points'], reverse=True)
+        
+        # Limit results
+        leaderboard_data = leaderboard_data[:limit]
+        
+        serializer = LeaderboardSerializer(leaderboard_data, many=True)
         return Response(serializer.data)

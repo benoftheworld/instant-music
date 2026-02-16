@@ -35,7 +35,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def me(self, request):
         """Get or update current user profile."""
         if request.method == 'GET':
-            serializer = UserSerializer(request.user)
+            serializer = UserSerializer(request.user, context={'request': request})
             return Response(serializer.data)
         
         elif request.method == 'PATCH':
@@ -46,7 +46,7 @@ class UserViewSet(viewsets.ModelViewSet):
             )
             if serializer.is_valid():
                 serializer.save()
-                return Response(UserSerializer(request.user).data)
+                return Response(UserSerializer(request.user, context={'request': request}).data)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['post'])

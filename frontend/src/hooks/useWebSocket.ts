@@ -1,14 +1,21 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { wsService } from '@/services/websocketService';
 import type { WebSocketMessage } from '@/types';
 
 export const useWebSocket = (roomCode: string | undefined) => {
+  const [connected, setConnected] = useState(false);
+  const mountedRef = useRef(true);
+
   useEffect(() => {
+    mountedRef.current = true;
     if (!roomCode) return;
 
     const connect = async () => {
       try {
         await wsService.connect(roomCode);
+        if (mountedRef.current) {
+          setConnected(true);
+        }
       } catch (error) {
         console.error('Failed to connect to WebSocket:', error);
       }
@@ -17,6 +24,8 @@ export const useWebSocket = (roomCode: string | undefined) => {
     connect();
 
     return () => {
+      mountedRef.current = false;
+      setConnected(false);
       wsService.disconnect();
     };
   }, [roomCode]);
@@ -33,6 +42,6 @@ export const useWebSocket = (roomCode: string | undefined) => {
   return {
     sendMessage,
     onMessage,
-    isConnected: wsService.isConnected(),
+    isConnected: connected,
   };
 };

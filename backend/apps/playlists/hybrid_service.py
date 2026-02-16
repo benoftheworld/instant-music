@@ -27,6 +27,7 @@ class HybridSpotifyService:
     def _get_service_for_user(self, user):
         """
         Determine which service to use for the given user.
+        Automatically refreshes expiring tokens.
         
         Returns:
             tuple: (service, use_oauth: bool)
@@ -34,7 +35,18 @@ class HybridSpotifyService:
         if user and user.is_authenticated:
             try:
                 token = SpotifyToken.objects.get(user=user)
-                if not token.is_expired():
+                # Auto-refresh if expiring soon
+                if token.is_expiring_soon(minutes=5):
+                    logger.info(f"Token expiring soon for {user.username}, refreshing...")
+                    try:
+                        new_token_data = self.oauth_service.refresh_access_token(token.refresh_token)
+                        self.oauth_service.save_token_for_user(user, new_token_data)
+                        logger.info(f"Using OAuth for user {user.username} (refreshed)")
+                        return self.oauth_service, True
+                    except Exception as e:
+                        logger.warning(f"Token refresh failed for {user.username}: {e}")
+                        # Fall through to client credentials
+                elif not token.is_expired():
                     logger.info(f"Using OAuth for user {user.username}")
                     return self.oauth_service, True
             except SpotifyToken.DoesNotExist:
@@ -43,7 +55,7 @@ class HybridSpotifyService:
         logger.info("Using Client Credentials (fallback)")
         return self.client_service, False
     
-    def search_playlists(self, query: str, limit: int = 20, user=None) -> List[Dict]:
+    def search_playlists(self, query: str, limit: int = 20, user=None, public_only: bool = False) -> List[Dict]:
         """
         Search for playlists.
         
@@ -51,6 +63,7 @@ class HybridSpotifyService:
             query: Search query
             limit: Max results
             user: Django user (optional, for OAuth)
+            public_only: If True, filter to only show public playlists
         
         Returns:
             List of playlists
@@ -67,7 +80,6 @@ class HybridSpotifyService:
                         "q": query,
                         "type": "playlist",
                         "limit": min(limit, 50),
-                        "market": "from_token"  # Use user's market from OAuth token
                     }
                 )
                 
@@ -79,6 +91,10 @@ class HybridSpotifyService:
                     if not playlist or not isinstance(playlist, dict):
                         continue
                     
+                    # Filter for public playlists only if requested
+                    if public_only and not playlist.get("public", False):
+                        continue
+                    
                     try:
                         formatted.append({
                             "spotify_id": playlist["id"],
@@ -87,7 +103,8 @@ class HybridSpotifyService:
                             "image_url": playlist["images"][0]["url"] if playlist.get("images") else "",
                             "total_tracks": playlist.get("tracks", {}).get("total", 0),
                             "owner": playlist.get("owner", {}).get("display_name", "Unknown"),
-                            "external_url": playlist.get("external_urls", {}).get("spotify", "")
+                            "external_url": playlist.get("external_urls", {}).get("spotify", ""),
+                            "public": playlist.get("public", False)
                         })
                     except (KeyError, IndexError, TypeError) as e:
                         logger.warning(f"Skipping malformed playlist: {e}")
@@ -222,34 +239,29 @@ class HybridSpotifyService:
         
         This is a fallback when direct playlist track access is blocked (403).
         Works by extracting keywords from the playlist name and searching for tracks.
+        Each query tries OAuth first, then falls back to Client Credentials.
         """
+        # Get the service to use (for search fallback)
         service, use_oauth = self._get_service_for_user(user)
         
-        # First, get playlist info to extract name/description
+        # Get playlist info using the method with proper fallback
         playlist_name = ""
         playlist_desc = ""
         
         try:
-            if use_oauth:
-                playlist = service.make_authenticated_request(
-                    user=user,
-                    endpoint=f"playlists/{playlist_id}"
-                )
-            else:
-                playlist = self.client_service.get_playlist(playlist_id)
-            
-            if isinstance(playlist, dict):
+            playlist = self.get_playlist(playlist_id, user)
+            if playlist and isinstance(playlist, dict):
                 playlist_name = playlist.get("name", "")
                 playlist_desc = playlist.get("description", "")
         except Exception as e:
-            logger.warning(f"Could not get playlist info for {playlist_id}: {e}")
+            logger.warning("Could not get playlist info for %s: %s", playlist_id, e)
         
         if not playlist_name:
             playlist_name = "popular hits"
         
         # Extract meaningful search terms from playlist name
         search_queries = self._extract_search_queries(playlist_name, playlist_desc)
-        logger.info(f"Search fallback for playlist '{playlist_name}': queries={search_queries}")
+        logger.info("Search fallback for playlist '%s': queries=%s", playlist_name, search_queries)
         
         all_tracks = []
         seen_ids = set()
@@ -258,62 +270,84 @@ class HybridSpotifyService:
             if len(all_tracks) >= limit:
                 break
             
-            try:
-                remaining = limit - len(all_tracks)
-                tracks_needed = min(remaining + 5, 50)  # Get a few extra for dedup
-                
-                if use_oauth:
-                    response = service.make_authenticated_request(
-                        user=user,
-                        endpoint="search",
-                        params={
-                            "q": query,
-                            "type": "track",
-                            "limit": tracks_needed,
-                            "market": "from_token"
-                        }
-                    )
-                else:
-                    from .services import spotify_service as ss
-                    response = ss._make_request("search", {
-                        "q": query,
-                        "type": "track",
-                        "limit": tracks_needed,
-                        "market": "US"
-                    })
-                
-                items = response.get("tracks", {}).get("items", [])
-                
-                for track in items:
-                    if not track or not isinstance(track, dict):
-                        continue
-                    
-                    track_id = track.get("id")
-                    if not track_id or track_id in seen_ids:
-                        continue
-                    
-                    seen_ids.add(track_id)
-                    
-                    try:
-                        all_tracks.append({
-                            "spotify_id": track_id,
-                            "name": track["name"],
-                            "artists": [a["name"] for a in track.get("artists", [])],
-                            "album": track.get("album", {}).get("name", "Unknown"),
-                            "album_image": track["album"]["images"][0]["url"] if track.get("album", {}).get("images") else "",
-                            "duration_ms": track.get("duration_ms", 0),
-                            "preview_url": track.get("preview_url"),
-                            "external_url": track.get("external_urls", {}).get("spotify", "")
-                        })
-                    except (KeyError, IndexError, TypeError):
-                        continue
-                
-            except Exception as e:
-                logger.warning(f"Search fallback query '{query}' failed: {e}")
+            remaining = limit - len(all_tracks)
+            tracks_needed = min(remaining + 5, 50)  # Get a few extra for dedup
+            
+            response = self._search_tracks_with_fallback(
+                query, tracks_needed, service if use_oauth else None, user
+            )
+            
+            if not response:
                 continue
+            
+            items = response.get("tracks", {}).get("items", [])
+            
+            for track in items:
+                if not track or not isinstance(track, dict):
+                    continue
+                
+                track_id = track.get("id")
+                if not track_id or track_id in seen_ids:
+                    continue
+                
+                seen_ids.add(track_id)
+                
+                try:
+                    all_tracks.append({
+                        "spotify_id": track_id,
+                        "name": track["name"],
+                        "artists": [a["name"] for a in track.get("artists", [])],
+                        "album": track.get("album", {}).get("name", "Unknown"),
+                        "album_image": track["album"]["images"][0]["url"] if track.get("album", {}).get("images") else "",
+                        "duration_ms": track.get("duration_ms", 0),
+                        "preview_url": track.get("preview_url"),
+                        "external_url": track.get("external_urls", {}).get("spotify", "")
+                    })
+                except (KeyError, IndexError, TypeError):
+                    continue
         
         logger.info(f"Search fallback found {len(all_tracks)} tracks for playlist {playlist_id}")
         return all_tracks[:limit]
+    
+    def _search_tracks_with_fallback(self, query: str, limit: int, oauth_service=None, user=None) -> Optional[Dict]:
+        """
+        Search for tracks, trying OAuth first then falling back to Client Credentials.
+        
+        Args:
+            query: Search query string
+            limit: Max results
+            oauth_service: OAuth service instance (None to skip OAuth)
+            user: Django user for OAuth
+        
+        Returns:
+            Spotify API response dict, or None if all attempts fail
+        """
+        search_params = {
+            "q": query,
+            "type": "track",
+            "limit": limit,
+        }
+        
+        # Try OAuth first
+        if oauth_service and user:
+            try:
+                response = oauth_service.make_authenticated_request(
+                    user=user,
+                    endpoint="search",
+                    params=search_params
+                )
+                return response
+            except Exception as e:
+                logger.warning(f"OAuth search for '{query}' failed, trying Client Credentials: {e}")
+        
+        # Fall back to Client Credentials
+        try:
+            response = self.client_service._make_request("search", search_params)
+            return response
+        except Exception as e:
+            logger.warning(f"Client Credentials search for '{query}' also failed: {e}")
+        
+        return None
     
     def _extract_search_queries(self, playlist_name: str, description: str = "") -> List[str]:
         """
@@ -369,15 +403,26 @@ class HybridSpotifyService:
         
         # If we have genre words, create additional variations
         if genre_words and len(genre_words) >= 1:
-            variation = f"{genre_words[0]} popular"
-            if variation not in queries:
-                queries.append(variation)
+            # Avoid duplicate words (e.g., "popular popular")
+            if genre_words[0] != "popular":
+                variation = f"{genre_words[0]} popular"
+                if variation not in queries:
+                    queries.append(variation)
         
         # Fallback
         if not queries:
             queries = ["popular hits", "top songs", "hit songs"]
         
-        return queries[:4]  # Max 4 queries
+        # Remove any queries with duplicate consecutive words
+        filtered_queries = []
+        for query in queries:
+            words_in_query = query.split()
+            if len(words_in_query) != len(set(words_in_query)):
+                # Has duplicate words, skip it
+                continue
+            filtered_queries.append(query)
+        
+        return filtered_queries[:4] if filtered_queries else ["top songs"]  # Max 4 queries with fallback
     
     def _extract_track_from_item(self, item: dict) -> Optional[Dict]:
         """Extract track data from a playlist item."""

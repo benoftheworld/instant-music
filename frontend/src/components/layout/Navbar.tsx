@@ -14,10 +14,13 @@ export default function Navbar() {
             🎵 InstantMusic
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             {isAuthenticated ? (
               <>
-                <Link to="/profile" className="hover:text-primary-200">
+                <Link to="/history" className="hover:text-primary-200 transition-colors">
+                  Historique
+                </Link>
+                <Link to="/profile" className="hover:text-primary-200 transition-colors">
                   {user?.username}
                 </Link>
                 <button

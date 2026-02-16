@@ -13,6 +13,7 @@ export default function GameLobbyPage() {
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
   const [selectedPlaylist, setSelectedPlaylist] = useState<SpotifyPlaylist | null>(null);
   const [showPlaylistSelector, setShowPlaylistSelector] = useState(false);
 
@@ -66,18 +67,7 @@ export default function GameLobbyPage() {
       if (user && gameData.host !== user.id) {
         try {
           await gameService.joinGame(roomCode);
-          // Reload game data to get updated player count
-          const updatedGame = await gameService.getGame(roomCode);
-          setGame(updatedGame);
-          
-          // Notify other players via WebSocket
-          sendMessage({
-            type: 'player_join',
-            player: {
-              id: user.id,
-              username: user.username
-            }
-          });
+          // No need to reload or send WS - backend handles it
         } catch (joinError: any) {
           // Ignore if already in the game (400 error)
           if (joinError?.response?.status !== 400) {
@@ -114,22 +104,25 @@ export default function GameLobbyPage() {
   const handleStartGame = async () => {
     if (!game || !user || !roomCode) return;
 
+    // Clear previous error
+    setStartError(null);
+
     // Check if user is the host
     if (game.host !== user.id) {
-      alert('Seul l\'hôte peut démarrer la partie');
+      setStartError('Seul l\'hôte peut démarrer la partie');
       return;
     }
 
     // Check if playlist is selected (for quiz modes)
     if (game.mode !== 'karaoke' && !selectedPlaylist && !game.playlist_id) {
-      alert('Veuillez sélectionner une playlist avant de démarrer');
+      setStartError('Veuillez sélectionner une playlist avant de démarrer');
       setShowPlaylistSelector(true);
       return;
     }
 
     // Check minimum players
     if (game.player_count < 2) {
-      alert('Il faut au moins 2 joueurs pour démarrer');
+      setStartError('Il faut au moins 2 joueurs pour démarrer');
       return;
     }
 
@@ -148,7 +141,23 @@ export default function GameLobbyPage() {
     } catch (err: any) {
       console.error('Failed to start game:', err);
       const errorMessage = err?.response?.data?.error || 'Erreur lors du démarrage de la partie';
-      alert(errorMessage);
+      
+      // Add helpful message for playlist access errors
+      if (errorMessage.includes('playlist') && errorMessage.includes('403')) {
+        setStartError(
+          '⚠️ Cette playlist est privée ou inaccessible. ' +
+          'Veuillez sélectionner une playlist PUBLIQUE différente.'
+        );
+      } else if (errorMessage.includes('morceaux accessibles') || errorMessage.includes('minimum 4 requis')) {
+        setStartError(
+          '⚠️ Cette playlist ne contient pas assez de morceaux accessibles. ' +
+          'Elle est peut-être privée, géo-restreinte, ou vide. ' +
+          'Veuillez en choisir une autre (playlist publique recommandée).'
+        );
+        setShowPlaylistSelector(true);
+      } else {
+        setStartError(errorMessage);
+      }
     }
   };
 
@@ -348,6 +357,11 @@ export default function GameLobbyPage() {
                 <p className="text-sm text-orange-600 text-center mt-2">
                   Il faut au moins 2 joueurs pour démarrer
                 </p>
+              )}
+              {startError && (
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-800 text-center">{startError}</p>
+                </div>
               )}
             </div>
           </div>

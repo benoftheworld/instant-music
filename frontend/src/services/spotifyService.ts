@@ -8,10 +8,10 @@ class SpotifyService {
   /**
    * Search for playlists on Spotify
    */
-  async searchPlaylists(query: string, limit: number = 20): Promise<SpotifyPlaylist[]> {
+  async searchPlaylists(query: string, limit: number = 20, publicOnly: boolean = false): Promise<SpotifyPlaylist[]> {
     try {
       const response = await api.get('/playlists/playlists/search/', {
-        params: { query, limit }
+        params: { query, limit, public_only: publicOnly }
       });
       // Backend returns {playlists: [...], using_oauth: bool, mode: string}
       return response.data.playlists || response.data;

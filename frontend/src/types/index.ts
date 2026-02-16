@@ -154,3 +154,45 @@ export interface Track {
   updated_at: string;
 }
 
+// Game History types
+export interface GameParticipant {
+  id: number;
+  username: string;
+  avatar: string | null;
+  score: number;
+  rank: number;
+}
+
+export interface GameWinner {
+  id: number;
+  username: string;
+  avatar: string | null;
+}
+
+export interface GameHistory {
+  id: string;
+  room_code: string;
+  host_username: string;
+  mode: GameMode;
+  mode_display: string;
+  playlist_id: string | null;
+  winner: GameWinner | null;
+  winner_score: number;
+  player_count: number;
+  participants: GameParticipant[];
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+// Leaderboard types
+export interface LeaderboardEntry {
+  user_id: number;
+  username: string;
+  avatar: string | null;
+  total_games: number;
+  total_wins: number;
+  total_points: number;
+  win_rate: number;
+}
+

@@ -16,8 +16,6 @@ class UserSerializer(serializers.ModelSerializer):
             'id',
             'username',
             'email',
-            'first_name',
-            'last_name',
             'avatar',
             'bio',
             'total_games_played',
@@ -42,7 +40,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'bio', 'avatar']
+        fields = ['bio', 'avatar']
 
 
 class ChangePasswordSerializer(serializers.Serializer):

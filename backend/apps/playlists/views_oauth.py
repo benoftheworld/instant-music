@@ -139,7 +139,6 @@ def spotify_callback(request):
     description="Check if current user has connected Spotify account",
     responses={
         200: SpotifyTokenSerializer,
-        404: OpenApiResponse(description="Not connected")
     }
 )
 @api_view(['GET'])
@@ -148,7 +147,7 @@ def spotify_status(request):
     """
     Get Spotify connection status for current user.
     
-    Returns token info if connected, 404 if not.
+    Returns token info if connected, or connection status if not.
     """
     try:
         token = SpotifyToken.objects.get(user=request.user)
@@ -158,7 +157,7 @@ def spotify_status(request):
     except SpotifyToken.DoesNotExist:
         return Response(
             {'connected': False, 'message': 'Spotify not connected'},
-            status=status.HTTP_404_NOT_FOUND
+            status=status.HTTP_200_OK
         )
 
 
