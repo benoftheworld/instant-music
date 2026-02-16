@@ -8,14 +8,14 @@ const gameModes: { value: GameMode; label: string; description: string; icon: st
   {
     value: 'quiz_4',
     label: 'Quiz Classique',
-    description: 'Écoutez un morceau et trouvez le titre parmi 4 propositions',
+    description: 'Trouvez le titre sans connaître l\'artiste (plus difficile)',
     icon: '🎵',
   },
   {
     value: 'blind_test_inverse',
-    label: 'Blind Test Inversé',
-    description: "L'artiste est donné, trouvez le bon titre",
-    icon: '🔄',
+    label: 'Trouver le Titre',
+    description: "L'artiste est donné, trouvez le titre (plus facile)",
+    icon: '🎯',
   },
   {
     value: 'guess_year',
@@ -24,9 +24,15 @@ const gameModes: { value: GameMode; label: string; description: string; icon: st
     icon: '📅',
   },
   {
+    value: 'guess_artist',
+    label: 'Trouver l\'Artiste',
+    description: 'Le titre est donné, trouvez qui interprète le morceau',
+    icon: '🎤',
+  },
+  {
     value: 'intro',
-    label: 'Intro (5s)',
-    description: 'Reconnaissez le morceau en seulement 5 secondes',
+    label: 'Intro (3s)',
+    description: 'Reconnaissez le morceau en seulement 3 secondes',
     icon: '⚡',
   },
   {

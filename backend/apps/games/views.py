@@ -138,6 +138,16 @@ class GameViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
+        # If game is already in progress, return the existing data
+        if game.status == 'in_progress':
+            existing_rounds = game.rounds.all().order_by('round_number')
+            first_round = existing_rounds.first()
+            return Response({
+                'game': GameSerializer(game).data,
+                'rounds_created': existing_rounds.count(),
+                'first_round': GameRoundSerializer(first_round).data if first_round else None
+            }, status=status.HTTP_200_OK)
+        
         # Check if there are enough players
         if game.players.count() < 2:
             return Response(

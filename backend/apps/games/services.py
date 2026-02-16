@@ -31,8 +31,12 @@ MODE_CONFIG = {
         'duration': 30,
         'question_type': 'guess_year',
     },
+    GameMode.GUESS_ARTIST: {
+        'duration': 30,
+        'question_type': 'guess_artist',
+    },
     GameMode.INTRO: {
-        'duration': 5,
+        'duration': 30,
         'question_type': 'intro',
     },
     GameMode.LYRICS: {
@@ -135,6 +139,8 @@ class QuestionGeneratorService:
             return self._generate_blind_inverse_question(track, all_tracks)
         elif game_mode == GameMode.GUESS_YEAR:
             return self._generate_year_question(track)
+        elif game_mode == GameMode.GUESS_ARTIST:
+            return self._generate_guess_artist_question(track, all_tracks)
         elif game_mode == GameMode.INTRO:
             return self._generate_intro_question(track, all_tracks)
         elif game_mode == GameMode.LYRICS:
@@ -265,10 +271,10 @@ class QuestionGeneratorService:
             },
         }
 
-    # ─── Intro (5 seconds) ───────────────────────────────────────────
+    # ─── Intro (3 seconds) ───────────────────────────────────────────
 
     def _generate_intro_question(self, correct_track: Dict, all_tracks: List[Dict]) -> Optional[Dict]:
-        """Same as guess_title but only 5 seconds of audio."""
+        """Same as guess_title but only 3 seconds of audio."""
         correct_answer = correct_track['name']
         wrong_answers = self._pick_wrong_answers(correct_track, all_tracks, key='name', count=3)
         if len(wrong_answers) < 3:
@@ -284,10 +290,10 @@ class QuestionGeneratorService:
             'preview_url': correct_track.get('preview_url'),
             'album_image': correct_track.get('album_image'),
             'question_type': 'intro',
-            'question_text': 'Reconnaissez ce morceau en 5 secondes !',
+            'question_text': 'Reconnaissez ce morceau en 3 secondes !',
             'correct_answer': correct_answer,
             'options': options,
-            'extra_data': {'audio_duration': 5},
+            'extra_data': {'audio_duration': 3},
         }
 
     # ─── Lyrics ──────────────────────────────────────────────────────
@@ -298,8 +304,9 @@ class QuestionGeneratorService:
         lyrics = get_lyrics(artist, track['name'])
 
         if not lyrics:
-            # Fallback: use a standard guess_title question
-            return self._generate_guess_title_question(track, all_tracks)
+            # No lyrics found — skip this track so we don't mix modes
+            logger.warning("No lyrics found for %s – %s, skipping track", artist, track['name'])
+            return None
 
         # Collect extra words from other track titles for wrong options
         extra_words = []
@@ -308,7 +315,8 @@ class QuestionGeneratorService:
 
         result = create_lyrics_question(lyrics, extra_words)
         if not result:
-            return self._generate_guess_title_question(track, all_tracks)
+            logger.warning("Failed to create lyrics question for %s – %s, skipping track", artist, track['name'])
+            return None
 
         snippet, correct_word, options = result
 
@@ -379,6 +387,11 @@ class GameService:
 
         rounds = []
         for i, q in enumerate(questions, start=1):
+            # Prepare extra_data with album_image and any other data
+            extra_data = q.get('extra_data', {}).copy()
+            if 'album_image' not in extra_data and q.get('album_image'):
+                extra_data['album_image'] = q['album_image']
+            
             round_obj = GameRound.objects.create(
                 game=game,
                 round_number=i,
@@ -390,7 +403,7 @@ class GameService:
                 preview_url=q.get('preview_url', ''),
                 question_type=q.get('question_type', config['question_type']),
                 question_text=q.get('question_text', ''),
-                extra_data=q.get('extra_data', {}),
+                extra_data=extra_data,
                 duration=config['duration'],
             )
             rounds.append(round_obj)

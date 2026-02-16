@@ -1,11 +1,12 @@
 import {
-  useAudioPlayer, AudioPlayerUI, OptionsGrid, ResultFooter, TrackReveal,
+  useAudioPlayerOnResults, AudioPlayerUI, OptionsGrid, ResultFooter, TrackReveal,
   type Props,
 } from './shared';
 
 /**
  * LyricsQuestion – A line of lyrics with a word blanked out.
  * Player picks the correct word from 4 options.
+ * Audio only plays AFTER showing results.
  */
 const LyricsQuestion = ({
   round,
@@ -15,7 +16,8 @@ const LyricsQuestion = ({
   showResults,
   roundResults,
 }: Props) => {
-  const audio = useAudioPlayer(round, showResults);
+  // For Lyrics mode: only play audio when showing results
+  const audio = useAudioPlayerOnResults(round, showResults);
   const snippet: string = round.extra_data?.lyrics_snippet || '';
 
   // If no lyrics fallback to standard quiz display
@@ -34,14 +36,15 @@ const LyricsQuestion = ({
         </p>
       </div>
 
-      {/* Audio player */}
-      {!showResults && (
-        <div className="mb-6">
-          <AudioPlayerUI {...audio} label="Écoutez et complétez les paroles..." />
-        </div>
+      {/* Show track reveal AND audio player when results are shown */}
+      {showResults && (
+        <>
+          <TrackReveal round={round} />
+          <div className="mb-6">
+            <AudioPlayerUI {...audio} label="Écoutez la chanson..." />
+          </div>
+        </>
       )}
-
-      {showResults && <TrackReveal round={round} />}
 
       {/* Lyrics snippet with blank */}
       {isLyricsMode && (

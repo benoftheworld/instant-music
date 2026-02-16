@@ -8,7 +8,10 @@ import BlindTestInverse from '../../components/game/BlindTestInverse';
 import YearQuestion from '../../components/game/YearQuestion';
 import IntroQuestion from '../../components/game/IntroQuestion';
 import LyricsQuestion from '../../components/game/LyricsQuestion';
+import GuessArtistQuestion from '../../components/game/GuessArtistQuestion';
 import LiveScoreboard from '../../components/game/LiveScoreboard';
+import RoundLoadingScreen from '../../components/game/RoundLoadingScreen';
+import RoundResultsScreen from '../../components/game/RoundResultsScreen';
 
 interface Round {
   id: string;
@@ -24,6 +27,7 @@ interface Round {
   duration: number;
   started_at: string;
   ended_at: string | null;
+  correct_answer?: string;
 }
 
 export default function GamePlayPage() {
@@ -42,6 +46,10 @@ export default function GamePlayPage() {
   const [myPointsEarned, setMyPointsEarned] = useState<number>(0);
   const isAdvancingRef = useRef(false);
   
+  // New state for round phases: 'loading' | 'playing' | 'results'
+  const [roundPhase, setRoundPhase] = useState<'loading' | 'playing' | 'results'>('loading');
+  const loadingStartTimeRef = useRef<number>(0);
+  
   // WebSocket connection
   const { sendMessage, onMessage } = useWebSocket(roomCode || '');
   
@@ -58,6 +66,8 @@ export default function GamePlayPage() {
         setHasAnswered(false);
         setSelectedAnswer(null);
         setShowResults(false);
+        setRoundPhase('loading'); // Start with loading phase
+        loadingStartTimeRef.current = Date.now(); // Record when loading starts
       } else if (response.message === 'Partie terminée') {
         // Game is finished
         navigate(`/game/${roomCode}/results`);
@@ -101,13 +111,18 @@ export default function GamePlayPage() {
 
   // Timer countdown - calculate based on server time
   useEffect(() => {
-    if (!currentRound || showResults) return;
+    if (!currentRound || showResults || roundPhase !== 'playing') return;
     
     const calculateTimeRemaining = () => {
       if (!currentRound.started_at) return currentRound.duration;
       const startTime = new Date(currentRound.started_at).getTime();
       const now = Date.now();
-      const elapsed = Math.floor((now - startTime) / 1000);
+      
+      // Compensate for the 10 seconds loading screen
+      const loadingDuration = loadingStartTimeRef.current > 0 ? 10000 : 0; // 10 seconds in ms
+      const adjustedStartTime = startTime + loadingDuration;
+      
+      const elapsed = Math.floor((now - adjustedStartTime) / 1000);
       const remaining = Math.max(0, currentRound.duration - elapsed);
       return remaining;
     };
@@ -139,7 +154,7 @@ export default function GamePlayPage() {
       clearInterval(interval);
       if (timerTimeout) clearTimeout(timerTimeout);
     };
-  }, [currentRound, showResults, game, roomCode, user, advanceToNextRound]);
+  }, [currentRound, showResults, roundPhase, game, roomCode, user, advanceToNextRound]);
   
   // Handle WebSocket messages
   useEffect(() => {
@@ -154,6 +169,8 @@ export default function GamePlayPage() {
           setHasAnswered(false);
           setSelectedAnswer(null);
           setShowResults(false);
+          setRoundPhase('loading'); // Show loading screen first
+          loadingStartTimeRef.current = Date.now(); // Record when loading starts
           break;
           
         case 'player_answered':
@@ -164,13 +181,14 @@ export default function GamePlayPage() {
         case 'round_ended':
           // Round finished, show results
           setShowResults(true);
+          setRoundPhase('results'); // Show results screen
           setRoundResults({
             ...data.results,
             points_earned: data.results?.player_scores?.[user?.username || '']?.points_earned ?? myPointsEarned,
           });
           // Update players with fresh scores from backend (functional update to avoid stale closure)
           if (data.results?.updated_players) {
-            setGame(prev => prev ? { ...prev, players: data.results.updated_players } : prev);
+            setGame((prev: any) => prev ? { ...prev, players: data.results.updated_players } : prev);
           }
           break;
           
@@ -184,9 +202,11 @@ export default function GamePlayPage() {
           setShowResults(false);
           setRoundResults(null);
           setMyPointsEarned(0);
+          setRoundPhase('loading'); // Show loading screen for new round
+          loadingStartTimeRef.current = Date.now(); // Record when loading starts
           // Update players with fresh scores (functional update to avoid stale closure)
           if (data.updated_players) {
-            setGame(prev => prev ? { ...prev, players: data.updated_players } : prev);
+            setGame((prev: any) => prev ? { ...prev, players: data.updated_players } : prev);
           }
           break;
           
@@ -206,7 +226,7 @@ export default function GamePlayPage() {
     
     const timer = setTimeout(() => {
       advanceToNextRound();
-    }, 5000); // Wait 5 seconds after results
+    }, 12000); // Wait 12 seconds after results (time to view results + loading screen)
     
     return () => clearTimeout(timer);
   }, [showResults, user, game, advanceToNextRound]);
@@ -267,6 +287,8 @@ export default function GamePlayPage() {
         return <BlindTestInverse {...commonProps} />;
       case 'guess_year':
         return <YearQuestion {...commonProps} />;
+      case 'guess_artist':
+        return <GuessArtistQuestion {...commonProps} />;
       case 'intro':
         return <IntroQuestion {...commonProps} />;
       case 'lyrics':
@@ -281,12 +303,18 @@ export default function GamePlayPage() {
   // ─── Mode display name for header ───
   const getModeLabel = () => {
     switch (game?.mode) {
-      case 'blind_test_inverse': return '🔄 Blind Test Inversé';
+      case 'blind_test_inverse': return '🎯 Trouver le Titre';
       case 'guess_year': return '📅 Année de Sortie';
-      case 'intro': return '⚡ Intro (5s)';
+      case 'guess_artist': return '🎤 Trouver l\'Artiste';
+      case 'intro': return '⚡ Intro (3s)';
       case 'lyrics': return '📝 Lyrics';
       default: return '🎵 Quiz';
     }
+  };
+
+  // Callback when loading screen completes
+  const handleLoadingComplete = () => {
+    setRoundPhase('playing');
   };
   
   if (loading) {
@@ -304,7 +332,31 @@ export default function GamePlayPage() {
       </div>
     );
   }
+
+  // Show loading screen before round starts
+  if (roundPhase === 'loading') {
+    return (
+      <RoundLoadingScreen
+        roundNumber={currentRound.round_number}
+        onComplete={handleLoadingComplete}
+        duration={10}
+      />
+    );
+  }
+
+  // Show results screen after round ends
+  if (roundPhase === 'results' && roundResults) {
+    return (
+      <RoundResultsScreen
+        round={currentRound}
+        players={game?.players || []}
+        correctAnswer={roundResults.correct_answer || currentRound.correct_answer || ''}
+        myPointsEarned={myPointsEarned}
+      />
+    );
+  }
   
+  // Show game screen during round
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
       <div className="container mx-auto max-w-6xl">

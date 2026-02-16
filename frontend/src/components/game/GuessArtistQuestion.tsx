@@ -4,10 +4,9 @@ import {
 } from './shared';
 
 /**
- * QuizQuestion – Default quiz_4 mode (and fallback for unknown modes).
- * Plays audio, shows 4 options, player picks the correct title.
+ * GuessArtistQuestion – Player hears audio and must identify the artist.
  */
-const QuizQuestion = ({
+const GuessArtistQuestion = ({
   round,
   onAnswerSubmit,
   hasAnswered,
@@ -19,24 +18,27 @@ const QuizQuestion = ({
 
   return (
     <div className="bg-white rounded-lg shadow-xl p-8">
+      {/* Header */}
       <div className="mb-6 text-center">
-        <div className="text-4xl mb-3">🎵</div>
-        <h2 className="text-2xl font-bold text-gray-800">
-          {round.question_text || 'Quel est le titre de ce morceau ?'}
+        <div className="text-4xl mb-2">🎤</div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          {round.question_text || 'Qui interprète ce morceau ?'}
         </h2>
-        <p className="text-gray-500 text-sm mt-2">
-          L'artiste sera révélé à la fin du round
+        <p className="text-gray-600">
+          Titre : <span className="font-semibold">{round.track_name}</span>
         </p>
       </div>
 
+      {/* Audio player */}
       {!showResults && (
         <div className="mb-6">
-          <AudioPlayerUI {...audio} />
+          <AudioPlayerUI {...audio} label="Écoutez et trouvez l'artiste..." />
         </div>
       )}
 
       {showResults && <TrackReveal round={round} />}
 
+      {/* Options */}
       <OptionsGrid
         options={round.options}
         hasAnswered={hasAnswered}
@@ -56,4 +58,4 @@ const QuizQuestion = ({
   );
 };
 
-export default QuizQuestion;
+export default GuessArtistQuestion;

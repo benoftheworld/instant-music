@@ -10,9 +10,10 @@ import uuid
 class GameMode(models.TextChoices):
     """Game mode choices."""
     QUIZ_4_ANSWERS = 'quiz_4', _('Quiz 4 réponses')
-    BLIND_TEST_INVERSE = 'blind_test_inverse', _('Blind Test Inversé')
+    BLIND_TEST_INVERSE = 'blind_test_inverse', _('Trouver le Titre')
     GUESS_YEAR = 'guess_year', _('Année de Sortie')
-    INTRO = 'intro', _('Intro (5s)')
+    GUESS_ARTIST = 'guess_artist', _('Trouver l\'Artiste')
+    INTRO = 'intro', _('Intro (3s)')
     LYRICS = 'lyrics', _('Lyrics')
 
 

@@ -145,60 +145,12 @@ export default function GameHistoryPage() {
 
                 {/* Details Button */}
                 <div className="md:col-span-1 text-right">
-                  <button
-                    onClick={() => {
-                      // Toggle details for this game
-                      const gameCard = document.getElementById(`game-details-${game.id}`);
-                      if (gameCard) {
-                        gameCard.classList.toggle('hidden');
-                      }
-                    }}
-                    className="btn-secondary text-sm"
+                  <Link
+                    to={`/game/${game.room_code}/results`}
+                    className="btn-secondary text-sm inline-block"
                   >
                     Détails
-                  </button>
-                </div>
-              </div>
-
-              {/* Expandable Details */}
-              <div id={`game-details-${game.id}`} className="hidden mt-6 pt-6 border-t border-gray-200">
-                <h4 className="font-bold mb-4">Classement des joueurs</h4>
-                <div className="space-y-2">
-                  {game.participants.map((participant) => (
-                    <div
-                      key={participant.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center font-bold text-sm">
-                          {participant.rank}
-                        </div>
-                        <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
-                          {participant.avatar ? (
-                            <img
-                              src={getMediaUrl(participant.avatar)}
-                              alt={participant.username}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                  fillRule="evenodd"
-                                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                        <span className="font-medium">{participant.username}</span>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-primary-600">{participant.score} pts</p>
-                      </div>
-                    </div>
-                  ))}
+                  </Link>
                 </div>
               </div>
             </div>

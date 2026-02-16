@@ -15,6 +15,7 @@ interface Round {
   duration: number;
   started_at: string;
   ended_at: string | null;
+  correct_answer?: string;
 }
 
 interface RoundResults {
@@ -155,6 +156,111 @@ export function useAudioPlayer(
       if (seekTime > 0 && seekTime < 30) {
         try { audio.currentTime = seekTime; } catch (_) { /* */ }
       }
+      audio.play()
+        .then(() => { setIsPlaying(true); setNeedsPlay(false); })
+        .catch(() => setPlayerError('Impossible de lancer la lecture'));
+    }, { once: true });
+    audio.addEventListener('error', () => setPlayerError("Impossible de charger l'aperçu audio"), { once: true });
+    audio.addEventListener('ended', () => setIsPlaying(false), { once: true });
+  };
+
+  return { isPlaying, needsPlay, playerError, handlePlay };
+}
+
+/* ───────────────────── Audio hook for Lyrics mode (plays only on results) ───────────────────── */
+export function useAudioPlayerOnResults(
+  round: Round,
+  showResults: boolean,
+) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [needsPlay, setNeedsPlay] = useState(false);
+  const [playerError, setPlayerError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    setIsPlaying(false);
+    setNeedsPlay(false);
+    setPlayerError(null);
+    mountedRef.current = true;
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.removeAttribute('src');
+      audioRef.current.load();
+      audioRef.current = null;
+    }
+
+    // Only play audio when results are shown
+    if (!showResults) return;
+
+    const previewUrl = round.preview_url;
+    if (!previewUrl) {
+      setPlayerError('Aucun aperçu audio disponible pour ce morceau');
+      return;
+    }
+
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.volume = 1.0;
+    audio.src = previewUrl;
+    audioRef.current = audio;
+
+    const onCanPlay = () => {
+      if (!mountedRef.current) return;
+      audio.play()
+        .then(() => {
+          if (mountedRef.current) { setIsPlaying(true); setNeedsPlay(false); }
+        })
+        .catch(() => {
+          if (mountedRef.current) setNeedsPlay(true);
+        });
+    };
+
+    const onError = () => {
+      if (!mountedRef.current) return;
+      setPlayerError("Impossible de charger l'aperçu audio");
+      setIsPlaying(false);
+    };
+    const onEnded = () => { if (mountedRef.current) setIsPlaying(false); };
+
+    audio.addEventListener('canplaythrough', onCanPlay, { once: true });
+    audio.addEventListener('error', onError);
+    audio.addEventListener('ended', onEnded);
+
+    const fallback = setTimeout(() => {
+      if (!isPlaying && !playerError && mountedRef.current) setNeedsPlay(true);
+    }, 3000);
+
+    return () => {
+      mountedRef.current = false;
+      clearTimeout(fallback);
+      audio.removeEventListener('canplaythrough', onCanPlay);
+      audio.removeEventListener('error', onError);
+      audio.removeEventListener('ended', onEnded);
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      audioRef.current = null;
+    };
+  }, [round.track_id, round.id, showResults, round.preview_url]);
+
+  const handlePlay = () => {
+    setPlayerError(null);
+    if (audioRef.current) {
+      audioRef.current.play()
+        .then(() => { setIsPlaying(true); setNeedsPlay(false); })
+        .catch(() => setPlayerError('Impossible de lancer la lecture'));
+      return;
+    }
+    const previewUrl = round.preview_url;
+    if (!previewUrl) { setPlayerError('Aucun aperçu audio disponible'); return; }
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.volume = 1.0;
+    audio.src = previewUrl;
+    audioRef.current = audio;
+    audio.addEventListener('canplaythrough', () => {
       audio.play()
         .then(() => { setIsPlaying(true); setNeedsPlay(false); })
         .catch(() => setPlayerError('Impossible de lancer la lecture'));

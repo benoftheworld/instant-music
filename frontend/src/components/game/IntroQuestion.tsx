@@ -1,5 +1,5 @@
 import {
-  useAudioPlayer, AudioPlayerUI, OptionsGrid, ResultFooter, TrackReveal,
+  useAudioPlayer, OptionsGrid, ResultFooter, TrackReveal,
   type Props,
 } from './shared';
 
@@ -28,14 +28,28 @@ const IntroQuestion = ({
         <h2 className="text-2xl font-bold text-gray-800 mb-2">
           {round.question_text || 'Reconnaissez ce morceau !'}
         </h2>
-        <p className="text-gray-600">
-          Artiste : <span className="font-semibold">{round.artist_name}</span>
-        </p>
       </div>
 
       {!showResults && (
         <div className="mb-6">
-          <AudioPlayerUI {...audio} label={`Intro — ${audioDuration}s seulement !`} />
+          <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg min-h-[120px]">
+            {audio.playerError ? (
+              <div className="text-white text-center">
+                <div className="text-4xl mb-2">⚠️</div>
+                <p className="text-sm mb-1">{audio.playerError}</p>
+              </div>
+            ) : audio.isPlaying ? (
+              <div className="text-white text-center">
+                <div className="text-4xl mb-2 animate-pulse">🎵</div>
+                <p className="text-sm">Intro — {audioDuration}s seulement !</p>
+              </div>
+            ) : (
+              <div className="text-white text-center">
+                <div className="text-4xl mb-2">⏳</div>
+                <p className="text-sm">Chargement de l&apos;intro...</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

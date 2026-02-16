@@ -38,7 +38,7 @@ export interface RegisterData {
   password2: string;
 }
 
-export type GameMode = 'quiz_4' | 'blind_test_inverse' | 'guess_year' | 'intro' | 'lyrics';
+export type GameMode = 'quiz_4' | 'blind_test_inverse' | 'guess_year' | 'guess_artist' | 'intro' | 'lyrics';
 export type GameStatus = 'waiting' | 'in_progress' | 'finished' | 'cancelled';
 
 export interface Game {

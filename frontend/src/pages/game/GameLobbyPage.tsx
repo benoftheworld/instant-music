@@ -15,6 +15,7 @@ export default function GameLobbyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
+  const [startingGame, setStartingGame] = useState(false);
   const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
   const [showPlaylistSelector, setShowPlaylistSelector] = useState(false);
 
@@ -111,14 +112,16 @@ export default function GameLobbyPage() {
   };
 
   const handleStartGame = async () => {
-    if (!game || !user || !roomCode) return;
+    if (!game || !user || !roomCode || startingGame) return;
 
     // Clear previous error
     setStartError(null);
+    setStartingGame(true);
 
     // Check if user is the host
     if (game.host !== user.id) {
       setStartError('Seul l\'hôte peut démarrer la partie');
+      setStartingGame(false);
       return;
     }
 
@@ -126,12 +129,14 @@ export default function GameLobbyPage() {
     if (game.mode !== 'karaoke' && !selectedPlaylist && !game.playlist_id) {
       setStartError('Veuillez sélectionner une playlist avant de démarrer');
       setShowPlaylistSelector(true);
+      setStartingGame(false);
       return;
     }
 
     // Check minimum players
     if (game.player_count < 2) {
       setStartError('Il faut au moins 2 joueurs pour démarrer');
+      setStartingGame(false);
       return;
     }
 
@@ -167,6 +172,7 @@ export default function GameLobbyPage() {
       } else {
         setStartError(errorMessage);
       }
+      setStartingGame(false);
     }
   };
 
@@ -360,9 +366,9 @@ export default function GameLobbyPage() {
                   <button
                     onClick={handleStartGame}
                     className="btn-primary flex-1"
-                    disabled={game.player_count < 2}
+                    disabled={game.player_count < 2 || startingGame}
                   >
-                    Démarrer la partie
+                    {startingGame ? 'Démarrage...' : 'Démarrer la partie'}
                   </button>
                 )}
               </div>
