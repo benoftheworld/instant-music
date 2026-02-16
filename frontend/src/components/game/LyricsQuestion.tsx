@@ -1,0 +1,84 @@
+import {
+  useAudioPlayer, AudioPlayerUI, OptionsGrid, ResultFooter, TrackReveal,
+  type Props,
+} from './shared';
+
+/**
+ * LyricsQuestion – A line of lyrics with a word blanked out.
+ * Player picks the correct word from 4 options.
+ */
+const LyricsQuestion = ({
+  round,
+  onAnswerSubmit,
+  hasAnswered,
+  selectedAnswer,
+  showResults,
+  roundResults,
+}: Props) => {
+  const audio = useAudioPlayer(round, showResults);
+  const snippet: string = round.extra_data?.lyrics_snippet || '';
+
+  // If no lyrics fallback to standard quiz display
+  const isLyricsMode = !!snippet;
+
+  return (
+    <div className="bg-white rounded-lg shadow-xl p-8">
+      {/* Header */}
+      <div className="mb-6 text-center">
+        <div className="text-4xl mb-2">📝</div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          {round.question_text || 'Complétez les paroles'}
+        </h2>
+        <p className="text-gray-600">
+          <span className="font-semibold">{round.track_name}</span> — {round.artist_name}
+        </p>
+      </div>
+
+      {/* Audio player */}
+      {!showResults && (
+        <div className="mb-6">
+          <AudioPlayerUI {...audio} label="Écoutez et complétez les paroles..." />
+        </div>
+      )}
+
+      {showResults && <TrackReveal round={round} />}
+
+      {/* Lyrics snippet with blank */}
+      {isLyricsMode && (
+        <div className="mb-6 p-6 bg-gray-50 rounded-xl border-2 border-gray-200 text-center">
+          <p className="text-xl leading-relaxed font-medium text-gray-800 italic">
+            &quot;{snippet.split('_____').map((part, i, arr) => (
+              <span key={i}>
+                {part}
+                {i < arr.length - 1 && (
+                  <span className="inline-block mx-1 px-3 py-1 bg-yellow-200 rounded font-bold text-yellow-800 not-italic">
+                    {showResults && roundResults ? roundResults.correct_answer : '???'}
+                  </span>
+                )}
+              </span>
+            ))}&quot;
+          </p>
+        </div>
+      )}
+
+      {/* Options */}
+      <OptionsGrid
+        options={round.options}
+        hasAnswered={hasAnswered}
+        showResults={showResults}
+        selectedAnswer={selectedAnswer}
+        roundResults={roundResults}
+        onOptionClick={onAnswerSubmit}
+      />
+
+      <ResultFooter
+        showResults={showResults}
+        roundResults={roundResults}
+        selectedAnswer={selectedAnswer}
+        hasAnswered={hasAnswered}
+      />
+    </div>
+  );
+};
+
+export default LyricsQuestion;

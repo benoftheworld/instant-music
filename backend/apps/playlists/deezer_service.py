@@ -220,6 +220,32 @@ class DeezerService:
         """
         return self.search_tracks(query, limit)
 
+    def get_track_details(self, track_id: str) -> Optional[Dict]:
+        """
+        Get detailed info for a single track, including release_date.
+
+        Returns:
+            Dict with 'release_date' (str YYYY-MM-DD) and parsed track data,
+            or None on error.
+        """
+        cache_key = f"dz_track_{track_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
+        try:
+            data = self._make_request(f"/track/{track_id}")
+        except DeezerAPIError:
+            return None
+
+        track = self._parse_track(data)
+        if track:
+            # Deezer exposes release_date on the track endpoint
+            track["release_date"] = data.get("release_date", "")
+            cache.set(cache_key, track, 3600)
+
+        return track
+
     # ── Helpers ──────────────────────────────────────────────────────
 
     def _parse_track(self, item: dict) -> Optional[Dict]:

@@ -10,8 +10,10 @@ import uuid
 class GameMode(models.TextChoices):
     """Game mode choices."""
     QUIZ_4_ANSWERS = 'quiz_4', _('Quiz 4 réponses')
-    QUIZ_FASTEST = 'quiz_fastest', _('Quiz le plus rapide')
-    KARAOKE = 'karaoke', _('Karaoké')
+    BLIND_TEST_INVERSE = 'blind_test_inverse', _('Blind Test Inversé')
+    GUESS_YEAR = 'guess_year', _('Année de Sortie')
+    INTRO = 'intro', _('Intro (5s)')
+    LYRICS = 'lyrics', _('Lyrics')
 
 
 class GameStatus(models.TextChoices):
@@ -129,6 +131,21 @@ class GameRound(models.Model):
         max_length=500,
         blank=True,
         default='',
+    )
+    question_type = models.CharField(
+        _('type de question'),
+        max_length=30,
+        default='guess_title',
+    )
+    question_text = models.CharField(
+        _('texte de la question'),
+        max_length=500,
+        default='Quel est le titre de ce morceau ?',
+    )
+    extra_data = models.JSONField(
+        _('données supplémentaires'),
+        default=dict,
+        blank=True,
     )
     duration = models.IntegerField(_('durée (secondes)'), default=30)
     

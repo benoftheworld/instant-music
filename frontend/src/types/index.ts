@@ -38,7 +38,7 @@ export interface RegisterData {
   password2: string;
 }
 
-export type GameMode = 'quiz_4' | 'quiz_fastest' | 'karaoke';
+export type GameMode = 'quiz_4' | 'blind_test_inverse' | 'guess_year' | 'intro' | 'lyrics';
 export type GameStatus = 'waiting' | 'in_progress' | 'finished' | 'cancelled';
 
 export interface Game {
@@ -89,6 +89,9 @@ export interface GameRound {
   artist_name: string;
   preview_url?: string;
   options: string[];
+  question_type: string;
+  question_text: string;
+  extra_data: Record<string, any>;
   duration: number;
   started_at: string;
   ended_at?: string;

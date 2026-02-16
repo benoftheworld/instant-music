@@ -4,10 +4,10 @@ import {
 } from './shared';
 
 /**
- * QuizQuestion – Default quiz_4 mode (and fallback for unknown modes).
- * Plays audio, shows 4 options, player picks the correct title.
+ * IntroQuestion – Same as classic quiz but audio stops after 5 seconds.
+ * Player must recognize the track from just the intro.
  */
-const QuizQuestion = ({
+const IntroQuestion = ({
   round,
   onAnswerSubmit,
   hasAnswered,
@@ -15,13 +15,18 @@ const QuizQuestion = ({
   showResults,
   roundResults,
 }: Props) => {
-  const audio = useAudioPlayer(round, showResults);
+  const audioDuration = round.extra_data?.audio_duration || 5;
+  const audio = useAudioPlayer(round, showResults, audioDuration);
 
   return (
     <div className="bg-white rounded-lg shadow-xl p-8">
-      <div className="mb-6">
+      {/* Header with lightning bolt */}
+      <div className="mb-6 text-center">
+        <div className="inline-block bg-gradient-to-r from-yellow-400 to-red-500 text-white px-4 py-1 rounded-full text-sm font-bold mb-3 shadow">
+          ⚡ {audioDuration} secondes d&apos;écoute
+        </div>
         <h2 className="text-2xl font-bold text-gray-800 mb-2">
-          {round.question_text || 'Quel est le titre de ce morceau ?'}
+          {round.question_text || 'Reconnaissez ce morceau !'}
         </h2>
         <p className="text-gray-600">
           Artiste : <span className="font-semibold">{round.artist_name}</span>
@@ -30,7 +35,7 @@ const QuizQuestion = ({
 
       {!showResults && (
         <div className="mb-6">
-          <AudioPlayerUI {...audio} />
+          <AudioPlayerUI {...audio} label={`Intro — ${audioDuration}s seulement !`} />
         </div>
       )}
 
@@ -55,4 +60,4 @@ const QuizQuestion = ({
   );
 };
 
-export default QuizQuestion;
+export default IntroQuestion;

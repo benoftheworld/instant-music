@@ -4,10 +4,10 @@ import {
 } from './shared';
 
 /**
- * QuizQuestion – Default quiz_4 mode (and fallback for unknown modes).
- * Plays audio, shows 4 options, player picks the correct title.
+ * BlindTestInverse – The artist is given prominently.
+ * Player must guess the correct song title from 4 options.
  */
-const QuizQuestion = ({
+const BlindTestInverse = ({
   round,
   onAnswerSubmit,
   hasAnswered,
@@ -19,13 +19,14 @@ const QuizQuestion = ({
 
   return (
     <div className="bg-white rounded-lg shadow-xl p-8">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+      {/* Prominent artist display */}
+      <div className="mb-6 text-center">
+        <div className="inline-block bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-3 rounded-full text-lg font-bold mb-3 shadow-lg">
+          🎤 {round.artist_name}
+        </div>
+        <h2 className="text-2xl font-bold text-gray-800">
           {round.question_text || 'Quel est le titre de ce morceau ?'}
         </h2>
-        <p className="text-gray-600">
-          Artiste : <span className="font-semibold">{round.artist_name}</span>
-        </p>
       </div>
 
       {!showResults && (
@@ -55,4 +56,4 @@ const QuizQuestion = ({
   );
 };
 
-export default QuizQuestion;
+export default BlindTestInverse;

@@ -4,6 +4,10 @@ import { gameService } from '../../services/gameService';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAuthStore } from '../../store/authStore';
 import QuizQuestion from '../../components/game/QuizQuestion';
+import BlindTestInverse from '../../components/game/BlindTestInverse';
+import YearQuestion from '../../components/game/YearQuestion';
+import IntroQuestion from '../../components/game/IntroQuestion';
+import LyricsQuestion from '../../components/game/LyricsQuestion';
 import LiveScoreboard from '../../components/game/LiveScoreboard';
 
 interface Round {
@@ -14,6 +18,9 @@ interface Round {
   artist_name: string;
   preview_url?: string;
   options: string[];
+  question_type: string;
+  question_text: string;
+  extra_data: Record<string, any>;
   duration: number;
   started_at: string;
   ended_at: string | null;
@@ -240,6 +247,47 @@ export default function GamePlayPage() {
       console.error('Failed to submit answer:', error);
     }
   };
+
+  // ─── Render the correct question component based on game mode ───
+  const renderQuestionComponent = () => {
+    if (!currentRound) return null;
+
+    const commonProps = {
+      round: currentRound,
+      onAnswerSubmit: handleAnswerSubmit,
+      hasAnswered,
+      selectedAnswer,
+      showResults,
+      roundResults,
+    };
+
+    const mode = game?.mode;
+    switch (mode) {
+      case 'blind_test_inverse':
+        return <BlindTestInverse {...commonProps} />;
+      case 'guess_year':
+        return <YearQuestion {...commonProps} />;
+      case 'intro':
+        return <IntroQuestion {...commonProps} />;
+      case 'lyrics':
+        return currentRound.question_type === 'lyrics'
+          ? <LyricsQuestion {...commonProps} />
+          : <QuizQuestion {...commonProps} />;
+      default:
+        return <QuizQuestion {...commonProps} />;
+    }
+  };
+
+  // ─── Mode display name for header ───
+  const getModeLabel = () => {
+    switch (game?.mode) {
+      case 'blind_test_inverse': return '🔄 Blind Test Inversé';
+      case 'guess_year': return '📅 Année de Sortie';
+      case 'intro': return '⚡ Intro (5s)';
+      case 'lyrics': return '📝 Lyrics';
+      default: return '🎵 Quiz';
+    }
+  };
   
   if (loading) {
     return (
@@ -264,7 +312,7 @@ export default function GamePlayPage() {
         <div className="flex justify-between items-center mb-6">
           <div className="text-white">
             <h1 className="text-2xl font-bold">Partie {roomCode}</h1>
-            <p className="text-lg">Round {currentRound.round_number}</p>
+            <p className="text-lg">Round {currentRound.round_number} — {getModeLabel()}</p>
           </div>
           
           {/* Timer */}
@@ -278,14 +326,7 @@ export default function GamePlayPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main quiz area */}
           <div className="lg:col-span-2">
-            <QuizQuestion
-              round={currentRound}
-              onAnswerSubmit={handleAnswerSubmit}
-              hasAnswered={hasAnswered}
-              selectedAnswer={selectedAnswer}
-              showResults={showResults}
-              roundResults={roundResults}
-            />
+            {renderQuestionComponent()}
           </div>
           
           {/* Live scoreboard */}

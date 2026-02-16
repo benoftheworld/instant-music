@@ -4,24 +4,37 @@ import { gameService } from '../../services/gameService';
 import { GameMode, YouTubePlaylist, CreateGameData } from '../../types';
 import PlaylistSelector from '../../components/playlist/PlaylistSelector';
 
-const gameModes: { value: GameMode; label: string; description: string; disabled?: boolean }[] = [
+const gameModes: { value: GameMode; label: string; description: string; icon: string; disabled?: boolean }[] = [
   {
     value: 'quiz_4',
-    label: 'Quiz 4 Réponses',
-    description: 'Choisissez la bonne réponse parmi 4 propositions'
+    label: 'Quiz Classique',
+    description: 'Écoutez un morceau et trouvez le titre parmi 4 propositions',
+    icon: '🎵',
   },
   {
-    value: 'quiz_fastest',
-    label: 'Quiz Le Plus Rapide',
-    description: 'Répondez le plus vite possible pour gagner des points bonus',
-    disabled: true,
+    value: 'blind_test_inverse',
+    label: 'Blind Test Inversé',
+    description: "L'artiste est donné, trouvez le bon titre",
+    icon: '🔄',
   },
   {
-    value: 'karaoke',
-    label: 'Karaoké',
-    description: 'Chantez et devinez les paroles des morceaux',
-    disabled: true,
-  }
+    value: 'guess_year',
+    label: 'Année de Sortie',
+    description: 'Devinez l\'année de sortie du morceau (±2 ans)',
+    icon: '📅',
+  },
+  {
+    value: 'intro',
+    label: 'Intro (5s)',
+    description: 'Reconnaissez le morceau en seulement 5 secondes',
+    icon: '⚡',
+  },
+  {
+    value: 'lyrics',
+    label: 'Lyrics',
+    description: 'Complétez les paroles manquantes du morceau',
+    icon: '📝',
+  },
 ];
 
 export default function CreateGamePage() {
@@ -38,8 +51,8 @@ export default function CreateGamePage() {
   const [showPlaylistSelector, setShowPlaylistSelector] = useState(false);
 
   const handleCreateGame = async () => {
-    // Validate playlist for quiz modes
-    if (gameMode !== 'karaoke' && !selectedPlaylist) {
+    // Validate playlist selection
+    if (!selectedPlaylist) {
       setError('Veuillez sélectionner une playlist');
       setShowPlaylistSelector(true);
       return;
@@ -101,7 +114,7 @@ export default function CreateGamePage() {
           {/* Game Mode Selection */}
           <div className="card">
             <h2 className="text-xl font-bold mb-4">Mode de jeu</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {gameModes.map((mode) => (
                 <button
                   key={mode.value}
@@ -117,8 +130,9 @@ export default function CreateGamePage() {
                     }
                   `}
                 >
-                  <h3 className="font-semibold mb-2">{mode.label}</h3>
-                  <p className="text-sm text-gray-600">{mode.description}</p>
+                  <div className="text-2xl mb-2">{mode.icon}</div>
+                  <h3 className="font-semibold mb-1">{mode.label}</h3>
+                  <p className="text-xs text-gray-600">{mode.description}</p>
                   {mode.disabled && (
                     <span className="absolute top-2 right-2 text-xs bg-gray-300 text-gray-600 px-2 py-0.5 rounded-full font-medium">
                       Bientôt
@@ -167,7 +181,7 @@ export default function CreateGamePage() {
                   </span>
                 </div>
                 <p className="text-sm text-gray-500 mt-1">
-                  Chaque round dure 30 secondes
+                  {gameMode === 'intro' ? 'Chaque round dure 5 secondes' : 'Chaque round dure 30 secondes'}
                 </p>
               </div>
 
@@ -245,7 +259,7 @@ export default function CreateGamePage() {
                   <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z" />
                 </svg>
                 <p className="text-gray-600">Aucune playlist sélectionnée</p>
-                {gameMode !== 'karaoke' && (
+                {gameMode !== 'karaoke' && !selectedPlaylist && (
                   <p className="text-sm text-orange-600 mt-1">
                     Une playlist est requise pour ce mode de jeu
                   </p>
@@ -280,7 +294,7 @@ export default function CreateGamePage() {
               <button
                 onClick={handleCreateGame}
                 className="btn-primary flex-1"
-                disabled={loading || (gameMode !== 'karaoke' && !selectedPlaylist)}
+                disabled={loading || !selectedPlaylist}
               >
                 {loading ? 'Création...' : 'Créer la partie'}
               </button>
