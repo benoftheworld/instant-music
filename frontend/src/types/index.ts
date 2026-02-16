@@ -7,7 +7,6 @@ export interface User {
   username: string;
   email: string;
   avatar?: string;
-  bio?: string;
   total_games_played: number;
   total_wins: number;
   total_points: number;
@@ -48,6 +47,7 @@ export interface Game {
   host: number;
   host_username: string;
   mode: GameMode;
+  modes?: GameMode[];
   status: GameStatus;
   max_players: number;
   num_rounds: number;
@@ -74,6 +74,7 @@ export interface GamePlayer {
 export interface CreateGameData {
   name?: string;
   mode: GameMode;
+  modes?: GameMode[];
   max_players: number;
   num_rounds: number;
   playlist_id?: string;
@@ -191,6 +192,7 @@ export interface GameHistory {
 
 // Leaderboard types
 export interface LeaderboardEntry {
+  rank: number;
   user_id: number;
   username: string;
   avatar: string | null;
@@ -198,6 +200,76 @@ export interface LeaderboardEntry {
   total_wins: number;
   total_points: number;
   win_rate: number;
+  team_name?: string | null;
+}
+
+export interface TeamLeaderboardEntry {
+  rank: number;
+  team_id: number;
+  name: string;
+  avatar: string | null;
+  owner_name: string | null;
+  member_count: number;
+  total_points: number;
+  total_games: number;
+  total_wins: number;
+  win_rate: number;
+}
+
+export interface MyRank {
+  general_rank: number;
+  total_players: number;
+  mode_ranks: Record<string, { rank: number; points: number; label: string }>;
+}
+
+// Friendship types
+export type FriendshipStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface UserMinimal {
+  id: number;
+  username: string;
+  avatar: string | null;
+  total_points: number;
+}
+
+export interface Friendship {
+  id: number;
+  from_user: UserMinimal;
+  to_user: UserMinimal;
+  status: FriendshipStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Friend {
+  friendship_id: number;
+  user: UserMinimal;
+  since: string;
+}
+
+// Team types
+export type TeamMemberRole = 'owner' | 'admin' | 'member';
+
+export interface TeamMember {
+  id: number;
+  user: UserMinimal;
+  role: TeamMemberRole;
+  joined_at: string;
+}
+
+export interface Team {
+  id: number;
+  name: string;
+  description: string;
+  avatar: string | null;
+  owner: UserMinimal;
+  members_list: TeamMember[];
+  member_count: number;
+  total_games: number;
+  total_wins: number;
+  total_points: number;
+  created_at: string;
+  updated_at: string;
 }
 
 // Achievement types

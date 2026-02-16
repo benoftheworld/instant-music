@@ -18,6 +18,7 @@ export default function GameLobbyPage() {
   const [startingGame, setStartingGame] = useState(false);
   const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
   const [showPlaylistSelector, setShowPlaylistSelector] = useState(false);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
   const { isConnected, sendMessage, onMessage } = useWebSocket(roomCode);
   
@@ -180,10 +181,35 @@ export default function GameLobbyPage() {
     navigate('/');
   };
 
-  const copyRoomCode = () => {
+  const copyRoomCode = async () => {
     if (roomCode) {
-      navigator.clipboard.writeText(roomCode);
-      alert('Code de salle copié !');
+      await navigator.clipboard.writeText(roomCode);
+      setCopyMessage('Code copié !');
+      setTimeout(() => setCopyMessage(null), 2000);
+    }
+  };
+
+  const shareGame = async () => {
+    const shareUrl = `${window.location.origin}/game/join?code=${roomCode}`;
+    const shareData = {
+      title: 'Rejoins ma partie InstantMusic !',
+      text: `Rejoins ma partie de quiz musical ! Code: ${roomCode}`,
+      url: shareUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // User cancelled or error - fallback to copy
+        await navigator.clipboard.writeText(shareUrl);
+        setCopyMessage('Lien copié !');
+        setTimeout(() => setCopyMessage(null), 2000);
+      }
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopyMessage('Lien copié !');
+      setTimeout(() => setCopyMessage(null), 2000);
     }
   };
 
@@ -235,7 +261,9 @@ export default function GameLobbyPage() {
             <div className="text-right">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm text-gray-600">Code de salle:</span>
-                <code className="text-2xl font-bold text-primary-600">{game.room_code}</code>
+                <code className="text-2xl font-bold text-primary-600 bg-primary-50 px-3 py-1 rounded-lg tracking-wider">
+                  {game.room_code}
+                </code>
                 <button
                   onClick={copyRoomCode}
                   className="p-2 hover:bg-gray-100 rounded-md transition-colors"
@@ -245,7 +273,21 @@ export default function GameLobbyPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                 </button>
+                <button
+                  onClick={shareGame}
+                  className="p-2 bg-primary-100 hover:bg-primary-200 rounded-md transition-colors text-primary-600"
+                  title="Partager le lien"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                </button>
               </div>
+              {copyMessage && (
+                <div className="text-sm text-green-600 font-medium mb-2 animate-pulse">
+                  ✓ {copyMessage}
+                </div>
+              )}
               <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
                 isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
               }`}>

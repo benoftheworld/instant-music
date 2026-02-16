@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api, getMediaUrl } from '@/services/api';
+import { getModeIcon } from '@/constants/gameModes';
 import type { GameHistory } from '@/types';
 import { Link } from 'react-router-dom';
 
@@ -35,19 +36,6 @@ export default function GameHistoryPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
-  };
-
-  const getModeIcon = (mode: string) => {
-    switch (mode) {
-      case 'quiz_4':
-        return '🎯';
-      case 'quiz_fastest':
-        return '⚡';
-      case 'karaoke':
-        return '🎤';
-      default:
-        return '🎮';
-    }
   };
 
   if (loading) {

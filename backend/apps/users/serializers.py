@@ -2,7 +2,7 @@
 Serializers for User models.
 """
 from rest_framework import serializers
-from .models import User
+from .models import User, Friendship, FriendshipStatus, Team, TeamMember, TeamMemberRole
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -17,7 +17,6 @@ class UserSerializer(serializers.ModelSerializer):
             'username',
             'email',
             'avatar',
-            'bio',
             'total_games_played',
             'total_wins',
             'total_points',
@@ -35,12 +34,20 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
 
+class UserMinimalSerializer(serializers.ModelSerializer):
+    """Minimal user info for lists."""
+    
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'avatar', 'total_points']
+
+
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating user profile."""
     
     class Meta:
         model = User
-        fields = ['bio', 'avatar']
+        fields = ['avatar']
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -55,3 +62,76 @@ class ChangePasswordSerializer(serializers.Serializer):
         if len(value) < 8:
             raise serializers.ValidationError("Le mot de passe doit contenir au moins 8 caractères.")
         return value
+
+
+# ─── Friendship Serializers ──────────────────────────────────────────────────
+
+class FriendshipSerializer(serializers.ModelSerializer):
+    """Serializer for Friendship model."""
+    
+    from_user = UserMinimalSerializer(read_only=True)
+    to_user = UserMinimalSerializer(read_only=True)
+    
+    class Meta:
+        model = Friendship
+        fields = ['id', 'from_user', 'to_user', 'status', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'from_user', 'status', 'created_at', 'updated_at']
+
+
+class FriendshipCreateSerializer(serializers.Serializer):
+    """Serializer for creating a friendship request."""
+    
+    username = serializers.CharField(required=True)
+    
+    def validate_username(self, value):
+        try:
+            User.objects.get(username=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Utilisateur introuvable.")
+        return value
+
+
+# ─── Team Serializers ────────────────────────────────────────────────────────
+
+class TeamMemberSerializer(serializers.ModelSerializer):
+    """Serializer for TeamMember."""
+    
+    user = UserMinimalSerializer(read_only=True)
+    
+    class Meta:
+        model = TeamMember
+        fields = ['id', 'user', 'role', 'joined_at']
+
+
+class TeamSerializer(serializers.ModelSerializer):
+    """Serializer for Team model."""
+    
+    owner = UserMinimalSerializer(read_only=True)
+    members_list = serializers.SerializerMethodField()
+    member_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Team
+        fields = [
+            'id', 'name', 'description', 'avatar', 'owner',
+            'members_list', 'member_count',
+            'total_games', 'total_wins', 'total_points',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'owner', 'total_games', 'total_wins', 'total_points', 'created_at', 'updated_at']
+    
+    def get_members_list(self, obj):
+        memberships = obj.memberships.select_related('user').all()[:10]
+        return TeamMemberSerializer(memberships, many=True).data
+    
+    def get_member_count(self, obj):
+        return obj.memberships.count()
+
+
+class TeamCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating a team."""
+    
+    class Meta:
+        model = Team
+        fields = ['name', 'description', 'avatar']
+

@@ -4,6 +4,8 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
+import FriendsPage from './pages/FriendsPage';
+import TeamsPage from './pages/TeamsPage';
 import CreateGamePage from './pages/game/CreateGamePage';
 import JoinGamePage from './pages/game/JoinGamePage';
 import GameLobbyPage from './pages/game/GameLobbyPage';
@@ -26,6 +28,8 @@ function App() {
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="friends" element={<FriendsPage />} />
+          <Route path="teams" element={<TeamsPage />} />
           <Route path="history" element={<GameHistoryPage />} />
           <Route path="game/create" element={<CreateGamePage />} />
           <Route path="game/join" element={<JoinGamePage />} />

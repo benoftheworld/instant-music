@@ -53,6 +53,12 @@ class Game(models.Model):
         choices=GameMode.choices,
         default=GameMode.QUIZ_4_ANSWERS
     )
+    modes = models.JSONField(
+        _('modes de jeu'),
+        default=list,
+        blank=True,
+        help_text=_('Liste des modes pour les parties multi-modes')
+    )
     status = models.CharField(
         _('statut'),
         max_length=20,

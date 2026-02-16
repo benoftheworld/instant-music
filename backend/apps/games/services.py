@@ -371,26 +371,71 @@ class GameService:
             raise ValueError("Game must have a playlist")
 
         num_rounds = game.num_rounds or 10
-        mode = game.mode
-        config = MODE_CONFIG.get(mode, MODE_CONFIG[GameMode.QUIZ_4_ANSWERS])
+        
+        # Determine which modes to use
+        selected_modes = game.modes if game.modes else [game.mode]
+        if not selected_modes:
+            selected_modes = [game.mode]
+        
+        # Generate questions for multi-mode or single mode
+        all_questions = []
+        
+        if len(selected_modes) > 1:
+            # Multi-mode: generate questions proportionally for each mode
+            questions_per_mode = max(1, num_rounds // len(selected_modes))
+            extra_questions = num_rounds % len(selected_modes)
+            
+            for i, mode in enumerate(selected_modes):
+                config = MODE_CONFIG.get(mode, MODE_CONFIG[GameMode.QUIZ_4_ANSWERS])
+                mode_questions_count = questions_per_mode + (1 if i < extra_questions else 0)
+                
+                questions = self.question_generator.generate_questions(
+                    game.playlist_id,
+                    num_questions=mode_questions_count,
+                    question_type=config['question_type'],
+                    game_mode=mode,
+                    user=game.host,
+                )
+                
+                # Add mode info to each question
+                for q in questions:
+                    q['_mode'] = mode
+                    q['_duration'] = config['duration']
+                
+                all_questions.extend(questions)
+            
+            # Shuffle to mix different modes
+            random.shuffle(all_questions)
+        else:
+            # Single mode
+            mode = selected_modes[0]
+            config = MODE_CONFIG.get(mode, MODE_CONFIG[GameMode.QUIZ_4_ANSWERS])
+            
+            questions = self.question_generator.generate_questions(
+                game.playlist_id,
+                num_questions=num_rounds,
+                question_type=config['question_type'],
+                game_mode=mode,
+                user=game.host,
+            )
+            
+            for q in questions:
+                q['_mode'] = mode
+                q['_duration'] = config['duration']
+            
+            all_questions = questions
 
-        questions = self.question_generator.generate_questions(
-            game.playlist_id,
-            num_questions=num_rounds,
-            question_type=config['question_type'],
-            game_mode=mode,
-            user=game.host,
-        )
-
-        if not questions:
+        if not all_questions:
             raise ValueError("Failed to generate questions from playlist")
 
         rounds = []
-        for i, q in enumerate(questions, start=1):
+        for i, q in enumerate(all_questions[:num_rounds], start=1):
             # Prepare extra_data with album_image and any other data
             extra_data = q.get('extra_data', {}).copy()
             if 'album_image' not in extra_data and q.get('album_image'):
                 extra_data['album_image'] = q['album_image']
+            # Store the mode used for this round
+            extra_data['round_mode'] = q.get('_mode', game.mode)
             
             round_obj = GameRound.objects.create(
                 game=game,
@@ -401,10 +446,10 @@ class GameService:
                 correct_answer=q['correct_answer'],
                 options=q['options'],
                 preview_url=q.get('preview_url', ''),
-                question_type=q.get('question_type', config['question_type']),
+                question_type=q.get('question_type', 'guess_title'),
                 question_text=q.get('question_text', ''),
                 extra_data=extra_data,
-                duration=config['duration'],
+                duration=q.get('_duration', 30),
             )
             rounds.append(round_obj)
 

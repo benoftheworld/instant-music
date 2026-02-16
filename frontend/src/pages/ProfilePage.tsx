@@ -7,7 +7,6 @@ import { statsService } from '@/services/achievementService';
 import type { Achievement, UserDetailedStats } from '@/types';
 
 interface ProfileData {
-  bio: string;
   avatar: string | null;
 }
 
@@ -22,7 +21,6 @@ export default function ProfilePage() {
   const updateUser = useAuthStore((state) => state.updateUser);
 
   const [profileData, setProfileData] = useState<ProfileData>({
-    bio: user?.bio || '',
     avatar: user?.avatar || null,
   });
 
@@ -45,7 +43,6 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setProfileData({
-        bio: user.bio || '',
         avatar: user.avatar || null,
       });
       setAvatarPreview(getMediaUrl(user.avatar) || null);
@@ -108,7 +105,6 @@ export default function ProfilePage() {
 
     try {
       const formData = new FormData();
-      formData.append('bio', profileData.bio);
       
       if (avatarFile) {
         formData.append('avatar', avatarFile);
@@ -407,23 +403,6 @@ export default function ProfilePage() {
                 />
               </div>
 
-              {/* Bio */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Biographie
-                </label>
-                <textarea
-                  value={profileData.bio}
-                  onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                  className="input min-h-[100px] resize-y"
-                  placeholder="Parlez-nous de vous..."
-                  maxLength={500}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  {profileData.bio.length}/500 caractères
-                </p>
-              </div>
-
               <button
                 type="submit"
                 disabled={loading}
@@ -514,6 +493,39 @@ export default function ProfilePage() {
               </div>
             </form>
           </div>
+        </div>
+
+        {/* Delete Account Section */}
+        <div className="card border-2 border-red-200 bg-red-50">
+          <h2 className="text-2xl font-bold mb-4 flex items-center text-red-700">
+            <svg className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Supprimer mon compte
+          </h2>
+          <p className="text-sm text-red-600 mb-4">
+            Cette action est irréversible. Toutes vos données seront définitivement supprimées : 
+            profil, statistiques, historique de parties, amitiés et équipes.
+          </p>
+          <button
+            onClick={() => {
+              if (window.confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')) {
+                if (window.confirm('Dernière confirmation : toutes vos données seront définitivement perdues. Continuer ?')) {
+                  api.delete('/users/delete_account/')
+                    .then(() => {
+                      window.location.href = '/';
+                    })
+                    .catch((err) => {
+                      console.error('Delete account error:', err);
+                      alert('Erreur lors de la suppression du compte');
+                    });
+                }
+              }
+            }}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+          >
+            Supprimer définitivement mon compte
+          </button>
         </div>
 
       </div>
