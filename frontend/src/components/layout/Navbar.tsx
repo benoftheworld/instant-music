@@ -10,8 +10,9 @@ export default function Navbar() {
     <nav className="bg-dark text-cream-100 shadow-lg border-b-4 border-primary-500">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          <Link to="/" className="text-2xl font-bold hover:text-primary-400 transition-colors">
-            🎵 InstantMusic
+          <Link to="/" className="text-2xl font-bold hover:text-primary-400 transition-colors flex items-center">
+            <img src="/images/logo.jpg" alt="InstantMusic Logo" className="h-10 inline-block mr-2" />
+            <span className="text-primary-600">Instant</span>Music
           </Link>
 
           <div className="flex items-center gap-6">

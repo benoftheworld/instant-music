@@ -57,6 +57,7 @@ class Game(models.Model):
         _('modes de jeu'),
         default=list,
         blank=True,
+        null=True,
         help_text=_('Liste des modes pour les parties multi-modes')
     )
     status = models.CharField(

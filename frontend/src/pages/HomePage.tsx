@@ -10,10 +10,11 @@ export default function HomePage() {
     <div className="container mx-auto px-4 py-16">
       <div className="text-center max-w-4xl mx-auto mb-12">
         <h1 className="text-5xl font-bold mb-6">
-          Bienvenue sur InstantMusic 🎵
+          Bienvenue sur <span className="text-primary-600">InstantMusic</span> !
         </h1>
         <p className="text-xl text-gray-600 mb-8">
-          Jouez à des jeux musicaux multijoueurs en temps réel avec vos amis !
+          Jouez à des jeux musicaux multijoueurs en temps réel avec vos amis ! 
+          Testez vos connaissances, chantez vos morceaux préférés et grimpez dans le classement !
         </p>
 
         <div className="grid md:grid-cols-3 gap-8 mb-12">

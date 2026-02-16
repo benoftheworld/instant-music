@@ -59,12 +59,19 @@ class CreateGameSerializer(serializers.ModelSerializer):
         child=serializers.CharField(max_length=20),
         required=False,
         allow_empty=True,
-        default=list
+        allow_null=True,
+        default=None
     )
     
     class Meta:
         model = Game
         fields = ['name', 'mode', 'modes', 'max_players', 'num_rounds', 'playlist_id', 'is_online']
+        
+    def validate(self, data):
+        """Ensure modes is set to empty list if not provided."""
+        if data.get('modes') is None:
+            data['modes'] = []
+        return data
 
 
 class GameRoundSerializer(serializers.ModelSerializer):

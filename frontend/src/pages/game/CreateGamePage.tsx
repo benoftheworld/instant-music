@@ -49,12 +49,23 @@ export default function CreateGamePage() {
   const [error, setError] = useState<string | null>(null);
   
   const [gameName, setGameName] = useState('');
-  const [gameMode, setGameMode] = useState<GameMode>('quiz_4');
+  const [selectedModes, setSelectedModes] = useState<GameMode[]>(['quiz_4']);
   const [maxPlayers, setMaxPlayers] = useState(8);
   const [numRounds, setNumRounds] = useState(10);
   const [isOnline, setIsOnline] = useState(true);
   const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
   const [showPlaylistSelector, setShowPlaylistSelector] = useState(false);
+
+  const toggleMode = (mode: GameMode) => {
+    setSelectedModes(prev => {
+      if (prev.includes(mode)) {
+        // Don't allow removing the last mode
+        if (prev.length === 1) return prev;
+        return prev.filter(m => m !== mode);
+      }
+      return [...prev, mode];
+    });
+  };
 
   const handleCreateGame = async () => {
     // Validate playlist selection
@@ -64,13 +75,19 @@ export default function CreateGamePage() {
       return;
     }
 
+    if (selectedModes.length === 0) {
+      setError('Veuillez sélectionner au moins un mode de jeu');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       const gameData: CreateGameData = {
         name: gameName || undefined,
-        mode: gameMode,
+        mode: selectedModes[0], // Primary mode for backwards compatibility
+        modes: selectedModes,   // All selected modes
         max_players: maxPlayers,
         num_rounds: numRounds,
         playlist_id: selectedPlaylist?.youtube_id,
@@ -119,34 +136,52 @@ export default function CreateGamePage() {
         <div className="space-y-6">
           {/* Game Mode Selection */}
           <div className="card">
-            <h2 className="text-xl font-bold mb-4">Mode de jeu</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {gameModes.map((mode) => (
-                <button
-                  key={mode.value}
-                  onClick={() => !mode.disabled && setGameMode(mode.value)}
-                  disabled={mode.disabled}
-                  className={`
-                    p-4 rounded-lg border-2 text-left transition-all relative
-                    ${mode.disabled
-                      ? 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed'
-                      : gameMode === mode.value
-                        ? 'border-primary-600 bg-primary-50'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
-                    }
-                  `}
-                >
-                  <div className="text-2xl mb-2">{mode.icon}</div>
-                  <h3 className="font-semibold mb-1">{mode.label}</h3>
-                  <p className="text-xs text-gray-600">{mode.description}</p>
-                  {mode.disabled && (
-                    <span className="absolute top-2 right-2 text-xs bg-gray-300 text-gray-600 px-2 py-0.5 rounded-full font-medium">
-                      Bientôt
-                    </span>
-                  )}
-                </button>
-              ))}
+            <h2 className="text-xl font-bold mb-4">Modes de jeu</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Sélectionnez un ou plusieurs modes. Les questions seront mélangées entre les modes choisis.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {gameModes.map((mode) => {
+                const isSelected = selectedModes.includes(mode.value);
+                return (
+                  <button
+                    key={mode.value}
+                    onClick={() => !mode.disabled && toggleMode(mode.value)}
+                    disabled={mode.disabled}
+                    className={`
+                      p-4 rounded-lg border-2 text-left transition-all relative
+                      ${mode.disabled
+                        ? 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed'
+                        : isSelected
+                          ? 'border-primary-600 bg-primary-50'
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }
+                    `}
+                  >
+                    {isSelected && (
+                      <span className="absolute top-2 right-2 text-primary-600">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                    )}
+                    <div className="text-2xl mb-2">{mode.icon}</div>
+                    <h3 className="font-semibold mb-1">{mode.label}</h3>
+                    <p className="text-xs text-gray-600">{mode.description}</p>
+                    {mode.disabled && (
+                      <span className="absolute top-2 right-2 text-xs bg-gray-300 text-gray-600 px-2 py-0.5 rounded-full font-medium">
+                        Bientôt
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
+            {selectedModes.length > 1 && (
+              <p className="text-sm text-primary-600 mt-3 font-medium">
+                ✨ Mode mixte : {selectedModes.length} modes sélectionnés
+              </p>
+            )}
           </div>
 
           {/* Game Settings */}
@@ -187,7 +222,7 @@ export default function CreateGamePage() {
                   </span>
                 </div>
                 <p className="text-sm text-gray-500 mt-1">
-                  {gameMode === 'intro' ? 'Chaque round dure 5 secondes' : 'Chaque round dure 30 secondes'}
+                  {selectedModes.includes('intro') ? 'Les rounds Intro durent 5 secondes, les autres 30 secondes' : 'Chaque round dure 30 secondes'}
                 </p>
               </div>
 
@@ -265,7 +300,7 @@ export default function CreateGamePage() {
                   <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z" />
                 </svg>
                 <p className="text-gray-600">Aucune playlist sélectionnée</p>
-                {gameMode !== 'karaoke' && !selectedPlaylist && (
+                {selectedModes.length > 0 && !selectedPlaylist && (
                   <p className="text-sm text-orange-600 mt-1">
                     Une playlist est requise pour ce mode de jeu
                   </p>

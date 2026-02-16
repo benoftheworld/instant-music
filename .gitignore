@@ -11,6 +11,9 @@ staticfiles/
 
 # Env
 .env
+.env.prod
+.env.local
+.env.*.local
 .venv/
 venv/
 
@@ -26,6 +29,20 @@ frontend/dist/
 
 # Docker
 docker-compose.override.yml
+
+# Backups
+backups/
+*.sql
+*.sql.gz
+
+# SSL Certificates
+nginx/ssl/*.pem
+nginx/ssl/*.key
+nginx/ssl/*.crt
+
+# Logs
+logs/
+*.log
 
 # Misc
 .DS_Store
