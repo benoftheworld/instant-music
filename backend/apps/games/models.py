@@ -26,6 +26,12 @@ class Game(models.Model):
     """Game model representing a game session."""
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(
+        _('nom de la partie'),
+        max_length=100,
+        blank=True,
+        help_text=_('Nom optionnel pour identifier la partie')
+    )
     room_code = models.CharField(
         _('code de la salle'),
         max_length=6,
@@ -51,6 +57,7 @@ class Game(models.Model):
         default=GameStatus.WAITING
     )
     max_players = models.IntegerField(_('nombre max de joueurs'), default=8)
+    num_rounds = models.IntegerField(_('nombre de rounds'), default=10)
     playlist_id = models.CharField(
         _('ID playlist YouTube'),
         max_length=255,
@@ -119,7 +126,7 @@ class GameRound(models.Model):
     options = models.JSONField(_('options'), default=list)
     duration = models.IntegerField(_('durée (secondes)'), default=30)
     
-    started_at = models.DateTimeField(_('démarré le'), auto_now_add=True)
+    started_at = models.DateTimeField(_('démarré le'), null=True, blank=True)
     ended_at = models.DateTimeField(_('terminé le'), null=True, blank=True)
     
     class Meta:

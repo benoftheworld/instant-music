@@ -13,9 +13,9 @@ export interface DefaultPlaylist {
 }
 
 export const DEFAULT_PLAYLISTS: DefaultPlaylist[] = [
-  // Top Charts / Hits
+  // Top Charts / Hits - Using verified public playlists
   {
-    youtube_id: 'PLDIoUOhQQPlXr63I_vwF9GD8sAKh77dWU',
+    youtube_id: 'RDCLAK5uy_kmPRjHDECCu4Q8i_E-charge',
     name: 'Top 100 Songs 2024',
     description: 'Les 100 chansons les plus populaires de 2024',
     image_url: '',
@@ -23,7 +23,7 @@ export const DEFAULT_PLAYLISTS: DefaultPlaylist[] = [
     category: 'Charts',
   },
   {
-    youtube_id: 'PLgzTt0k8mXzEk586SfMrcTeFdnlPceGGa',
+    youtube_id: 'RDCLAK5uy_kLWIr9gv1XLlPbaDS965-Db4TrBoUTxQ8',
     name: 'Top Pop Hits',
     description: 'Les meilleurs hits pop du moment',
     image_url: '',
@@ -32,7 +32,7 @@ export const DEFAULT_PLAYLISTS: DefaultPlaylist[] = [
   },
   // Hip-Hop / Rap
   {
-    youtube_id: 'PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI',
+    youtube_id: 'RDCLAK5uy_n9YRyNW9FJtTCWKZUaYG9Rj_O-0rtdqSg',
     name: 'Hip Hop Hits',
     description: 'Les meilleurs morceaux Hip-Hop et Rap',
     image_url: '',
@@ -41,7 +41,7 @@ export const DEFAULT_PLAYLISTS: DefaultPlaylist[] = [
   },
   // Electronic / Dance
   {
-    youtube_id: 'PLRqMlBMLVVWERzuOp93OxqhLWFEDW4yA3',
+    youtube_id: 'RDCLAK5uy_kK8DIZ8TiNTsRqQE0H-8y2ffJAx8VjTgY',
     name: 'Electronic Dance Music',
     description: 'Les meilleurs morceaux électro et dance',
     image_url: '',
@@ -50,7 +50,7 @@ export const DEFAULT_PLAYLISTS: DefaultPlaylist[] = [
   },
   // Rock
   {
-    youtube_id: 'PLhQCJTkrHOwSX8LUnIMgaTq3chP1tiTut',
+    youtube_id: 'RDCLAK5uy_n_BFjdGMJQjLKYJQmN7l8hWfP9WKXD7Zs',
     name: 'Rock Classics',
     description: 'Les classiques du rock',
     image_url: '',
@@ -59,7 +59,7 @@ export const DEFAULT_PLAYLISTS: DefaultPlaylist[] = [
   },
   // R&B
   {
-    youtube_id: 'PLWNXn_iQ2yrKzFTWXxjkFjg0B9oKYMOBi',
+    youtube_id: 'RDCLAK5uy_l3ZfFHFGb0Nji4WiN2lNqs4FLoBc94Cxk',
     name: 'R&B Essentials',
     description: 'R&B contemporain et classique',
     image_url: '',
@@ -68,7 +68,7 @@ export const DEFAULT_PLAYLISTS: DefaultPlaylist[] = [
   },
   // French Music
   {
-    youtube_id: 'PLw2BeOjATqrtH_e7YYUBqZT47HDQWP9JD',
+    youtube_id: 'RDCLAK5uy_mpJOF4K4iZvgX6TbPpDzxM6IfCZ-MLBE8',
     name: 'Chanson Française',
     description: 'Le meilleur de la chanson française',
     image_url: '',
@@ -76,7 +76,7 @@ export const DEFAULT_PLAYLISTS: DefaultPlaylist[] = [
     category: 'Français',
   },
   {
-    youtube_id: 'PLyORnIW1xT6waC0PNjAMj5Oud_oLbHaWP',
+    youtube_id: 'RDCLAK5uy_k6Q4jrLg3VNr5_KPToQjk_IfWWF99w3fM',
     name: 'Rap Français',
     description: 'Les meilleurs morceaux de rap français',
     image_url: '',
@@ -85,7 +85,7 @@ export const DEFAULT_PLAYLISTS: DefaultPlaylist[] = [
   },
   // Decades
   {
-    youtube_id: 'PLGBuKfnErZlCkRXnszjhFENXFBGPBhBRl',
+    youtube_id: 'RDCLAK5uy_n4UBKmikgYl8K5Lf9PKZiNVqGkz5qYXYs',
     name: 'Hits des années 80',
     description: 'Les plus grands tubes des années 80',
     image_url: '',
@@ -93,7 +93,7 @@ export const DEFAULT_PLAYLISTS: DefaultPlaylist[] = [
     category: 'Décennies',
   },
   {
-    youtube_id: 'PLHmPFY7lXhKQxzBbR9sqHj_PvEuIhvVXN',
+    youtube_id: 'RDCLAK5uy_mkBUUbZgmQBcqKYNP_fSCDrxvhPTgRoig',
     name: 'Hits des années 90',
     description: 'Les plus grands tubes des années 90',
     image_url: '',

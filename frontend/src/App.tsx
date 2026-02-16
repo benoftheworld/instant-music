@@ -10,6 +10,7 @@ import GameLobbyPage from './pages/game/GameLobbyPage';
 import GamePlayPage from './pages/game/GamePlayPage';
 import GameResultsPage from './pages/game/GameResultsPage';
 import GameHistoryPage from './pages/GameHistoryPage';
+import LeaderboardPage from './pages/LeaderboardPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
@@ -20,6 +21,7 @@ function App() {
         <Route index element={<HomePage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route path="leaderboard" element={<LeaderboardPage />} />
         
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>

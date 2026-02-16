@@ -11,6 +11,23 @@ interface Player {
   avatar?: string;
 }
 
+interface RoundAnswer {
+  username: string;
+  answer: string;
+  is_correct: boolean;
+  points_earned: number;
+  response_time: number;
+}
+
+interface RoundDetail {
+  round_number: number;
+  track_name: string;
+  artist_name: string;
+  correct_answer: string;
+  track_id: string;
+  answers: RoundAnswer[];
+}
+
 interface GameResult {
   game: {
     id: string;
@@ -18,6 +35,7 @@ interface GameResult {
     status: string;
   };
   rankings: Player[];
+  rounds: RoundDetail[];
 }
 
 export default function GameResultsPage() {
@@ -200,6 +218,61 @@ export default function GameResultsPage() {
                     <span className="text-white font-semibold text-lg">{player.username}</span>
                   </div>
                   <div className="text-white font-bold text-2xl">{player.score} pts</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Per-round recap */}
+        {results.rounds && results.rounds.length > 0 && (
+          <div className="max-w-4xl mx-auto mb-12">
+            <h3 className="text-3xl font-bold text-white text-center mb-6">📋 Récapitulatif par round</h3>
+            <div className="space-y-4">
+              {results.rounds.map((round) => (
+                <div
+                  key={round.round_number}
+                  className="bg-white/10 backdrop-blur-sm rounded-xl p-5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <span className="text-white font-bold text-lg">
+                        Round {round.round_number}
+                      </span>
+                      <span className="text-white/70 ml-3">
+                        🎵 {round.track_name} — {round.artist_name}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {round.answers.map((ans, idx) => (
+                      <div
+                        key={idx}
+                        className={`rounded-lg px-4 py-2 flex items-center justify-between ${
+                          ans.is_correct
+                            ? 'bg-green-500/30 border border-green-400/50'
+                            : 'bg-red-500/20 border border-red-400/30'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <span className="text-lg">{ans.is_correct ? '✅' : '❌'}</span>
+                          <span className="text-white font-medium">{ans.username}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className={`font-bold ${ans.is_correct ? 'text-green-300' : 'text-red-300'}`}>
+                            +{ans.points_earned}
+                          </span>
+                          <span className="text-white/50 text-xs ml-1">
+                            ({ans.response_time}s)
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    {round.answers.length === 0 && (
+                      <p className="text-white/50 text-sm col-span-full">Aucune réponse</p>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

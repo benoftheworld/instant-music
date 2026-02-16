@@ -188,7 +188,7 @@ class GameService:
         if not game.playlist_id:
             raise ValueError("Game must have a playlist")
         
-        num_rounds = 10
+        num_rounds = game.num_rounds or 10
         questions = self.question_generator.generate_questions(
             game.playlist_id,
             num_questions=num_rounds,
@@ -216,20 +216,31 @@ class GameService:
         game.started_at = timezone.now()
         game.save()
         
+        # Start the first round
+        if rounds:
+            rounds[0].started_at = timezone.now()
+            rounds[0].save()
+        
         return game, rounds
     
     def get_current_round(self, game: Game) -> Optional[GameRound]:
-        """Get the current active round for a game."""
-        return game.rounds.filter(ended_at__isnull=True).order_by('round_number').first()
+        """Get the current active round for a game (started but not ended)."""
+        return game.rounds.filter(
+            started_at__isnull=False,
+            ended_at__isnull=True
+        ).order_by('round_number').first()
     
     def get_next_round(self, game: Game) -> Optional[GameRound]:
-        """Get the next round to play."""
-        current_round = self.get_current_round(game)
-        if current_round:
-            return None
-        
-        played_rounds = game.rounds.filter(ended_at__isnull=False).values_list('round_number', flat=True)
-        return game.rounds.exclude(round_number__in=played_rounds).order_by('round_number').first()
+        """Get the next round to play (not yet started)."""
+        return game.rounds.filter(
+            started_at__isnull=True
+        ).order_by('round_number').first()
+    
+    def start_round(self, round_obj: GameRound) -> GameRound:
+        """Mark a round as started."""
+        round_obj.started_at = timezone.now()
+        round_obj.save()
+        return round_obj
     
     @transaction.atomic
     def end_round(self, round_obj: GameRound) -> GameRound:
@@ -277,6 +288,14 @@ class GameService:
         for rank, player in enumerate(players, start=1):
             player.rank = rank
             player.save()
+            
+            # Update user statistics
+            user = player.user
+            user.total_games_played += 1
+            user.total_points += player.score
+            if rank == 1:
+                user.total_wins += 1
+            user.save()
         
         return game
 

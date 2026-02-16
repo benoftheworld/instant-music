@@ -15,6 +15,9 @@ export default function Navbar() {
           </Link>
 
           <div className="flex items-center gap-6">
+            <Link to="/leaderboard" className="hover:text-primary-200 transition-colors">
+              🏆 Classement
+            </Link>
             {isAuthenticated ? (
               <>
                 <Link to="/history" className="hover:text-primary-200 transition-colors">

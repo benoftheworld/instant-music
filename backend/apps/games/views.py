@@ -307,17 +307,40 @@ class GameViewSet(viewsets.ModelViewSet):
                 round_json = JSONRenderer().render(round_serializer.data)
                 round_data = json.loads(round_json)
                 
+                # Build per-player scores for this round
+                player_scores = {}
+                for ans in GameAnswer.objects.filter(round=round_obj).select_related('player__user'):
+                    player_scores[ans.player.user.username] = {
+                        'points_earned': ans.points_earned,
+                        'is_correct': ans.is_correct,
+                        'response_time': ans.response_time,
+                    }
+                
+                # Build updated player list with total scores
+                updated_players = []
+                for p in game.players.select_related('user').order_by('-score'):
+                    updated_players.append({
+                        'id': p.id,
+                        'user': p.user.id,
+                        'username': p.user.username,
+                        'score': p.score,
+                        'rank': p.rank,
+                        'is_connected': p.is_connected,
+                    })
+                
                 channel_layer = get_channel_layer()
                 room_group_name = f'game_{room_code}'
                 
-                # Broadcast round end with correct answer
+                # Broadcast round end with correct answer + player scores
                 async_to_sync(channel_layer.group_send)(
                     room_group_name,
                     {
                         'type': 'broadcast_round_end',
                         'results': {
                             'correct_answer': round_obj.correct_answer,
-                            'round_data': round_data
+                            'round_data': round_data,
+                            'player_scores': player_scores,
+                            'updated_players': updated_players,
                         }
                     }
                 )
@@ -344,12 +367,12 @@ class GameViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # End current round
+        # End current round if still active
         current = game_service.get_current_round(game)
         if current:
             game_service.end_round(current)
         
-        # Get next round
+        # Get next unstarted round
         next_round = game_service.get_next_round(game)
         
         if not next_round:
@@ -376,6 +399,9 @@ class GameViewSet(viewsets.ModelViewSet):
                 'message': 'Partie terminée'
             })
         
+        # Start the next round
+        game_service.start_round(next_round)
+        
         # Broadcast next round via WebSocket
         from asgiref.sync import async_to_sync
         from channels.layers import get_channel_layer
@@ -384,6 +410,9 @@ class GameViewSet(viewsets.ModelViewSet):
         
         channel_layer = get_channel_layer()
         room_group_name = f'game_{room_code}'
+        
+        # Re-fetch to get updated started_at
+        next_round.refresh_from_db()
         
         # Serialize and convert to JSON-safe dict
         round_serializer = GameRoundSerializer(next_round)
@@ -402,7 +431,7 @@ class GameViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get'])
     def results(self, request, room_code=None):
-        """Get final results and rankings."""
+        """Get final results and rankings with per-round breakdown."""
         game = self.get_object()
         
         # Check if player is in the game
@@ -415,9 +444,31 @@ class GameViewSet(viewsets.ModelViewSet):
         # Get players ordered by score
         players = game.players.order_by('-score')
         
+        # Build per-round breakdown
+        rounds_detail = []
+        for r in game.rounds.order_by('round_number'):
+            answers = []
+            for ans in r.answers.select_related('player__user').order_by('-points_earned'):
+                answers.append({
+                    'username': ans.player.user.username,
+                    'answer': ans.answer,
+                    'is_correct': ans.is_correct,
+                    'points_earned': ans.points_earned,
+                    'response_time': round(ans.response_time, 1),
+                })
+            rounds_detail.append({
+                'round_number': r.round_number,
+                'track_name': r.track_name,
+                'artist_name': r.artist_name,
+                'correct_answer': r.correct_answer,
+                'track_id': r.track_id,
+                'answers': answers,
+            })
+        
         return Response({
             'game': GameSerializer(game).data,
-            'rankings': GamePlayerSerializer(players, many=True).data
+            'rankings': GamePlayerSerializer(players, many=True).data,
+            'rounds': rounds_detail,
         })
     
     @action(detail=False, methods=['get'])

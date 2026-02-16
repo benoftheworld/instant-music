@@ -27,8 +27,10 @@ export default function CreateGamePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  const [gameName, setGameName] = useState('');
   const [gameMode, setGameMode] = useState<GameMode>('quiz_4');
   const [maxPlayers, setMaxPlayers] = useState(8);
+  const [numRounds, setNumRounds] = useState(10);
   const [isOnline, setIsOnline] = useState(true);
   const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
   const [showPlaylistSelector, setShowPlaylistSelector] = useState(false);
@@ -46,8 +48,10 @@ export default function CreateGamePage() {
 
     try {
       const gameData: CreateGameData = {
+        name: gameName || undefined,
         mode: gameMode,
         max_players: maxPlayers,
+        num_rounds: numRounds,
         playlist_id: selectedPlaylist?.youtube_id,
         is_online: isOnline
       };
@@ -119,6 +123,44 @@ export default function CreateGamePage() {
           <div className="card">
             <h2 className="text-xl font-bold mb-4">Paramètres</h2>
             <div className="space-y-4">
+              {/* Game Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nom de la partie (optionnel)
+                </label>
+                <input
+                  type="text"
+                  maxLength={100}
+                  placeholder="Ex: Soirée Quiz 80's"
+                  value={gameName}
+                  onChange={(e) => setGameName(e.target.value)}
+                  className="input max-w-md"
+                />
+              </div>
+
+              {/* Number of Rounds */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre de rounds
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min="3"
+                    max="20"
+                    value={numRounds}
+                    onChange={(e) => setNumRounds(parseInt(e.target.value))}
+                    className="w-48"
+                  />
+                  <span className="text-lg font-semibold text-primary-600 min-w-[3rem]">
+                    {numRounds}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 mt-1">
+                  Chaque round dure 30 secondes
+                </p>
+              </div>
+
               {/* Max Players */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

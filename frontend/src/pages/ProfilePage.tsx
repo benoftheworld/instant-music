@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { api } from '@/services/api';
+import { api, getMediaUrl } from '@/services/api';
+import { authService } from '@/services/authService';
 
 interface ProfileData {
   bio: string;
@@ -44,6 +45,20 @@ export default function ProfilePage() {
       setAvatarPreview(getMediaUrl(user.avatar) || null);
     }
   }, [user]);
+
+  // Fetch latest user stats on mount
+  useEffect(() => {
+    const refreshUser = async () => {
+      try {
+        const fresh = await authService.getCurrentUser();
+        updateUser(fresh);
+      } catch (err) {
+        console.error('Failed to refresh user data:', err);
+      }
+    };
+    refreshUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -145,7 +160,7 @@ export default function ProfilePage() {
 
         {/* Stats Overview Card */}
         <div className="card bg-gradient-to-r from-primary-50 to-purple-50">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="text-center">
               <div className="text-4xl font-bold text-primary-600 mb-1">
                 {user.total_games_played}
@@ -163,6 +178,12 @@ export default function ProfilePage() {
                 {(user.win_rate ?? 0).toFixed(1)}%
               </div>
               <div className="text-sm text-gray-600 uppercase tracking-wide">Taux de victoire</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-primary-800 mb-1">
+                {user.total_points}
+              </div>
+              <div className="text-sm text-gray-600 uppercase tracking-wide">Points totaux</div>
             </div>
           </div>
         </div>

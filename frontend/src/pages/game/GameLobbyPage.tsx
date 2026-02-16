@@ -64,15 +64,23 @@ export default function GameLobbyPage() {
         return;
       }
       
-      // If not the host, try to join the game (ignore if already joined)
+      // If not the host and not already in the game, try to join
       if (user && gameData.host !== user.id) {
-        try {
-          await gameService.joinGame(roomCode);
-          // No need to reload or send WS - backend handles it
-        } catch (joinError: any) {
-          // Ignore if already in the game (400 error)
-          if (joinError?.response?.status !== 400) {
-            console.error('Failed to join game:', joinError);
+        const isAlreadyInGame = gameData.players.some((p: any) => p.user === user.id);
+        
+        if (!isAlreadyInGame) {
+          try {
+            await gameService.joinGame(roomCode);
+            // Reload game data to get updated player list
+            const updatedGame = await gameService.getGame(roomCode);
+            setGame(updatedGame);
+          } catch (joinError: any) {
+            // Ignore if already in the game (400 error with specific message)
+            const errorMessage = joinError?.response?.data?.error;
+            if (!errorMessage?.includes('déjà dans cette partie')) {
+              console.error('Failed to join game:', joinError);
+              setError('Impossible de rejoindre la partie');
+            }
           }
         }
       }
@@ -209,9 +217,13 @@ export default function GameLobbyPage() {
         <div className="card mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Lobby de jeu</h1>
+              <h1 className="text-3xl font-bold mb-2">
+                {game.name || 'Lobby de jeu'}
+              </h1>
               <p className="text-gray-600">
                 Mode: <span className="font-semibold">{game.mode}</span>
+                {' • '}
+                <span className="font-semibold">{game.num_rounds} rounds</span>
               </p>
             </div>
             <div className="text-right">

@@ -73,9 +73,6 @@ export default function HomePage() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Parties récentes</h2>
-                <Link to="/history" className="text-sm text-primary-600 hover:text-primary-700">
-                  Voir tout
-                </Link>
               </div>
               <RecentGames />
             </div>

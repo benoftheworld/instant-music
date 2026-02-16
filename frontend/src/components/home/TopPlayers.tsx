@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api, getMediaUrl } from '@/services/api';
 import type { LeaderboardEntry } from '@/types';
+import { Link } from 'react-router-dom';
 
 export default function TopPlayers() {
   const [players, setPlayers] = useState<LeaderboardEntry[]>([]);
@@ -122,6 +123,14 @@ export default function TopPlayers() {
           </div>
         </div>
       ))}
+      <div className="text-center mt-2">
+        <Link
+          to="/leaderboard"
+          className="text-sm text-primary-600 hover:underline font-medium"
+        >
+          Voir tout le classement
+        </Link>
+      </div>
     </div>
   );
 }

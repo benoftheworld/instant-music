@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { gameService } from '../../services/gameService';
 import { useWebSocket } from '../../hooks/useWebSocket';
@@ -31,6 +31,8 @@ export default function GamePlayPage() {
   const [showResults, setShowResults] = useState(false);
   const [roundResults, setRoundResults] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [myPointsEarned, setMyPointsEarned] = useState<number>(0);
+  const isAdvancingRef = useRef(false);
   
   // WebSocket connection
   const { sendMessage, onMessage } = useWebSocket(roomCode || '');
@@ -75,34 +77,61 @@ export default function GamePlayPage() {
     }
   }, [roomCode, navigate]);
   
-  // Timer countdown
+  // Advance to next round (guarded against double calls)
+  const advanceToNextRound = useCallback(async () => {
+    if (isAdvancingRef.current || !roomCode) return;
+    isAdvancingRef.current = true;
+    try {
+      await gameService.nextRound(roomCode);
+    } catch (error) {
+      console.error('Failed to advance to next round:', error);
+    } finally {
+      // Reset after a delay to prevent rapid re-triggers
+      setTimeout(() => { isAdvancingRef.current = false; }, 3000);
+    }
+  }, [roomCode]);
+
+  // Timer countdown - calculate based on server time
   useEffect(() => {
     if (!currentRound || showResults) return;
     
-    const interval = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          
-          // If timer reaches 0 and user is host, trigger next round
-          setTimeout(async () => {
-            if (user && game && game.host === user.id) {
-              try {
-                await gameService.nextRound(roomCode || '');
-              } catch (error) {
-                console.error('Failed to trigger next round:', error);
-              }
-            }
-          }, 2000); // Wait 2 seconds before moving to next round
-          
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    const calculateTimeRemaining = () => {
+      if (!currentRound.started_at) return currentRound.duration;
+      const startTime = new Date(currentRound.started_at).getTime();
+      const now = Date.now();
+      const elapsed = Math.floor((now - startTime) / 1000);
+      const remaining = Math.max(0, currentRound.duration - elapsed);
+      return remaining;
+    };
     
-    return () => clearInterval(interval);
-  }, [currentRound, showResults, game, roomCode, user]);
+    // Update immediately
+    const remaining = calculateTimeRemaining();
+    setTimeRemaining(remaining);
+    
+    let timerTimeout: ReturnType<typeof setTimeout> | null = null;
+    
+    // Update every 100ms for smooth countdown
+    const interval = setInterval(() => {
+      const newRemaining = calculateTimeRemaining();
+      setTimeRemaining(newRemaining);
+      
+      if (newRemaining <= 0) {
+        clearInterval(interval);
+        
+        // If timer reaches 0 and user is host, trigger next round after delay
+        if (user && game && game.host === user.id) {
+          timerTimeout = setTimeout(() => {
+            advanceToNextRound();
+          }, 2000);
+        }
+      }
+    }, 100);
+    
+    return () => {
+      clearInterval(interval);
+      if (timerTimeout) clearTimeout(timerTimeout);
+    };
+  }, [currentRound, showResults, game, roomCode, user, advanceToNextRound]);
   
   // Handle WebSocket messages
   useEffect(() => {
@@ -127,12 +156,26 @@ export default function GamePlayPage() {
         case 'round_ended':
           // Round finished, show results
           setShowResults(true);
-          setRoundResults(data.results);
+          setRoundResults({
+            ...data.results,
+            points_earned: data.results?.player_scores?.[user?.username || '']?.points_earned ?? myPointsEarned,
+          });
+          // Update players with fresh scores from backend
+          if (data.results?.updated_players && game) {
+            setGame({ ...game, players: data.results.updated_players });
+          }
           break;
           
         case 'next_round':
           // Move to next round automatically
-          loadCurrentRound();
+          isAdvancingRef.current = false;
+          setCurrentRound(data.round_data);
+          setTimeRemaining(data.round_data.duration);
+          setHasAnswered(false);
+          setSelectedAnswer(null);
+          setShowResults(false);
+          setRoundResults(null);
+          setMyPointsEarned(0);
           break;
           
         case 'game_finished':
@@ -149,16 +192,12 @@ export default function GamePlayPage() {
   useEffect(() => {
     if (!showResults || !user || !game || game.host !== user.id) return;
     
-    const timer = setTimeout(async () => {
-      try {
-        await gameService.nextRound(roomCode || '');
-      } catch (error) {
-        console.error('Failed to auto-advance to next round:', error);
-      }
+    const timer = setTimeout(() => {
+      advanceToNextRound();
     }, 5000); // Wait 5 seconds after results
     
     return () => clearTimeout(timer);
-  }, [showResults, user, game, roomCode]);
+  }, [showResults, user, game, advanceToNextRound]);
   
   // Initial load
   useEffect(() => {
@@ -176,16 +215,19 @@ export default function GamePlayPage() {
     const responseTime = currentRound.duration - timeRemaining;
     
     try {
-      // Submit answer to backend
-      await gameService.submitAnswer(roomCode, {
+      // Submit answer to backend — response contains points_earned
+      const answerResult = await gameService.submitAnswer(roomCode, {
         answer,
         response_time: responseTime
       });
       
+      // Store the player's own points for immediate display
+      setMyPointsEarned(answerResult.points_earned || 0);
+      
       // Notify other players via WebSocket
       sendMessage({
         type: 'player_answer',
-        player: (game?.players?.find((p: any) => p.id === 'current') as any)?.username || 'You',
+        player: user?.username || 'You',
         answer: answer,
         response_time: responseTime
       });

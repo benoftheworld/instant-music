@@ -43,12 +43,14 @@ export type GameStatus = 'waiting' | 'in_progress' | 'finished' | 'cancelled';
 
 export interface Game {
   id: string;
+  name?: string;
   room_code: string;
   host: number;
   host_username: string;
   mode: GameMode;
   status: GameStatus;
   max_players: number;
+  num_rounds: number;
   playlist_id?: string;
   is_online: boolean;
   players: GamePlayer[];
@@ -70,8 +72,10 @@ export interface GamePlayer {
 }
 
 export interface CreateGameData {
+  name?: string;
   mode: GameMode;
   max_players: number;
+  num_rounds: number;
   playlist_id?: string;
   is_online: boolean;
 }

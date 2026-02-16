@@ -28,12 +28,14 @@ class GameSerializer(serializers.ModelSerializer):
         model = Game
         fields = [
             'id',
+            'name',
             'room_code',
             'host',
             'host_username',
             'mode',
             'status',
             'max_players',
+            'num_rounds',
             'playlist_id',
             'is_online',
             'players',
@@ -54,7 +56,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Game
-        fields = ['mode', 'max_players', 'playlist_id', 'is_online']
+        fields = ['name', 'mode', 'max_players', 'num_rounds', 'playlist_id', 'is_online']
 
 
 class GameRoundSerializer(serializers.ModelSerializer):
