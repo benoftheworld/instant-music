@@ -13,6 +13,25 @@ export default function SpotifyConnection() {
     const spotifyConnected = params.get('spotify_connected');
     const spotifyError = params.get('spotify_error');
 
+    // If we're in a popup window (opened by window.open), close it automatically
+    if (window.opener && (spotifyConnected || spotifyError)) {
+      // Notify parent window to refresh
+      if (window.opener && !window.opener.closed) {
+        try {
+          window.opener.postMessage({ 
+            type: 'spotify_oauth_response', 
+            success: spotifyConnected === 'true',
+            error: spotifyError 
+          }, window.location.origin);
+        } catch (e) {
+          console.error('Failed to post message to parent:', e);
+        }
+      }
+      // Close popup
+      window.close();
+      return;
+    }
+
     if (spotifyConnected === 'true') {
       // Successfully connected, refresh status
       checkStatus();
@@ -25,7 +44,8 @@ export default function SpotifyConnection() {
         'invalid_callback': 'Erreur lors du callback OAuth.',
         'invalid_state': 'Erreur de sécurité (state invalide).',
         'not_authenticated': 'Vous devez être connecté.',
-        'token_exchange_failed': 'Échec de l\'échange de token.'
+        'token_exchange_failed': 'Échec de l\'échange de token.',
+        'user_not_found': 'Utilisateur non trouvé.'
       };
       setError(errorMessages[spotifyError] || 'Erreur de connexion Spotify.');
       // Clean URL

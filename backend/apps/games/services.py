@@ -46,6 +46,7 @@ class QuestionGeneratorService:
         """
         # Get tracks from playlist using hybrid service
         try:
+            logger.info(f"Fetching tracks from playlist {playlist_id} for user {user.username if user else 'anonymous'}")
             tracks = self.hybrid_spotify.get_playlist_tracks(
                 playlist_id, 
                 limit=50,
@@ -56,10 +57,13 @@ class QuestionGeneratorService:
             logger.error(f"Failed to get tracks from playlist {playlist_id}: {error_msg}")
             
             if "403" in error_msg or "Forbidden" in error_msg:
+                user_status = "avec OAuth" if user and hasattr(user, 'spotify_token') else "sans OAuth"
                 raise ValueError(
-                    f"Accès refusé à cette playlist Spotify. "
-                    f"Les playlists privées ou protégées ne sont pas accessibles avec l'authentification actuelle. "
-                    f"Veuillez sélectionner une playlist publique différente."
+                    f"Accès refusé à cette playlist (erreur 403). "
+                    f"Cette playlist est soit privée et appartient à un autre utilisateur, "
+                    f"soit elle a des restrictions géographiques. "
+                    f"Veuillez sélectionner une playlist publique différente. "
+                    f"(Connexion: {user_status})"
                 )
             elif "404" in error_msg:
                 raise ValueError(f"Playlist {playlist_id} introuvable sur Spotify.")

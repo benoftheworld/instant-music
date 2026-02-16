@@ -1,11 +1,21 @@
-import { io, Socket } from 'socket.io-client';
+/**
+ * WebSocket service using native WebSocket (compatible with Django Channels).
+ * 
+ * Django Channels uses native WebSocket protocol, NOT Socket.IO.
+ */
 import type { WebSocketMessage } from '@/types';
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
+const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://127.0.0.1:8000';
+
+type MessageCallback = (data: WebSocketMessage) => void;
 
 export class WebSocketService {
-  private socket: Socket | null = null;
+  private socket: WebSocket | null = null;
   private roomCode: string | null = null;
+  private listeners: Map<string, Set<MessageCallback>> = new Map();
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
   getRoomCode(): string | null {
     return this.roomCode;
@@ -14,56 +24,128 @@ export class WebSocketService {
   connect(roomCode: string): Promise<void> {
     return new Promise((resolve, reject) => {
       this.roomCode = roomCode;
-      this.socket = io(`${WS_URL}/ws/game/${roomCode}/`, {
-        transports: ['websocket'],
-      });
+      this.reconnectAttempts = 0;
 
-      this.socket.on('connect', () => {
-        console.log('WebSocket connected');
-        resolve();
-      });
+      const url = `${WS_BASE_URL}/ws/game/${roomCode}/`;
+      console.log('Connecting to WebSocket:', url);
 
-      this.socket.on('connect_error', (error) => {
-        console.error('WebSocket connection error:', error);
+      try {
+        this.socket = new WebSocket(url);
+      } catch (error) {
+        console.error('Failed to create WebSocket:', error);
         reject(error);
-      });
+        return;
+      }
 
-      this.socket.on('disconnect', () => {
-        console.log('WebSocket disconnected');
-      });
+      this.socket.onopen = () => {
+        console.log('WebSocket connected to room:', roomCode);
+        this.reconnectAttempts = 0;
+        resolve();
+      };
+
+      this.socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        reject(error);
+      };
+
+      this.socket.onclose = (event) => {
+        console.log(`WebSocket closed (code: ${event.code}, reason: ${event.reason})`);
+        this._emitEvent('disconnect', { code: event.code, reason: event.reason });
+        
+        // Auto-reconnect if not intentionally closed
+        if (event.code !== 1000 && this.roomCode) {
+          this._attemptReconnect();
+        }
+      };
+
+      this.socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as WebSocketMessage;
+          
+          // Emit to 'message' listeners (general)
+          this._emitEvent('message', data);
+          
+          // Also emit by specific type (e.g., 'player_joined', 'game_started')
+          if (data.type) {
+            this._emitEvent(data.type, data);
+          }
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error);
+        }
+      };
     });
   }
 
-  disconnect(): void {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-      this.roomCode = null;
+  private _attemptReconnect() {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.log('Max reconnect attempts reached');
+      return;
     }
+
+    this.reconnectAttempts++;
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 10000);
+    console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+
+    this.reconnectTimeout = setTimeout(() => {
+      if (this.roomCode) {
+        this.connect(this.roomCode).catch((error) => {
+          console.error('Reconnect failed:', error);
+        });
+      }
+    }, delay);
+  }
+
+  disconnect(): void {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
+    this.roomCode = null;
+
+    if (this.socket) {
+      this.socket.close(1000, 'Client disconnect');
+      this.socket = null;
+    }
+
+    this.listeners.clear();
   }
 
   send(message: WebSocketMessage): void {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit('message', message);
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify(message));
     } else {
-      console.error('WebSocket is not connected');
+      console.error('WebSocket is not connected (state:', this.socket?.readyState, ')');
     }
   }
 
-  on(event: string, callback: (data: any) => void): void {
-    if (this.socket) {
-      this.socket.on(event, callback);
+  on(event: string, callback: MessageCallback): void {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set());
     }
+    this.listeners.get(event)!.add(callback);
   }
 
-  off(event: string, callback?: (data: any) => void): void {
-    if (this.socket) {
-      this.socket.off(event, callback);
+  off(event: string, callback?: MessageCallback): void {
+    if (!callback) {
+      this.listeners.delete(event);
+      return;
     }
+    this.listeners.get(event)?.delete(callback);
+  }
+
+  private _emitEvent(event: string, data: any): void {
+    this.listeners.get(event)?.forEach((callback) => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error(`Error in WebSocket listener for '${event}':`, error);
+      }
+    });
   }
 
   isConnected(): boolean {
-    return this.socket !== null && this.socket.connected;
+    return this.socket !== null && this.socket.readyState === WebSocket.OPEN;
   }
 }
 

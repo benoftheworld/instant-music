@@ -42,7 +42,7 @@ def spotify_authorize(request):
     Returns URL that frontend should redirect user to for Spotify login.
     """
     try:
-        auth_data = spotify_oauth_service.get_authorization_url()
+        auth_data = spotify_oauth_service.get_authorization_url(user_id=request.user.id)
         
         return Response({
             'authorization_url': auth_data['url'],
@@ -70,6 +70,7 @@ def spotify_authorize(request):
     }
 )
 @api_view(['GET'])
+@permission_classes([])  # Allow unauthenticated access for OAuth callback
 def spotify_callback(request):
     """
     Handle OAuth callback from Spotify.
@@ -98,29 +99,33 @@ def spotify_callback(request):
         frontend_url = f"{settings.FRONTEND_URL}/profile?spotify_error=invalid_callback"
         return redirect(frontend_url)
     
-    # Validate state (CSRF protection)
-    if not spotify_oauth_service.validate_state(state):
-        logger.error(f"Invalid state parameter: {state}")
+    # Validate state (CSRF protection) and get user_id
+    user_id = spotify_oauth_service.validate_state(state)
+    if not user_id:
+        logger.error(f"Invalid or expired state parameter: {state}")
         frontend_url = f"{settings.FRONTEND_URL}/profile?spotify_error=invalid_state"
         return redirect(frontend_url)
     
-    # Get user from session (if authenticated)
-    if not request.user.is_authenticated:
-        logger.error("User not authenticated in callback")
-        frontend_url = f"{settings.FRONTEND_URL}/login?next=/profile&spotify_error=not_authenticated"
-        return redirect(frontend_url)
-    
     try:
+        # Get user from database
+        from apps.users.models import User
+        user = User.objects.get(id=user_id)
+        
         # Exchange code for tokens
         token_data = spotify_oauth_service.exchange_code_for_token(code)
         
         # Save tokens for user
-        spotify_oauth_service.save_token_for_user(request.user, token_data)
+        spotify_oauth_service.save_token_for_user(user, token_data)
         
-        logger.info(f"Successfully connected Spotify for user {request.user.username}")
+        logger.info(f"Successfully connected Spotify for user {user.username}")
         
         # Redirect back to frontend with success
         frontend_url = f"{settings.FRONTEND_URL}/profile?spotify_connected=true"
+        return redirect(frontend_url)
+    
+    except User.DoesNotExist:
+        logger.error(f"User with id {user_id} not found")
+        frontend_url = f"{settings.FRONTEND_URL}/profile?spotify_error=user_not_found"
         return redirect(frontend_url)
     
     except SpotifyOAuthError as e:

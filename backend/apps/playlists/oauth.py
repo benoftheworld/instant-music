@@ -49,11 +49,12 @@ class SpotifyOAuthService:
                 "Set SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and SPOTIFY_REDIRECT_URI."
             )
     
-    def get_authorization_url(self, state: Optional[str] = None) -> Dict[str, str]:
+    def get_authorization_url(self, user_id: int, state: Optional[str] = None) -> Dict[str, str]:
         """
         Generate Spotify authorization URL for user consent.
         
         Args:
+            user_id: ID of the user initiating OAuth flow
             state: Optional state parameter for CSRF protection
         
         Returns:
@@ -73,33 +74,33 @@ class SpotifyOAuthService:
         
         authorization_url = f"{self.AUTHORIZE_URL}?{urlencode(params)}"
         
-        # Store state in cache for 10 minutes for CSRF validation
-        cache.set(f"spotify_oauth_state_{state}", True, timeout=600)
+        # Store state with user_id in cache for 10 minutes for CSRF validation
+        cache.set(f"spotify_oauth_state_{state}", user_id, timeout=600)
         
         return {
             "url": authorization_url,
             "state": state
         }
     
-    def validate_state(self, state: str) -> bool:
+    def validate_state(self, state: str) -> Optional[int]:
         """
-        Validate OAuth state parameter to prevent CSRF attacks.
+        Validate OAuth state parameter and return associated user_id.
         
         Args:
             state: State parameter from callback
         
         Returns:
-            True if valid, False otherwise
+            User ID if valid, None otherwise
         """
         cache_key = f"spotify_oauth_state_{state}"
-        is_valid = cache.get(cache_key)
+        user_id = cache.get(cache_key)
         
-        if is_valid:
+        if user_id:
             # Delete after validation (one-time use)
             cache.delete(cache_key)
-            return True
+            return user_id
         
-        return False
+        return None
     
     def exchange_code_for_token(self, code: str) -> Dict:
         """

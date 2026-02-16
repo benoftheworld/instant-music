@@ -13,7 +13,8 @@ class SpotifyService {
       const response = await api.get('/playlists/playlists/search/', {
         params: { query, limit }
       });
-      return response.data;
+      // Backend returns {playlists: [...], using_oauth: bool, mode: string}
+      return response.data.playlists || response.data;
     } catch (error) {
       console.error('Failed to search playlists:', error);
       throw error;

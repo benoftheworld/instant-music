@@ -117,6 +117,8 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
     def get_playlist_tracks(self, request, spotify_id=None):
         """
         Get tracks from a Spotify playlist.
+        
+        Uses OAuth if user has connected Spotify, otherwise Client Credentials.
         """
         try:
             limit = int(request.query_params.get('limit', 50))
@@ -124,7 +126,12 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
             limit = 50
         
         try:
-            tracks = spotify_service.get_playlist_tracks(spotify_id, limit)
+            # Use hybrid service with current user
+            tracks = hybrid_spotify_service.get_playlist_tracks(
+                spotify_id, 
+                limit,
+                user=request.user if request.user.is_authenticated else None
+            )
             serializer = SpotifyTrackSerializer(tracks, many=True)
             return Response(serializer.data)
         
@@ -133,6 +140,47 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
                 {'error': str(e)},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
+    
+    @extend_schema(
+        responses={
+            200: {'type': 'object', 'properties': {
+                'accessible': {'type': 'boolean'},
+                'track_count': {'type': 'integer'},
+                'error': {'type': 'string'}
+            }}
+        }
+    )
+    @action(detail=False, methods=['get'], url_path='spotify/(?P<spotify_id>[^/.]+)/validate')
+    def validate_playlist_access(self, request, spotify_id=None):
+        """
+        Validate if a playlist is accessible (can fetch tracks).
+        
+        Returns:
+        - accessible: true/false
+        - track_count: number of accessible tracks (if accessible)
+        - error: error message (if not accessible)
+        """
+        try:
+            # Try to fetch a small number of tracks to validate access
+            tracks = hybrid_spotify_service.get_playlist_tracks(
+                spotify_id,
+                limit=5,
+                user=request.user if request.user.is_authenticated else None
+            )
+            
+            return Response({
+                'accessible': True,
+                'track_count': len(tracks),
+                'using_oauth': hybrid_spotify_service.is_using_oauth(request.user)
+            })
+        
+        except Exception as e:
+            error_msg = str(e)
+            return Response({
+                'accessible': False,
+                'error': error_msg,
+                'using_oauth': hybrid_spotify_service.is_using_oauth(request.user)
+            }, status=status.HTTP_200_OK)  # Return 200 even on error (validation result)
 
 
 class TrackViewSet(viewsets.ReadOnlyModelViewSet):

@@ -2,6 +2,7 @@
 Hybrid Spotify service that uses OAuth if available, otherwise falls back to Client Credentials.
 """
 import logging
+import re
 from typing import Dict, List, Optional
 
 from .services import spotify_service, SpotifyAPIError
@@ -66,7 +67,7 @@ class HybridSpotifyService:
                         "q": query,
                         "type": "playlist",
                         "limit": min(limit, 50),
-                        "market": "US"
+                        "market": "from_token"  # Use user's market from OAuth token
                     }
                 )
                 
@@ -143,6 +144,11 @@ class HybridSpotifyService:
         """
         Get tracks from a playlist.
         
+        Strategy:
+        1. Try /playlists/{id}/tracks endpoint (OAuth then CC)
+        2. If 403 (Dev mode restriction), fall back to searching tracks
+           based on the playlist name/description as search keywords.
+        
         Args:
             playlist_id: Spotify playlist ID
             limit: Max tracks
@@ -151,11 +157,21 @@ class HybridSpotifyService:
         Returns:
             List of tracks
         """
+        # Strategy 1: Try direct playlist tracks endpoint
+        tracks = self._try_get_playlist_tracks_direct(playlist_id, limit, user)
+        if tracks:
+            return tracks
+        
+        # Strategy 2: Fall back to searching tracks by playlist theme
+        logger.info(f"Direct track access failed for {playlist_id}, using search-based fallback")
+        return self._get_tracks_via_search(playlist_id, limit, user)
+    
+    def _try_get_playlist_tracks_direct(self, playlist_id: str, limit: int, user=None) -> List[Dict]:
+        """Try to get tracks directly from the playlist tracks endpoint."""
         service, use_oauth = self._get_service_for_user(user)
         
         if use_oauth:
             try:
-                # Use OAuth to get tracks
                 all_tracks = []
                 offset = 0
                 
@@ -174,40 +190,218 @@ class HybridSpotifyService:
                         break
                     
                     for item in items:
-                        if not item or "track" not in item:
-                            continue
-                        
-                        track = item["track"]
-                        if not track or not isinstance(track, dict):
-                            continue
-                        
-                        try:
-                            all_tracks.append({
-                                "spotify_id": track["id"],
-                                "name": track["name"],
-                                "artists": [artist["name"] for artist in track.get("artists", [])],
-                                "album": track.get("album", {}).get("name", "Unknown"),
-                                "album_image": track["album"]["images"][0]["url"] if track.get("album", {}).get("images") else "",
-                                "duration_ms": track.get("duration_ms", 0),
-                                "preview_url": track.get("preview_url"),
-                                "external_url": track.get("external_urls", {}).get("spotify", "")
-                            })
-                        except (KeyError, IndexError, TypeError) as e:
-                            logger.warning(f"Skipping malformed track: {e}")
-                            continue
+                        track = self._extract_track_from_item(item)
+                        if track:
+                            all_tracks.append(track)
                     
                     offset += len(items)
-                    
                     if len(items) < 50:
                         break
                 
-                return all_tracks[:limit]
+                if all_tracks:
+                    logger.info(f"OAuth: got {len(all_tracks)} tracks from playlist {playlist_id}")
+                    return all_tracks[:limit]
             
             except (SpotifyOAuthError, Exception) as e:
-                logger.warning(f"OAuth get_tracks failed, falling back: {e}")
-                return self.client_service.get_playlist_tracks(playlist_id, limit)
-        else:
-            return self.client_service.get_playlist_tracks(playlist_id, limit)
+                logger.warning(f"OAuth tracks failed for {playlist_id}: {e}")
+        
+        # Try Client Credentials
+        try:
+            result = self.client_service.get_playlist_tracks(playlist_id, limit)
+            if result:
+                logger.info(f"Client Credentials: got {len(result)} tracks from playlist {playlist_id}")
+                return result
+        except Exception as e:
+            logger.warning(f"Client Credentials tracks also failed for {playlist_id}: {e}")
+        
+        return []
+    
+    def _get_tracks_via_search(self, playlist_id: str, limit: int, user=None) -> List[Dict]:
+        """
+        Get tracks by searching Spotify based on the playlist's name/description.
+        
+        This is a fallback when direct playlist track access is blocked (403).
+        Works by extracting keywords from the playlist name and searching for tracks.
+        """
+        service, use_oauth = self._get_service_for_user(user)
+        
+        # First, get playlist info to extract name/description
+        playlist_name = ""
+        playlist_desc = ""
+        
+        try:
+            if use_oauth:
+                playlist = service.make_authenticated_request(
+                    user=user,
+                    endpoint=f"playlists/{playlist_id}"
+                )
+            else:
+                playlist = self.client_service.get_playlist(playlist_id)
+            
+            if isinstance(playlist, dict):
+                playlist_name = playlist.get("name", "")
+                playlist_desc = playlist.get("description", "")
+        except Exception as e:
+            logger.warning(f"Could not get playlist info for {playlist_id}: {e}")
+        
+        if not playlist_name:
+            playlist_name = "popular hits"
+        
+        # Extract meaningful search terms from playlist name
+        search_queries = self._extract_search_queries(playlist_name, playlist_desc)
+        logger.info(f"Search fallback for playlist '{playlist_name}': queries={search_queries}")
+        
+        all_tracks = []
+        seen_ids = set()
+        
+        for query in search_queries:
+            if len(all_tracks) >= limit:
+                break
+            
+            try:
+                remaining = limit - len(all_tracks)
+                tracks_needed = min(remaining + 5, 50)  # Get a few extra for dedup
+                
+                if use_oauth:
+                    response = service.make_authenticated_request(
+                        user=user,
+                        endpoint="search",
+                        params={
+                            "q": query,
+                            "type": "track",
+                            "limit": tracks_needed,
+                            "market": "from_token"
+                        }
+                    )
+                else:
+                    from .services import spotify_service as ss
+                    response = ss._make_request("search", {
+                        "q": query,
+                        "type": "track",
+                        "limit": tracks_needed,
+                        "market": "US"
+                    })
+                
+                items = response.get("tracks", {}).get("items", [])
+                
+                for track in items:
+                    if not track or not isinstance(track, dict):
+                        continue
+                    
+                    track_id = track.get("id")
+                    if not track_id or track_id in seen_ids:
+                        continue
+                    
+                    seen_ids.add(track_id)
+                    
+                    try:
+                        all_tracks.append({
+                            "spotify_id": track_id,
+                            "name": track["name"],
+                            "artists": [a["name"] for a in track.get("artists", [])],
+                            "album": track.get("album", {}).get("name", "Unknown"),
+                            "album_image": track["album"]["images"][0]["url"] if track.get("album", {}).get("images") else "",
+                            "duration_ms": track.get("duration_ms", 0),
+                            "preview_url": track.get("preview_url"),
+                            "external_url": track.get("external_urls", {}).get("spotify", "")
+                        })
+                    except (KeyError, IndexError, TypeError):
+                        continue
+                
+            except Exception as e:
+                logger.warning(f"Search fallback query '{query}' failed: {e}")
+                continue
+        
+        logger.info(f"Search fallback found {len(all_tracks)} tracks for playlist {playlist_id}")
+        return all_tracks[:limit]
+    
+    def _extract_search_queries(self, playlist_name: str, description: str = "") -> List[str]:
+        """
+        Extract meaningful search queries from a playlist name and description.
+        
+        Examples:
+        - "Top Hits 2026🔥Best popular songs" -> ["top hits 2026", "popular songs 2026"]
+        - "80s HITS | TOP 100 SONGS" -> ["80s hits", "top songs 80s"]
+        - "Rock Classics" -> ["rock classics", "classic rock"]
+        - "COUNTRY HITS 2026" -> ["country hits 2026", "country music 2026"]
+        """
+        # Clean up the name
+        clean_name = re.sub(r'[🔥🎵🎶🎤💿🎸⚠️]+', ' ', playlist_name)
+        clean_name = re.sub(r'[|•·\-–—]+', ' ', clean_name)
+        clean_name = re.sub(r'\s+', ' ', clean_name).strip().lower()
+        
+        # Remove generic filler words
+        filler_words = {'best', 'top', 'the', 'of', 'new', 'latest', 'most', 'songs', 
+                       'music', 'playlist', 'mix', 'hits', 'tracks', 'no', 'social',
+                       'media', 'accounts', 'associated', 'with', 'this', 'profile',
+                       'beware', 'scams', 'trending', 'today', 'modern', 'viral',
+                       'hottest', 'contemporary'}
+        
+        words = clean_name.split()
+        
+        # Extract decade/year references
+        decade_match = re.search(r'(\d{2,4})s?', clean_name)
+        era = decade_match.group(0) if decade_match else ""
+        
+        # Extract genre keywords (non-filler words)
+        genre_words = [w for w in words if w not in filler_words and not re.match(r'^\d+$', w) and len(w) > 2]
+        
+        queries = []
+        
+        # Primary query: cleaned playlist name (truncated)
+        primary = ' '.join(words[:5])
+        if primary:
+            queries.append(primary)
+        
+        # Genre-focused query
+        if genre_words:
+            genre_query = ' '.join(genre_words[:3])
+            if era and era not in genre_query:
+                genre_query += f" {era}"
+            if genre_query not in queries:
+                queries.append(genre_query)
+        
+        # Add some variety queries based on common patterns
+        if era:
+            era_query = f"hits {era}"
+            if era_query not in queries:
+                queries.append(era_query)
+        
+        # If we have genre words, create additional variations
+        if genre_words and len(genre_words) >= 1:
+            variation = f"{genre_words[0]} popular"
+            if variation not in queries:
+                queries.append(variation)
+        
+        # Fallback
+        if not queries:
+            queries = ["popular hits", "top songs", "hit songs"]
+        
+        return queries[:4]  # Max 4 queries
+    
+    def _extract_track_from_item(self, item: dict) -> Optional[Dict]:
+        """Extract track data from a playlist item."""
+        if not item or "track" not in item:
+            return None
+        
+        track = item["track"]
+        if not track or not isinstance(track, dict):
+            return None
+        
+        try:
+            return {
+                "spotify_id": track["id"],
+                "name": track["name"],
+                "artists": [artist["name"] for artist in track.get("artists", [])],
+                "album": track.get("album", {}).get("name", "Unknown"),
+                "album_image": track["album"]["images"][0]["url"] if track.get("album", {}).get("images") else "",
+                "duration_ms": track.get("duration_ms", 0),
+                "preview_url": track.get("preview_url"),
+                "external_url": track.get("external_urls", {}).get("spotify", "")
+            }
+        except (KeyError, IndexError, TypeError) as e:
+            logger.warning(f"Skipping malformed track: {e}")
+            return None
     
     def is_using_oauth(self, user) -> bool:
         """Check if OAuth is available for user."""

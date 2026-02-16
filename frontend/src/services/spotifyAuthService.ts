@@ -48,11 +48,34 @@ class SpotifyAuthService {
       throw new Error('Popup blocked. Please allow popups for this site.');
     }
 
-    // Poll for popup close or URL change
+    // Listen for messages from popup
     return new Promise((resolve, reject) => {
+      const handleMessage = (event: MessageEvent) => {
+        // Check origin for security
+        if (event.origin !== window.location.origin) {
+          return;
+        }
+
+        // Check if it's our OAuth response
+        if (event.data && event.data.type === 'spotify_oauth_response') {
+          window.removeEventListener('message', handleMessage);
+          window.clearInterval(pollTimer);
+          
+          if (event.data.success) {
+            resolve();
+          } else {
+            reject(new Error(event.data.error || 'OAuth failed'));
+          }
+        }
+      };
+
+      window.addEventListener('message', handleMessage);
+
+      // Also poll for popup close (fallback)
       const pollTimer = window.setInterval(() => {
         if (popup.closed) {
           window.clearInterval(pollTimer);
+          window.removeEventListener('message', handleMessage);
           resolve();
         }
       }, 500);
@@ -60,6 +83,7 @@ class SpotifyAuthService {
       // Timeout after 5 minutes
       setTimeout(() => {
         window.clearInterval(pollTimer);
+        window.removeEventListener('message', handleMessage);
         if (!popup.closed) {
           popup.close();
         }

@@ -18,7 +18,7 @@ interface PasswordData {
 
 export default function ProfilePage() {
   const user = useAuthStore((state) => state.user);
-  const setUser = useAuthStore((state) => state.setUser);
+  const updateUser = useAuthStore((state) => state.updateUser);
 
   const [profileData, setProfileData] = useState<ProfileData>({
     first_name: user?.first_name || '',
@@ -85,14 +85,15 @@ export default function ProfilePage() {
         },
       });
 
-      setUser(response.data);
+      updateUser(response.data);
       setMessage({ type: 'success', text: 'Profil mis à jour avec succès !' });
       setAvatarFile(null);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Profile update error:', error);
+      const err = error as { response?: { data?: { detail?: string } } };
       setMessage({ 
         type: 'error', 
-        text: error.response?.data?.detail || 'Erreur lors de la mise à jour du profil' 
+        text: err.response?.data?.detail || 'Erreur lors de la mise à jour du profil' 
       });
     } finally {
       setLoading(false);
@@ -128,11 +129,12 @@ export default function ProfilePage() {
         new_password: '',
         confirm_password: '',
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Password change error:', error);
+      const err = error as { response?: { data?: { old_password?: string; detail?: string } } };
       setPasswordMessage({ 
         type: 'error', 
-        text: error.response?.data?.old_password || error.response?.data?.detail || 'Erreur lors du changement de mot de passe' 
+        text: err.response?.data?.old_password || err.response?.data?.detail || 'Erreur lors du changement de mot de passe' 
       });
     } finally {
       setLoading(false);
@@ -167,7 +169,7 @@ export default function ProfilePage() {
             </div>
             <div className="text-center">
               <div className="text-4xl font-bold text-yellow-600 mb-1">
-                {user.win_rate.toFixed(1)}%
+                {(user.win_rate ?? 0).toFixed(1)}%
               </div>
               <div className="text-sm text-gray-600 uppercase tracking-wide">Taux de victoire</div>
             </div>
