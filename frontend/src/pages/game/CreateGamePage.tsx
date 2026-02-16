@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { gameService } from '../../services/gameService';
-import { GameMode, SpotifyPlaylist, CreateGameData } from '../../types';
+import { GameMode, YouTubePlaylist, CreateGameData } from '../../types';
 import PlaylistSelector from '../../components/playlist/PlaylistSelector';
 
 const gameModes: { value: GameMode; label: string; description: string }[] = [
@@ -30,7 +30,7 @@ export default function CreateGamePage() {
   const [gameMode, setGameMode] = useState<GameMode>('quiz_4');
   const [maxPlayers, setMaxPlayers] = useState(8);
   const [isOnline, setIsOnline] = useState(true);
-  const [selectedPlaylist, setSelectedPlaylist] = useState<SpotifyPlaylist | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
   const [showPlaylistSelector, setShowPlaylistSelector] = useState(false);
 
   const handleCreateGame = async () => {
@@ -48,7 +48,7 @@ export default function CreateGamePage() {
       const gameData: CreateGameData = {
         mode: gameMode,
         max_players: maxPlayers,
-        playlist_id: selectedPlaylist?.spotify_id,
+        playlist_id: selectedPlaylist?.youtube_id,
         is_online: isOnline
       };
 
@@ -153,7 +153,7 @@ export default function CreateGamePage() {
           {/* Playlist Selection */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Playlist Spotify</h2>
+              <h2 className="text-xl font-bold">Playlist YouTube</h2>
               <button
                 onClick={() => setShowPlaylistSelector(!showPlaylistSelector)}
                 className="btn-secondary text-sm"
@@ -209,7 +209,7 @@ export default function CreateGamePage() {
                     setShowPlaylistSelector(false);
                     setError(null);
                   }}
-                  selectedPlaylistId={selectedPlaylist?.spotify_id}
+                  selectedPlaylistId={selectedPlaylist?.youtube_id}
                 />
               </div>
             )}

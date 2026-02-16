@@ -52,7 +52,7 @@ class Game(models.Model):
     )
     max_players = models.IntegerField(_('nombre max de joueurs'), default=8)
     playlist_id = models.CharField(
-        _('ID playlist Spotify'),
+        _('ID playlist YouTube'),
         max_length=255,
         null=True,
         blank=True

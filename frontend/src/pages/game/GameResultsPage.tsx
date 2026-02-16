@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { gameService } from '../../services/gameService';
+import { getMediaUrl } from '../../services/api';
 
 interface Player {
   id: string;
@@ -108,7 +109,7 @@ export default function GameResultsPage() {
                 <div className="text-4xl mb-2">🥈</div>
                 {topThree[1].avatar ? (
                   <img
-                    src={topThree[1].avatar}
+                    src={getMediaUrl(topThree[1].avatar)}
                     alt={topThree[1].username}
                     className="w-20 h-20 rounded-full mb-2 border-4 border-gray-400"
                   />
@@ -131,7 +132,7 @@ export default function GameResultsPage() {
                 <div className="text-5xl mb-2 animate-bounce">🥇</div>
                 {topThree[0].avatar ? (
                   <img
-                    src={topThree[0].avatar}
+                    src={getMediaUrl(topThree[0].avatar)}
                     alt={topThree[0].username}
                     className="w-24 h-24 rounded-full mb-2 border-4 border-yellow-400"
                   />
@@ -154,7 +155,7 @@ export default function GameResultsPage() {
                 <div className="text-4xl mb-2">🥉</div>
                 {topThree[2].avatar ? (
                   <img
-                    src={topThree[2].avatar}
+                    src={getMediaUrl(topThree[2].avatar)}
                     alt={topThree[2].username}
                     className="w-20 h-20 rounded-full mb-2 border-4 border-orange-400"
                   />
@@ -187,7 +188,7 @@ export default function GameResultsPage() {
                     <span className="text-2xl font-bold text-white">{getMedal(player.rank)}</span>
                     {player.avatar ? (
                       <img
-                        src={player.avatar}
+                        src={getMediaUrl(player.avatar)}
                         alt={player.username}
                         className="w-12 h-12 rounded-full"
                       />

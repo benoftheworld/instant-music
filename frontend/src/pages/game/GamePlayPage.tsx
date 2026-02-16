@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { gameService } from '../../services/gameService';
 import { useWebSocket } from '../../hooks/useWebSocket';
+import { useAuthStore } from '../../store/authStore';
 import QuizQuestion from '../../components/game/QuizQuestion';
 import LiveScoreboard from '../../components/game/LiveScoreboard';
 
@@ -20,6 +21,7 @@ interface Round {
 export default function GamePlayPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
   
   const [game, setGame] = useState<any>(null);
   const [currentRound, setCurrentRound] = useState<Round | null>(null);
@@ -75,12 +77,24 @@ export default function GamePlayPage() {
   
   // Timer countdown
   useEffect(() => {
-    if (!currentRound || hasAnswered || showResults) return;
+    if (!currentRound || showResults) return;
     
     const interval = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
+          
+          // If timer reaches 0 and user is host, trigger next round
+          setTimeout(async () => {
+            if (user && game && game.host === user.id) {
+              try {
+                await gameService.nextRound(roomCode || '');
+              } catch (error) {
+                console.error('Failed to trigger next round:', error);
+              }
+            }
+          }, 2000); // Wait 2 seconds before moving to next round
+          
           return 0;
         }
         return prev - 1;
@@ -88,7 +102,7 @@ export default function GamePlayPage() {
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [currentRound, hasAnswered, showResults]);
+  }, [currentRound, showResults, game, roomCode, user]);
   
   // Handle WebSocket messages
   useEffect(() => {
@@ -130,6 +144,21 @@ export default function GamePlayPage() {
     
     return unsubscribe;
   }, [onMessage, loadCurrentRound, navigate, roomCode]);
+  
+  // Auto-advance to next round after showing results (host only)
+  useEffect(() => {
+    if (!showResults || !user || !game || game.host !== user.id) return;
+    
+    const timer = setTimeout(async () => {
+      try {
+        await gameService.nextRound(roomCode || '');
+      } catch (error) {
+        console.error('Failed to auto-advance to next round:', error);
+      }
+    }, 5000); // Wait 5 seconds after results
+    
+    return () => clearTimeout(timer);
+  }, [showResults, user, game, roomCode]);
   
   // Initial load
   useEffect(() => {

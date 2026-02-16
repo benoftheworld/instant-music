@@ -156,6 +156,30 @@ class GameViewSet(viewsets.ModelViewSet):
             # Start game and generate rounds using service
             game, rounds = game_service.start_game(game)
             
+            # Broadcast first round to all players via WebSocket
+            if rounds:
+                from asgiref.sync import async_to_sync
+                from channels.layers import get_channel_layer
+                from rest_framework.renderers import JSONRenderer
+                import json
+                
+                channel_layer = get_channel_layer()
+                room_group_name = f'game_{room_code}'
+                first_round = rounds[0]
+                
+                # Serialize and convert to JSON-safe dict
+                round_serializer = GameRoundSerializer(first_round)
+                round_json = JSONRenderer().render(round_serializer.data)
+                round_data = json.loads(round_json)
+                
+                async_to_sync(channel_layer.group_send)(
+                    room_group_name,
+                    {
+                        'type': 'broadcast_round_start',
+                        'round_data': round_data
+                    }
+                )
+            
             return Response({
                 'game': GameSerializer(game).data,
                 'rounds_created': len(rounds),
@@ -209,7 +233,9 @@ class GameViewSet(viewsets.ModelViewSet):
         # Don't send correct answer yet
         round_data = GameRoundSerializer(round_obj).data
         
-        return Response(round_data)
+        return Response({
+            'current_round': round_data
+        })
     
     @action(detail=True, methods=['post'])
     def answer(self, request, room_code=None):
@@ -260,6 +286,42 @@ class GameViewSet(viewsets.ModelViewSet):
                 response_time=float(response_time)
             )
             
+            # Check if all players have answered
+            total_players = game.players.count()
+            answered_players = GameAnswer.objects.filter(round=round_obj).count()
+            
+            # If all players answered, auto-end the round after short delay
+            if answered_players >= total_players:
+                from asgiref.sync import async_to_sync
+                from channels.layers import get_channel_layer
+                from rest_framework.renderers import JSONRenderer
+                import json
+                from django.utils import timezone
+                
+                # Mark round as ended
+                round_obj.ended_at = timezone.now()
+                round_obj.save()
+                
+                # Prepare results
+                round_serializer = GameRoundSerializer(round_obj)
+                round_json = JSONRenderer().render(round_serializer.data)
+                round_data = json.loads(round_json)
+                
+                channel_layer = get_channel_layer()
+                room_group_name = f'game_{room_code}'
+                
+                # Broadcast round end with correct answer
+                async_to_sync(channel_layer.group_send)(
+                    room_group_name,
+                    {
+                        'type': 'broadcast_round_end',
+                        'results': {
+                            'correct_answer': round_obj.correct_answer,
+                            'round_data': round_data
+                        }
+                    }
+                )
+            
             return Response(
                 GameAnswerSerializer(game_answer).data,
                 status=status.HTTP_201_CREATED
@@ -293,10 +355,48 @@ class GameViewSet(viewsets.ModelViewSet):
         if not next_round:
             # No more rounds, finish game
             game = game_service.finish_game(game)
+            
+            # Broadcast game finished via WebSocket
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+            
+            channel_layer = get_channel_layer()
+            room_group_name = f'game_{room_code}'
+            
+            async_to_sync(channel_layer.group_send)(
+                room_group_name,
+                {
+                    'type': 'broadcast_game_finish',
+                    'results': GameSerializer(game).data
+                }
+            )
+            
             return Response({
                 'game': GameSerializer(game).data,
                 'message': 'Partie terminée'
             })
+        
+        # Broadcast next round via WebSocket
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        from rest_framework.renderers import JSONRenderer
+        import json
+        
+        channel_layer = get_channel_layer()
+        room_group_name = f'game_{room_code}'
+        
+        # Serialize and convert to JSON-safe dict
+        round_serializer = GameRoundSerializer(next_round)
+        round_json = JSONRenderer().render(round_serializer.data)
+        round_data = json.loads(round_json)
+        
+        async_to_sync(channel_layer.group_send)(
+            room_group_name,
+            {
+                'type': 'broadcast_next_round',
+                'round_data': round_data
+            }
+        )
         
         return Response(GameRoundSerializer(next_round).data)
     

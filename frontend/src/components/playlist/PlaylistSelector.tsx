@@ -1,48 +1,43 @@
 /**
  * PlaylistSelector component
- * Search and select Spotify playlists
+ * Search and select YouTube playlists
  */
-import { useState, useEffect } from 'react';
-import { SpotifyPlaylist } from '../../types';
-import { spotifyService } from '../../services/spotifyService';
+import { useState } from 'react';
+import { YouTubePlaylist } from '../../types';
+import { youtubeService } from '../../services/youtubeService';
 import { DEFAULT_PLAYLISTS, PLAYLIST_CATEGORIES } from '../../constants/defaultPlaylists';
 
 interface PlaylistSelectorProps {
-  onSelectPlaylist: (playlist: SpotifyPlaylist) => void;
+  onSelectPlaylist: (playlist: YouTubePlaylist) => void;
   selectedPlaylistId?: string;
 }
 
 export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId }: PlaylistSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
+  const [playlists, setPlaylists] = useState<YouTubePlaylist[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [showSearch, setShowSearch] = useState(false);
 
-  // Popular playlists to show by default
   const popularSearches = ['Top Hits', 'Rock Classics', 'Pop Music', 'Hip Hop', 'Electronic'];
 
-  // Convert default playlists to SpotifyPlaylist format
-  const getDefaultPlaylists = (): SpotifyPlaylist[] => {
+  // Convert default playlists to YouTubePlaylist format
+  const getDefaultPlaylists = (): YouTubePlaylist[] => {
     return DEFAULT_PLAYLISTS.filter(
       (p) => selectedCategory === 'Tous' || p.category === selectedCategory
     ).map((p) => ({
-      spotify_id: p.spotify_id,
+      youtube_id: p.youtube_id,
       name: p.name,
       description: p.description,
       image_url: p.image_url,
-      total_tracks: 50, // Approximate
+      total_tracks: 50,
       owner: p.owner,
-      external_url: `https://open.spotify.com/playlist/${p.spotify_id}`,
+      external_url: `https://www.youtube.com/playlist?list=${p.youtube_id}`,
     }));
   };
 
   const defaultPlaylists = getDefaultPlaylists();
-
-  useEffect(() => {
-    // Don't auto-load search results
-  }, []);
 
   const handleSearch = async (query?: string) => {
     const searchTerm = query || searchQuery;
@@ -56,12 +51,11 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
     setError(null);
 
     try {
-      // Search with public_only=true to filter for public playlists
-      const results = await spotifyService.searchPlaylists(searchTerm, 20, true);
+      const results = await youtubeService.searchPlaylists(searchTerm, 20);
       setPlaylists(results);
       
       if (results.length === 0) {
-        setError('Aucune playlist publique trouvée');
+        setError('Aucune playlist trouvée');
       }
     } catch (err) {
       setError('Erreur lors de la recherche des playlists');
@@ -76,22 +70,22 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
     handleSearch();
   };
 
-  const handleSelectPlaylist = (playlist: SpotifyPlaylist) => {
+  const handleSelectPlaylist = (playlist: YouTubePlaylist) => {
     onSelectPlaylist(playlist);
   };
 
   return (
     <div className="space-y-4">
       {/* Info Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
         <div className="flex items-start gap-2">
-          <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0C.488 3.45.029 5.804 0 12c.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0C23.512 20.55 23.971 18.196 24 12c-.029-6.185-.484-8.549-4.385-8.816zM9 16V8l8 4-8 4z"/>
           </svg>
           <div>
-            <p className="text-blue-900 font-medium">✅ Playlists recommandées ci-dessous</p>
-            <p className="text-blue-700 mt-1">
-              Ces playlists publiques officielles Spotify fonctionnent parfaitement en mode Développement.
+            <p className="text-red-900 font-medium">🎵 Playlists YouTube recommandées</p>
+            <p className="text-red-700 mt-1">
+              Sélectionnez une playlist ci-dessous ou recherchez-en une sur YouTube.
             </p>
           </div>
         </div>
@@ -136,7 +130,7 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher une playlist Spotify..."
+              placeholder="Rechercher une playlist YouTube..."
               className="input flex-1"
             />
             <button
@@ -165,9 +159,9 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
             ))}
           </div>
 
-          {/* Warning for search */}
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm text-orange-800">
-            ⚠️ Attention : Les playlists privées ou géo-restreintes peuvent ne pas fonctionner. Préférez les playlists publiques officielles ci-dessus.
+          {/* Info for search */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+            💡 Recherchez des playlists YouTube publiques. Les playlists privées ne sont pas accessibles.
           </div>
         </div>
       )}
@@ -192,11 +186,11 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {(showSearch ? playlists : defaultPlaylists).map((playlist) => (
             <button
-              key={playlist.spotify_id}
+              key={playlist.youtube_id}
               onClick={() => onSelectPlaylist(playlist)}
               className={`
                 card p-4 text-left transition-all hover:shadow-lg hover:scale-105
-                ${selectedPlaylistId === playlist.spotify_id 
+                ${selectedPlaylistId === playlist.youtube_id 
                   ? 'ring-2 ring-primary-600 bg-primary-50' 
                   : 'hover:bg-gray-50'
                 }
@@ -219,7 +213,7 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
                 )}
                 
                 {/* Selection Indicator */}
-                {selectedPlaylistId === playlist.spotify_id && (
+                {selectedPlaylistId === playlist.youtube_id && (
                   <div className="absolute top-2 right-2 bg-primary-600 text-white rounded-full p-1">
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />

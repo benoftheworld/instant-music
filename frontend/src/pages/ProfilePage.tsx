@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import SpotifyConnection from '@/components/spotify/SpotifyConnection';
 import { api } from '@/services/api';
 
 interface ProfileData {
@@ -42,7 +41,7 @@ export default function ProfilePage() {
         bio: user.bio || '',
         avatar: user.avatar || null,
       });
-      setAvatarPreview(user.avatar || null);
+      setAvatarPreview(getMediaUrl(user.avatar) || null);
     }
   }, [user]);
 
@@ -354,8 +353,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Spotify Connection Section */}
-        <SpotifyConnection />
       </div>
     </div>
   );

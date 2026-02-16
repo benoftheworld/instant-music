@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '@/services/api';
+import { api, getMediaUrl } from '@/services/api';
 import type { GameHistory } from '@/types';
 import { Link } from 'react-router-dom';
 
@@ -88,7 +88,7 @@ export default function RecentGames() {
                     <div className="flex items-center space-x-1">
                       {game.winner.avatar ? (
                         <img
-                          src={game.winner.avatar}
+                          src={getMediaUrl(game.winner.avatar)}
                           alt={game.winner.username}
                           className="w-4 h-4 rounded-full object-cover"
                         />

@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { gameService } from '../../services/gameService';
-import { Game, SpotifyPlaylist } from '../../types';
+import { Game, YouTubePlaylist } from '../../types';
 import PlaylistSelector from '../../components/playlist/PlaylistSelector';
+import { getMediaUrl } from '../../services/api';
 
 export default function GameLobbyPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -14,7 +15,7 @@ export default function GameLobbyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
-  const [selectedPlaylist, setSelectedPlaylist] = useState<SpotifyPlaylist | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
   const [showPlaylistSelector, setShowPlaylistSelector] = useState(false);
 
   const { isConnected, sendMessage, onMessage } = useWebSocket(roomCode);
@@ -83,7 +84,7 @@ export default function GameLobbyPage() {
     }
   };
 
-  const handleSelectPlaylist = async (playlist: SpotifyPlaylist) => {
+  const handleSelectPlaylist = async (playlist: YouTubePlaylist) => {
     if (!game || !roomCode) return;
     
     setSelectedPlaylist(playlist);
@@ -92,7 +93,7 @@ export default function GameLobbyPage() {
     try {
       // Update game with playlist ID via API
       const updatedGame = await gameService.updateGame(roomCode, {
-        playlist_id: playlist.spotify_id
+        playlist_id: playlist.youtube_id
       });
       setGame(updatedGame);
     } catch (err) {
@@ -143,16 +144,16 @@ export default function GameLobbyPage() {
       const errorMessage = err?.response?.data?.error || 'Erreur lors du démarrage de la partie';
       
       // Add helpful message for playlist access errors
-      if (errorMessage.includes('playlist') && errorMessage.includes('403')) {
+      if (errorMessage.includes('playlist') && (errorMessage.includes('403') || errorMessage.includes('404'))) {
         setStartError(
-          '⚠️ Cette playlist est privée ou inaccessible. ' +
-          'Veuillez sélectionner une playlist PUBLIQUE différente.'
+          '⚠️ Cette playlist est inaccessible. ' +
+          'Veuillez sélectionner une autre playlist publique.'
         );
       } else if (errorMessage.includes('morceaux accessibles') || errorMessage.includes('minimum 4 requis')) {
         setStartError(
           '⚠️ Cette playlist ne contient pas assez de morceaux accessibles. ' +
-          'Elle est peut-être privée, géo-restreinte, ou vide. ' +
-          'Veuillez en choisir une autre (playlist publique recommandée).'
+          'Elle est peut-être privée ou vide. ' +
+          'Veuillez en choisir une autre.'
         );
         setShowPlaylistSelector(true);
       } else {
@@ -252,7 +253,7 @@ export default function GameLobbyPage() {
                   >
                     {player.avatar ? (
                       <img
-                        src={player.avatar}
+                        src={getMediaUrl(player.avatar)}
                         alt={player.username}
                         className="w-10 h-10 rounded-full object-cover"
                       />
@@ -328,7 +329,7 @@ export default function GameLobbyPage() {
                 <div className="mt-4 border-t pt-4">
                   <PlaylistSelector
                     onSelectPlaylist={handleSelectPlaylist}
-                    selectedPlaylistId={selectedPlaylist?.spotify_id || game.playlist_id}
+                    selectedPlaylistId={selectedPlaylist?.youtube_id || game.playlist_id}
                   />
                 </div>
               )}

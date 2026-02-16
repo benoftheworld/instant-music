@@ -67,3 +67,19 @@ class ApiService {
 
 export const apiService = new ApiService();
 export const api = apiService.getApi();
+
+/**
+ * Get full URL for media files (avatars, etc.)
+ */
+export const getMediaUrl = (path: string | undefined | null): string | undefined => {
+  if (!path) return undefined;
+  
+  // If already a full URL, return as-is
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  
+  // Construct full URL with API_URL
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_URL}${cleanPath}`;
+};

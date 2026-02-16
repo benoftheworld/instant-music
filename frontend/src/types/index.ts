@@ -6,8 +6,6 @@ export interface User {
   id: number;
   username: string;
   email: string;
-  first_name?: string;
-  last_name?: string;
   avatar?: string;
   bio?: string;
   total_games_played: number;
@@ -38,8 +36,6 @@ export interface RegisterData {
   email: string;
   password: string;
   password2: string;
-  first_name?: string;
-  last_name?: string;
 }
 
 export type GameMode = 'quiz_4' | 'quiz_fastest' | 'karaoke';
@@ -104,9 +100,9 @@ export interface WebSocketMessage {
   [key: string]: any;
 }
 
-// Spotify / Playlist types
-export interface SpotifyPlaylist {
-  spotify_id: string;
+// YouTube / Playlist types
+export interface YouTubePlaylist {
+  youtube_id: string;
   name: string;
   description: string;
   image_url: string;
@@ -115,8 +111,8 @@ export interface SpotifyPlaylist {
   external_url: string;
 }
 
-export interface SpotifyTrack {
-  spotify_id: string;
+export interface YouTubeTrack {
+  youtube_id: string;
   name: string;
   artists: string[];
   album: string;
@@ -128,7 +124,7 @@ export interface SpotifyTrack {
 
 export interface Playlist {
   id: number;
-  spotify_id: string;
+  youtube_id: string;
   name: string;
   description: string;
   image_url: string;
@@ -141,7 +137,7 @@ export interface Playlist {
 
 export interface Track {
   id: number;
-  spotify_id: string;
+  youtube_id: string;
   name: string;
   artists: string[];
   artists_display: string;

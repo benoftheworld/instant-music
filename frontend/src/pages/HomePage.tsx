@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import SpotifyModeBanner from '@/components/spotify/SpotifyModeBanner';
 import RecentGames from '@/components/home/RecentGames';
 import TopPlayers from '@/components/home/TopPlayers';
 
@@ -16,13 +15,6 @@ export default function HomePage() {
         <p className="text-xl text-gray-600 mb-8">
           Jouez à des jeux musicaux multijoueurs en temps réel avec vos amis !
         </p>
-
-        {/* Spotify Mode Banner - only shown if not connected */}
-        {isAuthenticated && (
-          <div className="text-left mb-8">
-            <SpotifyModeBanner />
-          </div>
-        )}
 
         <div className="grid md:grid-cols-3 gap-8 mb-12">
           <div className="card">

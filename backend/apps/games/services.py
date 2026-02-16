@@ -1,5 +1,6 @@
 """
 Services for game logic.
+Uses YouTube Data API for music content.
 """
 import random
 import logging
@@ -8,20 +9,18 @@ from django.utils import timezone
 from django.db import transaction
 
 from .models import Game, GamePlayer, GameRound, GameAnswer, GameStatus
-from apps.playlists.services import spotify_service, SpotifyAPIError
-from apps.playlists.hybrid_service import hybrid_spotify_service
+from apps.playlists.youtube_service import youtube_service, YouTubeAPIError
 
 logger = logging.getLogger(__name__)
 
 
 class QuestionGeneratorService:
-    """Service to generate quiz questions from Spotify tracks."""
+    """Service to generate quiz questions from YouTube music playlists."""
     
     QUESTION_TYPES = ['guess_title', 'guess_artist']
     
     def __init__(self):
-        self.spotify = spotify_service
-        self.hybrid_spotify = hybrid_spotify_service
+        self.youtube = youtube_service
     
     def generate_questions(
         self,
@@ -31,51 +30,56 @@ class QuestionGeneratorService:
         user=None
     ) -> List[Dict]:
         """
-        Generate quiz questions from a Spotify playlist.
-        
-        Uses OAuth if user has connected Spotify, otherwise Client Credentials.
+        Generate quiz questions from a YouTube playlist.
         
         Args:
-            playlist_id: Spotify playlist ID
+            playlist_id: YouTube playlist ID
             num_questions: Number of questions to generate
             question_type: Type of question ('guess_title' or 'guess_artist')
-            user: Django user (optional, for OAuth)
+            user: Django user (unused for YouTube, kept for interface compat)
         
         Returns:
             List of question dictionaries
         """
-        # Get tracks from playlist using hybrid service
         try:
-            logger.info(f"Fetching tracks from playlist {playlist_id} for user {user.username if user else 'anonymous'}")
-            tracks = self.hybrid_spotify.get_playlist_tracks(
-                playlist_id, 
-                limit=50,
-                user=user
-            )
-        except SpotifyAPIError as e:
+            logger.info("Fetching tracks from YouTube playlist %s", playlist_id)
+            tracks = self.youtube.get_playlist_tracks(playlist_id, limit=50)
+        except YouTubeAPIError as e:
             error_msg = str(e)
-            logger.error(f"Failed to get tracks from playlist {playlist_id}: {error_msg}")
-            
-            if "403" in error_msg or "Forbidden" in error_msg:
-                user_status = "avec OAuth" if user and hasattr(user, 'spotify_token') else "sans OAuth"
-                raise ValueError(
-                    f"Accès refusé à cette playlist (erreur 403). "
-                    f"Cette playlist est soit privée et appartient à un autre utilisateur, "
-                    f"soit elle a des restrictions géographiques. "
-                    f"Veuillez sélectionner une playlist publique différente. "
-                    f"(Connexion: {user_status})"
-                )
-            elif "404" in error_msg:
-                raise ValueError(f"Playlist {playlist_id} introuvable sur Spotify.")
-            else:
-                raise ValueError(f"Erreur lors de l'accès à la playlist: {error_msg}")
+            logger.error("Failed to get tracks from YouTube playlist %s: %s", playlist_id, error_msg)
+            raise ValueError(f"Erreur lors de l'accès à la playlist YouTube: {error_msg}")
         
+        # If playlist provides too few tracks, try a fallback search by playlist title
         if not tracks or len(tracks) < 4:
-            logger.warning(f"Playlist {playlist_id} returned {len(tracks) if tracks else 0} tracks")
-            raise ValueError(
-                f"La playlist ne contient pas assez de morceaux accessibles ({len(tracks) if tracks else 0} trouvés, minimum 4 requis). "
-                f"Certaines playlists peuvent avoir des restrictions d'accès."
-            )
+            found = len(tracks) if tracks else 0
+            logger.warning("YouTube playlist %s returned %d tracks, attempting fallback search", playlist_id, found)
+
+            # Try to retrieve playlist metadata to use its title as a search query
+            try:
+                playlist_meta = self.youtube.get_playlist(playlist_id)
+                playlist_query = None
+                if playlist_meta and playlist_meta.get('name'):
+                    playlist_query = playlist_meta['name']
+            except Exception:
+                playlist_query = None
+
+            # Use playlist title or the playlist id as a fallback search query
+            search_query = playlist_query or playlist_id
+            try:
+                fallback_tracks = self.youtube.search_music_videos(search_query, limit=50)
+            except Exception as e:
+                logger.error("Fallback search failed for %s: %s", search_query, e)
+                fallback_tracks = []
+
+            if fallback_tracks and len(fallback_tracks) >= 4:
+                logger.info("Fallback search returned %d tracks for %s", len(fallback_tracks), search_query)
+                tracks = fallback_tracks
+            else:
+                logger.warning("Fallback search also insufficient (%d) for %s", len(fallback_tracks) if fallback_tracks else 0, search_query)
+                raise ValueError(
+                    f"La playlist ne contient pas assez de morceaux "
+                    f"({found} trouvés, minimum 4 requis)."
+                )
         
         # Shuffle and select tracks for questions
         random.shuffle(tracks)
@@ -103,8 +107,7 @@ class QuestionGeneratorService:
         """Generate a 'guess the title' question."""
         correct_answer = correct_track['name']
         
-        # Get other track titles as wrong answers
-        other_tracks = [t for t in all_tracks if t['spotify_id'] != correct_track['spotify_id']]
+        other_tracks = [t for t in all_tracks if t['youtube_id'] != correct_track['youtube_id']]
         random.shuffle(other_tracks)
         
         wrong_answers = []
@@ -114,19 +117,17 @@ class QuestionGeneratorService:
             if len(wrong_answers) >= 3:
                 break
         
-        # Need at least 3 wrong answers
         if len(wrong_answers) < 3:
             return None
         
-        # Combine and shuffle options
         options = [correct_answer] + wrong_answers[:3]
         random.shuffle(options)
         
         return {
-            'track_id': correct_track['spotify_id'],
+            'track_id': correct_track['youtube_id'],
             'track_name': correct_track['name'],
             'artist_name': ', '.join(correct_track['artists']),
-            'preview_url': correct_track.get('preview_url'),
+            'preview_url': correct_track.get('external_url'),
             'album_image': correct_track.get('album_image'),
             'question_type': 'guess_title',
             'question_text': 'Quel est le titre de ce morceau ?',
@@ -142,8 +143,7 @@ class QuestionGeneratorService:
         """Generate a 'guess the artist' question."""
         correct_answer = ', '.join(correct_track['artists'])
         
-        # Get other artists as wrong answers
-        other_tracks = [t for t in all_tracks if t['spotify_id'] != correct_track['spotify_id']]
+        other_tracks = [t for t in all_tracks if t['youtube_id'] != correct_track['youtube_id']]
         random.shuffle(other_tracks)
         
         wrong_answers = []
@@ -154,19 +154,17 @@ class QuestionGeneratorService:
             if len(wrong_answers) >= 3:
                 break
         
-        # Need at least 3 wrong answers
         if len(wrong_answers) < 3:
             return None
         
-        # Combine and shuffle options
         options = [correct_answer] + wrong_answers[:3]
         random.shuffle(options)
         
         return {
-            'track_id': correct_track['spotify_id'],
+            'track_id': correct_track['youtube_id'],
             'track_name': correct_track['name'],
             'artist_name': correct_answer,
-            'preview_url': correct_track.get('preview_url'),
+            'preview_url': correct_track.get('external_url'),
             'album_image': correct_track.get('album_image'),
             'question_type': 'guess_artist',
             'question_text': 'Qui interprète ce morceau ?',
@@ -183,35 +181,23 @@ class GameService:
     
     @transaction.atomic
     def start_game(self, game: Game) -> Tuple[Game, List[GameRound]]:
-        """
-        Start a game and generate rounds.
-        
-        Uses OAuth for playlist access if host has connected Spotify.
-        
-        Args:
-            game: Game instance to start
-        
-        Returns:
-            Tuple of (updated game, list of rounds)
-        """
+        """Start a game and generate rounds from a YouTube playlist."""
         if game.status != GameStatus.WAITING:
             raise ValueError("Game is not in waiting status")
         
         if not game.playlist_id:
             raise ValueError("Game must have a playlist")
         
-        # Generate questions (using host's Spotify connection if available)
-        num_rounds = 10  # Default number of rounds
+        num_rounds = 10
         questions = self.question_generator.generate_questions(
             game.playlist_id,
             num_questions=num_rounds,
-            user=game.host  # Pass host user for OAuth
+            user=game.host
         )
         
         if not questions:
             raise ValueError("Failed to generate questions from playlist")
         
-        # Create rounds
         rounds = []
         for i, question in enumerate(questions, start=1):
             round_obj = GameRound.objects.create(
@@ -222,11 +208,10 @@ class GameService:
                 artist_name=question['artist_name'],
                 correct_answer=question['correct_answer'],
                 options=question['options'],
-                duration=30,  # 30 seconds per round
+                duration=30,
             )
             rounds.append(round_obj)
         
-        # Update game status
         game.status = GameStatus.IN_PROGRESS
         game.started_at = timezone.now()
         game.save()
@@ -240,16 +225,11 @@ class GameService:
     def get_next_round(self, game: Game) -> Optional[GameRound]:
         """Get the next round to play."""
         current_round = self.get_current_round(game)
-        
         if current_round:
-            # Current round not finished yet
             return None
         
-        # Find first unplayed round
         played_rounds = game.rounds.filter(ended_at__isnull=False).values_list('round_number', flat=True)
-        next_round = game.rounds.exclude(round_number__in=played_rounds).order_by('round_number').first()
-        
-        return next_round
+        return game.rounds.exclude(round_number__in=played_rounds).order_by('round_number').first()
     
     @transaction.atomic
     def end_round(self, round_obj: GameRound) -> GameRound:
@@ -258,62 +238,21 @@ class GameService:
         round_obj.save()
         return round_obj
     
-    def calculate_score(
-        self,
-        is_correct: bool,
-        response_time: float,
-        max_time: int = 30
-    ) -> int:
-        """
-        Calculate points for an answer.
-        
-        Args:
-            is_correct: Whether the answer is correct
-            response_time: Time taken to answer (seconds)
-            max_time: Maximum time allowed (seconds)
-        
-        Returns:
-            Points earned
-        """
+    def calculate_score(self, is_correct: bool, response_time: float, max_time: int = 30) -> int:
+        """Calculate points for an answer."""
         if not is_correct:
             return 0
-        
-        # Base points for correct answer
         base_points = 1000
-        
-        # Time bonus (faster = more points)
         time_bonus = int((1 - (response_time / max_time)) * 500)
         time_bonus = max(0, time_bonus)
-        
         return base_points + time_bonus
     
     @transaction.atomic
-    def submit_answer(
-        self,
-        player: GamePlayer,
-        round_obj: GameRound,
-        answer: str,
-        response_time: float
-    ) -> GameAnswer:
-        """
-        Submit and score a player's answer.
-        
-        Args:
-            player: GamePlayer instance
-            round_obj: GameRound instance
-            answer: Player's answer
-            response_time: Time taken to answer
-        
-        Returns:
-            GameAnswer instance
-        """
-        # Check if answer is correct
+    def submit_answer(self, player: GamePlayer, round_obj: GameRound, answer: str, response_time: float) -> GameAnswer:
+        """Submit and score a player's answer."""
         is_correct = answer == round_obj.correct_answer
-        
-        # Calculate points
         points = self.calculate_score(is_correct, response_time, round_obj.duration)
         
-        # Create answer record
         game_answer = GameAnswer.objects.create(
             round=round_obj,
             player=player,
@@ -323,29 +262,17 @@ class GameService:
             response_time=response_time
         )
         
-        # Update player's total score
         player.score += points
         player.save()
-        
         return game_answer
     
     @transaction.atomic
     def finish_game(self, game: Game) -> Game:
-        """
-        Finish a game and calculate final rankings.
-        
-        Args:
-            game: Game instance to finish
-        
-        Returns:
-            Updated game instance
-        """
-        # Update game status
+        """Finish a game and calculate final rankings."""
         game.status = GameStatus.FINISHED
         game.finished_at = timezone.now()
         game.save()
         
-        # Calculate rankings
         players = game.players.order_by('-score')
         for rank, player in enumerate(players, start=1):
             player.rank = rank

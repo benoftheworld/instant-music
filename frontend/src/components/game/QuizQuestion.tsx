@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
+
 interface Round {
   id: string;
   round_number: number;
@@ -24,6 +26,14 @@ interface QuizQuestionProps {
   roundResults: RoundResults | null;
 }
 
+// Declare YouTube IFrame API types
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
 const QuizQuestion = ({
   round,
   onAnswerSubmit,
@@ -32,6 +42,50 @@ const QuizQuestion = ({
   showResults,
   roundResults,
 }: QuizQuestionProps) => {
+  const playerRef = useRef<any>(null);
+  const [playerReady, setPlayerReady] = useState(false);
+
+  // Load YouTube IFrame API
+  useEffect(() => {
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+    window.onYouTubeIframeAPIReady = () => {
+      setPlayerReady(true);
+    };
+  }, []);
+
+  // Create YouTube player when ready
+  useEffect(() => {
+    if (!playerReady || !window.YT || !round.track_id) return;
+
+    // Destroy previous player if exists
+    if (playerRef.current) {
+      playerRef.current.destroy();
+    }
+
+    playerRef.current = new window.YT.Player('youtube-player', {
+      height: '200',
+      width: '100%',
+      videoId: round.track_id,
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        disablekb: 1,
+        modestbranding: 1,
+        rel: 0,
+      },
+    });
+
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.destroy();
+      }
+    };
+  }, [playerReady, round.track_id]);
+
   const handleOptionClick = (option: string) => {
     if (!hasAnswered && !showResults) {
       onAnswerSubmit(option);
@@ -72,7 +126,7 @@ const QuizQuestion = ({
   return (
     <div className="bg-white rounded-lg shadow-xl p-8">
       {/* Question header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">
           Quel est le titre de ce morceau ?
         </h2>
@@ -81,8 +135,10 @@ const QuizQuestion = ({
         </p>
       </div>
       
-      {/* Audio player (if preview available) */}
-      {/* TODO: Add audio preview when available */}
+      {/* YouTube player */}
+      <div className="mb-6 rounded-lg overflow-hidden">
+        <div id="youtube-player"></div>
+      </div>
       
       {/* Answer options */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

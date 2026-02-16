@@ -3,11 +3,11 @@
  * Display and play track preview (30 seconds)
  */
 import { useState, useRef, useEffect } from 'react';
-import { SpotifyTrack } from '../../types';
-import { spotifyService } from '../../services/spotifyService';
+import { YouTubeTrack } from '../../types';
+import { youtubeService } from '../../services/youtubeService';
 
 interface TrackPreviewProps {
-  track: SpotifyTrack;
+  track: YouTubeTrack;
   autoPlay?: boolean;
   showControls?: boolean;
 }
@@ -29,7 +29,7 @@ export default function TrackPreview({ track, autoPlay = false, showControls = t
         audioRef.current.pause();
       }
     };
-  }, [track.spotify_id, autoPlay]);
+  }, [track.youtube_id, autoPlay]);
 
   const togglePlay = () => {
     if (!audioRef.current || !track.preview_url) return;
@@ -157,7 +157,7 @@ export default function TrackPreview({ track, autoPlay = false, showControls = t
 
       {/* Duration Badge */}
       <div className="flex-shrink-0 text-xs text-gray-500">
-        {spotifyService.formatDuration(track.duration_ms)}
+        {youtubeService.formatDuration(track.duration_ms)}
       </div>
     </div>
   );

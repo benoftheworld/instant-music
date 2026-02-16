@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '@/services/api';
+import { api, getMediaUrl } from '@/services/api';
 import type { LeaderboardEntry } from '@/types';
 
 export default function TopPlayers() {
@@ -88,7 +88,7 @@ export default function TopPlayers() {
             <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
               {player.avatar ? (
                 <img
-                  src={player.avatar}
+                  src={getMediaUrl(player.avatar)}
                   alt={player.username}
                   className="w-full h-full object-cover"
                 />

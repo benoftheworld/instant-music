@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '@/services/api';
+import { api, getMediaUrl } from '@/services/api';
 import type { GameHistory } from '@/types';
 import { Link } from 'react-router-dom';
 
@@ -108,7 +108,7 @@ export default function GameHistoryPage() {
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center flex-shrink-0">
                         {game.winner.avatar ? (
                           <img
-                            src={game.winner.avatar}
+                            src={getMediaUrl(game.winner.avatar)}
                             alt={game.winner.username}
                             className="w-full h-full rounded-full object-cover"
                           />
@@ -176,7 +176,7 @@ export default function GameHistoryPage() {
                         <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
                           {participant.avatar ? (
                             <img
-                              src={participant.avatar}
+                              src={getMediaUrl(participant.avatar)}
                               alt={participant.username}
                               className="w-full h-full object-cover"
                             />

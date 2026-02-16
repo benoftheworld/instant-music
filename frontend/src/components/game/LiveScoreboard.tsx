@@ -1,3 +1,5 @@
+import { getMediaUrl } from '@/services/api';
+
 interface Player {
   id: string;
   username: string;
@@ -54,7 +56,7 @@ const LiveScoreboard = ({ players }: LiveScoreboardProps) => {
               {/* Avatar */}
               {player.avatar ? (
                 <img
-                  src={player.avatar}
+                  src={getMediaUrl(player.avatar)}
                   alt={player.username}
                   className="w-10 h-10 rounded-full"
                 />

@@ -1,17 +1,17 @@
 """
-Serializers for playlists app.
+Serializers for playlists app (YouTube-backed).
 """
 from rest_framework import serializers
-from .models import Playlist, Track, SpotifyToken
+from .models import Playlist, Track
 
 
 class PlaylistSerializer(serializers.ModelSerializer):
-    """Serializer for Playlist model."""
+    """Serializer for Playlist model (cached data)."""
     
     class Meta:
         model = Playlist
         fields = [
-            'id', 'spotify_id', 'name', 'description', 
+            'id', 'youtube_id', 'name', 'description',
             'image_url', 'total_tracks', 'owner', 'external_url',
             'created_at', 'updated_at'
         ]
@@ -19,60 +19,30 @@ class PlaylistSerializer(serializers.ModelSerializer):
 
 
 class TrackSerializer(serializers.ModelSerializer):
-    """Serializer for Track model."""
+    """Serializer for Track model (cached data)."""
     
     artists_display = serializers.SerializerMethodField()
     
     class Meta:
         model = Track
         fields = [
-            'id', 'spotify_id', 'name', 'artists', 'artists_display',
+            'id', 'youtube_id', 'name', 'artists', 'artists_display',
             'album', 'album_image', 'duration_ms', 'preview_url',
             'external_url', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def get_artists_display(self, obj) -> str:
-        """Get comma-separated artist names."""
         return ', '.join(obj.artists) if obj.artists else 'Unknown'
 
 
-class SpotifyPlaylistSerializer(serializers.Serializer):
-    """Serializer for Spotify API playlist data (not saved to DB)."""
+class YouTubePlaylistSerializer(serializers.Serializer):
+    """Serializer for YouTube API playlist data (not saved to DB)."""
     
-    spotify_id = serializers.CharField()
+    youtube_id = serializers.CharField()
     name = serializers.CharField()
     description = serializers.CharField(allow_blank=True)
     image_url = serializers.URLField(allow_blank=True)
-    total_tracks = serializers.IntegerField()
+    total_tracks = serializers.IntegerField(required=False, default=0)
     owner = serializers.CharField()
     external_url = serializers.URLField()
-
-
-class SpotifyTrackSerializer(serializers.Serializer):
-    """Serializer for Spotify API track data (not saved to DB)."""
-    
-    spotify_id = serializers.CharField()
-    name = serializers.CharField()
-    artists = serializers.ListField(child=serializers.CharField())
-    album = serializers.CharField()
-    album_image = serializers.URLField(allow_blank=True)
-    duration_ms = serializers.IntegerField()
-    preview_url = serializers.URLField(allow_blank=True, allow_null=True)
-    external_url = serializers.URLField()
-
-
-class SpotifyTokenSerializer(serializers.ModelSerializer):
-    """Serializer for SpotifyToken model."""
-    
-    is_expired = serializers.BooleanField(read_only=True)
-    username = serializers.CharField(source='user.username', read_only=True)
-    
-    class Meta:
-        model = SpotifyToken
-        fields = [
-            'id', 'username', 'token_type', 'expires_at', 
-            'scope', 'is_expired', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-        # Don't expose actual tokens in API responses
