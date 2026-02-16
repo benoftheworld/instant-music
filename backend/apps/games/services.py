@@ -9,6 +9,7 @@ from django.db import transaction
 
 from .models import Game, GamePlayer, GameRound, GameAnswer, GameStatus
 from apps.playlists.services import spotify_service, SpotifyAPIError
+from apps.playlists.hybrid_service import hybrid_spotify_service
 
 logger = logging.getLogger(__name__)
 
@@ -20,27 +21,36 @@ class QuestionGeneratorService:
     
     def __init__(self):
         self.spotify = spotify_service
+        self.hybrid_spotify = hybrid_spotify_service
     
     def generate_questions(
         self,
         playlist_id: str,
         num_questions: int = 10,
-        question_type: str = 'guess_title'
+        question_type: str = 'guess_title',
+        user=None
     ) -> List[Dict]:
         """
         Generate quiz questions from a Spotify playlist.
+        
+        Uses OAuth if user has connected Spotify, otherwise Client Credentials.
         
         Args:
             playlist_id: Spotify playlist ID
             num_questions: Number of questions to generate
             question_type: Type of question ('guess_title' or 'guess_artist')
+            user: Django user (optional, for OAuth)
         
         Returns:
             List of question dictionaries
         """
-        # Get tracks from playlist
+        # Get tracks from playlist using hybrid service
         try:
-            tracks = self.spotify.get_playlist_tracks(playlist_id, limit=50)
+            tracks = self.hybrid_spotify.get_playlist_tracks(
+                playlist_id, 
+                limit=50,
+                user=user
+            )
         except SpotifyAPIError as e:
             error_msg = str(e)
             logger.error(f"Failed to get tracks from playlist {playlist_id}: {error_msg}")
@@ -172,6 +182,8 @@ class GameService:
         """
         Start a game and generate rounds.
         
+        Uses OAuth for playlist access if host has connected Spotify.
+        
         Args:
             game: Game instance to start
         
@@ -184,11 +196,12 @@ class GameService:
         if not game.playlist_id:
             raise ValueError("Game must have a playlist")
         
-        # Generate questions
+        # Generate questions (using host's Spotify connection if available)
         num_rounds = 10  # Default number of rounds
         questions = self.question_generator.generate_questions(
             game.playlist_id,
-            num_questions=num_rounds
+            num_questions=num_rounds,
+            user=game.host  # Pass host user for OAuth
         )
         
         if not questions:

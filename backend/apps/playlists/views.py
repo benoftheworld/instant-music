@@ -13,6 +13,7 @@ from .serializers import (
     SpotifyPlaylistSerializer, SpotifyTrackSerializer
 )
 from .services import spotify_service, SpotifyAPIError
+from .hybrid_service import hybrid_spotify_service
 
 
 class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
@@ -34,6 +35,8 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
         """
         Search playlists on Spotify.
         
+        Uses OAuth if user has connected Spotify, otherwise Client Credentials.
+        
         Query params:
         - query: Search string (required)
         - limit: Max results (optional, default: 20)
@@ -52,9 +55,22 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
             limit = 20
         
         try:
-            playlists = spotify_service.search_playlists(query, limit)
+            # Use hybrid service with current user (OAuth if available)
+            playlists = hybrid_spotify_service.search_playlists(
+                query, 
+                limit, 
+                user=request.user if request.user.is_authenticated else None
+            )
+            
+            # Add metadata about which mode is being used
+            using_oauth = hybrid_spotify_service.is_using_oauth(request.user)
+            
             serializer = SpotifyPlaylistSerializer(playlists, many=True)
-            return Response(serializer.data)
+            return Response({
+                'playlists': serializer.data,
+                'using_oauth': using_oauth,
+                'mode': 'oauth' if using_oauth else 'client_credentials'
+            })
         
         except SpotifyAPIError as e:
             return Response(
@@ -69,9 +85,15 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
     def get_spotify_playlist(self, request, spotify_id=None):
         """
         Get playlist details from Spotify by ID.
+        
+        Uses OAuth if user has connected Spotify, otherwise Client Credentials.
         """
         try:
-            playlist = spotify_service.get_playlist(spotify_id)
+            # Use hybrid service with current user
+            playlist = hybrid_spotify_service.get_playlist(
+                spotify_id,
+                user=request.user if request.user.is_authenticated else None
+            )
             
             if not playlist:
                 return Response(

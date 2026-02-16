@@ -186,6 +186,10 @@ CELERY_TIMEZONE = TIME_ZONE
 # Spotify API
 SPOTIFY_CLIENT_ID = env('SPOTIFY_CLIENT_ID', default='')
 SPOTIFY_CLIENT_SECRET = env('SPOTIFY_CLIENT_SECRET', default='')
+SPOTIFY_REDIRECT_URI = env('SPOTIFY_REDIRECT_URI', default='http://localhost:8000/api/playlists/spotify/callback/')
+
+# Frontend URL (for OAuth redirects)
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
 
 # Google OAuth
 GOOGLE_OAUTH_CLIENT_ID = env('GOOGLE_OAUTH_CLIENT_ID', default='')

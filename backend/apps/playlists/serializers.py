@@ -2,7 +2,7 @@
 Serializers for playlists app.
 """
 from rest_framework import serializers
-from .models import Playlist, Track
+from .models import Playlist, Track, SpotifyToken
 
 
 class PlaylistSerializer(serializers.ModelSerializer):
@@ -61,3 +61,18 @@ class SpotifyTrackSerializer(serializers.Serializer):
     preview_url = serializers.URLField(allow_blank=True, allow_null=True)
     external_url = serializers.URLField()
 
+
+class SpotifyTokenSerializer(serializers.ModelSerializer):
+    """Serializer for SpotifyToken model."""
+    
+    is_expired = serializers.BooleanField(read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    
+    class Meta:
+        model = SpotifyToken
+        fields = [
+            'id', 'username', 'token_type', 'expires_at', 
+            'scope', 'is_expired', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+        # Don't expose actual tokens in API responses
