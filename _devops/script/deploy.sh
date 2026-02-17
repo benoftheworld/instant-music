@@ -6,14 +6,14 @@
 set -e
 
 ENV=${1:-production}
-COMPOSE_FILE="docker-compose.yml"
+COMPOSE_FILE="_devops/docker/docker-compose.yml"
 
 if [ "$ENV" = "production" ]; then
-    COMPOSE_FILE="docker-compose.prod.yml"
+    COMPOSE_FILE="_devops/docker/docker-compose.prod.yml"
     ENV_FILE=".env.prod"
-    
+
     echo "🚀 Déploiement en PRODUCTION"
-    
+
     # Vérifier que le fichier .env.prod existe
     if [ ! -f "$ENV_FILE" ]; then
         echo "❌ Erreur: Le fichier $ENV_FILE n'existe pas!"
@@ -25,7 +25,8 @@ else
 fi
 
 echo "📦 Pull des dernières modifications..."
-git pull origin main
+CURRENT_BRANCH=$(git branch --show-current)
+git pull origin $CURRENT_BRANCH
 
 echo "🏗️  Build des images Docker..."
 docker compose -f $COMPOSE_FILE build --no-cache
