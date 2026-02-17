@@ -11,7 +11,7 @@ Le système de jeu multijoueur en temps réel est **100% fonctionnel** et testé
 #### 1. Services de Jeu (`apps/games/services.py`)
 
 **QuestionGeneratorService** :
-- `generate_questions(playlist_id, num_questions)` : Génère des questions depuis une playlist Spotify
+- `generate_questions(playlist_id, num_questions)` : Génère des questions depuis une playlist Deezer
 - Types de questions : "Devinez le titre" et "Devinez l'artiste"
 - 4 options de réponse par question (1 correcte + 3 distracteurs)
 - Gestion d'erreur complète avec messages clairs
@@ -42,13 +42,13 @@ else:
 
 #### 3. API Endpoints (`apps/games/views.py`)
 
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| POST | `/api/games/{roomCode}/start/` | Démarre la partie, génère les rounds |
-| GET | `/api/games/{roomCode}/current-round/` | Récupère le round actuel |
-| POST | `/api/games/{roomCode}/answer/` | Soumet une réponse |
-| POST | `/api/games/{roomCode}/next-round/` | Passe au round suivant (host uniquement) |
-| GET | `/api/games/{roomCode}/results/` | Récupère les résultats finaux |
+| Méthode | Endpoint                               | Description                              |
+| ------- | -------------------------------------- | ---------------------------------------- |
+| POST    | `/api/games/{roomCode}/start/`         | Démarre la partie, génère les rounds     |
+| GET     | `/api/games/{roomCode}/current-round/` | Récupère le round actuel                 |
+| POST    | `/api/games/{roomCode}/answer/`        | Soumet une réponse                       |
+| POST    | `/api/games/{roomCode}/next-round/`    | Passe au round suivant (host uniquement) |
+| GET     | `/api/games/{roomCode}/results/`       | Récupère les résultats finaux            |
 
 #### 4. WebSocket Consumer (`apps/games/consumers.py`)
 
@@ -237,5 +237,5 @@ Empty : "La playlist ne contient pas assez de morceaux accessibles (0 trouvés, 
 
 ---
 
-**Dernière mise à jour** : Sprint 6-7 complété avec succès ✅  
+**Dernière mise à jour** : Sprint 6-7 complété avec succès ✅
 **Système de jeu** : Entièrement fonctionnel et testé ✅
