@@ -99,7 +99,6 @@ python3 -c "import secrets; print(secrets.token_urlsafe(50))"
 SECRET_KEY=<la-clé-générée>
 ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
 POSTGRES_PASSWORD=<mot-de-passe-fort>
-YOUTUBE_API_KEY=<votre-clé-youtube>
 GOOGLE_OAUTH_CLIENT_ID=<votre-client-id>
 GOOGLE_OAUTH_CLIENT_SECRET=<votre-client-secret>
 VITE_API_URL=https://yourdomain.com/api

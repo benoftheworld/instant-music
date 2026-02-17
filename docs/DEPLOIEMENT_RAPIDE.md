@@ -65,9 +65,6 @@ docker compose -f docker-compose.prod.yml logs -f
 SECRET_KEY=<générer-avec-python>
 ALLOWED_HOSTS=votredomaine.com
 POSTGRES_PASSWORD=<mot-de-passe-fort>
-YOUTUBE_API_KEY=<votre-clé>
-GOOGLE_OAUTH_CLIENT_ID=<votre-client-id>
-GOOGLE_OAUTH_CLIENT_SECRET=<votre-secret>
 VITE_API_URL=https://votredomaine.com/api
 VITE_WS_URL=wss://votredomaine.com/ws
 ```
