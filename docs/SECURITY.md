@@ -209,17 +209,6 @@ docker compose -f docker-compose.prod.yml exec backend safety check
 
 ## 📱 APIs et OAuth - Bonnes Pratiques
 
-### YouTube API
-
-```bash
-# Restreindre par domaine dans Google Cloud Console
-# Application restrictions → HTTP referrers
-# Ajouter: https://yourdomain.com/*
-
-# Quota monitoring
-# Définir des alertes si quota proche de la limite
-```
-
 ### Google OAuth
 
 ```bash
@@ -242,7 +231,6 @@ yourdomain.com
 # CRITIQUE - Ne JAMAIS exposer publiquement
 SECRET_KEY=
 POSTGRES_PASSWORD=
-YOUTUBE_API_KEY=
 GOOGLE_OAUTH_CLIENT_SECRET=
 EMAIL_HOST_PASSWORD=
 
@@ -325,7 +313,6 @@ Avant de mettre en production:
 - [ ] Headers de sécurité Nginx
 - [ ] Backups automatiques configurés
 - [ ] Monitoring/alertes en place
-- [ ] APIs restreintes par domaine
 - [ ] PostgreSQL non exposé publiquement
 - [ ] Containers avec utilisateurs non-root
 
