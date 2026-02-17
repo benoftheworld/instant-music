@@ -18,7 +18,7 @@ Ce guide détaille les étapes pour déployer InstantMusic en production sur un 
 - Un nom de domaine (pour SSL/HTTPS)
 
 ### Comptes/API
-- Google Cloud Console (YouTube API + OAuth)
+- Google Cloud Console (OAuth)
 - Serveur SMTP ou Gmail pour les emails
 - (Optionnel) Sentry pour le monitoring
 
@@ -135,8 +135,6 @@ docker compose -f _devops/docker/docker-compose.prod.yml exec backend python man
 
 ## 🔒 Étape 3: Configuration SSL (HTTPS)
 
-### Option A: Let's Encrypt avec Certbot (Recommandé)
-
 ```bash
 # Installer Certbot
 sudo apt install certbot python3-certbot-nginx -y
@@ -156,13 +154,6 @@ sudo chmod 644 nginx/ssl/*.pem
 sudo crontab -e
 # Ajouter: 0 0 1 * * certbot renew --quiet && docker compose -f /root/apps/instant-music/_devops/docker/docker-compose.prod.yml restart nginx
 ```
-
-### Option B: Cloudflare (Alternative)
-
-Si vous utilisez Cloudflare, activez:
-- SSL/TLS → Full (strict)
-- Automatic HTTPS Rewrites
-- Always Use HTTPS
 
 ### 3.1 Activer HTTPS dans Nginx
 
@@ -189,14 +180,6 @@ docker compose -f _devops/docker/docker-compose.prod.yml restart nginx
 ---
 
 ## 🔍 Étape 4: Configuration des APIs
-
-### 4.1 YouTube Data API
-
-1. Aller sur [Google Cloud Console](https://console.cloud.google.com/)
-2. Créer un nouveau projet ou sélectionner un projet existant
-3. Activer **YouTube Data API v3**
-4. Créer des identifiants (Clé API)
-5. Copier la clé dans `.env.prod` → `YOUTUBE_API_KEY`
 
 ### 4.2 Google OAuth
 

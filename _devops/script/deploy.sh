@@ -10,14 +10,23 @@ COMPOSE_FILE="_devops/docker/docker-compose.yml"
 
 if [ "$ENV" = "production" ]; then
     COMPOSE_FILE="_devops/docker/docker-compose.prod.yml"
-    ENV_FILE=".env.prod"
+    # Allow .env.prod either at repo root or in the _devops/docker folder
+    ENV_FILE_ROOT=".env.prod"
+    ENV_FILE_DOCKER="_devops/docker/.env.prod"
 
     echo "🚀 Déploiement en PRODUCTION"
 
-    # Vérifier que le fichier .env.prod existe
-    if [ ! -f "$ENV_FILE" ]; then
-        echo "❌ Erreur: Le fichier $ENV_FILE n'existe pas!"
-        echo "👉 Copiez .env.prod.example vers .env.prod et configurez les variables"
+    # If .env.prod exists at repo root, copy it to _devops/docker for the compose file
+    if [ -f "$ENV_FILE_ROOT" ]; then
+        echo "ℹ️  Found $ENV_FILE_ROOT at repo root — copying to _devops/docker/.env.prod"
+        mkdir -p _devops/docker
+        cp "$ENV_FILE_ROOT" "$ENV_FILE_DOCKER"
+    fi
+
+    # Verify .env.prod exists in the compose folder
+    if [ ! -f "$ENV_FILE_DOCKER" ]; then
+        echo "❌ Erreur: Le fichier .env.prod n'a pas été trouvé dans _devops/docker/"
+        echo "👉 Copiez .env.prod.example vers .env.prod puis placez-le à la racine du repo ou dans _devops/docker/"
         exit 1
     fi
 else
