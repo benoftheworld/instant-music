@@ -1,73 +1,256 @@
 # 🎵 InstantMusic
 
-Une application web interactive de jeux musicaux multijoueurs en temps réel.
+Une application web interactive de quiz musical multijoueur en temps réel.
 
-## Fonctionnalités (MVP)
-- Authentification (username/password + Google OAuth)
-- Profil utilisateur (avatar, mot de passe, statistiques)
-- Créer / rejoindre parties en ligne (lobby, WebSocket)
-- Quiz musical (mode 4 réponses, rapide)
-- Intégration Spotify (extraits 30s)
-- Backoffice administration
-- Docker pour dev & prod
+## 🎮 Fonctionnalités
 
-## ❓ Compte Spotify Obligatoire ?
+- **Quiz musical multijoueur** - Affrontez vos amis en temps réel
+- **Authentification complète** - Inscription/connexion classique + Google OAuth
+- **Profils personnalisables** - Avatar, statistiques, historique
+- **Système de jeu avancé** - Timer, scoring dynamique, classement en direct
+- **Intégration musicale** - Morceaux via Deezer (extraits 30s gratuits)
+- **Communication temps réel** - WebSocket pour synchronisation instantanée
+- **Interface moderne** - React + TypeScript + Tailwind CSS
+- **Administration** - Backoffice Django pour gestion complète
 
-### ❌ NON - Le compte Spotify est OPTIONNEL
+## 🏗️ Architecture
 
-InstantMusic utilise un **système hybride intelligent** qui s'adapte automatiquement :
+### Stack Technique
 
-| Mode | Compte Spotify | Accès Playlists | Expérience |
-|------|----------------|-----------------|------------|
-| **Mode Restreint** | ❌ Non requis | ⚠️ ~10% seulement | Basique mais fonctionnel |
-| **Mode Optimal** | ✅ Connecté (gratuit/premium) | ✅ 100% complètes | Expérience complète |
+**Backend:**
+- Django 5.1 + Django REST Framework
+- WebSocket (Django Channels + Daphne)
+- PostgreSQL (base de données)
+- Redis (cache + broker WebSocket)
+- Celery (tâches asynchrones)
 
-**Recommandation** : Connectez votre compte Spotify (30 secondes) pour une expérience optimale.
+**Frontend:**
+- React 18 + TypeScript
+- Vite (build tool)
+- TanStack Query (gestion API)
+- Zustand (state management)
+- Tailwind CSS (styling)
 
-📖 **[Guide utilisateur complet](./docs/USER_GUIDE_SPOTIFY.md)** - Avec ou sans Spotify ?
+**Infrastructure:**
+- Docker + Docker Compose
+- Nginx (reverse proxy en production)
+
+### Structure DevOps
+
+Les fichiers de configuration DevOps sont organisés dans le dossier `_devops/` :
+
+```
+_devops/
+├── docker/              # Docker Compose files
+├── script/              # Scripts de déploiement
+├── linter/              # Configuration pre-commit
+└── ci/                  # GitHub Actions workflows
+```
+
+📖 Voir [_devops/README.md](_devops/README.md) pour plus de détails.
+
+### APIs Externes
+
+- **Deezer API** - Recherche de playlists et morceaux (gratuit, pas de clé requise)
+- **Google OAuth 2.0** - Authentification sociale (optionnel)
+
+## 🚀 Démarrage Rapide
+
+### Prérequis
+
+- Docker & Docker Compose
+- Git
+
+### Installation
+
+1. **Cloner le repository**
+```bash
+git clone <votre-repo>
+cd instant-music
+```
+
+2. **Configurer l'environnement**
+```bash
+# Copier le fichier d'exemple
+cp backend/.env.example backend/.env
+
+# Éditer backend/.env et configurer au minimum :
+# - SECRET_KEY (générer avec: python -c "import secrets; print(secrets.token_urlsafe(50))")
+# - GOOGLE_OAUTH_CLIENT_ID (optionnel - voir section OAuth)
+# - GOOGLE_OAUTH_CLIENT_SECRET (optionnel)
+```
+
+3. **Démarrer l'application**
+```bash
+# Depuis la racine du projet
+./_devops/script/deploy.sh development
+
+# Ou directement
+cd _devops/docker && docker compose up -d
+```
+
+4. **Initialiser la base de données**
+```bash
+# Appliquer les migrations
+docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py migrate
+
+# Créer un superutilisateur
+docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py createsuperuser
+```
+
+5. **Accéder à l'application**
+- Frontend: http://localhost:3000
+- API Backend: http://localhost:8000/api
+- Admin Django: http://localhost:8000/admin
+
+## 🎯 Configuration Google OAuth (Optionnel)
+
+L'authentification Google OAuth est optionnelle. Sans elle, les utilisateurs peuvent toujours :
+- S'inscrire avec email/mot de passe
+- Se connecter normalement
+- Utiliser toutes les fonctionnalités
+
+### Pour activer Google OAuth :
+
+1. **Créer un projet Google Cloud**
+   - Accédez à https://console.cloud.google.com
+   - Créez un nouveau projet
+
+2. **Configurer OAuth 2.0**
+   - APIs & Services → Identifiants
+   - Créer des identifiants → ID client OAuth 2.0
+   - Type : Application Web
+   - Origines JavaScript autorisées : `http://localhost:3000`
+   - URI de redirection : `http://localhost:3000/auth/google/callback`
+
+3. **Ajouter les credentials**
+```bash
+# Dans backend/.env
+GOOGLE_OAUTH_CLIENT_ID=votre_client_id
+GOOGLE_OAUTH_CLIENT_SECRET=votre_client_secret
+```
+
+4. **Redémarrer les services**
+```bash
+docker compose -f _devops/docker/docker-compose.yml restart backend
+```
+
+## 📖 Documentation
+
+- **[QUICK_START.md](docs/QUICK_START.md)** - Guide de démarrage ultra-rapide
+- **[GAMEPLAY_SYSTEM.md](docs/GAMEPLAY_SYSTEM.md)** - Système de jeu détaillé
+- **[PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md)** - Guide de déploiement en production
+- **[SECURITY.md](docs/SECURITY.md)** - Bonnes pratiques de sécurité
+- **[DOCKER_COMPOSE_FIX.md](docs/DOCKER_COMPOSE_FIX.md)** - Corrections Docker Compose
+- **[_devops/README.md](_devops/README.md)** - Documentation DevOps et CI/CD
+
+## 🔧 Commandes Utiles
+
+### Développement
+
+```bash
+# Voir les logs
+docker compose -f _devops/docker/docker-compose.yml logs -f [service]
+
+# Redémarrer un service
+docker compose -f _devops/docker/docker-compose.yml restart [service]
+
+# Arrêter l'application
+docker compose -f _devops/docker/docker-compose.yml down
+
+# Arrêter et supprimer les volumes
+docker compose -f _devops/docker/docker-compose.yml down -v
+
+# Shell Django
+docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py shell
+
+# Créer une migration
+docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py makemigrations
+
+# Appliquer les migrations
+docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py migrate
+
+# Collecter les fichiers statiques
+docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py collectstatic --noinput
+
+# Lancer les tests
+docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py test
+```
+
+### Production
+
+Consultez [PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md) pour le guide complet.
+
+```bash
+# Déployer en production
+./_devops/script/deploy.sh production
+
+# Créer un backup de la base de données
+./_devops/script/backup.sh
+```
+
+## 🎮 Comment Jouer
+
+1. **Créer un compte** ou se connecter
+2. **Créer une partie** et choisir une playlist Deezer
+3. **Partager le code** de la salle avec vos amis
+4. **Lancer la partie** une fois que tout le monde est prêt
+5. **Répondre aux questions** le plus vite possible
+6. **Consulter le classement** et la victoire ! 🏆
+
+## 📊 Système de Scoring
+
+- **Points de base** : jusqu'à 100 points (réduit avec le temps)
+- **Formule de base** : `points = max(10, 100 - (temps_reponse * 3))`
+- **Tolérance année** : facteur d'exactitude (1.0, 0.6, 0.3) applique sur les points
+- **Bonus de rang** : +10 (1er), +5 (2e), +2 (3e) si bonne réponse
+- **Mauvaise réponse** : 0 point
+
+Exemple : 3 secondes = 91 points (hors bonus de rang)
+
+## 🛠️ Services Docker
+
+| Service     | Port | Description                    |
+| ----------- | ---- | ------------------------------ |
+| frontend    | 3000 | Interface React                |
+| backend     | 8000 | API Django + WebSocket         |
+| db          | 5432 | PostgreSQL                     |
+| redis       | 6379 | Cache & Message Broker         |
+| celery      | -    | Worker pour tâches asynchrones |
+| celery-beat | -    | Planificateur de tâches        |
+
+## 🧪 Tests
+
+```bash
+# Tests backend
+docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py test
+
+# Tests avec couverture
+docker compose -f _devops/docker/docker-compose.yml exec backend pytest --cov=apps --cov-report=html
+
+# Tests frontend
+docker compose -f _devops/docker/docker-compose.yml exec frontend npm test
+```
+
+## 🤝 Contribution
+
+Les contributions sont les bienvenues ! N'hésitez pas à :
+- Signaler des bugs
+- Proposer de nouvelles fonctionnalités
+- Soumettre des pull requests
+
+## 📝 Licence
+
+Ce projet est sous licence MIT. Voir [LICENSE](LICENSE) pour plus de détails.
+
+## 🔗 Liens Utiles
+
+- [Documentation Django](https://docs.djangoproject.com/)
+- [Documentation React](https://react.dev/)
+- [API Deezer](https://developers.deezer.com/api)
+- [Django Channels](https://channels.readthedocs.io/)
+- [Docker Documentation](https://docs.docker.com/)
 
 ---
 
-## 🎵 Système d'Authentification Spotify
-
-### ✅ OAuth 2.0 (Mode Optimal - RECOMMANDÉ)
-
-**L'authentification OAuth 2.0 est maintenant disponible !** Les utilisateurs peuvent connecter leur compte Spotify pour accéder à **toutes les playlists** sans restrictions.
-
-**Comment utiliser:**
-1. Connectez-vous à InstantMusic
-2. Allez sur votre profil (`/profile`)
-3. Cliquez sur "Connecter avec Spotify"
-4. ✅ Accès complet à toutes les playlists !
-
-**Configuration développeur:** Voir [docs/SPOTIFY_OAUTH.md](./docs/SPOTIFY_OAUTH.md)
-
-### ⚙️ Client Credentials (Mode Restreint - Fallback Automatique)
-
-L'application bascule automatiquement sur **Client Credentials Flow** pour les utilisateurs sans compte Spotify :
-- ⚠️ ~90% des playlists publiques retournent une erreur 403 (Forbidden)
-- ❌ Pas d'accès aux playlists privées
-- ✅ Messages d'erreur clairs en cas de restriction
-- ✅ Application reste utilisable
-
-### 🧪 Comment tester une playlist ?
-
-**Méthode rapide** - Utilisez le script de test :
-```bash
-# Tester une seule playlist
-docker compose exec backend python test_playlist_access.py <PLAYLIST_ID>
-
-# Tester plusieurs playlists automatiquement
-./test_playlists.sh
-```
-
-**Guides disponibles :**
-- 📘 **[docs/USER_GUIDE_SPOTIFY.md](./docs/USER_GUIDE_SPOTIFY.md)** - Guide utilisateur simple (RECOMMANDÉ)
-- 🔧 **[docs/SPOTIFY_HYBRID_SYSTEM.md](./docs/SPOTIFY_HYBRID_SYSTEM.md)** - Documentation technique complète
-- 🔑 **[docs/SPOTIFY_OAUTH.md](./docs/SPOTIFY_OAUTH.md)** - Configuration OAuth 2.0
-- 🧪 **[docs/SPOTIFY_PLAYLIST_TESTING.md](./docs/SPOTIFY_PLAYLIST_TESTING.md)** - Tests et validation
-- 📋 **[docs/SPOTIFY_API_LIMITATIONS.md](./docs/SPOTIFY_API_LIMITATIONS.md)** - Limitations API Spotify
-
-**Test du système** : Toutes les fonctionnalités du jeu ont été testées et fonctionnent parfaitement avec des données de test.
-
-Voir la documentation du projet pour la suite (configuration, tests, déploiement).
+**Développé avec ❤️ pour les amateurs de musique et de jeux**
