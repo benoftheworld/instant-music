@@ -1,174 +1,200 @@
-# ⚡ Quick Start - Tester InstantMusic MAINTENANT
+# 🚀 Guide de Démarrage Rapide
 
-Vous voulez tester le jeu immédiatement ? Voici comment procéder :
+Guide ultra-rapide pour lancer InstantMusic en moins de 5 minutes.
 
-## 🎯 Étape 1: Lancez l'Application
+## 📋 Prérequis
 
-```bash
-cd /home/benoftheworld/instant-music
-docker compose up -d
-```
+- Docker et Docker Compose installés
+- Git
 
-Les 6 services doivent être démarrés (backend, frontend, db, redis, celery, celery_beat).
+## ⚡ Installation Express (3 étapes)
 
-## 🎵 Étape 2: Trouvez une Playlist Accessible
-
-### Option A - Script Automatique (Recommandé)
-
-Testez plusieurs playlists d'un coup :
+### 1. Cloner et configurer
 
 ```bash
-./test_playlists.sh
+git clone https://github.com/benoftheworld/instant-music.git
+cd instant-music
+cp backend/.env.example backend/.env
 ```
 
-Le script testera automatiquement plusieurs playlists et vous dira lesquelles fonctionnent.
-
-### Option B - Test Manuel
-
-Testez une playlist spécifique :
+### 2. Générer la clé secrète
 
 ```bash
-# Format 1: Avec l'ID de playlist
-docker compose exec backend python test_playlist_access.py 37i9dQZF1DX4UtSsGT1Sbe
-
-# Format 2: Avec l'URL complète
-docker compose exec backend python test_playlist_access.py "https://open.spotify.com/playlist/37i9dQZF1DX4UtSsGT1Sbe"
+python3 -c "import secrets; print('SECRET_KEY=' + secrets.token_urlsafe(50))"
 ```
+Copiez le résultat dans `backend/.env`.
 
-**Résultat du script :**
-- ✅ Si accessible → Il affiche les morceaux et confirme que c'est utilisable
-- ❌ Si bloqué (403/404) → Il vous indique d'en essayer une autre
-
-## 🎮 Étape 3: Lancez une Partie de Test
-
-Une fois que vous avez trouvé une playlist accessible :
-
-### Dans le Backend (Terminal Docker)
+### 3. Démarrer l'application
 
 ```bash
-docker compose exec backend python manage.py shell
+# Déployer en mode développement (build, up, migrations, static)
+./_devops/script/deploy.sh development
+
+# Pour déployer en production (si configuré) :
+# ./_devops/script/deploy.sh production
 ```
 
-Puis dans le shell Python :
+✅ **C'est tout !** Accédez à http://localhost:3000
 
-```python
-from apps.games.models import Game, Player
-from apps.games.services import game_service
+## 🎮 Premier Test
 
-# 1. Créer une partie
-game = Game.objects.create(
-    room_code="TEST01",
-    host_username="player1",
-    playlist_id="VOTRE_ID_ICI",  # ← Remplacez par l'ID qui fonctionne
-    status="waiting"
-)
+1. Créez un compte utilisateur sur http://localhost:3000
+2. Cliquez sur "Créer une partie"
+3. Recherchez une playlist (ex: "Top 50")
+4. Sélectionnez une playlist Deezer
+5. Copiez le code de la salle
+6. Lancez la partie !
 
-# 2. Ajouter des joueurs
-player1 = Player.objects.create(
-    game=game,
-    username="player1",
-    is_connected=True
-)
-player2 = Player.objects.create(
-    game=game,
-    username="player2",
-    is_connected=True
-)
+## 🔍 Vérification
 
-# 3. Démarrer la partie
-rounds_created = game_service.start_game("TEST01")
-print(f"✅ {rounds_created} rounds créés!")
+### Services actifs
 
-# 4. Vérifier le premier round
-current_round = game_service.get_current_round("TEST01")
-print(f"Question: {current_round.question['question']}")
-print(f"Options: {current_round.question['options']}")
+Le script `deploy.sh` affiche l'état des services à la fin du déploiement. Pour vérifier manuellement :
 
-# 5. Soumettre une réponse
-result = game_service.submit_answer(
-    room_code="TEST01",
-    player_username="player1",
-    round_number=1,
-    selected_option="A",  # Choisissez A, B, C ou D
-    response_time=5.0     # Temps de réponse en secondes
-)
-print(f"Score obtenu: {result['points_earned']} points")
-print(f"Réponse correcte: {result['is_correct']}")
-```
-
-### Dans le Frontend (Navigateur)
-
-1. **Ouvrez** : http://localhost:5173
-
-2. **Connectez-vous** ou créez un compte
-
-3. **Créez une partie** :
-   - Entrez l'ID de playlist qui fonctionne
-   - Créez la room
-
-4. **Invitez des joueurs** :
-   - Partagez le code de la room
-   - Ou ouvrez un autre navigateur en mode incognito
-
-5. **Démarrez la partie** :
-   - Le host clique sur "Démarrer"
-   - Le jeu commence ! 🎉
-
-## 🐛 Problèmes Courants
-
-### "Playlist not accessible" ou erreur 403
-
-**Cause** : La playlist est bloquée par Spotify avec Client Credentials Flow.
-
-**Solution** :
-1. Testez d'autres playlists avec le script
-2. Créez votre propre playlist publique
-3. Voir [SELECTING_PLAYLISTS.md](./SELECTING_PLAYLISTS.md) pour tous les détails
-
-### "Not enough tracks" ou erreur 4 morceaux
-
-**Cause** : La playlist n'a pas assez de morceaux accessibles.
-
-**Solution** :
-- Choisissez une playlist avec au moins 10 morceaux
-- Vérifiez avec le script de test
-
-### Services Docker pas démarrés
-
-**Commande** :
 ```bash
-docker compose ps  # Vérifier l'état
-docker compose up -d  # Démarrer si nécessaire
-docker compose logs backend  # Voir les logs en cas d'erreur
+docker compose -f _devops/docker/docker-compose.yml ps
 ```
 
-### "New Spotify token cached"
+Tous les services doivent être "Up" :
+- frontend (port 3000)
+- backend (port 8000)
+- db (PostgreSQL)
+- redis
+- celery
+- celery-beat
 
-**C'est normal !** Le système récupère automatiquement un nouveau token d'accès Spotify. Cela ne prend que 1-2 secondes.
+### Logs en temps réel
+
+```bash
+# Tous les services
+docker compose -f _devops/docker/docker-compose.yml logs -f
+
+# Un service spécifique
+docker compose -f _devops/docker/docker-compose.yml logs -f backend
+```
+
+### Tester l'API
+
+```bash
+# Health check
+curl http://localhost:8000/api/health/
+
+# Recherche de playlists (sans authentification)
+curl http://localhost:8000/api/playlists/playlists/search/?q=rock
+```
+
+## ⚙️ Configuration Optionnelle
+
+### Google OAuth (Connexion avec Google)
+
+Si vous voulez activer la connexion via Google :
+
+1. Créez un projet sur https://console.cloud.google.com
+2. Configurez OAuth 2.0 (voir README principal)
+3. Ajoutez dans `backend/.env` :
+   ```
+   GOOGLE_OAUTH_CLIENT_ID=votre_id
+   GOOGLE_OAUTH_CLIENT_SECRET=votre_secret
+   ```
+4. Redémarrez : `docker compose -f _devops/docker/docker-compose.yml restart backend`
+
+## 🛠️ Commandes Essentielles
+
+```bash
+# Arrêter l'application
+docker compose -f _devops/docker/docker-compose.yml down
+
+# Redémarrer un service
+docker compose -f _devops/docker/docker-compose.yml restart backend
+
+# Voir les logs
+docker compose -f _devops/docker/docker-compose.yml logs -f backend
+
+# Shell Django
+docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py shell
+
+# Créer des données de test
+docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py loaddata fixtures/games.json
+```
+
+## ❗ Problèmes Courants
+
+### Les migrations ne s'appliquent pas
+
+La manière la plus simple est de relancer le déploiement (le script exécute les migrations) :
+
+```bash
+./_devops/script/deploy.sh development
+```
+
+Si vous devez forcer la réinitialisation des volumes puis redéployer (opération destructive) :
+
+```bash
+docker compose -f _devops/docker/docker-compose.yml down -v
+./_devops/script/deploy.sh development
+```
+
+### Le frontend ne démarre pas
+
+Relancer le déploiement (rebuild + up) règle souvent le problème :
+
+```bash
+./_devops/script/deploy.sh development
+```
+
+Pour voir les logs du frontend :
+
+```bash
+docker compose -f _devops/docker/docker-compose.yml logs -f frontend
+```
+
+### Problème de connexion à la base de données
+
+Attendez que PostgreSQL soit complètement démarré :
+```bash
+docker compose -f _devops/docker/docker-compose.yml logs db | grep "ready to accept connections"
+```
+
+### Port déjà utilisé
+
+Vérifiez qu'aucun service n'utilise les ports 3000, 8000, 5432, 6379 :
+```bash
+lsof -i :3000
+lsof -i :8000
+```
+
+## 🔄 Réinitialisation Complète
+
+Pour repartir de zéro :
+
+```bash
+# Tout supprimer (services + volumes)
+docker compose -f _devops/docker/docker-compose.yml down -v
+
+# Supprimer les images
+docker compose -f _devops/docker/docker-compose.yml down --rmi all
+
+# Redémarrer proprement
+./_devops/script/deploy.sh development
+docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py migrate
+docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py createsuperuser
+```
 
 ## 📚 Documentation Complète
 
-- **[SELECTING_PLAYLISTS.md](./SELECTING_PLAYLISTS.md)** - Guide détaillé pour choisir des playlists
-- **[SPOTIFY_PLAYLISTS.md](./SPOTIFY_PLAYLISTS.md)** - Limitations et solutions techniques
-- **[GAMEPLAY_SYSTEM.md](./GAMEPLAY_SYSTEM.md)** - Documentation complète du système de jeu
-- **[SPRINT_SUMMARY.md](./SPRINT_SUMMARY.md)** - Récapitulatif de tous les sprints
+Pour aller plus loin :
+- **[README.md](../README.md)** - Documentation principale
+- **[GAMEPLAY_SYSTEM.md](GAMEPLAY_SYSTEM.md)** - Système de jeu
+- **[PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md)** - Déploiement production
 
-## 🎉 Succès !
+## 🎯 Prochaines Étapes
 
-Si vous arrivez à démarrer une partie et voir des questions s'afficher, **félicitations** ! Le système fonctionne parfaitement.
-
-Le seul challenge est de trouver des playlists accessibles avec le Client Credentials Flow de Spotify. C'est une limitation de l'API, pas de votre code.
-
-## 💡 Astuce Pro
-
-**Créez votre propre "playlist de test"** :
-1. Créez une playlist sur Spotify avec 15-20 morceaux variés
-2. Rendez-la publique
-3. Testez-la avec le script
-4. Si elle fonctionne, gardez son ID pour tous vos tests !
-
-Même si elle ne fonctionne pas à cause des restrictions Spotify, tous les tests avec des données mockées prouvent que le système de jeu fonctionne à 100%.
+1. ✅ Application lancée
+2. 📝 Créer un compte admin
+3. 👤 Créer des utilisateurs test
+4. 🎮 Tester une partie complète
+5. 🚀 Personnaliser et déployer !
 
 ---
 
-**Prêt à jouer ?** Lancez `./test_playlists.sh` et trouvez votre première playlist ! 🚀
+**Besoin d'aide ?** Consultez les logs avec `docker compose -f _devops/docker/docker-compose.yml logs -f`
