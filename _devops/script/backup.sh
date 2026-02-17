@@ -15,7 +15,7 @@ mkdir -p $BACKUP_DIR
 echo "📦 Création du backup de la base de données..."
 
 # Backup de la base de données
-docker compose -f docker-compose.prod.yml exec -T db pg_dump -U instantmusic_user instantmusic_prod > $BACKUP_FILE
+docker compose -f _devops/docker/docker-compose.prod.yml exec -T db pg_dump -U instantmusic_user instantmusic_prod > $BACKUP_FILE
 
 # Compresser le backup
 gzip $BACKUP_FILE
