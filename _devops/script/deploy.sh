@@ -7,6 +7,7 @@ set -e
 
 ENV=${1:-production}
 COMPOSE_FILE="_devops/docker/docker-compose.yml"
+COMPOSE_EXTRA=""
 
 if [ "$ENV" = "production" ]; then
     COMPOSE_FILE="_devops/docker/docker-compose.prod.yml"
@@ -29,6 +30,10 @@ if [ "$ENV" = "production" ]; then
         echo "👉 Copiez .env.prod.example vers .env.prod puis placez-le à la racine du repo ou dans _devops/docker/"
         exit 1
     fi
+
+    # Pass .env.prod as the env-file so Docker Compose can substitute ${VITE_API_URL}
+    # and ${VITE_WS_URL} as build args for the frontend image
+    COMPOSE_EXTRA="--env-file $ENV_FILE_DOCKER"
 else
     echo "🔧 Déploiement en DÉVELOPPEMENT"
 fi
@@ -38,22 +43,22 @@ CURRENT_BRANCH=$(git branch --show-current)
 git pull origin $CURRENT_BRANCH
 
 echo "🏗️  Build des images Docker..."
-docker compose -f $COMPOSE_FILE build --no-cache
+docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA build --no-cache
 
 echo "🛑 Arrêt des anciens containers..."
-docker compose -f $COMPOSE_FILE down
+docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA down
 
 echo "🚀 Démarrage des nouveaux containers..."
-docker compose -f $COMPOSE_FILE up -d
+docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA up -d
 
 echo "⏳ Attente du démarrage des services..."
 sleep 10
 
 echo "🗄️  Application des migrations..."
-docker compose -f $COMPOSE_FILE exec -T backend python manage.py migrate --noinput
+docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA exec -T backend python manage.py migrate --noinput
 
 echo "📦 Collecte des fichiers statiques..."
-docker compose -f $COMPOSE_FILE exec -T backend python manage.py collectstatic --noinput
+docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA exec -T backend python manage.py collectstatic --noinput
 
 echo "🧹 Nettoyage des images Docker inutilisées..."
 docker image prune -f
@@ -62,7 +67,7 @@ echo ""
 echo "✅ Déploiement terminé avec succès!"
 echo ""
 echo "📊 Status des containers:"
-docker compose -f $COMPOSE_FILE ps
+docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA ps
 
 echo ""
 echo "📝 Pour voir les logs:"
