@@ -110,26 +110,26 @@ VITE_WS_URL=wss://yourdomain.com/ws
 
 ```bash
 # Build des images Docker
-docker compose -f docker-compose.prod.yml build
+docker compose -f _devops/docker/docker-compose.prod.yml build
 
 # Lancement des containers
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f _devops/docker/docker-compose.prod.yml up -d
 
 # Vérifier que tout fonctionne
-docker compose -f docker-compose.prod.yml ps
+docker compose -f _devops/docker/docker-compose.prod.yml ps
 ```
 
 ### 2.4 Migrations et superuser
 
 ```bash
 # Appliquer les migrations
-docker compose -f docker-compose.prod.yml exec backend python manage.py migrate
+docker compose -f _devops/docker/docker-compose.prod.yml exec backend python manage.py migrate
 
 # Créer un superutilisateur
-docker compose -f docker-compose.prod.yml exec backend python manage.py createsuperuser
+docker compose -f _devops/docker/docker-compose.prod.yml exec backend python manage.py createsuperuser
 
 # Collecter les fichiers statiques
-docker compose -f docker-compose.prod.yml exec backend python manage.py collectstatic --noinput
+docker compose -f _devops/docker/docker-compose.prod.yml exec backend python manage.py collectstatic --noinput
 ```
 
 ---
@@ -155,7 +155,7 @@ sudo chmod 644 nginx/ssl/*.pem
 
 # Renouvellement automatique
 sudo crontab -e
-# Ajouter: 0 0 1 * * certbot renew --quiet && docker compose -f /root/apps/instant-music/docker-compose.prod.yml restart nginx
+# Ajouter: 0 0 1 * * certbot renew --quiet && docker compose -f /root/apps/instant-music/_devops/docker/docker-compose.prod.yml restart nginx
 ```
 
 ### Option B: Cloudflare (Alternative)
@@ -184,7 +184,7 @@ nano nginx/nginx.conf
 Redémarrez Nginx:
 
 ```bash
-docker compose -f docker-compose.prod.yml restart nginx
+docker compose -f _devops/docker/docker-compose.prod.yml restart nginx
 ```
 
 ---
@@ -240,14 +240,14 @@ cd ~/apps/instant-music
 git pull origin main
 
 # Rebuild et redémarrer
-docker compose -f docker-compose.prod.yml build
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f _devops/docker/docker-compose.prod.yml build
+docker compose -f _devops/docker/docker-compose.prod.yml up -d
 
 # Appliquer les migrations si nécessaire
-docker compose -f docker-compose.prod.yml exec backend python manage.py migrate
+docker compose -f _devops/docker/docker-compose.prod.yml exec backend python manage.py migrate
 
 # Collecter les nouveaux fichiers statiques
-docker compose -f docker-compose.prod.yml exec backend python manage.py collectstatic --noinput
+docker compose -f _devops/docker/docker-compose.prod.yml exec backend python manage.py collectstatic --noinput
 ```
 
 ---
@@ -258,24 +258,24 @@ docker compose -f docker-compose.prod.yml exec backend python manage.py collects
 
 ```bash
 # Voir tous les logs
-docker compose -f docker-compose.prod.yml logs -f
+docker compose -f _devops/docker/docker-compose.prod.yml logs -f
 
 # Logs d'un service spécifique
-docker compose -f docker-compose.prod.yml logs -f backend
-docker compose -f docker-compose.prod.yml logs -f nginx
+docker compose -f _devops/docker/docker-compose.prod.yml logs -f backend
+docker compose -f _devops/docker/docker-compose.prod.yml logs -f nginx
 
 # Logs avec limite
-docker compose -f docker-compose.prod.yml logs --tail=100 backend
+docker compose -f _devops/docker/docker-compose.prod.yml logs --tail=100 backend
 ```
 
 ### Backup de la base de données
 
 ```bash
 # Créer un backup
-docker compose -f docker-compose.prod.yml exec db pg_dump -U instantmusic_user instantmusic_prod > backup_$(date +%Y%m%d).sql
+docker compose -f _devops/docker/docker-compose.prod.yml exec db pg_dump -U instantmusic_user instantmusic_prod > backup_$(date +%Y%m%d).sql
 
 # Restaurer un backup
-cat backup_20260216.sql | docker compose -f docker-compose.prod.yml exec -T db psql -U instantmusic_user instantmusic_prod
+cat backup_20260216.sql | docker compose -f _devops/docker/docker-compose.prod.yml exec -T db psql -U instantmusic_user instantmusic_prod
 ```
 
 ### Nettoyage Docker
@@ -353,21 +353,21 @@ celery:
 
 ```bash
 # Vérifier les containers
-docker compose -f docker-compose.prod.yml ps
+docker compose -f _devops/docker/docker-compose.prod.yml ps
 
 # Vérifier les logs
-docker compose -f docker-compose.prod.yml logs nginx
-docker compose -f docker-compose.prod.yml logs backend
+docker compose -f _devops/docker/docker-compose.prod.yml logs nginx
+docker compose -f _devops/docker/docker-compose.prod.yml logs backend
 ```
 
 ### Erreur 502 Bad Gateway
 
 ```bash
 # Le backend n'est probablement pas démarré
-docker compose -f docker-compose.prod.yml restart backend
+docker compose -f _devops/docker/docker-compose.prod.yml restart backend
 
 # Vérifier la santé du backend
-docker compose -f docker-compose.prod.yml exec backend python manage.py check
+docker compose -f _devops/docker/docker-compose.prod.yml exec backend python manage.py check
 ```
 
 ### WebSocket ne fonctionne pas
@@ -375,7 +375,7 @@ docker compose -f docker-compose.prod.yml exec backend python manage.py check
 ```bash
 # Vérifier la configuration Nginx (section /ws/)
 # Vérifier Redis
-docker compose -f docker-compose.prod.yml exec redis redis-cli ping
+docker compose -f _devops/docker/docker-compose.prod.yml exec redis redis-cli ping
 ```
 
 ---
@@ -428,7 +428,7 @@ Une fois déployé:
 ## 📞 Support
 
 Si vous rencontrez des problèmes:
-1. Consultez les logs: `docker compose -f docker-compose.prod.yml logs`
+1. Consultez les logs: `docker compose -f _devops/docker/docker-compose.prod.yml logs`
 2. Vérifiez la documentation Django et React
 3. Testez en développement d'abord
 
