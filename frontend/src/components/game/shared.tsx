@@ -30,6 +30,7 @@ interface Props {
   selectedAnswer: string | null;
   showResults: boolean;
   roundResults: RoundResults | null;
+  seekOffsetMs?: number; // milliseconds to subtract from seek time (e.g. loading screen duration)
 }
 
 /* ───────────────────── Shared audio hook ───────────────────── */
@@ -37,6 +38,7 @@ export function useAudioPlayer(
   round: Round,
   showResults: boolean,
   maxAudioDuration?: number,
+  seekOffsetMs: number = 0,
 ) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -46,8 +48,8 @@ export function useAudioPlayer(
 
   const getSeekTime = useCallback(() => {
     if (!round.started_at) return 0;
-    return Math.max(0, (Date.now() - new Date(round.started_at).getTime()) / 1000);
-  }, [round.started_at]);
+    return Math.max(0, (Date.now() - new Date(round.started_at).getTime() - seekOffsetMs) / 1000);
+  }, [round.started_at, seekOffsetMs]);
 
   useEffect(() => {
     setIsPlaying(false);

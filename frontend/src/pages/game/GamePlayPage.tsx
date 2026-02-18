@@ -118,8 +118,8 @@ export default function GamePlayPage() {
       const startTime = new Date(currentRound.started_at).getTime();
       const now = Date.now();
       
-      // Compensate for the 10 seconds loading screen
-      const loadingDuration = loadingStartTimeRef.current > 0 ? 10000 : 0; // 10 seconds in ms
+      // Compensate for the 5 seconds loading screen
+      const loadingDuration = loadingStartTimeRef.current > 0 ? 5000 : 0; // 5 seconds in ms
       const adjustedStartTime = startTime + loadingDuration;
       
       const elapsed = Math.floor((now - adjustedStartTime) / 1000);
@@ -226,7 +226,7 @@ export default function GamePlayPage() {
     
     const timer = setTimeout(() => {
       advanceToNextRound();
-    }, 12000); // Wait 12 seconds after results (time to view results + loading screen)
+    }, 5000); // Wait 5 seconds after results before starting next round
     
     return () => clearTimeout(timer);
   }, [showResults, user, game, advanceToNextRound]);
@@ -279,6 +279,7 @@ export default function GamePlayPage() {
       selectedAnswer,
       showResults,
       roundResults,
+      seekOffsetMs: 5000, // Offset for the 5-second loading screen
     };
 
     const mode = game?.mode;
@@ -339,7 +340,7 @@ export default function GamePlayPage() {
       <RoundLoadingScreen
         roundNumber={currentRound.round_number}
         onComplete={handleLoadingComplete}
-        duration={10}
+        duration={5}
       />
     );
   }

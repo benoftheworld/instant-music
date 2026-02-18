@@ -15,8 +15,9 @@ const YearQuestion = ({
   selectedAnswer,
   showResults,
   roundResults,
+  seekOffsetMs = 0,
 }: Props) => {
-  const audio = useAudioPlayer(round, showResults);
+  const audio = useAudioPlayer(round, showResults, undefined, seekOffsetMs);
   const [yearInput, setYearInput] = useState('');
 
   const correctYear = parseInt(roundResults?.correct_answer || round.extra_data?.year || '0');

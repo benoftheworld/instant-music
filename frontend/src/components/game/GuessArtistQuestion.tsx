@@ -13,8 +13,9 @@ const GuessArtistQuestion = ({
   selectedAnswer,
   showResults,
   roundResults,
+  seekOffsetMs = 0,
 }: Props) => {
-  const audio = useAudioPlayer(round, showResults);
+  const audio = useAudioPlayer(round, showResults, undefined, seekOffsetMs);
 
   return (
     <div className="bg-white rounded-lg shadow-xl p-8">

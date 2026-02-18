@@ -11,7 +11,6 @@ export default function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="text-2xl font-bold hover:text-primary-400 transition-colors flex items-center">
-            <img src="/images/logo.jpg" alt="InstantMusic Logo" className="h-10 inline-block mr-2" />
             <span className="text-primary-600">Instant</span>Music
           </Link>
 

@@ -14,9 +14,10 @@ const IntroQuestion = ({
   selectedAnswer,
   showResults,
   roundResults,
+  seekOffsetMs = 0,
 }: Props) => {
   const audioDuration = round.extra_data?.audio_duration || 5;
-  const audio = useAudioPlayer(round, showResults, audioDuration);
+  const audio = useAudioPlayer(round, showResults, audioDuration, seekOffsetMs);
 
   return (
     <div className="bg-white rounded-lg shadow-xl p-8">
