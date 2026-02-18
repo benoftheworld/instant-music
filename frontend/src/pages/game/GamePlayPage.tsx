@@ -140,12 +140,16 @@ export default function GamePlayPage() {
       
       if (newRemaining <= 0) {
         clearInterval(interval);
-        
-        // If timer reaches 0 and user is host, trigger next round after delay
+
+        // Show results for everyone immediately when time runs out
+        setShowResults(true);
+        setRoundPhase('results');
+
+        // Host advances to next round after 30 seconds
         if (user && game && game.host === user.id) {
           timerTimeout = setTimeout(() => {
             advanceToNextRound();
-          }, 2000);
+          }, 30000);
         }
       }
     }, 100);
@@ -226,7 +230,7 @@ export default function GamePlayPage() {
     
     const timer = setTimeout(() => {
       advanceToNextRound();
-    }, 5000); // Wait 5 seconds after results before starting next round
+    }, 30000); // Show results for 30 seconds before starting next round
     
     return () => clearTimeout(timer);
   }, [showResults, user, game, advanceToNextRound]);
