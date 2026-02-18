@@ -39,6 +39,9 @@ class GameSerializer(serializers.ModelSerializer):
             'num_rounds',
             'playlist_id',
             'is_online',
+            'answer_mode',
+            'round_duration',
+            'time_between_rounds',
             'players',
             'player_count',
             'created_at',
@@ -65,8 +68,28 @@ class CreateGameSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Game
-        fields = ['name', 'mode', 'modes', 'max_players', 'num_rounds', 'playlist_id', 'is_online']
+        fields = [
+            'name', 'mode', 'modes', 'max_players', 'num_rounds',
+            'playlist_id', 'is_online', 'answer_mode',
+            'round_duration', 'time_between_rounds',
+        ]
         
+    def validate_round_duration(self, value):
+        """Validate round duration is within bounds."""
+        if value < 10 or value > 60:
+            raise serializers.ValidationError(
+                'La durée d\'un round doit être entre 10 et 60 secondes.'
+            )
+        return value
+    
+    def validate_time_between_rounds(self, value):
+        """Validate time between rounds is within bounds."""
+        if value < 3 or value > 30:
+            raise serializers.ValidationError(
+                'Le temps entre les rounds doit être entre 3 et 30 secondes.'
+            )
+        return value
+    
     def validate(self, data):
         """Ensure modes is set to empty list if not provided."""
         if data.get('modes') is None:

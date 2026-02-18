@@ -17,6 +17,12 @@ class GameMode(models.TextChoices):
     LYRICS = 'lyrics', _('Lyrics')
 
 
+class AnswerMode(models.TextChoices):
+    """Answer mode choices."""
+    MCQ = 'mcq', _('QCM (4 réponses)')
+    TEXT = 'text', _('Saisie libre')
+
+
 class GameStatus(models.TextChoices):
     """Game status choices."""
     WAITING = 'waiting', _('En attente')
@@ -75,6 +81,23 @@ class Game(models.Model):
         blank=True
     )
     is_online = models.BooleanField(_('en ligne'), default=True)
+    answer_mode = models.CharField(
+        _('mode de réponse'),
+        max_length=10,
+        choices=AnswerMode.choices,
+        default=AnswerMode.MCQ,
+        help_text=_('QCM (4 réponses) ou saisie libre')
+    )
+    round_duration = models.IntegerField(
+        _('durée d\'un round (secondes)'),
+        default=30,
+        help_text=_('Durée en secondes de chaque round (10-60)')
+    )
+    time_between_rounds = models.IntegerField(
+        _('temps entre les rounds (secondes)'),
+        default=10,
+        help_text=_('Temps de pause entre chaque round (3-30)')
+    )
     
     created_at = models.DateTimeField(_('créé le'), auto_now_add=True)
     started_at = models.DateTimeField(_('démarré le'), null=True, blank=True)

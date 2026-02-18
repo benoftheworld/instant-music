@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { soundEffects } from '../../services/soundEffects';
 
 interface RoundLoadingScreenProps {
   roundNumber: number;
@@ -23,11 +24,20 @@ export default function RoundLoadingScreen({
   useEffect(() => {
     const startTime = Date.now();
     const endTime = startTime + (duration * 1000);
+    let lastSecond = duration;
 
     const interval = setInterval(() => {
       const now = Date.now();
       const remaining = Math.max(0, Math.ceil((endTime - now) / 1000));
       const progressPercent = Math.min(100, ((duration - remaining) / duration) * 100);
+      
+      // Play countdown sounds
+      if (remaining !== lastSecond && remaining > 0) {
+        if (remaining <= 3) {
+          soundEffects.countdownBeep();
+        }
+        lastSecond = remaining;
+      }
       
       setTimeRemaining(remaining);
       setProgress(progressPercent);

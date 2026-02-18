@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { gameService } from '../../services/gameService';
+import { soundEffects } from '../../services/soundEffects';
 import { Game, YouTubePlaylist } from '../../types';
 import PlaylistSelector from '../../components/playlist/PlaylistSelector';
 import { getMediaUrl } from '../../services/api';
@@ -27,6 +28,7 @@ export default function GameLobbyPage() {
       console.log('WebSocket message received:', data);
       
       if (data.type === 'player_joined') {
+        soundEffects.playerJoined();
         // Update game data with new player info
         if (data.game_data) {
           setGame(data.game_data);
@@ -37,6 +39,7 @@ export default function GameLobbyPage() {
       } else if (data.type === 'player_leave') {
         loadGame();
       } else if (data.type === 'broadcast_game_start' || data.type === 'game_started') {
+        soundEffects.gameStarted();
         navigate(`/game/play/${roomCode}`);
       }
     });
@@ -256,6 +259,13 @@ export default function GameLobbyPage() {
                 Mode: <span className="font-semibold">{game.mode}</span>
                 {' • '}
                 <span className="font-semibold">{game.num_rounds} rounds</span>
+                {' • '}
+                <span className="font-semibold">{game.round_duration || 30}s/round</span>
+                {game.answer_mode === 'text' && (
+                  <span className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-medium">
+                    ⌨️ Saisie libre
+                  </span>
+                )}
               </p>
             </div>
             <div className="text-right">

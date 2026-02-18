@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { gameService } from '../../services/gameService';
-import { GameMode, YouTubePlaylist, CreateGameData } from '../../types';
+import { GameMode, AnswerMode, YouTubePlaylist, CreateGameData } from '../../types';
 import PlaylistSelector from '../../components/playlist/PlaylistSelector';
 
 const gameModes: { value: GameMode; label: string; description: string; icon: string; disabled?: boolean }[] = [
@@ -53,6 +53,9 @@ export default function CreateGamePage() {
   const [maxPlayers, setMaxPlayers] = useState(8);
   const [numRounds, setNumRounds] = useState(10);
   const [isOnline, setIsOnline] = useState(true);
+  const [answerMode, setAnswerMode] = useState<AnswerMode>('mcq');
+  const [roundDuration, setRoundDuration] = useState(30);
+  const [timeBetweenRounds, setTimeBetweenRounds] = useState(10);
   const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
   const [showPlaylistSelector, setShowPlaylistSelector] = useState(false);
 
@@ -91,7 +94,10 @@ export default function CreateGamePage() {
         max_players: maxPlayers,
         num_rounds: numRounds,
         playlist_id: selectedPlaylist?.youtube_id,
-        is_online: isOnline
+        is_online: isOnline,
+        answer_mode: answerMode,
+        round_duration: roundDuration,
+        time_between_rounds: timeBetweenRounds,
       };
 
       const game = await gameService.createGame(gameData);
@@ -203,6 +209,44 @@ export default function CreateGamePage() {
                 />
               </div>
 
+              {/* Answer Mode */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mode de réponse
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setAnswerMode('mcq')}
+                    className={`flex-1 p-4 rounded-lg border-2 text-center transition-all ${
+                      answerMode === 'mcq'
+                        ? 'border-primary-600 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
+                  >
+                    <div className="text-2xl mb-1">🔘</div>
+                    <div className="font-semibold text-sm">QCM</div>
+                    <p className="text-xs text-gray-500 mt-1">4 réponses proposées</p>
+                  </button>
+                  <button
+                    onClick={() => setAnswerMode('text')}
+                    className={`flex-1 p-4 rounded-lg border-2 text-center transition-all ${
+                      answerMode === 'text'
+                        ? 'border-primary-600 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
+                  >
+                    <div className="text-2xl mb-1">⌨️</div>
+                    <div className="font-semibold text-sm">Saisie libre</div>
+                    <p className="text-xs text-gray-500 mt-1">Écrire la réponse (plus difficile)</p>
+                  </button>
+                </div>
+                {answerMode === 'text' && (
+                  <p className="text-sm text-amber-600 mt-2">
+                    ⚠️ En mode saisie libre, les réponses sont comparées avec tolérance (accents, articles, fautes mineures).
+                  </p>
+                )}
+              </div>
+
               {/* Number of Rounds */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -221,8 +265,52 @@ export default function CreateGamePage() {
                     {numRounds}
                   </span>
                 </div>
+              </div>
+
+              {/* Round Duration */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Durée d'un round
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min="10"
+                    max="60"
+                    step="5"
+                    value={roundDuration}
+                    onChange={(e) => setRoundDuration(parseInt(e.target.value))}
+                    className="w-48"
+                  />
+                  <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
+                    {roundDuration}s
+                  </span>
+                </div>
                 <p className="text-sm text-gray-500 mt-1">
-                  {selectedModes.includes('intro') ? 'Les rounds Intro durent 5 secondes, les autres 30 secondes' : 'Chaque round dure 30 secondes'}
+                  Temps pour répondre à chaque question
+                </p>
+              </div>
+
+              {/* Time Between Rounds */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Temps entre les rounds
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min="3"
+                    max="30"
+                    value={timeBetweenRounds}
+                    onChange={(e) => setTimeBetweenRounds(parseInt(e.target.value))}
+                    className="w-48"
+                  />
+                  <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
+                    {timeBetweenRounds}s
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 mt-1">
+                  Pause entre chaque round (écran de chargement / résultats)
                 </p>
               </div>
 
@@ -260,7 +348,7 @@ export default function CreateGamePage() {
           {/* Playlist Selection */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Playlist YouTube</h2>
+              <h2 className="text-xl font-bold">Playlist</h2>
               <button
                 onClick={() => setShowPlaylistSelector(!showPlaylistSelector)}
                 className="btn-secondary text-sm"

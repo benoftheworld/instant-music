@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { getGlobalMusicVolume } from './VolumeControl';
 
 interface Round {
   id: string;
@@ -23,11 +24,22 @@ interface Player {
   avatar?: string;
 }
 
+/** Per-player score data for the current round (from backend round_ended event) */
+interface PlayerRoundScore {
+  points_earned: number;
+  is_correct: boolean;
+  response_time: number;
+}
+
 interface RoundResultsScreenProps {
   round: Round;
   players: Player[];
   correctAnswer: string;
   myPointsEarned: number;
+  /** The answer the current player submitted (null if no answer) */
+  myAnswer?: string | null;
+  /** Per-player round scores keyed by username */
+  playerScores?: Record<string, PlayerRoundScore>;
   onContinue?: () => void;
 }
 
@@ -54,7 +66,7 @@ function useResultsAudio(previewUrl?: string) {
 
     const audio = new Audio();
     audio.preload = 'auto';
-    audio.volume = 1.0;
+    audio.volume = getGlobalMusicVolume();
     audio.src = previewUrl;
     audioRef.current = audio;
 
@@ -92,6 +104,15 @@ function useResultsAudio(previewUrl?: string) {
     }
   };
 
+  // Live volume sync
+  useEffect(() => {
+    const onVolumeChange = () => {
+      if (audioRef.current) audioRef.current.volume = getGlobalMusicVolume();
+    };
+    window.addEventListener('music-volume-change', onVolumeChange);
+    return () => window.removeEventListener('music-volume-change', onVolumeChange);
+  }, []);
+
   return { isPlaying, needsPlay, handlePlay };
 }
 
@@ -100,6 +121,8 @@ export default function RoundResultsScreen({
   players,
   correctAnswer,
   myPointsEarned,
+  myAnswer,
+  playerScores,
   onContinue,
 }: RoundResultsScreenProps) {
   const audio = useResultsAudio(round.preview_url);
@@ -197,6 +220,16 @@ export default function RoundResultsScreen({
                   <p className="text-sm text-gray-500 font-medium">Bonne réponse</p>
                   <p className="text-lg font-bold text-green-600">{correctAnswer}</p>
                 </div>
+                {myAnswer !== undefined && myAnswer !== null && (
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Votre réponse</p>
+                    <p className={`text-lg font-bold ${
+                      myAnswer === correctAnswer ? 'text-green-600' : 'text-red-500'
+                    }`}>
+                      {myAnswer} {myAnswer === correctAnswer ? '✓' : '✗'}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -258,6 +291,24 @@ export default function RoundResultsScreen({
                       >
                         {player.score} points
                       </p>
+                      {/* Per-round details */}
+                      {playerScores?.[player.username] && (
+                        <div className={`flex items-center gap-2 mt-0.5 text-xs ${
+                          index < 3 ? 'text-white/70' : 'text-gray-400'
+                        }`}>
+                          <span className={playerScores[player.username].is_correct
+                            ? (index < 3 ? 'text-green-200' : 'text-green-500')
+                            : (index < 3 ? 'text-red-200' : 'text-red-400')
+                          }>
+                            {playerScores[player.username].is_correct ? '✓' : '✗'}
+                            {' '}+{playerScores[player.username].points_earned} pts
+                          </span>
+                          <span>•</span>
+                          <span>
+                            ⏱ {playerScores[player.username].response_time.toFixed(1)}s
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Medal for top 3 */}

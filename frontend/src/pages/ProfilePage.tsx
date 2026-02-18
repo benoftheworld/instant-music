@@ -4,6 +4,7 @@ import { api, getMediaUrl } from '@/services/api';
 import { authService } from '@/services/authService';
 import { achievementService } from '@/services/achievementService';
 import { statsService } from '@/services/achievementService';
+import VolumeControl from '@/components/game/VolumeControl';
 import type { Achievement, UserDetailedStats } from '@/types';
 
 interface PasswordData {
@@ -314,6 +315,9 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+
+        {/* Sound Settings */}
+        <VolumeControl variant="card" />
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Profile Information Card */}

@@ -9,38 +9,102 @@ from typing import List, Dict, Optional, Tuple
 from django.utils import timezone
 from django.db import transaction
 
-from .models import Game, GamePlayer, GameRound, GameAnswer, GameStatus, GameMode
+from .models import Game, GamePlayer, GameRound, GameAnswer, GameStatus, GameMode, AnswerMode
 from apps.playlists.deezer_service import deezer_service, DeezerAPIError
 from apps.achievements.services import achievement_service
 from .lyrics_service import get_lyrics, create_lyrics_question
 
+
+def normalize_text(text: str) -> str:
+    """Normalize text for fuzzy comparison in text answer mode."""
+    import unicodedata
+    text = text.lower().strip()
+    # Remove accents
+    text = ''.join(
+        c for c in unicodedata.normalize('NFD', text)
+        if unicodedata.category(c) != 'Mn'
+    )
+    # Remove common prefixes/articles
+    for prefix in ('the ', 'le ', 'la ', 'les ', 'l\'', 'un ', 'une ', 'des '):
+        if text.startswith(prefix):
+            text = text[len(prefix):]
+    # Remove punctuation
+    text = re.sub(r'[^a-z0-9\s]', '', text)
+    # Collapse whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+
+def fuzzy_match(given: str, correct: str, threshold: float = 0.8) -> Tuple[bool, float]:
+    """Compare two strings with fuzzy matching for text answer mode.
+    
+    Returns (is_match, similarity_factor) where similarity_factor is 0.0-1.0.
+    """
+    g = normalize_text(given)
+    c = normalize_text(correct)
+    
+    if g == c:
+        return True, 1.0
+    
+    # Check if one contains the other
+    if g in c or c in g:
+        ratio = min(len(g), len(c)) / max(len(g), len(c)) if max(len(g), len(c)) > 0 else 0
+        if ratio >= threshold:
+            return True, ratio
+    
+    # Levenshtein-like similarity
+    if not g or not c:
+        return False, 0.0
+    
+    max_len = max(len(g), len(c))
+    # Simple character-based similarity
+    common = sum(1 for a, b in zip(g, c) if a == b)
+    similarity = common / max_len
+    
+    # Also try with edit distance approximation
+    if max_len <= 30:
+        # DP edit distance for short strings
+        dp = list(range(len(c) + 1))
+        for i in range(1, len(g) + 1):
+            prev = dp[0]
+            dp[0] = i
+            for j in range(1, len(c) + 1):
+                temp = dp[j]
+                if g[i-1] == c[j-1]:
+                    dp[j] = prev
+                else:
+                    dp[j] = 1 + min(prev, dp[j], dp[j-1])
+                prev = temp
+        edit_dist = dp[len(c)]
+        edit_similarity = 1.0 - (edit_dist / max_len)
+        similarity = max(similarity, edit_similarity)
+    
+    if similarity >= threshold:
+        return True, similarity
+    
+    return False, similarity
+
 logger = logging.getLogger(__name__)
 
 
-# ─── Mode → default duration & question_type mapping ─────────────────────────
+# ─── Mode → default question_type mapping ─────────────────────────────────────
 MODE_CONFIG = {
     GameMode.QUIZ_4_ANSWERS: {
-        'duration': 30,
         'question_type': 'guess_title',
     },
     GameMode.BLIND_TEST_INVERSE: {
-        'duration': 30,
         'question_type': 'blind_inverse',
     },
     GameMode.GUESS_YEAR: {
-        'duration': 30,
         'question_type': 'guess_year',
     },
     GameMode.GUESS_ARTIST: {
-        'duration': 30,
         'question_type': 'guess_artist',
     },
     GameMode.INTRO: {
-        'duration': 30,
         'question_type': 'intro',
     },
     GameMode.LYRICS: {
-        'duration': 30,
         'question_type': 'lyrics',
     },
 }
@@ -400,7 +464,6 @@ class GameService:
                 # Add mode info to each question
                 for q in questions:
                     q['_mode'] = mode
-                    q['_duration'] = config['duration']
                 
                 all_questions.extend(questions)
             
@@ -421,12 +484,15 @@ class GameService:
             
             for q in questions:
                 q['_mode'] = mode
-                q['_duration'] = config['duration']
             
             all_questions = questions
 
         if not all_questions:
             raise ValueError("Failed to generate questions from playlist")
+
+        # Use game-level round_duration (customizable, default 30)
+        round_duration = game.round_duration or 30
+        is_text_mode = game.answer_mode == AnswerMode.TEXT
 
         rounds = []
         for i, q in enumerate(all_questions[:num_rounds], start=1):
@@ -436,6 +502,11 @@ class GameService:
                 extra_data['album_image'] = q['album_image']
             # Store the mode used for this round
             extra_data['round_mode'] = q.get('_mode', game.mode)
+            # Store answer mode
+            extra_data['answer_mode'] = game.answer_mode
+            
+            # In text mode, clear options so frontend shows text input
+            options = [] if is_text_mode else q['options']
             
             round_obj = GameRound.objects.create(
                 game=game,
@@ -444,12 +515,12 @@ class GameService:
                 track_name=q['track_name'],
                 artist_name=q['artist_name'],
                 correct_answer=q['correct_answer'],
-                options=q['options'],
+                options=options,
                 preview_url=q.get('preview_url', ''),
                 question_type=q.get('question_type', 'guess_title'),
                 question_text=q.get('question_text', ''),
                 extra_data=extra_data,
-                duration=q.get('_duration', 30),
+                duration=round_duration,
             )
             rounds.append(round_obj)
 
@@ -487,7 +558,8 @@ class GameService:
         Check answer and return (is_correct, accuracy_factor).
 
         accuracy_factor: 1.0 = exact, 0.6 = ±1 year, 0.3 = ±2 years, 0.0 = wrong
-        For non-year modes: 1.0 or 0.0.
+        For non-year modes in MCQ: exact match 1.0 or 0.0.
+        For text mode: fuzzy matching with similarity factor.
         """
         if game_mode == GameMode.GUESS_YEAR:
             try:
@@ -506,8 +578,14 @@ class GameService:
             else:
                 return False, 0.0
         else:
-            is_correct = answer == correct_answer
-            return is_correct, 1.0 if is_correct else 0.0
+            # Check if text answer mode (fuzzy matching)
+            answer_mode = (extra_data or {}).get('answer_mode', 'mcq')
+            if answer_mode == AnswerMode.TEXT:
+                is_match, similarity = fuzzy_match(answer, correct_answer, threshold=0.75)
+                return is_match, similarity if is_match else 0.0
+            else:
+                is_correct = answer == correct_answer
+                return is_correct, 1.0 if is_correct else 0.0
 
     def calculate_score(self, accuracy_factor: float, response_time: float, max_time: int = 30) -> int:
         """Calculate base points (Option C — Linear + Rank).

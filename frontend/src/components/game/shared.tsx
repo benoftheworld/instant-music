@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { soundEffects } from '../../services/soundEffects';
+import { getGlobalMusicVolume } from './VolumeControl';
 
 /* ───────────────────── Types ───────────────────── */
 interface Round {
@@ -74,7 +76,7 @@ export function useAudioPlayer(
 
     const audio = new Audio();
     audio.preload = 'auto';
-    audio.volume = 1.0;
+    audio.volume = getGlobalMusicVolume();
     audio.src = previewUrl;
     audioRef.current = audio;
 
@@ -137,6 +139,7 @@ export function useAudioPlayer(
   const handlePlay = () => {
     setPlayerError(null);
     if (audioRef.current) {
+      audioRef.current.volume = getGlobalMusicVolume();
       const seekTime = getSeekTime();
       if (seekTime > 0 && seekTime < 30) {
         try { audioRef.current.currentTime = seekTime; } catch (_) { /* */ }
@@ -150,7 +153,7 @@ export function useAudioPlayer(
     if (!previewUrl) { setPlayerError('Aucun aperçu audio disponible'); return; }
     const audio = new Audio();
     audio.preload = 'auto';
-    audio.volume = 1.0;
+    audio.volume = getGlobalMusicVolume();
     audio.src = previewUrl;
     audioRef.current = audio;
     const seekTime = getSeekTime();
@@ -165,6 +168,15 @@ export function useAudioPlayer(
     audio.addEventListener('error', () => setPlayerError("Impossible de charger l'aperçu audio"), { once: true });
     audio.addEventListener('ended', () => setIsPlaying(false), { once: true });
   };
+
+  // Live volume sync: update currently-playing audio when slider changes
+  useEffect(() => {
+    const onVolumeChange = () => {
+      if (audioRef.current) audioRef.current.volume = getGlobalMusicVolume();
+    };
+    window.addEventListener('music-volume-change', onVolumeChange);
+    return () => window.removeEventListener('music-volume-change', onVolumeChange);
+  }, []);
 
   return { isPlaying, needsPlay, playerError, handlePlay };
 }
@@ -204,7 +216,7 @@ export function useAudioPlayerOnResults(
 
     const audio = new Audio();
     audio.preload = 'auto';
-    audio.volume = 1.0;
+    audio.volume = getGlobalMusicVolume();
     audio.src = previewUrl;
     audioRef.current = audio;
 
@@ -250,6 +262,7 @@ export function useAudioPlayerOnResults(
   const handlePlay = () => {
     setPlayerError(null);
     if (audioRef.current) {
+      audioRef.current.volume = getGlobalMusicVolume();
       audioRef.current.play()
         .then(() => { setIsPlaying(true); setNeedsPlay(false); })
         .catch(() => setPlayerError('Impossible de lancer la lecture'));
@@ -259,7 +272,7 @@ export function useAudioPlayerOnResults(
     if (!previewUrl) { setPlayerError('Aucun aperçu audio disponible'); return; }
     const audio = new Audio();
     audio.preload = 'auto';
-    audio.volume = 1.0;
+    audio.volume = getGlobalMusicVolume();
     audio.src = previewUrl;
     audioRef.current = audio;
     audio.addEventListener('canplaythrough', () => {
@@ -270,6 +283,15 @@ export function useAudioPlayerOnResults(
     audio.addEventListener('error', () => setPlayerError("Impossible de charger l'aperçu audio"), { once: true });
     audio.addEventListener('ended', () => setIsPlaying(false), { once: true });
   };
+
+  // Live volume sync: update audio element when slider changes
+  useEffect(() => {
+    const onVolumeChange = () => {
+      if (audioRef.current) audioRef.current.volume = getGlobalMusicVolume();
+    };
+    window.addEventListener('music-volume-change', onVolumeChange);
+    return () => window.removeEventListener('music-volume-change', onVolumeChange);
+  }, []);
 
   return { isPlaying, needsPlay, playerError, handlePlay };
 }
@@ -358,7 +380,7 @@ export function OptionsGrid({
       {options.map((option, index) => (
         <button
           key={index}
-          onClick={() => { if (!hasAnswered && !showResults) onOptionClick(option); }}
+          onClick={() => { if (!hasAnswered && !showResults) { soundEffects.click(); onOptionClick(option); } }}
           className={`p-4 rounded-lg text-left transition-all duration-200 ${getStyle(option)}`}
           disabled={hasAnswered || showResults}
         >
