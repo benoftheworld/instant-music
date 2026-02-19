@@ -67,7 +67,7 @@ export default function TeamsPage() {
 
   // leave handled on team page if needed
 
-  const isInTeam = (teamId: number) => false;
+  const isInTeam = (_teamId: number) => false;
 
   return (
     <div className="container mx-auto px-4 py-8">
