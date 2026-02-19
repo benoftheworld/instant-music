@@ -303,12 +303,14 @@ export function AudioPlayerUI({
   playerError,
   handlePlay,
   label,
+  hideManualPlay = false,
 }: {
   isPlaying: boolean;
   needsPlay: boolean;
   playerError: string | null;
   handlePlay: () => void;
   label?: string;
+  hideManualPlay?: boolean;
 }) {
   return (
     <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg min-h-[120px]">
@@ -330,9 +332,11 @@ export function AudioPlayerUI({
         <div className="text-white text-center">
           <div className="text-4xl mb-2">{needsPlay ? '🔇' : '⏳'}</div>
           <p className="text-sm mb-3">
-            {needsPlay ? 'Cliquez pour lancer la musique' : 'Chargement...'}
+            {needsPlay
+              ? (hideManualPlay ? 'Cliquez n\u2019importe où pour lancer la musique' : 'Cliquez pour lancer la musique')
+              : 'Chargement...'}
           </p>
-          {needsPlay && (
+          {needsPlay && !hideManualPlay && (
             <button onClick={handlePlay}
               className="px-8 py-4 bg-white text-purple-600 rounded-xl hover:bg-gray-100 transition font-bold text-lg shadow-lg">
               ▶️ Lancer la musique

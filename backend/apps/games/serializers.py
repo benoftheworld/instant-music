@@ -198,6 +198,12 @@ class GameHistorySerializer(serializers.ModelSerializer):
         source="host.username", read_only=True
     )
     participants = serializers.SerializerMethodField()
+    answer_mode_display = serializers.CharField(
+        source="get_answer_mode_display", read_only=True
+    )
+    guess_target_display = serializers.CharField(
+        source="get_guess_target_display", read_only=True
+    )
 
     class Meta:
         model = Game
@@ -207,6 +213,11 @@ class GameHistorySerializer(serializers.ModelSerializer):
             "host_username",
             "mode",
             "mode_display",
+            "answer_mode",
+            "answer_mode_display",
+            "guess_target",
+            "guess_target_display",
+            "num_rounds",
             "playlist_id",
             "winner",
             "winner_score",

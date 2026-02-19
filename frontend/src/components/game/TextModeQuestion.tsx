@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   useAudioPlayer,
   useAudioPlayerOnResults,
@@ -38,6 +39,20 @@ export default function TextModeQuestion({
   const resultsOnlyAudio = useAudioPlayerOnResults(round, showResults);
   const audio = isLyrics ? resultsOnlyAudio : duringRoundAudio;
 
+  // Auto-trigger play for Rapide/Intro mode to prevent cheating
+  useEffect(() => {
+    if (isIntro && audio.needsPlay && !audio.isPlaying) {
+      audio.handlePlay();
+    }
+  }, [isIntro, audio.needsPlay]);
+
+  // Click handler to trigger play for Rapide mode (fallback if auto-trigger fails)
+  const handleCardClick = () => {
+    if (isIntro && audio.needsPlay && !audio.isPlaying) {
+      audio.handlePlay();
+    }
+  };
+
   const getModeIcon = () => {
     switch (round.question_type) {
       case 'blind_inverse': return '🎯';
@@ -50,7 +65,7 @@ export default function TextModeQuestion({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-xl p-8">
+    <div className="bg-white rounded-lg shadow-xl p-8" onClick={handleCardClick}>
       {/* Question header */}
       <div className="mb-6 text-center">
         <div className="text-4xl mb-3">{getModeIcon()}</div>
@@ -82,7 +97,7 @@ export default function TextModeQuestion({
       {/* Audio player (during round for non-lyrics, after results for lyrics) */}
       {!isLyrics && !showResults && (
         <div className="mb-6">
-          <AudioPlayerUI {...audio} />
+          <AudioPlayerUI {...audio} hideManualPlay={isIntro} />
         </div>
       )}
 
@@ -112,6 +127,7 @@ export default function TextModeQuestion({
       )}
 
       {/* Text answer input */}
+      {/* For classique/rapide modes (guess_title, guess_artist), enable dual input (title + artist) */}
       <TextAnswerInput
         onSubmit={onAnswerSubmit}
         hasAnswered={hasAnswered}
@@ -119,6 +135,7 @@ export default function TextModeQuestion({
         showResults={showResults}
         roundResults={roundResults}
         placeholder={placeholder}
+        dualInput={round.question_type === 'guess_title' || round.question_type === 'guess_artist'}
       />
     </div>
   );

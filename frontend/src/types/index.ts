@@ -192,6 +192,11 @@ export interface GameHistory {
   host_username: string;
   mode: GameMode;
   mode_display: string;
+  answer_mode: AnswerMode;
+  answer_mode_display: string;
+  guess_target: GuessTarget;
+  guess_target_display: string;
+  num_rounds: number;
   playlist_id: string | null;
   winner: GameWinner | null;
   winner_score: number;

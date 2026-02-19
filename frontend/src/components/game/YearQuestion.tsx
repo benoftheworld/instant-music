@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import {
-  useAudioPlayer, AudioPlayerUI, TrackReveal,
+  useAudioPlayer, AudioPlayerUI, TrackReveal, OptionsGrid, ResultFooter,
   type Props,
 } from './shared';
 
 /**
  * YearQuestion – Player guesses the release year of a track.
- * Tolerance ±2 years. Free numeric input instead of MCQ.
+ * In MCQ mode (options provided): shows 4 year choices.
+ * In text mode (no options): free numeric input with ±2 tolerance.
  */
 const YearQuestion = ({
   round,
@@ -19,6 +20,8 @@ const YearQuestion = ({
 }: Props) => {
   const audio = useAudioPlayer(round, showResults, undefined, seekOffsetMs);
   const [yearInput, setYearInput] = useState('');
+
+  const isMcqMode = round.options && round.options.length > 0;
 
   const correctYear = parseInt(roundResults?.correct_answer || round.extra_data?.year || '0');
   const givenYear = parseInt(selectedAnswer || '0');
@@ -51,7 +54,6 @@ const YearQuestion = ({
         <h2 className="text-2xl font-bold text-gray-800 mb-2">
           {round.question_text || 'En quelle année est sorti ce morceau ?'}
         </h2>
-        {/* In Year mode we do not show title/artist to increase difficulty */}
       </div>
 
       {/* Audio player */}
@@ -63,59 +65,81 @@ const YearQuestion = ({
 
       {showResults && <TrackReveal round={round} />}
 
-      {/* Year input */}
-      <div className="mb-6">
-        {!hasAnswered && !showResults ? (
-          <div className="flex flex-col items-center gap-4">
-            <input
-              type="number"
-              min="1950"
-              max="2030"
-              placeholder="Ex: 2015"
-              value={yearInput}
-              onChange={(e) => setYearInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
-              className="w-48 text-center text-4xl font-bold p-4 border-4 border-blue-300 rounded-xl
-                         focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              autoFocus
-            />
-            <button
-              onClick={handleSubmit}
-              disabled={!yearInput}
-              className="px-8 py-3 bg-blue-600 text-white rounded-lg font-bold text-lg
-                         hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Valider
-            </button>
-            <p className="text-sm text-gray-500">
-              Tolérance : ±2 ans
-            </p>
+      {/* MCQ mode: show year options as buttons */}
+      {isMcqMode ? (
+        <>
+          <OptionsGrid
+            options={round.options}
+            hasAnswered={hasAnswered}
+            showResults={showResults}
+            selectedAnswer={selectedAnswer}
+            roundResults={roundResults}
+            onOptionClick={onAnswerSubmit}
+          />
+          <ResultFooter
+            showResults={showResults}
+            roundResults={roundResults}
+            selectedAnswer={selectedAnswer}
+            hasAnswered={hasAnswered}
+          />
+        </>
+      ) : (
+        <>
+          {/* Text mode: free numeric input */}
+          <div className="mb-6">
+            {!hasAnswered && !showResults ? (
+              <div className="flex flex-col items-center gap-4">
+                <input
+                  type="number"
+                  min="1950"
+                  max="2030"
+                  placeholder="Ex: 2015"
+                  value={yearInput}
+                  onChange={(e) => setYearInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
+                  className="w-48 text-center text-4xl font-bold p-4 border-4 border-blue-300 rounded-xl
+                             focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  autoFocus
+                />
+                <button
+                  onClick={handleSubmit}
+                  disabled={!yearInput}
+                  className="px-8 py-3 bg-blue-600 text-white rounded-lg font-bold text-lg
+                             hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Valider
+                </button>
+                <p className="text-sm text-gray-500">
+                  Tolérance : ±2 ans
+                </p>
+              </div>
+            ) : hasAnswered && !showResults ? (
+              <div className="text-center">
+                <div className="text-4xl font-bold text-blue-600 mb-2">{selectedAnswer}</div>
+                <div className="text-lg text-gray-600 animate-pulse">
+                  En attente des autres joueurs...
+                </div>
+              </div>
+            ) : null}
           </div>
-        ) : hasAnswered && !showResults ? (
-          <div className="text-center">
-            <div className="text-4xl font-bold text-blue-600 mb-2">{selectedAnswer}</div>
-            <div className="text-lg text-gray-600 animate-pulse">
-              En attente des autres joueurs...
-            </div>
-          </div>
-        ) : null}
-      </div>
 
-      {/* Results */}
-      {showResults && roundResults && (
-        <div className="mt-6 p-4 rounded-lg bg-blue-50 border-2 border-blue-200 text-center">
-          <p className="text-lg mb-1">
-            Votre réponse : <span className="font-bold">{selectedAnswer || '—'}</span>
-          </p>
-          <p className={`text-xl font-bold mt-2 ${getResultColor()}`}>
-            {getResultMessage()}
-          </p>
-          {roundResults.points_earned !== undefined && roundResults.points_earned > 0 && (
-            <p className="text-green-600 font-bold mt-2">
-              +{roundResults.points_earned} points
-            </p>
+          {/* Results for text mode */}
+          {showResults && roundResults && (
+            <div className="mt-6 p-4 rounded-lg bg-blue-50 border-2 border-blue-200 text-center">
+              <p className="text-lg mb-1">
+                Votre réponse : <span className="font-bold">{selectedAnswer || '—'}</span>
+              </p>
+              <p className={`text-xl font-bold mt-2 ${getResultColor()}`}>
+                {getResultMessage()}
+              </p>
+              {roundResults.points_earned !== undefined && roundResults.points_earned > 0 && (
+                <p className="text-green-600 font-bold mt-2">
+                  +{roundResults.points_earned} points
+                </p>
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   useAudioPlayer, OptionsGrid, ResultFooter, TrackReveal,
   type Props,
@@ -6,6 +7,7 @@ import {
 /**
  * IntroQuestion – Same as classic quiz but audio stops after 5 seconds.
  * Player must recognize the track from just the intro.
+ * No "Lancer la musique" button to prevent cheating.
  */
 const IntroQuestion = ({
   round,
@@ -19,8 +21,22 @@ const IntroQuestion = ({
   const audioDuration = round.extra_data?.audio_duration || 5;
   const audio = useAudioPlayer(round, showResults, audioDuration, seekOffsetMs);
 
+  // Auto-trigger play when browser blocks autoplay (no manual button in Rapide)
+  useEffect(() => {
+    if (audio.needsPlay && !audio.isPlaying) {
+      audio.handlePlay();
+    }
+  }, [audio.needsPlay]);
+
+  // Also trigger play on any click within the component
+  const handleCardClick = () => {
+    if (audio.needsPlay && !audio.isPlaying) {
+      audio.handlePlay();
+    }
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-xl p-8">
+    <div className="bg-white rounded-lg shadow-xl p-8" onClick={handleCardClick}>
       {/* Header with lightning bolt */}
       <div className="mb-6 text-center">
         <div className="inline-block bg-gradient-to-r from-yellow-400 to-red-500 text-white px-4 py-1 rounded-full text-sm font-bold mb-3 shadow">
@@ -47,7 +63,9 @@ const IntroQuestion = ({
             ) : (
               <div className="text-white text-center">
                 <div className="text-4xl mb-2">⏳</div>
-                <p className="text-sm">Chargement de l&apos;intro...</p>
+                <p className="text-sm">
+                  {audio.needsPlay ? 'Cliquez n\u2019importe où pour lancer l\u2019intro...' : 'Chargement de l\u2019intro...'}
+                </p>
               </div>
             )}
           </div>

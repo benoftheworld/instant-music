@@ -398,6 +398,19 @@ class QuestionGeneratorService:
         if year < 1950 or year > 2030:
             return None
 
+        # Generate MCQ options (4 plausible years)
+        options = [str(year)]
+        attempts = 0
+        while len(options) < 4 and attempts < 30:
+            offset = random.choice(
+                [-10, -8, -7, -6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7, 8, 10]
+            )
+            wrong_year = year + offset
+            if str(wrong_year) not in options and 1950 <= wrong_year <= 2030:
+                options.append(str(wrong_year))
+            attempts += 1
+        random.shuffle(options)
+
         artist = ", ".join(track["artists"])
         return {
             "track_id": track_id,
@@ -408,7 +421,7 @@ class QuestionGeneratorService:
             "question_type": "guess_year",
             "question_text": f'En quelle année est sorti « {track["name"]} » de {artist} ?',
             "correct_answer": str(year),
-            "options": [],  # No MCQ — free numeric input
+            "options": options,
             "extra_data": {
                 "release_date": release_date,
                 "year": year,

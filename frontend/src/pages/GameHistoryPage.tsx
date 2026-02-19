@@ -85,6 +85,19 @@ export default function GameHistoryPage() {
                     <div>
                       <h3 className="font-bold text-lg">{game.mode_display}</h3>
                       <p className="text-sm text-gray-500">Salle: {game.room_code}</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {game.answer_mode === 'mcq' ? '📋 QCM' : '⌨️ Saisie libre'}
+                        </span>
+                        {(game.mode === 'classique' || game.mode === 'rapide') && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            {game.guess_target === 'artist' ? '🎤 Artiste' : '🎵 Titre'}
+                          </span>
+                        )}
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                          {game.num_rounds} rounds
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
