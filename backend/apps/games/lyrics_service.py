@@ -98,6 +98,8 @@ def create_lyrics_question(
     lines = [
         line.strip() for line in lyrics.split('\n')
         if line.strip() and len(line.strip()) > 15
+    ]
+
     # We'll try to blank a contiguous sequence of words of length `words_to_blank`.
     for line in lines[:15]:
         words = line.split()
@@ -184,13 +186,5 @@ def create_lyrics_question(
         random.shuffle(options)
 
         return snippet, correct_phrase, options
-
-        if len(unique_wrong) < 3:
-            continue
-
-        options = [clean_word] + unique_wrong[:3]
-        random.shuffle(options)
-
-        return snippet, clean_word, options
 
     return None
