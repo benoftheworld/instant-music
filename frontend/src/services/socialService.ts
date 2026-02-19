@@ -150,6 +150,22 @@ export const teamService = {
   },
 
   /**
+   * Approve a join request (owner/admin only)
+   */
+  async approveJoinRequest(teamId: number, requestId: number) {
+    const response = await api.post(`/users/teams/${teamId}/approve/`, { request_id: requestId });
+    return response.data;
+  },
+
+  /**
+   * Reject a join request (owner/admin only)
+   */
+  async rejectJoinRequest(teamId: number, requestId: number) {
+    const response = await api.post(`/users/teams/${teamId}/reject/`, { request_id: requestId });
+    return response.data;
+  },
+
+  /**
    * Update team info (description/avatar) - multipart
    */
   async updateTeam(teamId: number, data: FormData) {

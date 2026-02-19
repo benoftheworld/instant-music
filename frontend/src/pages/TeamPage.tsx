@@ -16,11 +16,19 @@ export default function TeamPage() {
   const [editing, setEditing] = useState(false);
   const [editDescription, setEditDescription] = useState('');
   const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
+  const [joinRequests, setJoinRequests] = useState<any[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return navigate('/teams');
     fetchTeam();
   }, [id]);
+
+  useEffect(() => {
+    if (!team) return;
+    if (!canManage()) return;
+    fetchRequests();
+  }, [team]);
 
   const fetchTeam = async () => {
     setLoading(true);
@@ -32,6 +40,19 @@ export default function TeamPage() {
       setMessage({ type: 'error', text: 'Impossible de charger l\'équipe.' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRequests = async () => {
+    if (!team) return;
+    setRequestsLoading(true);
+    try {
+      const data = await teamService.getJoinRequests(team.id);
+      setJoinRequests(Array.isArray(data) ? data : (data as any)?.results || []);
+    } catch (err: any) {
+      // ignore for now
+    } finally {
+      setRequestsLoading(false);
     }
   };
 
@@ -64,6 +85,36 @@ export default function TeamPage() {
       await teamService.removeMember(team.id, member.id);
       setMessage({ type: 'success', text: 'Membre supprimé.' });
       fetchTeam();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur.' });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleApproveRequest = async (requestId: number) => {
+    if (!team) return;
+    setProcessing(true);
+    try {
+      await teamService.approveJoinRequest(team.id, requestId);
+      setMessage({ type: 'success', text: 'Demande approuvée.' });
+      fetchTeam();
+      fetchRequests();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur.' });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleRejectRequest = async (requestId: number) => {
+    if (!team) return;
+    if (!confirm('Refuser cette demande ?')) return;
+    setProcessing(true);
+    try {
+      await teamService.rejectJoinRequest(team.id, requestId);
+      setMessage({ type: 'success', text: 'Demande refusée.' });
+      fetchRequests();
     } catch (err: any) {
       setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur.' });
     } finally {
@@ -191,7 +242,42 @@ export default function TeamPage() {
               </div>
             ))}
           </div>
-        </div>
+          </div>
+
+          {canManage() && (
+            <div className="card mt-4">
+              <h2 className="text-lg font-bold mb-4">Demandes d'adhésion</h2>
+              {requestsLoading ? (
+                <div>Chargement...</div>
+              ) : joinRequests.length === 0 ? (
+                <div className="text-sm text-gray-500">Aucune demande en attente.</div>
+              ) : (
+                <div className="space-y-2">
+                  {joinRequests.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between p-2 border border-gray-100 rounded">
+                      <div className="flex items-center gap-3">
+                        {r.user.avatar ? (
+                          <img src={getMediaUrl(r.user.avatar)} alt={r.user.username} className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold">
+                            {r.user.username.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-medium">{r.user.username}</div>
+                          <div className="text-xs text-gray-500">{r.message || ''}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleApproveRequest(r.id)} disabled={processing} className="btn-primary text-sm">Accepter</button>
+                        <button onClick={() => handleRejectRequest(r.id)} disabled={processing} className="text-sm text-red-500">Refuser</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
       </div>
     </div>
   );
