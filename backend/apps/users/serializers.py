@@ -2,6 +2,7 @@
 Serializers for User models.
 """
 from rest_framework import serializers
+from django.db.models import Sum
 from .models import User, Friendship, FriendshipStatus, Team, TeamMember, TeamMemberRole
 from .models import TeamJoinRequest, TeamJoinRequestStatus
 
@@ -110,6 +111,10 @@ class TeamSerializer(serializers.ModelSerializer):
     owner = UserMinimalSerializer(read_only=True)
     members_list = serializers.SerializerMethodField()
     member_count = serializers.SerializerMethodField()
+    # Aggregate member stats to provide up-to-date team statistics
+    total_games = serializers.SerializerMethodField()
+    total_wins = serializers.SerializerMethodField()
+    total_points = serializers.SerializerMethodField()
     
     class Meta:
         model = Team
@@ -127,6 +132,16 @@ class TeamSerializer(serializers.ModelSerializer):
     
     def get_member_count(self, obj):
         return obj.memberships.count()
+
+    def get_total_points(self, obj):
+        # Sum total_points of users who are members
+        return obj.members.aggregate(s=Sum('total_points'))['s'] or 0
+
+    def get_total_games(self, obj):
+        return obj.members.aggregate(s=Sum('total_games_played'))['s'] or 0
+
+    def get_total_wins(self, obj):
+        return obj.members.aggregate(s=Sum('total_wins'))['s'] or 0
 
 
 class TeamCreateSerializer(serializers.ModelSerializer):

@@ -7,8 +7,8 @@ import PlaylistSelector from '../../components/playlist/PlaylistSelector';
 const gameModes: { value: GameMode; label: string; description: string; icon: string; disabled?: boolean }[] = [
   {
     value: 'quiz_4',
-    label: 'Quiz Classique',
-    description: 'Trouvez le titre sans connaître l\'artiste (plus difficile)',
+    label: 'Classique',
+    description: 'Trouvez le bon titre parmi 4 propositions',
     icon: '🎵',
   },
   {

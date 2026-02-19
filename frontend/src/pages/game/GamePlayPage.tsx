@@ -375,7 +375,7 @@ export default function GamePlayPage() {
       case 'guess_artist': return '🎤 Trouver l\'Artiste';
       case 'intro': return '⚡ Intro (3s)';
       case 'lyrics': return '📝 Lyrics';
-      default: return '🎵 Quiz';
+      default: return '🎵 Classique';
     }
   };
 

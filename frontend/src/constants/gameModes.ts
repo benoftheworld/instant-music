@@ -5,7 +5,7 @@ import type { GameMode } from '@/types';
 
 export const GAME_MODE_CONFIG: Record<GameMode, { label: string; icon: string; description: string }> = {
   quiz_4: {
-    label: 'Quiz Classique',
+    label: 'Classique',
     icon: '🎵',
     description: 'Trouvez le bon titre parmi 4 propositions',
   },
@@ -39,7 +39,7 @@ export const GAME_MODE_CONFIG: Record<GameMode, { label: string; icon: string; d
 export const LEADERBOARD_TABS: { value: GameMode | 'general' | 'teams'; label: string; icon: string }[] = [
   { value: 'general', label: 'Général', icon: '🏆' },
   { value: 'teams', label: 'Équipes', icon: '👥' },
-  { value: 'quiz_4', label: 'Quiz Classique', icon: '🎵' },
+  { value: 'quiz_4', label: 'Classique', icon: '🎵' },
   { value: 'blind_test_inverse', label: 'Trouver le Titre', icon: '🎯' },
   { value: 'guess_year', label: 'Année', icon: '📅' },
   { value: 'guess_artist', label: 'Artiste', icon: '🎤' },
