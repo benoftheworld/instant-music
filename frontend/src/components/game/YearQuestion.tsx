@@ -51,9 +51,7 @@ const YearQuestion = ({
         <h2 className="text-2xl font-bold text-gray-800 mb-2">
           {round.question_text || 'En quelle année est sorti ce morceau ?'}
         </h2>
-        <p className="text-gray-600">
-          <span className="font-semibold">{round.track_name}</span> — {round.artist_name}
-        </p>
+        {/* In Year mode we do not show title/artist to increase difficulty */}
       </div>
 
       {/* Audio player */}

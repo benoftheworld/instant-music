@@ -67,7 +67,12 @@ export default function TeamsPage() {
 
   // leave handled on team page if needed
 
-  const isInTeam = (_teamId: number) => false;
+  const isInTeam = (teamId: number) => {
+    if (!user) return false;
+    const t = allTeams.find((tt) => tt.id === teamId);
+    if (!t) return false;
+    return (t.members_list || []).some((m) => m.user.id === user.id);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">

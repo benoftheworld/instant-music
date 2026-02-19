@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions
 from django.db.models import Sum, Avg, Max, Count, Q
+from django.db.models.functions import Coalesce
 
 from apps.games.models import GamePlayer, GameAnswer, Game, GameMode
 from apps.achievements.models import Achievement, UserAchievement
@@ -154,12 +155,20 @@ class TeamLeaderboardView(APIView):
     
     def get(self, request):
         limit = min(int(request.query_params.get('limit', 50)), 100)
-        
-        # Get all teams ordered by total_points
-        teams = Team.objects.all().order_by('-total_points', '-total_games')[:limit]
-        
+        # Aggregate member stats per team (sum of members' stats)
+        teams = Team.objects.annotate(
+            sum_points=Coalesce(Sum('members__total_points'), 0),
+            sum_games=Coalesce(Sum('members__total_games_played'), 0),
+            sum_wins=Coalesce(Sum('members__total_wins'), 0),
+        ).order_by('-sum_points', '-sum_games')[:limit]
+
         leaderboard = []
         for rank, team in enumerate(teams, 1):
+            total_points = int(team.sum_points or 0)
+            total_games = int(team.sum_games or 0)
+            total_wins = int(team.sum_wins or 0)
+            win_rate = round((total_wins / total_games * 100) if total_games > 0 else 0, 1)
+
             leaderboard.append({
                 'rank': rank,
                 'team_id': team.id,
@@ -167,10 +176,10 @@ class TeamLeaderboardView(APIView):
                 'avatar': team.avatar.url if team.avatar else None,
                 'owner_name': team.owner.username if team.owner else None,
                 'member_count': team.memberships.count(),
-                'total_points': team.total_points,
-                'total_games': team.total_games,
-                'total_wins': team.total_wins,
-                'win_rate': round((team.total_wins / team.total_games * 100) if team.total_games > 0 else 0, 1),
+                'total_points': total_points,
+                'total_games': total_games,
+                'total_wins': total_wins,
+                'win_rate': win_rate,
             })
         
         return Response(leaderboard)

@@ -87,7 +87,20 @@ export default function RegisterPage() {
 
           {registerMutation.isError && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              Erreur lors de l'inscription
+              <p className="font-semibold">Erreur lors de l'inscription</p>
+              <div className="mt-2 text-sm">
+                {(() => {
+                  const err = (registerMutation.error as any)?.response?.data;
+                  if (!err) return <div>Erreur inconnue</div>;
+                  if (typeof err === 'string') return <div>{err}</div>;
+                  // err is likely an object with field arrays
+                  return Object.entries(err).map(([k, v]) => (
+                    <div key={k}>
+                      <strong>{k}:</strong> {Array.isArray(v) ? v.join(' ') : String(v)}
+                    </div>
+                  ));
+                })()}
+              </div>
             </div>
           )}
 
