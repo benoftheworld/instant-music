@@ -5,7 +5,7 @@ import { soundEffects } from '../../services/soundEffects';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAuthStore } from '../../store/authStore';
 import QuizQuestion from '../../components/game/QuizQuestion';
-import BlindTestInverse from '../../components/game/BlindTestInverse';
+// BlindTestInverse removed - modes consolidated into classique/rapide/generation/paroles
 import YearQuestion from '../../components/game/YearQuestion';
 import IntroQuestion from '../../components/game/IntroQuestion';
 import LyricsQuestion from '../../components/game/LyricsQuestion';
@@ -37,7 +37,7 @@ export default function GamePlayPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  
+
   const [game, setGame] = useState<any>(null);
   const [currentRound, setCurrentRound] = useState<Round | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
@@ -48,21 +48,21 @@ export default function GamePlayPage() {
   const [loading, setLoading] = useState(true);
   const [myPointsEarned, setMyPointsEarned] = useState<number>(0);
   const isAdvancingRef = useRef(false);
-  
+
   // New state for round phases: 'loading' | 'playing' | 'results'
   const [roundPhase, setRoundPhase] = useState<'loading' | 'playing' | 'results'>('loading');
   const loadingStartTimeRef = useRef<number>(0);
-  
+
   // WebSocket connection
   const { sendMessage, onMessage } = useWebSocket(roomCode || '');
-  
+
   // Load current round
   const loadCurrentRound = useCallback(async () => {
     if (!roomCode) return;
-    
+
     try {
       const response = await gameService.getCurrentRound(roomCode);
-      
+
       if (response.current_round) {
         setCurrentRound(response.current_round);
         setTimeRemaining(response.current_round.duration);
@@ -81,15 +81,15 @@ export default function GamePlayPage() {
       setLoading(false);
     }
   }, [roomCode, navigate]);
-  
+
   // Load game data
   const loadGame = useCallback(async () => {
     if (!roomCode) return;
-    
+
     try {
       const gameData = await gameService.getGame(roomCode);
       setGame(gameData);
-      
+
       if (gameData.status === 'finished') {
         navigate(`/game/${roomCode}/results`);
       }
@@ -97,7 +97,7 @@ export default function GamePlayPage() {
       console.error('Failed to load game:', error);
     }
   }, [roomCode, navigate]);
-  
+
   // Advance to next round (guarded against double calls)
   const advanceToNextRound = useCallback(async () => {
     if (isAdvancingRef.current || !roomCode) return;
@@ -115,35 +115,35 @@ export default function GamePlayPage() {
   // Timer countdown - calculate based on server time
   useEffect(() => {
     if (!currentRound || showResults || roundPhase !== 'playing') return;
-    
-    // Use game's time_between_rounds for loading screen offset
-    const loadingDurationMs = (game?.time_between_rounds || 10) * 1000;
-    
+
+    // Use game's timer_start_round for loading screen offset
+    const loadingDurationMs = (game?.timer_start_round || 5) * 1000;
+
     const calculateTimeRemaining = () => {
       if (!currentRound.started_at) return currentRound.duration;
       const startTime = new Date(currentRound.started_at).getTime();
       const now = Date.now();
-      
+
       // Compensate for the loading screen duration
       const adjustedStartTime = startTime + (loadingStartTimeRef.current > 0 ? loadingDurationMs : 0);
-      
+
       const elapsed = Math.floor((now - adjustedStartTime) / 1000);
       const remaining = Math.max(0, currentRound.duration - elapsed);
       return remaining;
     };
-    
+
     // Update immediately
     const remaining = calculateTimeRemaining();
     setTimeRemaining(remaining);
     let lastSecond = remaining;
-    
+
     let timerTimeout: ReturnType<typeof setTimeout> | null = null;
-    
+
     // Update every 100ms for smooth countdown
     const interval = setInterval(() => {
       const newRemaining = calculateTimeRemaining();
       setTimeRemaining(newRemaining);
-      
+
       // Sound effects for countdown
       if (newRemaining !== lastSecond && newRemaining > 0) {
         if (newRemaining <= 3) {
@@ -153,7 +153,7 @@ export default function GamePlayPage() {
         }
         lastSecond = newRemaining;
       }
-      
+
       if (newRemaining <= 0) {
         clearInterval(interval);
         soundEffects.timeUp();
@@ -163,7 +163,7 @@ export default function GamePlayPage() {
         setRoundPhase('results');
 
         // Host advances to next round after result display time
-        const resultDisplayTime = (game?.time_between_rounds || 10) * 1000;
+        const resultDisplayTime = (game?.score_display_duration || 10) * 1000;
         if (user && game && game.host === user.id) {
           timerTimeout = setTimeout(() => {
             advanceToNextRound();
@@ -171,18 +171,18 @@ export default function GamePlayPage() {
         }
       }
     }, 100);
-    
+
     return () => {
       clearInterval(interval);
       if (timerTimeout) clearTimeout(timerTimeout);
     };
   }, [currentRound, showResults, roundPhase, game, roomCode, user, advanceToNextRound]);
-  
+
   // Handle WebSocket messages
   useEffect(() => {
     const unsubscribe = onMessage('message', (data: any) => {
       console.log('WebSocket message:', data);
-      
+
       switch (data.type) {
         case 'round_started':
           // New round started
@@ -195,24 +195,24 @@ export default function GamePlayPage() {
           setRoundPhase('loading'); // Show loading screen first
           loadingStartTimeRef.current = Date.now(); // Record when loading starts
           break;
-          
+
         case 'player_answered':
           // Another player answered
           console.log('Player answered:', data.player);
           break;
-          
+
         case 'round_ended': {
           // Round finished, show results
           const myScoreData = data.results?.player_scores?.[user?.username || ''];
           const wasCorrect = myScoreData?.is_correct;
-          
+
           // Play appropriate sound
           if (wasCorrect) {
             soundEffects.correctAnswer();
           } else {
             soundEffects.wrongAnswer();
           }
-          
+
           setShowResults(true);
           setRoundPhase('results'); // Show results screen
           setRoundResults({
@@ -225,7 +225,7 @@ export default function GamePlayPage() {
           }
           break;
         }
-          
+
         case 'next_round':
           // Move to next round automatically
           soundEffects.roundLoading();
@@ -244,7 +244,7 @@ export default function GamePlayPage() {
             setGame((prev: any) => prev ? { ...prev, players: data.updated_players } : prev);
           }
           break;
-          
+
         case 'game_finished':
           // Game over
           soundEffects.gameFinished();
@@ -252,48 +252,48 @@ export default function GamePlayPage() {
           break;
       }
     });
-    
+
     return unsubscribe;
   }, [onMessage, loadCurrentRound, navigate, roomCode]);
-  
+
   // Auto-advance to next round after showing results (host only)
   useEffect(() => {
     if (!showResults || !user || !game || game.host !== user.id) return;
-    
-    const resultDisplayTime = (game?.time_between_rounds || 10) * 1000;
+
+    const resultDisplayTime = (game?.score_display_duration || 10) * 1000;
     const timer = setTimeout(() => {
       advanceToNextRound();
-    }, resultDisplayTime); // Use customizable time between rounds
-    
+    }, resultDisplayTime); // Use customizable score display duration
+
     return () => clearTimeout(timer);
   }, [showResults, user, game, advanceToNextRound]);
-  
+
   // Initial load
   useEffect(() => {
     loadGame();
     loadCurrentRound();
   }, [loadGame, loadCurrentRound]);
-  
+
   // Handle answer submission
   const handleAnswerSubmit = async (answer: string) => {
     if (!roomCode || !currentRound || hasAnswered) return;
-    
+
     soundEffects.answerSubmitted();
     setSelectedAnswer(answer);
     setHasAnswered(true);
-    
+
     const responseTime = currentRound.duration - timeRemaining;
-    
+
     try {
       // Submit answer to backend — response contains points_earned
       const answerResult = await gameService.submitAnswer(roomCode, {
         answer,
         response_time: responseTime
       });
-      
+
       // Store the player's own points for immediate display
       setMyPointsEarned(answerResult.points_earned || 0);
-      
+
       // Notify other players via WebSocket
       sendMessage({
         type: 'player_answer',
@@ -311,7 +311,8 @@ export default function GamePlayPage() {
     if (!currentRound) return null;
 
     const isTextMode = game?.answer_mode === 'text';
-    const seekOffsetMs = (game?.time_between_rounds || 10) * 1000;
+    const seekOffsetMs = (game?.timer_start_round || 5) * 1000;
+    const mode = currentRound.extra_data?.round_mode || game?.mode;
 
     const commonProps = {
       round: currentRound,
@@ -327,8 +328,8 @@ export default function GamePlayPage() {
     // but also overlay/replace the options with a text input.
     // For year mode, it already has a text input, so no change needed.
     // For other modes in text mode, we strip their OptionsGrid and add TextAnswerInput.
-    
-    if (isTextMode && currentRound.question_type !== 'guess_year') {
+
+    if (isTextMode && mode !== 'generation') {
       // Text mode: use dedicated component that includes audio player
       return (
         <TextModeQuestion
@@ -338,20 +339,19 @@ export default function GamePlayPage() {
       );
     }
 
-    const mode = currentRound.extra_data?.round_mode || game?.mode;
     switch (mode) {
-      case 'blind_test_inverse':
-        return <BlindTestInverse {...commonProps} />;
-      case 'guess_year':
-        return <YearQuestion {...commonProps} />;
-      case 'guess_artist':
-        return <GuessArtistQuestion {...commonProps} />;
-      case 'intro':
+      case 'classique':
+        // In MCQ mode, guess_target determines which component to render
+        if (game?.guess_target === 'artist') {
+          return <GuessArtistQuestion {...commonProps} />;
+        }
+        return <QuizQuestion {...commonProps} />;
+      case 'rapide':
         return <IntroQuestion {...commonProps} />;
-      case 'lyrics':
-        return currentRound.question_type === 'lyrics'
-          ? <LyricsQuestion {...commonProps} />
-          : <QuizQuestion {...commonProps} />;
+      case 'generation':
+        return <YearQuestion {...commonProps} />;
+      case 'paroles':
+        return <LyricsQuestion {...commonProps} />;
       default:
         return <QuizQuestion {...commonProps} />;
     }
@@ -370,11 +370,10 @@ export default function GamePlayPage() {
   // ─── Mode display name for header ───
   const getModeLabel = () => {
     switch (game?.mode) {
-      case 'blind_test_inverse': return '🎯 Trouver le Titre';
-      case 'guess_year': return '📅 Année de Sortie';
-      case 'guess_artist': return '🎤 Trouver l\'Artiste';
-      case 'intro': return '⚡ Intro (3s)';
-      case 'lyrics': return '📝 Lyrics';
+      case 'classique': return '🎵 Classique';
+      case 'rapide': return '⚡ Rapide';
+      case 'generation': return '📅 Génération';
+      case 'paroles': return '📝 Paroles';
       default: return '🎵 Classique';
     }
   };
@@ -384,7 +383,7 @@ export default function GamePlayPage() {
     soundEffects.countdownGo();
     setRoundPhase('playing');
   };
-  
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
@@ -392,7 +391,7 @@ export default function GamePlayPage() {
       </div>
     );
   }
-  
+
   if (!currentRound) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
@@ -407,7 +406,7 @@ export default function GamePlayPage() {
       <RoundLoadingScreen
         roundNumber={currentRound.round_number}
         onComplete={handleLoadingComplete}
-        duration={game?.time_between_rounds || 10}
+        duration={game?.timer_start_round || 5}
       />
     );
   }
@@ -425,7 +424,7 @@ export default function GamePlayPage() {
       />
     );
   }
-  
+
   // Show game screen during round
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
@@ -443,7 +442,7 @@ export default function GamePlayPage() {
               )}
             </div>
           </div>
-          
+
           {/* Timer */}
           <div className="flex items-center gap-3">
             <VolumeControl variant="floating" />
@@ -454,13 +453,13 @@ export default function GamePlayPage() {
             </div>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main quiz area */}
           <div className="lg:col-span-2">
             {renderQuestionComponent()}
           </div>
-          
+
           {/* Live scoreboard */}
           <div className="lg:col-span-1">
             <LiveScoreboard players={game?.players || []} />
@@ -470,4 +469,3 @@ export default function GamePlayPage() {
     </div>
   );
 }
-

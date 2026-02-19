@@ -4,7 +4,7 @@ import {
 } from './shared';
 
 /**
- * QuizQuestion – Default quiz_4 mode (and fallback for unknown modes).
+ * QuizQuestion – Default classique mode (and fallback for unknown modes).
  * Plays audio, shows 4 options, player picks the correct title.
  */
 const QuizQuestion = ({

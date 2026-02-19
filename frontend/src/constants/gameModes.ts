@@ -4,47 +4,35 @@
 import type { GameMode } from '@/types';
 
 export const GAME_MODE_CONFIG: Record<GameMode, { label: string; icon: string; description: string }> = {
-  quiz_4: {
+  classique: {
     label: 'Classique',
     icon: '🎵',
-    description: 'Trouvez le bon titre parmi 4 propositions',
+    description: 'La musique se lance, trouvez l\'artiste ou le titre',
   },
-  blind_test_inverse: {
-    label: 'Trouver le Titre',
-    icon: '🎯',
-    description: 'Devinez le titre à partir de la musique',
+  rapide: {
+    label: 'Rapide',
+    icon: '⚡',
+    description: '3 secondes de musique puis silence pour répondre',
   },
-  guess_year: {
-    label: 'Année',
+  generation: {
+    label: 'Génération',
     icon: '📅',
     description: 'Devinez l\'année de sortie du morceau',
   },
-  guess_artist: {
-    label: 'Artiste',
-    icon: '🎤',
-    description: 'Devinez l\'artiste du morceau',
-  },
-  intro: {
-    label: 'Intro',
-    icon: '⚡',
-    description: 'Reconnaissez le morceau dès l\'intro',
-  },
-  lyrics: {
-    label: 'Lyrics',
+  paroles: {
+    label: 'Paroles',
     icon: '📝',
-    description: 'Complétez les paroles de la chanson',
+    description: 'Complétez les paroles manquantes de la chanson',
   },
 };
 
 export const LEADERBOARD_TABS: { value: GameMode | 'general' | 'teams'; label: string; icon: string }[] = [
   { value: 'general', label: 'Général', icon: '🏆' },
   { value: 'teams', label: 'Équipes', icon: '👥' },
-  { value: 'quiz_4', label: 'Classique', icon: '🎵' },
-  { value: 'blind_test_inverse', label: 'Trouver le Titre', icon: '🎯' },
-  { value: 'guess_year', label: 'Année', icon: '📅' },
-  { value: 'guess_artist', label: 'Artiste', icon: '🎤' },
-  { value: 'intro', label: 'Intro', icon: '⚡' },
-  { value: 'lyrics', label: 'Lyrics', icon: '📝' },
+  { value: 'classique', label: 'Classique', icon: '🎵' },
+  { value: 'rapide', label: 'Rapide', icon: '⚡' },
+  { value: 'generation', label: 'Génération', icon: '📅' },
+  { value: 'paroles', label: 'Paroles', icon: '📝' },
 ];
 
 /**

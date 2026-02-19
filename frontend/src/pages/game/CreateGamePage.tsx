@@ -1,44 +1,34 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { gameService } from '../../services/gameService';
-import { GameMode, AnswerMode, YouTubePlaylist, CreateGameData } from '../../types';
+import type { GameMode, AnswerMode, GuessTarget, YouTubePlaylist, CreateGameData } from '../../types';
 import PlaylistSelector from '../../components/playlist/PlaylistSelector';
 
-const gameModes: { value: GameMode; label: string; description: string; icon: string; disabled?: boolean }[] = [
+const TOTAL_STEPS = 4;
+
+const gameModes: { value: GameMode; label: string; description: string; icon: string }[] = [
   {
-    value: 'quiz_4',
+    value: 'classique',
     label: 'Classique',
-    description: 'Trouvez le bon titre parmi 4 propositions',
+    description: 'La musique se lance au début du round. Trouvez l\'artiste ou le titre.',
     icon: '🎵',
   },
   {
-    value: 'blind_test_inverse',
-    label: 'Trouver le Titre',
-    description: "L'artiste est donné, trouvez le titre (plus facile)",
-    icon: '🎯',
-  },
-  {
-    value: 'guess_year',
-    label: 'Année de Sortie',
-    description: 'Devinez l\'année de sortie du morceau (±2 ans)',
-    icon: '📅',
-  },
-  {
-    value: 'guess_artist',
-    label: 'Trouver l\'Artiste',
-    description: 'Le titre est donné, trouvez qui interprète le morceau',
-    icon: '🎤',
-  },
-  {
-    value: 'intro',
-    label: 'Intro (3s)',
-    description: 'Reconnaissez le morceau en seulement 3 secondes',
+    value: 'rapide',
+    label: 'Rapide',
+    description: '3 secondes de musique puis silence. Trouvez l\'artiste ou le titre.',
     icon: '⚡',
   },
   {
-    value: 'lyrics',
-    label: 'Lyrics',
-    description: 'Complétez les paroles manquantes du morceau',
+    value: 'generation',
+    label: 'Génération',
+    description: 'Devinez l\'année de sortie du morceau. Points selon la précision.',
+    icon: '📅',
+  },
+  {
+    value: 'paroles',
+    label: 'Paroles',
+    description: 'Complétez les paroles manquantes. Aucune musique pendant le round.',
     icon: '📝',
   },
 ];
@@ -47,40 +37,47 @@ export default function CreateGamePage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const [gameName, setGameName] = useState('');
-  const [selectedModes, setSelectedModes] = useState<GameMode[]>(['quiz_4']);
+  const [currentStep, setCurrentStep] = useState(1);
+
+  // Step 1: Global config
+  const [timerStartRound, setTimerStartRound] = useState(5);
+  const [roundDuration, setRoundDuration] = useState(30);
+  const [scoreDisplayDuration, setScoreDisplayDuration] = useState(10);
   const [maxPlayers, setMaxPlayers] = useState(8);
   const [numRounds, setNumRounds] = useState(10);
   const [isOnline, setIsOnline] = useState(true);
-  const [answerMode, setAnswerMode] = useState<AnswerMode>('mcq');
-  const [roundDuration, setRoundDuration] = useState(30);
-  const [timeBetweenRounds, setTimeBetweenRounds] = useState(10);
-  const [lyricsWordsCount, setLyricsWordsCount] = useState(1);
-  const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
-  const [showPlaylistSelector, setShowPlaylistSelector] = useState(false);
+  const [gameName, setGameName] = useState('');
 
-  const toggleMode = (mode: GameMode) => {
-    setSelectedModes(prev => {
-      if (prev.includes(mode)) {
-        // Don't allow removing the last mode
-        if (prev.length === 1) return prev;
-        return prev.filter(m => m !== mode);
-      }
-      return [...prev, mode];
-    });
+  // Step 2: Game mode
+  const [selectedMode, setSelectedMode] = useState<GameMode>('classique');
+  const [answerMode, setAnswerMode] = useState<AnswerMode>('mcq');
+  const [guessTarget, setGuessTarget] = useState<GuessTarget>('title');
+  const [lyricsWordsCount, setLyricsWordsCount] = useState(3);
+
+  // Step 3: Playlist
+  const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
+
+  const nextStep = () => {
+    if (currentStep < TOTAL_STEPS) setCurrentStep(currentStep + 1);
+  };
+
+  const prevStep = () => {
+    if (currentStep > 1) setCurrentStep(currentStep - 1);
+  };
+
+  const canProceed = () => {
+    switch (currentStep) {
+      case 1: return true;
+      case 2: return true;
+      case 3: return !!selectedPlaylist;
+      default: return true;
+    }
   };
 
   const handleCreateGame = async () => {
-    // Validate playlist selection
     if (!selectedPlaylist) {
       setError('Veuillez sélectionner une playlist');
-      setShowPlaylistSelector(true);
-      return;
-    }
-
-    if (selectedModes.length === 0) {
-      setError('Veuillez sélectionner au moins un mode de jeu');
+      setCurrentStep(3);
       return;
     }
 
@@ -90,21 +87,20 @@ export default function CreateGamePage() {
     try {
       const gameData: CreateGameData = {
         name: gameName || undefined,
-        mode: selectedModes[0], // Primary mode for backwards compatibility
-        modes: selectedModes,   // All selected modes
+        mode: selectedMode,
         max_players: maxPlayers,
         num_rounds: numRounds,
         playlist_id: selectedPlaylist?.youtube_id,
         is_online: isOnline,
         answer_mode: answerMode,
+        guess_target: guessTarget,
         round_duration: roundDuration,
-        lyrics_words_count: lyricsWordsCount,
-        time_between_rounds: timeBetweenRounds,
+        timer_start_round: timerStartRound,
+        score_display_duration: scoreDisplayDuration,
+        lyrics_words_count: selectedMode === 'paroles' ? lyricsWordsCount : undefined,
       };
 
       const game = await gameService.createGame(gameData);
-      
-      // Navigate to lobby
       navigate(`/game/lobby/${game.room_code}`);
     } catch (err) {
       console.error('Failed to create game:', err);
@@ -113,6 +109,495 @@ export default function CreateGamePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const renderStepIndicator = () => (
+    <div className="flex items-center justify-center mb-8">
+      {[1, 2, 3, 4].map((step) => (
+        <div key={step} className="flex items-center">
+          <button
+            onClick={() => step < currentStep && setCurrentStep(step)}
+            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
+              step === currentStep
+                ? 'bg-primary-600 text-white shadow-lg scale-110'
+                : step < currentStep
+                ? 'bg-primary-200 text-primary-700 cursor-pointer hover:bg-primary-300'
+                : 'bg-gray-200 text-gray-400'
+            }`}
+          >
+            {step < currentStep ? '✓' : step}
+          </button>
+          {step < 4 && (
+            <div
+              className={`w-16 h-1 mx-1 rounded ${
+                step < currentStep ? 'bg-primary-400' : 'bg-gray-200'
+              }`}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderStepTitle = () => {
+    const titles = [
+      '', // index 0 unused
+      'Configuration globale',
+      'Mode de jeu',
+      'Sélection de la playlist',
+      'Confirmation',
+    ];
+    const subtitles = [
+      '',
+      'Paramétrez les timers, le nombre de joueurs et les options générales',
+      'Choisissez votre mode de jeu et ses options',
+      'Choisissez la playlist musicale pour la partie',
+      'Vérifiez vos choix et lancez la partie',
+    ];
+    return (
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold">{titles[currentStep]}</h2>
+        <p className="text-gray-600 text-sm mt-1">{subtitles[currentStep]}</p>
+      </div>
+    );
+  };
+
+  const renderStep1 = () => (
+    <div className="card space-y-6">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Nom de la partie (optionnel)
+        </label>
+        <input
+          type="text"
+          maxLength={100}
+          placeholder="Ex: Soirée Quiz 80's"
+          value={gameName}
+          onChange={(e) => setGameName(e.target.value)}
+          className="input max-w-md"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          ⏳ Timer début de round
+        </label>
+        <div className="flex items-center gap-4">
+          <input
+            type="range"
+            min="3"
+            max="15"
+            value={timerStartRound}
+            onChange={(e) => setTimerStartRound(parseInt(e.target.value))}
+            className="w-48"
+          />
+          <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
+            {timerStartRound}s
+          </span>
+        </div>
+        <p className="text-sm text-gray-500 mt-1">
+          Compte à rebours avant le début de chaque round
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          🎵 Temps du round
+        </label>
+        <div className="flex items-center gap-4">
+          <input
+            type="range"
+            min="10"
+            max="60"
+            step="5"
+            value={roundDuration}
+            onChange={(e) => setRoundDuration(parseInt(e.target.value))}
+            className="w-48"
+          />
+          <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
+            {roundDuration}s
+          </span>
+        </div>
+        <p className="text-sm text-gray-500 mt-1">
+          Durée pour répondre à chaque question
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          🏆 Temps affichage score fin de round
+        </label>
+        <div className="flex items-center gap-4">
+          <input
+            type="range"
+            min="3"
+            max="30"
+            value={scoreDisplayDuration}
+            onChange={(e) => setScoreDisplayDuration(parseInt(e.target.value))}
+            className="w-48"
+          />
+          <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
+            {scoreDisplayDuration}s
+          </span>
+        </div>
+        <p className="text-sm text-gray-500 mt-1">
+          Durée d'affichage des résultats après chaque round
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            👥 Nombre maximum de joueurs
+          </label>
+          <input
+            type="number"
+            min="2"
+            max="20"
+            value={maxPlayers}
+            onChange={(e) => setMaxPlayers(parseInt(e.target.value) || 2)}
+            className="input max-w-xs"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            🔄 Nombre de rounds
+          </label>
+          <div className="flex items-center gap-4">
+            <input
+              type="range"
+              min="3"
+              max="20"
+              value={numRounds}
+              onChange={(e) => setNumRounds(parseInt(e.target.value))}
+              className="w-48"
+            />
+            <span className="text-lg font-semibold text-primary-600 min-w-[3rem]">
+              {numRounds}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+        <input
+          type="checkbox"
+          id="isOffline"
+          checked={!isOnline}
+          onChange={(e) => setIsOnline(!e.target.checked)}
+          className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+        />
+        <label htmlFor="isOffline" className="text-sm font-medium text-gray-700">
+          📴 Mode hors ligne (solo)
+        </label>
+      </div>
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="space-y-6">
+      {/* Mode selection */}
+      <div className="card">
+        <h3 className="text-lg font-bold mb-4">Choisissez un mode</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {gameModes.map((mode) => {
+            const isSelected = selectedMode === mode.value;
+            return (
+              <button
+                key={mode.value}
+                onClick={() => setSelectedMode(mode.value)}
+                className={`p-5 rounded-xl border-2 text-left transition-all relative ${
+                  isSelected
+                    ? 'border-primary-600 bg-primary-50 shadow-md'
+                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                }`}
+              >
+                {isSelected && (
+                  <span className="absolute top-3 right-3 text-primary-600">
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                )}
+                <div className="text-3xl mb-2">{mode.icon}</div>
+                <h4 className="font-bold text-lg mb-1">{mode.label}</h4>
+                <p className="text-sm text-gray-600">{mode.description}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Mode-specific config */}
+      <div className="card">
+        <h3 className="text-lg font-bold mb-4">Configuration du mode</h3>
+
+        {/* Answer mode for all modes */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Mode de réponse
+          </label>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setAnswerMode('mcq')}
+              className={`flex-1 p-4 rounded-lg border-2 text-center transition-all ${
+                answerMode === 'mcq'
+                  ? 'border-primary-600 bg-primary-50'
+                  : 'border-gray-200 hover:border-gray-300 bg-white'
+              }`}
+            >
+              <div className="text-2xl mb-1">🔘</div>
+              <div className="font-semibold text-sm">QCM</div>
+              <p className="text-xs text-gray-500 mt-1">4 réponses proposées</p>
+            </button>
+            <button
+              onClick={() => setAnswerMode('text')}
+              className={`flex-1 p-4 rounded-lg border-2 text-center transition-all ${
+                answerMode === 'text'
+                  ? 'border-primary-600 bg-primary-50'
+                  : 'border-gray-200 hover:border-gray-300 bg-white'
+              }`}
+            >
+              <div className="text-2xl mb-1">⌨️</div>
+              <div className="font-semibold text-sm">Saisie libre</div>
+              <p className="text-xs text-gray-500 mt-1">Écrire la réponse</p>
+            </button>
+          </div>
+        </div>
+
+        {/* Classique / Rapide specific */}
+        {(selectedMode === 'classique' || selectedMode === 'rapide') && (
+          <div className="space-y-4">
+            {answerMode === 'mcq' ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Que doit trouver le joueur ?
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setGuessTarget('title')}
+                    className={`flex-1 p-3 rounded-lg border-2 text-center transition-all ${
+                      guessTarget === 'title'
+                        ? 'border-primary-600 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
+                  >
+                    <div className="text-xl mb-1">🎵</div>
+                    <div className="font-semibold text-sm">Le titre</div>
+                  </button>
+                  <button
+                    onClick={() => setGuessTarget('artist')}
+                    className={`flex-1 p-3 rounded-lg border-2 text-center transition-all ${
+                      guessTarget === 'artist'
+                        ? 'border-primary-600 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
+                  >
+                    <div className="text-xl mb-1">🎤</div>
+                    <div className="font-semibold text-sm">L'artiste</div>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-800">
+                  <strong>💡 Saisie libre :</strong> Le joueur peut tenter de trouver l'artiste <strong>et/ou</strong> le titre.
+                  S'il trouve les deux, il <strong>double ses points</strong> !
+                </p>
+              </div>
+            )}
+
+            {selectedMode === 'rapide' && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>⚡ Mode Rapide :</strong> La musique se joue pendant <strong>3 secondes</strong> puis s'arrête.
+                  Le joueur a ensuite tout le temps restant du round pour répondre.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Paroles specific */}
+        {selectedMode === 'paroles' && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nombre de mots à trouver
+              </label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="range"
+                  min="2"
+                  max="10"
+                  value={lyricsWordsCount}
+                  onChange={(e) => setLyricsWordsCount(parseInt(e.target.value))}
+                  className="w-48"
+                />
+                <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
+                  {lyricsWordsCount} mot{lyricsWordsCount > 1 ? 's' : ''}
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                Nombre de mots masqués dans les paroles
+              </p>
+            </div>
+
+            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+              <p className="text-sm text-purple-800">
+                <strong>📝 Mode Paroles :</strong> Aucune musique ne joue pendant le round.
+                Les joueurs doivent compléter les paroles affichées.
+                {answerMode === 'mcq'
+                  ? ' Des propositions seront affichées.'
+                  : ' Les joueurs saisissent les mots manquants.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Génération specific */}
+        {selectedMode === 'generation' && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm text-green-800">
+              <strong>📅 Mode Génération :</strong> Devinez l'année de sortie de la musique.
+            </p>
+            <ul className="text-sm text-green-700 mt-2 space-y-1 ml-4">
+              <li>🎯 <strong>Année exacte :</strong> Points maximum</li>
+              <li>📌 <strong>± 2 ans :</strong> Points conséquents</li>
+              <li>📎 <strong>± 5 ans :</strong> Quelques points</li>
+              <li>❌ <strong>Au-delà :</strong> Aucun point</li>
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="card">
+      {selectedPlaylist ? (
+        <div className="mb-6">
+          <div className="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            {selectedPlaylist.image_url && (
+              <img
+                src={selectedPlaylist.image_url}
+                alt={selectedPlaylist.name}
+                className="w-20 h-20 rounded-md object-cover"
+              />
+            )}
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg">{selectedPlaylist.name}</h3>
+              <p className="text-sm text-gray-600">
+                {selectedPlaylist.total_tracks} morceaux • {selectedPlaylist.owner}
+              </p>
+            </div>
+            <button
+              onClick={() => setSelectedPlaylist(null)}
+              className="text-red-600 hover:text-red-700 p-2"
+              title="Retirer"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-4 mb-4">
+          <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z" />
+          </svg>
+          <p className="text-gray-600">Sélectionnez une playlist ci-dessous</p>
+        </div>
+      )}
+
+      <PlaylistSelector
+        onSelectPlaylist={(playlist) => {
+          setSelectedPlaylist(playlist);
+          setError(null);
+        }}
+        selectedPlaylistId={selectedPlaylist?.youtube_id}
+      />
+    </div>
+  );
+
+  const renderStep4 = () => {
+    const modeConfig = gameModes.find((m) => m.value === selectedMode);
+
+    return (
+      <div className="card space-y-6">
+        <h3 className="text-lg font-bold">Récapitulatif</h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Global config summary */}
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-semibold text-sm text-gray-500 uppercase mb-3">Configuration</h4>
+            <ul className="space-y-2 text-sm">
+              {gameName && <li><span className="text-gray-500">Nom :</span> <strong>{gameName}</strong></li>}
+              <li><span className="text-gray-500">Timer début :</span> <strong>{timerStartRound}s</strong></li>
+              <li><span className="text-gray-500">Durée round :</span> <strong>{roundDuration}s</strong></li>
+              <li><span className="text-gray-500">Score affichage :</span> <strong>{scoreDisplayDuration}s</strong></li>
+              <li><span className="text-gray-500">Rounds :</span> <strong>{numRounds}</strong></li>
+              <li><span className="text-gray-500">Joueurs max :</span> <strong>{maxPlayers}</strong></li>
+              <li><span className="text-gray-500">Mode :</span> <strong>{isOnline ? 'En ligne' : 'Hors ligne'}</strong></li>
+            </ul>
+          </div>
+
+          {/* Mode summary */}
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-semibold text-sm text-gray-500 uppercase mb-3">Mode de jeu</h4>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-3xl">{modeConfig?.icon}</span>
+              <div>
+                <p className="font-bold">{modeConfig?.label}</p>
+                <p className="text-xs text-gray-600">{modeConfig?.description}</p>
+              </div>
+            </div>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <span className="text-gray-500">Réponse :</span>{' '}
+                <strong>{answerMode === 'mcq' ? 'QCM' : 'Saisie libre'}</strong>
+              </li>
+              {(selectedMode === 'classique' || selectedMode === 'rapide') && answerMode === 'mcq' && (
+                <li>
+                  <span className="text-gray-500">Cible :</span>{' '}
+                  <strong>{guessTarget === 'artist' ? 'Artiste' : 'Titre'}</strong>
+                </li>
+              )}
+              {selectedMode === 'paroles' && (
+                <li>
+                  <span className="text-gray-500">Mots à trouver :</span>{' '}
+                  <strong>{lyricsWordsCount}</strong>
+                </li>
+              )}
+            </ul>
+          </div>
+        </div>
+
+        {/* Playlist summary */}
+        {selectedPlaylist && (
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-semibold text-sm text-gray-500 uppercase mb-3">Playlist</h4>
+            <div className="flex items-center gap-4">
+              {selectedPlaylist.image_url && (
+                <img
+                  src={selectedPlaylist.image_url}
+                  alt={selectedPlaylist.name}
+                  className="w-16 h-16 rounded-md object-cover"
+                />
+              )}
+              <div>
+                <p className="font-bold">{selectedPlaylist.name}</p>
+                <p className="text-sm text-gray-600">
+                  {selectedPlaylist.total_tracks} morceaux • {selectedPlaylist.owner}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -130,10 +615,11 @@ export default function CreateGamePage() {
             Retour
           </button>
           <h1 className="text-4xl font-bold">Créer une partie</h1>
-          <p className="text-gray-600 mt-2">
-            Configurez votre partie et invitez vos amis à vous rejoindre
-          </p>
         </div>
+
+        {/* Step indicator */}
+        {renderStepIndicator()}
+        {renderStepTitle()}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-6">
@@ -141,312 +627,40 @@ export default function CreateGamePage() {
           </div>
         )}
 
-        <div className="space-y-6">
-          {/* Game Mode Selection */}
-          <div className="card">
-            <h2 className="text-xl font-bold mb-4">Modes de jeu</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Sélectionnez un ou plusieurs modes. Les questions seront mélangées entre les modes choisis.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {gameModes.map((mode) => {
-                const isSelected = selectedModes.includes(mode.value);
-                return (
-                  <button
-                    key={mode.value}
-                    onClick={() => !mode.disabled && toggleMode(mode.value)}
-                    disabled={mode.disabled}
-                    className={`
-                      p-4 rounded-lg border-2 text-left transition-all relative
-                      ${mode.disabled
-                        ? 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed'
-                        : isSelected
-                          ? 'border-primary-600 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }
-                    `}
-                  >
-                    {isSelected && (
-                      <span className="absolute top-2 right-2 text-primary-600">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      </span>
-                    )}
-                    <div className="text-2xl mb-2">{mode.icon}</div>
-                    <h3 className="font-semibold mb-1">{mode.label}</h3>
-                    <p className="text-xs text-gray-600">{mode.description}</p>
-                    {mode.disabled && (
-                      <span className="absolute top-2 right-2 text-xs bg-gray-300 text-gray-600 px-2 py-0.5 rounded-full font-medium">
-                        Bientôt
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            {selectedModes.length > 1 && (
-              <p className="text-sm text-primary-600 mt-3 font-medium">
-                ✨ Mode mixte : {selectedModes.length} modes sélectionnés
-              </p>
-            )}
-          </div>
+        {/* Step content */}
+        {currentStep === 1 && renderStep1()}
+        {currentStep === 2 && renderStep2()}
+        {currentStep === 3 && renderStep3()}
+        {currentStep === 4 && renderStep4()}
 
-          {/* Game Settings */}
-          <div className="card">
-            <h2 className="text-xl font-bold mb-4">Paramètres</h2>
-            <div className="space-y-4">
-              {/* Game Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nom de la partie (optionnel)
-                </label>
-                <input
-                  type="text"
-                  maxLength={100}
-                  placeholder="Ex: Soirée Quiz 80's"
-                  value={gameName}
-                  onChange={(e) => setGameName(e.target.value)}
-                  className="input max-w-md"
-                />
-              </div>
-
-              {/* Answer Mode */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mode de réponse
-                </label>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setAnswerMode('mcq')}
-                    className={`flex-1 p-4 rounded-lg border-2 text-center transition-all ${
-                      answerMode === 'mcq'
-                        ? 'border-primary-600 bg-primary-50'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
-                    }`}
-                  >
-                    <div className="text-2xl mb-1">🔘</div>
-                    <div className="font-semibold text-sm">QCM</div>
-                    <p className="text-xs text-gray-500 mt-1">4 réponses proposées</p>
-                  </button>
-                  <button
-                    onClick={() => setAnswerMode('text')}
-                    className={`flex-1 p-4 rounded-lg border-2 text-center transition-all ${
-                      answerMode === 'text'
-                        ? 'border-primary-600 bg-primary-50'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
-                    }`}
-                  >
-                    <div className="text-2xl mb-1">⌨️</div>
-                    <div className="font-semibold text-sm">Saisie libre</div>
-                    <p className="text-xs text-gray-500 mt-1">Écrire la réponse (plus difficile)</p>
-                  </button>
-                </div>
-                {answerMode === 'text' && (
-                  <p className="text-sm text-amber-600 mt-2">
-                    ⚠️ En mode saisie libre, les réponses sont comparées avec tolérance (accents, articles, fautes mineures).
-                  </p>
-                )}
-              </div>
-
-              {/* Number of Rounds */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre de rounds
-                </label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="3"
-                    max="20"
-                    value={numRounds}
-                    onChange={(e) => setNumRounds(parseInt(e.target.value))}
-                    className="w-48"
-                  />
-                  <span className="text-lg font-semibold text-primary-600 min-w-[3rem]">
-                    {numRounds}
-                  </span>
-                </div>
-              </div>
-
-              {/* Round Duration */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Durée d'un round
-                </label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="10"
-                    max="60"
-                    step="5"
-                    value={roundDuration}
-                    onChange={(e) => setRoundDuration(parseInt(e.target.value))}
-                    className="w-48"
-                  />
-                  <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
-                    {roundDuration}s
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500 mt-1">
-                  Temps pour répondre à chaque question
-                </p>
-              </div>
-
-              {/* Time Between Rounds */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Temps entre les rounds
-                </label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="3"
-                    max="30"
-                    value={timeBetweenRounds}
-                    onChange={(e) => setTimeBetweenRounds(parseInt(e.target.value))}
-                    className="w-48"
-                  />
-                  <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
-                    {timeBetweenRounds}s
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500 mt-1">
-                  Pause entre chaque round (écran de chargement / résultats)
-                </p>
-              </div>
-
-              {/* Max Players */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre maximum de joueurs
-                </label>
-                <input
-                  type="number"
-                  min="2"
-                  max="20"
-                  value={maxPlayers}
-                  onChange={(e) => setMaxPlayers(parseInt(e.target.value) || 2)}
-                  className="input max-w-xs"
-                />
-              </div>
-
-              {/* Lyrics words count (only when Lyrics mode selected) */}
-              {selectedModes.includes('lyrics') && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre de mots à deviner (Lyrics)
-                  </label>
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="range"
-                      min="1"
-                      max="3"
-                      value={lyricsWordsCount}
-                      onChange={(e) => setLyricsWordsCount(parseInt(e.target.value))}
-                      className="w-48"
-                    />
-                    <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
-                      {lyricsWordsCount} mot{lyricsWordsCount > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Choisissez combien de mots seront masqués dans chaque question Lyrics.
-                  </p>
-                </div>
-              )}
-
-              {/* Online/Offline */}
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="isOnline"
-                  checked={isOnline}
-                  onChange={(e) => setIsOnline(e.target.checked)}
-                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                />
-                <label htmlFor="isOnline" className="text-sm font-medium text-gray-700">
-                  Partie en ligne (multijoueur)
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Playlist Selection */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Playlist</h2>
-              <button
-                onClick={() => setShowPlaylistSelector(!showPlaylistSelector)}
-                className="btn-secondary text-sm"
-              >
-                {selectedPlaylist ? 'Changer' : 'Sélectionner'}
-              </button>
-            </div>
-
-            {selectedPlaylist ? (
-              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                {selectedPlaylist.image_url && (
-                  <img
-                    src={selectedPlaylist.image_url}
-                    alt={selectedPlaylist.name}
-                    className="w-20 h-20 rounded-md object-cover"
-                  />
-                )}
-                <div className="flex-1">
-                  <h3 className="font-semibold">{selectedPlaylist.name}</h3>
-                  <p className="text-sm text-gray-600">
-                    {selectedPlaylist.total_tracks} morceaux • {selectedPlaylist.owner}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedPlaylist(null)}
-                  className="text-red-600 hover:text-red-700 p-2"
-                  title="Retirer"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            ) : (
-              <div className="text-center py-8 bg-gray-50 rounded-lg">
-                <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z" />
-                </svg>
-                <p className="text-gray-600">Aucune playlist sélectionnée</p>
-                {selectedModes.length > 0 && !selectedPlaylist && (
-                  <p className="text-sm text-orange-600 mt-1">
-                    Une playlist est requise pour ce mode de jeu
-                  </p>
-                )}
-              </div>
-            )}
-
-            {showPlaylistSelector && (
-              <div className="mt-4 border-t pt-4">
-                <PlaylistSelector
-                  onSelectPlaylist={(playlist) => {
-                    setSelectedPlaylist(playlist);
-                    setShowPlaylistSelector(false);
-                    setError(null);
-                  }}
-                  selectedPlaylistId={selectedPlaylist?.youtube_id}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="card">
-            <div className="flex gap-4">
+        {/* Navigation buttons */}
+        <div className="card mt-6">
+          <div className="flex gap-4">
+            {currentStep === 1 ? (
               <button
                 onClick={() => navigate('/')}
                 className="btn-secondary flex-1"
-                disabled={loading}
               >
                 Annuler
               </button>
+            ) : (
+              <button
+                onClick={prevStep}
+                className="btn-secondary flex-1"
+              >
+                ← Précédent
+              </button>
+            )}
+
+            {currentStep < TOTAL_STEPS ? (
+              <button
+                onClick={nextStep}
+                className="btn-primary flex-1"
+                disabled={!canProceed()}
+              >
+                Suivant →
+              </button>
+            ) : (
               <button
                 onClick={handleCreateGame}
                 className="btn-primary flex-1"
@@ -454,7 +668,7 @@ export default function CreateGamePage() {
               >
                 {loading ? 'Création...' : 'Créer la partie'}
               </button>
-            </div>
+            )}
           </div>
         </div>
       </div>

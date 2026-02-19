@@ -37,9 +37,10 @@ export interface RegisterData {
   password2: string;
 }
 
-export type GameMode = 'quiz_4' | 'blind_test_inverse' | 'guess_year' | 'guess_artist' | 'intro' | 'lyrics';
+export type GameMode = 'classique' | 'rapide' | 'generation' | 'paroles';
 export type GameStatus = 'waiting' | 'in_progress' | 'finished' | 'cancelled';
 export type AnswerMode = 'mcq' | 'text';
+export type GuessTarget = 'artist' | 'title';
 
 export interface Game {
   id: string;
@@ -48,15 +49,17 @@ export interface Game {
   host: number;
   host_username: string;
   mode: GameMode;
-  modes?: GameMode[];
   status: GameStatus;
   max_players: number;
   num_rounds: number;
   playlist_id?: string;
   is_online: boolean;
   answer_mode: AnswerMode;
+  guess_target: GuessTarget;
   round_duration: number;
-  time_between_rounds: number;
+  timer_start_round: number;
+  score_display_duration: number;
+  lyrics_words_count: number;
   players: GamePlayer[];
   player_count: number;
   created_at: string;
@@ -78,15 +81,16 @@ export interface GamePlayer {
 export interface CreateGameData {
   name?: string;
   mode: GameMode;
-  modes?: GameMode[];
   max_players: number;
   num_rounds: number;
   playlist_id?: string;
   is_online: boolean;
   answer_mode: AnswerMode;
+  guess_target: GuessTarget;
   round_duration: number;
+  timer_start_round: number;
+  score_display_duration: number;
   lyrics_words_count?: number;
-  time_between_rounds: number;
 }
 
 export interface GameRound {

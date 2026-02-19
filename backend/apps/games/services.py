@@ -2,6 +2,7 @@
 Services for game logic.
 Uses Deezer API for music content (30-second MP3 previews).
 """
+
 import random
 import logging
 import re
@@ -9,7 +10,15 @@ from typing import List, Dict, Optional, Tuple
 from django.utils import timezone
 from django.db import transaction
 
-from .models import Game, GamePlayer, GameRound, GameAnswer, GameStatus, GameMode, AnswerMode
+from .models import (
+    Game,
+    GamePlayer,
+    GameRound,
+    GameAnswer,
+    GameStatus,
+    GameMode,
+    AnswerMode,
+)
 from apps.playlists.deezer_service import deezer_service, DeezerAPIError
 from apps.achievements.services import achievement_service
 from .lyrics_service import get_lyrics, create_lyrics_question
@@ -18,49 +27,57 @@ from .lyrics_service import get_lyrics, create_lyrics_question
 def normalize_text(text: str) -> str:
     """Normalize text for fuzzy comparison in text answer mode."""
     import unicodedata
+
     text = text.lower().strip()
     # Remove accents
-    text = ''.join(
-        c for c in unicodedata.normalize('NFD', text)
-        if unicodedata.category(c) != 'Mn'
+    text = "".join(
+        c
+        for c in unicodedata.normalize("NFD", text)
+        if unicodedata.category(c) != "Mn"
     )
     # Remove common prefixes/articles
-    for prefix in ('the ', 'le ', 'la ', 'les ', 'l\'', 'un ', 'une ', 'des '):
+    for prefix in ("the ", "le ", "la ", "les ", "l'", "un ", "une ", "des "):
         if text.startswith(prefix):
-            text = text[len(prefix):]
+            text = text[len(prefix) :]
     # Remove punctuation
-    text = re.sub(r'[^a-z0-9\s]', '', text)
+    text = re.sub(r"[^a-z0-9\s]", "", text)
     # Collapse whitespace
-    text = re.sub(r'\s+', ' ', text).strip()
+    text = re.sub(r"\s+", " ", text).strip()
     return text
 
 
-def fuzzy_match(given: str, correct: str, threshold: float = 0.8) -> Tuple[bool, float]:
+def fuzzy_match(
+    given: str, correct: str, threshold: float = 0.8
+) -> Tuple[bool, float]:
     """Compare two strings with fuzzy matching for text answer mode.
-    
+
     Returns (is_match, similarity_factor) where similarity_factor is 0.0-1.0.
     """
     g = normalize_text(given)
     c = normalize_text(correct)
-    
+
     if g == c:
         return True, 1.0
-    
+
     # Check if one contains the other
     if g in c or c in g:
-        ratio = min(len(g), len(c)) / max(len(g), len(c)) if max(len(g), len(c)) > 0 else 0
+        ratio = (
+            min(len(g), len(c)) / max(len(g), len(c))
+            if max(len(g), len(c)) > 0
+            else 0
+        )
         if ratio >= threshold:
             return True, ratio
-    
+
     # Levenshtein-like similarity
     if not g or not c:
         return False, 0.0
-    
+
     max_len = max(len(g), len(c))
     # Simple character-based similarity
     common = sum(1 for a, b in zip(g, c) if a == b)
     similarity = common / max_len
-    
+
     # Also try with edit distance approximation
     if max_len <= 30:
         # DP edit distance for short strings
@@ -70,42 +87,37 @@ def fuzzy_match(given: str, correct: str, threshold: float = 0.8) -> Tuple[bool,
             dp[0] = i
             for j in range(1, len(c) + 1):
                 temp = dp[j]
-                if g[i-1] == c[j-1]:
+                if g[i - 1] == c[j - 1]:
                     dp[j] = prev
                 else:
-                    dp[j] = 1 + min(prev, dp[j], dp[j-1])
+                    dp[j] = 1 + min(prev, dp[j], dp[j - 1])
                 prev = temp
         edit_dist = dp[len(c)]
         edit_similarity = 1.0 - (edit_dist / max_len)
         similarity = max(similarity, edit_similarity)
-    
+
     if similarity >= threshold:
         return True, similarity
-    
+
     return False, similarity
+
 
 logger = logging.getLogger(__name__)
 
 
 # ─── Mode → default question_type mapping ─────────────────────────────────────
 MODE_CONFIG = {
-    GameMode.QUIZ_4_ANSWERS: {
-        'question_type': 'guess_title',
+    GameMode.CLASSIQUE: {
+        "question_type": "guess_title",
     },
-    GameMode.BLIND_TEST_INVERSE: {
-        'question_type': 'blind_inverse',
+    GameMode.RAPIDE: {
+        "question_type": "guess_title",
     },
-    GameMode.GUESS_YEAR: {
-        'question_type': 'guess_year',
+    GameMode.GENERATION: {
+        "question_type": "guess_year",
     },
-    GameMode.GUESS_ARTIST: {
-        'question_type': 'guess_artist',
-    },
-    GameMode.INTRO: {
-        'question_type': 'intro',
-    },
-    GameMode.LYRICS: {
-        'question_type': 'lyrics',
+    GameMode.PAROLES: {
+        "question_type": "lyrics",
     },
 }
 
@@ -113,7 +125,12 @@ MODE_CONFIG = {
 class QuestionGeneratorService:
     """Service to generate quiz questions from Deezer music playlists."""
 
-    QUESTION_TYPES = ['guess_title', 'guess_artist', 'blind_inverse', 'guess_year', 'intro', 'lyrics']
+    QUESTION_TYPES = [
+        "guess_title",
+        "guess_artist",
+        "guess_year",
+        "lyrics",
+    ]
 
     def __init__(self):
         self.deezer = deezer_service
@@ -124,10 +141,11 @@ class QuestionGeneratorService:
         self,
         playlist_id: str,
         num_questions: int = 10,
-        question_type: str = 'guess_title',
-        game_mode: str = 'quiz_4',
+        question_type: str = "guess_title",
+        game_mode: str = "classique",
         user=None,
-        lyrics_words_count: int = 1,
+        lyrics_words_count: int = 3,
+        guess_target: str = "title",
     ) -> List[Dict]:
         """
         Generate quiz questions from a Deezer playlist.
@@ -138,6 +156,8 @@ class QuestionGeneratorService:
             question_type: Type of question
             game_mode: The game mode (determines generator)
             user: Django user (unused, kept for compat)
+            lyrics_words_count: Number of words to blank in lyrics mode
+            guess_target: 'artist' or 'title' for MCQ in classique/rapide
 
         Returns:
             List of question dictionaries
@@ -145,7 +165,9 @@ class QuestionGeneratorService:
         tracks = self._fetch_tracks(playlist_id, limit=50)
 
         random.shuffle(tracks)
-        selected_tracks = tracks[:min(num_questions * 2, len(tracks))]  # extra buffer
+        selected_tracks = tracks[
+            : min(num_questions * 2, len(tracks))
+        ]  # extra buffer
 
         questions: List[Dict] = []
 
@@ -153,7 +175,13 @@ class QuestionGeneratorService:
             if len(questions) >= num_questions:
                 break
 
-            question = self._generate_for_mode(game_mode, track, tracks, lyrics_words_count=lyrics_words_count)
+            question = self._generate_for_mode(
+                game_mode,
+                track,
+                tracks,
+                lyrics_words_count=lyrics_words_count,
+                guess_target=guess_target,
+            )
             if question:
                 questions.append(question)
 
@@ -167,16 +195,28 @@ class QuestionGeneratorService:
             logger.info("Fetching tracks from Deezer playlist %s", playlist_id)
             tracks = self.deezer.get_playlist_tracks(playlist_id, limit=limit)
         except DeezerAPIError as e:
-            logger.error("Failed to get tracks from Deezer playlist %s: %s", playlist_id, e)
-            raise ValueError(f"Erreur lors de l'accès à la playlist Deezer: {e}")
+            logger.error(
+                "Failed to get tracks from Deezer playlist %s: %s",
+                playlist_id,
+                e,
+            )
+            raise ValueError(
+                f"Erreur lors de l'accès à la playlist Deezer: {e}"
+            )
 
         if not tracks or len(tracks) < 4:
             found = len(tracks) if tracks else 0
-            logger.warning("Deezer playlist %s returned %d tracks, attempting fallback", playlist_id, found)
+            logger.warning(
+                "Deezer playlist %s returned %d tracks, attempting fallback",
+                playlist_id,
+                found,
+            )
 
             try:
                 meta = self.deezer.get_playlist(playlist_id)
-                query = meta['name'] if meta and meta.get('name') else playlist_id
+                query = (
+                    meta["name"] if meta and meta.get("name") else playlist_id
+                )
             except Exception:
                 query = playlist_id
 
@@ -198,28 +238,48 @@ class QuestionGeneratorService:
 
     # ─── Mode dispatcher ─────────────────────────────────────────────
 
-    def _generate_for_mode(self, game_mode: str, track: Dict, all_tracks: List[Dict], lyrics_words_count: int = 1) -> Optional[Dict]:
+    def _generate_for_mode(
+        self,
+        game_mode: str,
+        track: Dict,
+        all_tracks: List[Dict],
+        lyrics_words_count: int = 3,
+        guess_target: str = "title",
+    ) -> Optional[Dict]:
         """Route to the correct question generator based on game mode."""
-        if game_mode == GameMode.BLIND_TEST_INVERSE:
-            return self._generate_blind_inverse_question(track, all_tracks)
-        elif game_mode == GameMode.GUESS_YEAR:
+        if game_mode == GameMode.CLASSIQUE:
+            if guess_target == "artist":
+                return self._generate_guess_artist_question(track, all_tracks)
+            else:
+                return self._generate_guess_title_question(track, all_tracks)
+        elif game_mode == GameMode.RAPIDE:
+            if guess_target == "artist":
+                q = self._generate_guess_artist_question(track, all_tracks)
+            else:
+                q = self._generate_guess_title_question(track, all_tracks)
+            if q:
+                q["extra_data"] = q.get("extra_data", {})
+                q["extra_data"]["audio_duration"] = 3
+            return q
+        elif game_mode == GameMode.GENERATION:
             return self._generate_year_question(track)
-        elif game_mode == GameMode.GUESS_ARTIST:
-            return self._generate_guess_artist_question(track, all_tracks)
-        elif game_mode == GameMode.INTRO:
-            return self._generate_intro_question(track, all_tracks)
-        elif game_mode == GameMode.LYRICS:
-            return self._generate_lyrics_question(track, all_tracks, words_to_blank=lyrics_words_count)
+        elif game_mode == GameMode.PAROLES:
+            return self._generate_lyrics_question(
+                track, all_tracks, words_to_blank=lyrics_words_count
+            )
         else:
-            # Default: quiz_4
             return self._generate_guess_title_question(track, all_tracks)
 
     # ─── Quiz 4 (default) ────────────────────────────────────────────
 
-    def _generate_guess_title_question(self, correct_track: Dict, all_tracks: List[Dict]) -> Optional[Dict]:
+    def _generate_guess_title_question(
+        self, correct_track: Dict, all_tracks: List[Dict]
+    ) -> Optional[Dict]:
         """Generate a 'guess the title' question."""
-        correct_answer = correct_track['name']
-        wrong_answers = self._pick_wrong_answers(correct_track, all_tracks, key='name', count=3)
+        correct_answer = correct_track["name"]
+        wrong_answers = self._pick_wrong_answers(
+            correct_track, all_tracks, key="name", count=3
+        )
         if len(wrong_answers) < 3:
             return None
 
@@ -227,27 +287,33 @@ class QuestionGeneratorService:
         random.shuffle(options)
 
         return {
-            'track_id': correct_track['youtube_id'],
-            'track_name': correct_track['name'],
-            'artist_name': ', '.join(correct_track['artists']),
-            'preview_url': correct_track.get('preview_url'),
-            'album_image': correct_track.get('album_image'),
-            'question_type': 'guess_title',
-            'question_text': 'Quel est le titre de ce morceau ?',
-            'correct_answer': correct_answer,
-            'options': options,
-            'extra_data': {},
+            "track_id": correct_track["youtube_id"],
+            "track_name": correct_track["name"],
+            "artist_name": ", ".join(correct_track["artists"]),
+            "preview_url": correct_track.get("preview_url"),
+            "album_image": correct_track.get("album_image"),
+            "question_type": "guess_title",
+            "question_text": "Quel est le titre de ce morceau ?",
+            "correct_answer": correct_answer,
+            "options": options,
+            "extra_data": {},
         }
 
-    def _generate_guess_artist_question(self, correct_track: Dict, all_tracks: List[Dict]) -> Optional[Dict]:
+    def _generate_guess_artist_question(
+        self, correct_track: Dict, all_tracks: List[Dict]
+    ) -> Optional[Dict]:
         """Generate a 'guess the artist' question."""
-        correct_answer = ', '.join(correct_track['artists'])
-        other_tracks = [t for t in all_tracks if t['youtube_id'] != correct_track['youtube_id']]
+        correct_answer = ", ".join(correct_track["artists"])
+        other_tracks = [
+            t
+            for t in all_tracks
+            if t["youtube_id"] != correct_track["youtube_id"]
+        ]
         random.shuffle(other_tracks)
 
         wrong_answers = []
         for track in other_tracks:
-            artist = ', '.join(track['artists'])
+            artist = ", ".join(track["artists"])
             if artist != correct_answer and artist not in wrong_answers:
                 wrong_answers.append(artist)
             if len(wrong_answers) >= 3:
@@ -260,56 +326,60 @@ class QuestionGeneratorService:
         random.shuffle(options)
 
         return {
-            'track_id': correct_track['youtube_id'],
-            'track_name': correct_track['name'],
-            'artist_name': correct_answer,
-            'preview_url': correct_track.get('preview_url'),
-            'album_image': correct_track.get('album_image'),
-            'question_type': 'guess_artist',
-            'question_text': 'Qui interprète ce morceau ?',
-            'correct_answer': correct_answer,
-            'options': options,
-            'extra_data': {},
+            "track_id": correct_track["youtube_id"],
+            "track_name": correct_track["name"],
+            "artist_name": correct_answer,
+            "preview_url": correct_track.get("preview_url"),
+            "album_image": correct_track.get("album_image"),
+            "question_type": "guess_artist",
+            "question_text": "Qui interprète ce morceau ?",
+            "correct_answer": correct_answer,
+            "options": options,
+            "extra_data": {},
         }
 
     # ─── Blind Test Inversé ──────────────────────────────────────────
 
-    def _generate_blind_inverse_question(self, correct_track: Dict, all_tracks: List[Dict]) -> Optional[Dict]:
+    def _generate_blind_inverse_question(
+        self, correct_track: Dict, all_tracks: List[Dict]
+    ) -> Optional[Dict]:
         """Artist is given prominently, player guesses the title."""
-        correct_answer = correct_track['name']
-        wrong_answers = self._pick_wrong_answers(correct_track, all_tracks, key='name', count=3)
+        correct_answer = correct_track["name"]
+        wrong_answers = self._pick_wrong_answers(
+            correct_track, all_tracks, key="name", count=3
+        )
         if len(wrong_answers) < 3:
             return None
 
         options = [correct_answer] + wrong_answers[:3]
         random.shuffle(options)
 
-        artist = ', '.join(correct_track['artists'])
+        artist = ", ".join(correct_track["artists"])
         return {
-            'track_id': correct_track['youtube_id'],
-            'track_name': correct_track['name'],
-            'artist_name': artist,
-            'preview_url': correct_track.get('preview_url'),
-            'album_image': correct_track.get('album_image'),
-            'question_type': 'blind_inverse',
-            'question_text': f"L'artiste est {artist}. Quel est le titre ?",
-            'correct_answer': correct_answer,
-            'options': options,
-            'extra_data': {},
+            "track_id": correct_track["youtube_id"],
+            "track_name": correct_track["name"],
+            "artist_name": artist,
+            "preview_url": correct_track.get("preview_url"),
+            "album_image": correct_track.get("album_image"),
+            "question_type": "blind_inverse",
+            "question_text": f"L'artiste est {artist}. Quel est le titre ?",
+            "correct_answer": correct_answer,
+            "options": options,
+            "extra_data": {},
         }
 
     # ─── Année de Sortie ─────────────────────────────────────────────
 
     def _generate_year_question(self, track: Dict) -> Optional[Dict]:
         """Player guesses the release year (±2 tolerance)."""
-        track_id = track['youtube_id']
+        track_id = track["youtube_id"]
 
         # Get detailed info including release_date
         details = self.deezer.get_track_details(track_id)
-        if not details or not details.get('release_date'):
+        if not details or not details.get("release_date"):
             return None
 
-        release_date = details['release_date']  # "YYYY-MM-DD"
+        release_date = details["release_date"]  # "YYYY-MM-DD"
         try:
             year = int(release_date[:4])
         except (ValueError, IndexError):
@@ -318,30 +388,34 @@ class QuestionGeneratorService:
         if year < 1950 or year > 2030:
             return None
 
-        artist = ', '.join(track['artists'])
+        artist = ", ".join(track["artists"])
         return {
-            'track_id': track_id,
-            'track_name': track['name'],
-            'artist_name': artist,
-            'preview_url': track.get('preview_url'),
-            'album_image': track.get('album_image'),
-            'question_type': 'guess_year',
-            'question_text': f'En quelle année est sorti « {track["name"]} » de {artist} ?',
-            'correct_answer': str(year),
-            'options': [],  # No MCQ — free numeric input
-            'extra_data': {
-                'release_date': release_date,
-                'year': year,
-                'tolerance': 2,
+            "track_id": track_id,
+            "track_name": track["name"],
+            "artist_name": artist,
+            "preview_url": track.get("preview_url"),
+            "album_image": track.get("album_image"),
+            "question_type": "guess_year",
+            "question_text": f'En quelle année est sorti « {track["name"]} » de {artist} ?',
+            "correct_answer": str(year),
+            "options": [],  # No MCQ — free numeric input
+            "extra_data": {
+                "release_date": release_date,
+                "year": year,
+                "tolerance": 2,
             },
         }
 
     # ─── Intro (3 seconds) ───────────────────────────────────────────
 
-    def _generate_intro_question(self, correct_track: Dict, all_tracks: List[Dict]) -> Optional[Dict]:
+    def _generate_intro_question(
+        self, correct_track: Dict, all_tracks: List[Dict]
+    ) -> Optional[Dict]:
         """Same as guess_title but only 3 seconds of audio."""
-        correct_answer = correct_track['name']
-        wrong_answers = self._pick_wrong_answers(correct_track, all_tracks, key='name', count=3)
+        correct_answer = correct_track["name"]
+        wrong_answers = self._pick_wrong_answers(
+            correct_track, all_tracks, key="name", count=3
+        )
         if len(wrong_answers) < 3:
             return None
 
@@ -349,70 +423,88 @@ class QuestionGeneratorService:
         random.shuffle(options)
 
         return {
-            'track_id': correct_track['youtube_id'],
-            'track_name': correct_track['name'],
-            'artist_name': ', '.join(correct_track['artists']),
-            'preview_url': correct_track.get('preview_url'),
-            'album_image': correct_track.get('album_image'),
-            'question_type': 'intro',
-            'question_text': 'Reconnaissez ce morceau en 3 secondes !',
-            'correct_answer': correct_answer,
-            'options': options,
-            'extra_data': {'audio_duration': 3},
+            "track_id": correct_track["youtube_id"],
+            "track_name": correct_track["name"],
+            "artist_name": ", ".join(correct_track["artists"]),
+            "preview_url": correct_track.get("preview_url"),
+            "album_image": correct_track.get("album_image"),
+            "question_type": "intro",
+            "question_text": "Reconnaissez ce morceau en 3 secondes !",
+            "correct_answer": correct_answer,
+            "options": options,
+            "extra_data": {"audio_duration": 3},
         }
 
     # ─── Lyrics ──────────────────────────────────────────────────────
 
-    def _generate_lyrics_question(self, track: Dict, all_tracks: List[Dict], words_to_blank: int = 1) -> Optional[Dict]:
+    def _generate_lyrics_question(
+        self, track: Dict, all_tracks: List[Dict], words_to_blank: int = 1
+    ) -> Optional[Dict]:
         """Fetch lyrics, extract a line, blank out a sequence of words (length words_to_blank), 4 MCQ options."""
-        artist = ', '.join(track['artists'])
-        lyrics = get_lyrics(artist, track['name'])
+        artist = ", ".join(track["artists"])
+        lyrics = get_lyrics(artist, track["name"])
 
         if not lyrics:
             # No lyrics found — skip this track so we don't mix modes
-            logger.warning("No lyrics found for %s – %s, skipping track", artist, track['name'])
+            logger.warning(
+                "No lyrics found for %s – %s, skipping track",
+                artist,
+                track["name"],
+            )
             return None
 
         # Collect extra words from other track titles for wrong options
         extra_words = []
         for t in all_tracks:
-            extra_words.extend(re.findall(r'[a-zA-ZÀ-ÿ\'-]{3,}', t['name']))
+            extra_words.extend(re.findall(r"[a-zA-ZÀ-ÿ\'-]{3,}", t["name"]))
 
         result = create_lyrics_question(lyrics, extra_words, words_to_blank)
         if not result:
-            logger.warning("Failed to create lyrics question for %s – %s, skipping track", artist, track['name'])
+            logger.warning(
+                "Failed to create lyrics question for %s – %s, skipping track",
+                artist,
+                track["name"],
+            )
             return None
 
         snippet, correct_word, options = result
 
         return {
-            'track_id': track['youtube_id'],
-            'track_name': track['name'],
-            'artist_name': artist,
-            'preview_url': track.get('preview_url'),
-            'album_image': track.get('album_image'),
-            'question_type': 'lyrics',
-            'question_text': f'Complétez les paroles de « {track["name"]} » :',
-            'correct_answer': correct_word,
-            'options': options,
-            'extra_data': {
-                'lyrics_snippet': snippet,
+            "track_id": track["youtube_id"],
+            "track_name": track["name"],
+            "artist_name": artist,
+            "preview_url": track.get("preview_url"),
+            "album_image": track.get("album_image"),
+            "question_type": "lyrics",
+            "question_text": f'Complétez les paroles de « {track["name"]} » :',
+            "correct_answer": correct_word,
+            "options": options,
+            "extra_data": {
+                "lyrics_snippet": snippet,
             },
         }
 
     # ─── Helpers ─────────────────────────────────────────────────────
 
     def _pick_wrong_answers(
-        self, correct_track: Dict, all_tracks: List[Dict], key: str = 'name', count: int = 3
+        self,
+        correct_track: Dict,
+        all_tracks: List[Dict],
+        key: str = "name",
+        count: int = 3,
     ) -> List[str]:
         """Pick distinct wrong answers from the track pool."""
         correct_val = correct_track[key]
-        other = [t for t in all_tracks if t['youtube_id'] != correct_track['youtube_id']]
+        other = [
+            t
+            for t in all_tracks
+            if t["youtube_id"] != correct_track["youtube_id"]
+        ]
         random.shuffle(other)
 
         wrong = []
         for t in other:
-            val = t[key] if isinstance(t[key], str) else ', '.join(t[key])
+            val = t[key] if isinstance(t[key], str) else ", ".join(t[key])
             if val != correct_val and val not in wrong:
                 wrong.append(val)
             if len(wrong) >= count:
@@ -436,92 +528,57 @@ class GameService:
             raise ValueError("Game must have a playlist")
 
         num_rounds = game.num_rounds or 10
-        
-        # Determine which modes to use
-        selected_modes = game.modes if game.modes else [game.mode]
-        if not selected_modes:
-            selected_modes = [game.mode]
-        
-        # Generate questions for multi-mode or single mode
-        all_questions = []
-        
-        if len(selected_modes) > 1:
-            # Multi-mode: generate questions proportionally for each mode
-            questions_per_mode = max(1, num_rounds // len(selected_modes))
-            extra_questions = num_rounds % len(selected_modes)
-            
-            for i, mode in enumerate(selected_modes):
-                config = MODE_CONFIG.get(mode, MODE_CONFIG[GameMode.QUIZ_4_ANSWERS])
-                mode_questions_count = questions_per_mode + (1 if i < extra_questions else 0)
-                
-                questions = self.question_generator.generate_questions(
-                    game.playlist_id,
-                    num_questions=mode_questions_count,
-                    question_type=config['question_type'],
-                    game_mode=mode,
-                    user=game.host,
-                    lyrics_words_count=getattr(game, 'lyrics_words_count', 1),
-                )
-                
-                # Add mode info to each question
-                for q in questions:
-                    q['_mode'] = mode
-                
-                all_questions.extend(questions)
-            
-            # Shuffle to mix different modes
-            random.shuffle(all_questions)
-        else:
-            # Single mode
-            mode = selected_modes[0]
-            config = MODE_CONFIG.get(mode, MODE_CONFIG[GameMode.QUIZ_4_ANSWERS])
-            
-            questions = self.question_generator.generate_questions(
-                game.playlist_id,
-                num_questions=num_rounds,
-                question_type=config['question_type'],
-                game_mode=mode,
-                user=game.host,
-                lyrics_words_count=getattr(game, 'lyrics_words_count', 1),
-            )
-            
-            for q in questions:
-                q['_mode'] = mode
-            
-            all_questions = questions
+        mode = game.mode
+        config = MODE_CONFIG.get(mode, MODE_CONFIG[GameMode.CLASSIQUE])
+
+        questions = self.question_generator.generate_questions(
+            game.playlist_id,
+            num_questions=num_rounds,
+            question_type=config["question_type"],
+            game_mode=mode,
+            user=game.host,
+            lyrics_words_count=getattr(game, "lyrics_words_count", 3),
+            guess_target=getattr(game, "guess_target", "title"),
+        )
+
+        for q in questions:
+            q["_mode"] = mode
+
+        all_questions = questions
 
         if not all_questions:
             raise ValueError("Failed to generate questions from playlist")
 
-        # Use game-level round_duration (customizable, default 30)
         round_duration = game.round_duration or 30
         is_text_mode = game.answer_mode == AnswerMode.TEXT
 
         rounds = []
         for i, q in enumerate(all_questions[:num_rounds], start=1):
-            # Prepare extra_data with album_image and any other data
-            extra_data = q.get('extra_data', {}).copy()
-            if 'album_image' not in extra_data and q.get('album_image'):
-                extra_data['album_image'] = q['album_image']
-            # Store the mode used for this round
-            extra_data['round_mode'] = q.get('_mode', game.mode)
-            # Store answer mode
-            extra_data['answer_mode'] = game.answer_mode
-            
-            # In text mode, clear options so frontend shows text input
-            options = [] if is_text_mode else q['options']
-            
+            extra_data = q.get("extra_data", {}).copy()
+            if "album_image" not in extra_data and q.get("album_image"):
+                extra_data["album_image"] = q["album_image"]
+            extra_data["round_mode"] = q.get("_mode", game.mode)
+            extra_data["answer_mode"] = game.answer_mode
+            extra_data["guess_target"] = game.guess_target
+            # Store artist/title in extra_data for text mode scoring
+            extra_data["artist_name"] = q["artist_name"]
+            extra_data["track_name"] = q["track_name"]
+
+            # In text mode for classique/rapide, keep options empty
+            # In MCQ mode, provide options
+            options = [] if is_text_mode else q["options"]
+
             round_obj = GameRound.objects.create(
                 game=game,
                 round_number=i,
-                track_id=q['track_id'],
-                track_name=q['track_name'],
-                artist_name=q['artist_name'],
-                correct_answer=q['correct_answer'],
+                track_id=q["track_id"],
+                track_name=q["track_name"],
+                artist_name=q["artist_name"],
+                correct_answer=q["correct_answer"],
                 options=options,
-                preview_url=q.get('preview_url', ''),
-                question_type=q.get('question_type', 'guess_title'),
-                question_text=q.get('question_text', ''),
+                preview_url=q.get("preview_url", ""),
+                question_type=q.get("question_type", "guess_title"),
+                question_text=q.get("question_text", ""),
                 extra_data=extra_data,
                 duration=round_duration,
             )
@@ -538,10 +595,18 @@ class GameService:
         return game, rounds
 
     def get_current_round(self, game: Game) -> Optional[GameRound]:
-        return game.rounds.filter(started_at__isnull=False, ended_at__isnull=True).order_by('round_number').first()
+        return (
+            game.rounds.filter(started_at__isnull=False, ended_at__isnull=True)
+            .order_by("round_number")
+            .first()
+        )
 
     def get_next_round(self, game: Game) -> Optional[GameRound]:
-        return game.rounds.filter(started_at__isnull=True).order_by('round_number').first()
+        return (
+            game.rounds.filter(started_at__isnull=True)
+            .order_by("round_number")
+            .first()
+        )
 
     def start_round(self, round_obj: GameRound) -> GameRound:
         round_obj.started_at = timezone.now()
@@ -556,15 +621,22 @@ class GameService:
 
     # ─── Scoring ─────────────────────────────────────────────────────
 
-    def check_answer(self, game_mode: str, answer: str, correct_answer: str, extra_data: dict | None = None) -> Tuple[bool, float]:
+    def check_answer(
+        self,
+        game_mode: str,
+        answer: str,
+        correct_answer: str,
+        extra_data: dict | None = None,
+    ) -> Tuple[bool, float]:
         """
         Check answer and return (is_correct, accuracy_factor).
 
-        accuracy_factor: 1.0 = exact, 0.6 = ±1 year, 0.3 = ±2 years, 0.0 = wrong
-        For non-year modes in MCQ: exact match 1.0 or 0.0.
-        For text mode: fuzzy matching with similarity factor.
+        Génération mode: exact=1.0, ±2=0.75, ±5=0.4, else=0.0
+        Classique/Rapide text mode: try matching artist+title for double points.
+        Other text mode: fuzzy matching.
+        MCQ: exact match.
         """
-        if game_mode == GameMode.GUESS_YEAR:
+        if game_mode == GameMode.GENERATION:
             try:
                 given = int(answer)
                 correct = int(correct_answer)
@@ -574,23 +646,83 @@ class GameService:
             diff = abs(given - correct)
             if diff == 0:
                 return True, 1.0
-            elif diff == 1:
-                return True, 0.6
-            elif diff == 2:
-                return True, 0.3
+            elif diff <= 2:
+                return True, 0.75
+            elif diff <= 5:
+                return True, 0.4
             else:
                 return False, 0.0
-        else:
-            # Check if text answer mode (fuzzy matching)
-            answer_mode = (extra_data or {}).get('answer_mode', 'mcq')
-            if answer_mode == AnswerMode.TEXT:
-                is_match, similarity = fuzzy_match(answer, correct_answer, threshold=0.75)
-                return is_match, similarity if is_match else 0.0
-            else:
-                is_correct = answer == correct_answer
-                return is_correct, 1.0 if is_correct else 0.0
 
-    def calculate_score(self, accuracy_factor: float, response_time: float, max_time: int = 30) -> int:
+        answer_mode = (extra_data or {}).get("answer_mode", "mcq")
+
+        if answer_mode == AnswerMode.TEXT:
+            # For classique/rapide in text mode, check if user submitted both artist+title
+            if game_mode in (GameMode.CLASSIQUE, GameMode.RAPIDE):
+                return self._check_classique_text_answer(
+                    answer, correct_answer, extra_data
+                )
+            else:
+                is_match, similarity = fuzzy_match(
+                    answer, correct_answer, threshold=0.75
+                )
+                return is_match, similarity if is_match else 0.0
+        else:
+            # MCQ: exact match
+            is_correct = answer == correct_answer
+            return is_correct, 1.0 if is_correct else 0.0
+
+    def _check_classique_text_answer(
+        self, answer: str, correct_answer: str, extra_data: dict | None
+    ) -> Tuple[bool, float]:
+        """
+        Check text answer for Classique/Rapide modes.
+        The answer may be JSON {"artist": "...", "title": "..."} for double points.
+        If both artist and title are correct, accuracy_factor = 2.0 (double points).
+        If only the main target is correct, accuracy_factor = 1.0.
+        """
+        import json as _json
+
+        extra = extra_data or {}
+        # Get artist/title from extra_data (stored at round creation time)
+        round_artist = extra.get("artist_name", "")
+        round_title = extra.get("track_name", "")
+
+        try:
+            parsed = _json.loads(answer)
+            if isinstance(parsed, dict):
+                artist_answer = parsed.get("artist", "")
+                title_answer = parsed.get("title", "")
+
+                artist_ok = False
+                title_ok = False
+
+                if artist_answer and round_artist:
+                    artist_ok, _ = fuzzy_match(
+                        artist_answer, round_artist, threshold=0.75
+                    )
+                if title_answer and round_title:
+                    title_ok, _ = fuzzy_match(
+                        title_answer, round_title, threshold=0.75
+                    )
+
+                if artist_ok and title_ok:
+                    return True, 2.0  # Double points
+                elif artist_ok or title_ok:
+                    return True, 1.0
+                else:
+                    return False, 0.0
+        except (_json.JSONDecodeError, TypeError):
+            pass
+
+        # Fallback: simple fuzzy match against correct_answer
+        is_match, similarity = fuzzy_match(
+            answer, correct_answer, threshold=0.75
+        )
+        return is_match, similarity if is_match else 0.0
+
+    def calculate_score(
+        self, accuracy_factor: float, response_time: float, max_time: int = 30
+    ) -> int:
         """Calculate base points (Option C — Linear + Rank).
 
         Correct: (100 - response_time * 3) * accuracy_factor, min 10 when correct.
@@ -601,18 +733,28 @@ class GameService:
         return max(5, int(raw * accuracy_factor))
 
     @transaction.atomic
-    def submit_answer(self, player: GamePlayer, round_obj: GameRound, answer: str, response_time: float) -> GameAnswer:
+    def submit_answer(
+        self,
+        player: GamePlayer,
+        round_obj: GameRound,
+        answer: str,
+        response_time: float,
+    ) -> GameAnswer:
         """Submit and score a player's answer."""
         game_mode = round_obj.game.mode
         is_correct, accuracy_factor = self.check_answer(
             game_mode, answer, round_obj.correct_answer, round_obj.extra_data
         )
-        points = self.calculate_score(accuracy_factor, response_time, round_obj.duration)
+        points = self.calculate_score(
+            accuracy_factor, response_time, round_obj.duration
+        )
 
         # Rank bonus: +10 for 1st correct, +5 for 2nd, +2 for 3rd
         rank_bonus = 0
         if is_correct:
-            correct_before = GameAnswer.objects.filter(round=round_obj, is_correct=True).count()
+            correct_before = GameAnswer.objects.filter(
+                round=round_obj, is_correct=True
+            ).count()
             if correct_before == 0:
                 rank_bonus = 10
             elif correct_before == 1:
@@ -641,7 +783,7 @@ class GameService:
         game.finished_at = timezone.now()
         game.save()
 
-        players = game.players.order_by('-score')
+        players = game.players.order_by("-score")
         total_rounds = game.rounds.count()
 
         for rank, player in enumerate(players, start=1):
@@ -656,12 +798,16 @@ class GameService:
             user.save()
 
             correct_answers = GameAnswer.objects.filter(
-                player=player, round__game=game, is_correct=True,
+                player=player,
+                round__game=game,
+                is_correct=True,
             ).count()
             perfect_game = total_rounds > 0 and correct_answers == total_rounds
 
-            round_data = {'perfect_game': perfect_game}
-            achievement_service.check_and_award(user, game=game, round_data=round_data)
+            round_data = {"perfect_game": perfect_game}
+            achievement_service.check_and_award(
+                user, game=game, round_data=round_data
+            )
 
         return game
 

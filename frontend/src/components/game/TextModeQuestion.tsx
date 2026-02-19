@@ -30,8 +30,8 @@ export default function TextModeQuestion({
   placeholder,
 }: TextModeQuestionProps) {
   const isLyrics = round.question_type === 'lyrics';
-  const isIntro = round.question_type === 'intro';
-  const audioDuration = isIntro ? (round.extra_data?.audio_duration || 5) : undefined;
+  const isIntro = round.extra_data?.audio_duration != null && round.extra_data?.audio_duration <= 5;
+  const audioDuration = isIntro ? (round.extra_data?.audio_duration || 3) : undefined;
 
   // For lyrics: audio only on results.  For everything else: audio during the round.
   const duringRoundAudio = useAudioPlayer(round, showResults, audioDuration, seekOffsetMs);
