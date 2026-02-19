@@ -47,6 +47,22 @@ export function useAudioPlayer(
   const [needsPlay, setNeedsPlay] = useState(false);
   const [playerError, setPlayerError] = useState<string | null>(null);
   const mountedRef = useRef(true);
+  const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleStop = (audioEl: HTMLAudioElement | null) => {
+    if (stopTimeoutRef.current) {
+      clearTimeout(stopTimeoutRef.current);
+      stopTimeoutRef.current = null;
+    }
+    if (maxAudioDuration && maxAudioDuration < 30 && audioEl) {
+      stopTimeoutRef.current = setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          if (mountedRef.current) setIsPlaying(false);
+        }
+      }, maxAudioDuration * 1000);
+    }
+  };
 
   const getSeekTime = useCallback(() => {
     if (!round.started_at) return 0;
@@ -107,15 +123,7 @@ export function useAudioPlayer(
     audio.addEventListener('ended', onEnded);
 
     // For intro mode: stop audio after maxAudioDuration seconds
-    let stopTimeout: ReturnType<typeof setTimeout> | null = null;
-    if (maxAudioDuration && maxAudioDuration < 30) {
-      stopTimeout = setTimeout(() => {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          if (mountedRef.current) setIsPlaying(false);
-        }
-      }, maxAudioDuration * 1000);
-    }
+    scheduleStop(audioRef.current);
 
     const fallback = setTimeout(() => {
       if (!isPlaying && !playerError && mountedRef.current) setNeedsPlay(true);
@@ -124,7 +132,7 @@ export function useAudioPlayer(
     return () => {
       mountedRef.current = false;
       clearTimeout(fallback);
-      if (stopTimeout) clearTimeout(stopTimeout);
+      if (stopTimeoutRef.current) { clearTimeout(stopTimeoutRef.current); stopTimeoutRef.current = null; }
       audio.removeEventListener('canplaythrough', onCanPlay);
       audio.removeEventListener('error', onError);
       audio.removeEventListener('ended', onEnded);
@@ -162,11 +170,11 @@ export function useAudioPlayer(
         try { audio.currentTime = seekTime; } catch (_) { /* */ }
       }
       audio.play()
-        .then(() => { setIsPlaying(true); setNeedsPlay(false); })
+        .then(() => { setIsPlaying(true); setNeedsPlay(false); scheduleStop(audioRef.current); })
         .catch(() => setPlayerError('Impossible de lancer la lecture'));
     }, { once: true });
     audio.addEventListener('error', () => setPlayerError("Impossible de charger l'aperçu audio"), { once: true });
-    audio.addEventListener('ended', () => setIsPlaying(false), { once: true });
+    audio.addEventListener('ended', () => { if (stopTimeoutRef.current) { clearTimeout(stopTimeoutRef.current); stopTimeoutRef.current = null; } setIsPlaying(false); }, { once: true });
   };
 
   // Live volume sync: update currently-playing audio when slider changes
