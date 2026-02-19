@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { teamService } from '@/services/socialService';
 import { getMediaUrl } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
-import type { Team, TeamMember, TeamMemberRole, UserMinimal } from '@/types';
+import type { Team, TeamMember, TeamMemberRole } from '@/types';
 
 export default function TeamPage() {
   const { id } = useParams();
@@ -31,7 +31,7 @@ export default function TeamPage() {
     }
   };
 
-  const canManage = (member?: TeamMember) => {
+  const canManage = () => {
     if (!team || !user) return false;
     const myMembership = team.members_list.find(m => m.user.id === user.id);
     if (!myMembership) return false;
