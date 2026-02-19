@@ -60,6 +60,14 @@ docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA exec -T backend python manage.py 
 echo "📦 Collecte des fichiers statiques..."
 docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA exec -T backend python manage.py collectstatic --noinput
 
+if [ "$ENV" = "production" ]; then
+    echo "🔔 Initialisation des achievements (seed)..."
+    docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA exec -T backend python manage.py seed_achievements || true
+
+    echo "🔁 Attribution rétroactive des achievements aux joueurs (peut prendre du temps)..."
+    docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA exec -T backend python manage.py award_retroactive_achievements || true
+fi
+
 echo "🧹 Nettoyage des images Docker inutilisées..."
 docker image prune -f
 

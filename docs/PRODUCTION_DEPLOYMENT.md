@@ -129,6 +129,26 @@ docker compose -f _devops/docker/docker-compose.prod.yml exec backend python man
 
 # Collecter les fichiers statiques
 docker compose -f _devops/docker/docker-compose.prod.yml exec backend python manage.py collectstatic --noinput
+
+### 2.5 Achievements (initialisation et rétroactivité)
+
+Les achievements (succès) sont définis dans le code et doivent être initialisés en base.
+Après un déploiement initial ou si vous ajoutez/modifiez des achievements, exécutez :
+
+```bash
+# Seed des achievements (crée les définitions si elles n'existent pas)
+docker compose -f _devops/docker/docker-compose.prod.yml exec backend python manage.py seed_achievements
+
+# Optionnel : attribuer rétroactivement les achievements aux utilisateurs
+# (vérifie l'historique des parties et peut prendre du temps selon le nombre d'utilisateurs)
+docker compose -f _devops/docker/docker-compose.prod.yml exec backend python manage.py award_retroactive_achievements
+```
+
+Le script de déploiement `./_devops/script/deploy.sh` exécute désormais automatiquement
+`seed_achievements` et `award_retroactive_achievements` lors d'un déploiement en production.
+Si vous préférez contrôler ces commandes manuellement (par exemple en raison du temps d'exécution),
+éditez le script de déploiement ou exécutez les commandes séparément depuis le serveur.
+
 ```
 
 ---
