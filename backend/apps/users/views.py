@@ -312,10 +312,23 @@ class TeamViewSet(viewsets.ModelViewSet):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        join_request, created = TeamJoinRequest.objects.get_or_create(team=team, user=request.user)
-        if not created and join_request.status == TeamJoinRequestStatus.PENDING:
-            return Response({'error': 'Une demande est déjà en cours.'}, status=status.HTTP_400_BAD_REQUEST)
-
+        # Get or create with proper defaults
+        join_request, created = TeamJoinRequest.objects.get_or_create(
+            team=team, 
+            user=request.user,
+            defaults={'status': TeamJoinRequestStatus.PENDING}
+        )
+        
+        if not created:
+            # If request already exists, check status and reset if needed
+            if join_request.status == TeamJoinRequestStatus.PENDING:
+                return Response({'error': 'Une demande est déjà en cours.'}, status=status.HTTP_400_BAD_REQUEST)
+            elif join_request.status == TeamJoinRequestStatus.APPROVED:
+                return Response({'error': 'Votre demande a déjà été approuvée.'}, status=status.HTTP_400_BAD_REQUEST)
+            # If rejected, reset to pending
+            join_request.status = TeamJoinRequestStatus.PENDING
+            join_request.save()
+        
         return Response({'message': 'Demande d\'adhésion envoyée.'}, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['get'])

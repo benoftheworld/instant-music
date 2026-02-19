@@ -42,6 +42,11 @@ export const gameService = {
     return response.data;
   },
 
+  async endCurrentRound(roomCode: string): Promise<any> {
+    const response = await api.post(`/games/${roomCode}/end-round/`);
+    return response.data;
+  },
+
   async nextRound(roomCode: string): Promise<any> {
     const response = await api.post(`/games/${roomCode}/next-round/`);
     return response.data;

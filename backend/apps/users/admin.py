@@ -6,7 +6,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
-from .models import User, Friendship, Team, TeamMember
+from .models import User, Friendship, Team, TeamMember, TeamJoinRequest
 
 
 @admin.register(User)
@@ -133,3 +133,33 @@ class TeamAdmin(admin.ModelAdmin):
         return obj.memberships.count()
 
     member_count.short_description = _("Membres")
+
+
+@admin.register(TeamJoinRequest)
+class TeamJoinRequestAdmin(admin.ModelAdmin):
+    list_display = [
+        "user",
+        "team",
+        "status_badge",
+        "created_at",
+    ]
+    list_filter = ["status", "created_at"]
+    search_fields = ["user__username", "team__name"]
+    list_per_page = 30
+    readonly_fields = ["created_at", "updated_at"]
+
+    def status_badge(self, obj):
+        colors = {
+            "pending": "#3b82f6",
+            "approved": "#10b981",
+            "rejected": "#ef4444",
+        }
+        color = colors.get(obj.status, "#6b7280")
+        return format_html(
+            '<span style="background:{}; color:#fff; padding:2px 8px; '
+            'border-radius:12px; font-size:11px;">{}</span>',
+            color,
+            obj.get_status_display(),
+        )
+
+    status_badge.short_description = _("Statut")

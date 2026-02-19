@@ -159,17 +159,21 @@ export default function GamePlayPage() {
         clearInterval(interval);
         soundEffects.timeUp();
 
-        // Show results for everyone immediately when time runs out
-        setShowResults(true);
-        setRoundPhase('results');
-
-        // Host advances to next round after result display time
-        const resultDisplayTime = (game?.score_display_duration || 10) * 1000;
+        // Host terminates the round immediately to send results to all players
         if (user && game && game.host === user.id) {
-          timerTimeout = setTimeout(() => {
-            advanceToNextRound();
-          }, resultDisplayTime);
+          // End the round (triggers round_ended broadcast with results)
+          gameService.endCurrentRound(roomCode!)
+            .then(() => {
+              console.log('Round ended by timer');
+            })
+            .catch(err => {
+              console.error('Failed to end round:', err);
+              // Fallback: show local results if backend call fails
+              setShowResults(true);
+              setRoundPhase('results');
+            });
         }
+        // Non-hosts: wait for round_ended message from WebSocket
       }
     }, 100);
 
@@ -224,6 +228,14 @@ export default function GamePlayPage() {
           if (data.results?.updated_players) {
             setGame((prev: any) => prev ? { ...prev, players: data.results.updated_players } : prev);
           }
+
+          // Host advances to next round after result display time
+          const resultDisplayTime = (game?.score_display_duration || 10) * 1000;
+          if (user && game && game.host === user.id) {
+            setTimeout(() => {
+              advanceToNextRound();
+            }, resultDisplayTime);
+          }
           break;
         }
 
@@ -255,19 +267,7 @@ export default function GamePlayPage() {
     });
 
     return unsubscribe;
-  }, [onMessage, loadCurrentRound, navigate, roomCode]);
-
-  // Auto-advance to next round after showing results (host only)
-  useEffect(() => {
-    if (!showResults || !user || !game || game.host !== user.id) return;
-
-    const resultDisplayTime = (game?.score_display_duration || 10) * 1000;
-    const timer = setTimeout(() => {
-      advanceToNextRound();
-    }, resultDisplayTime); // Use customizable score display duration
-
-    return () => clearTimeout(timer);
-  }, [showResults, user, game, advanceToNextRound]);
+  }, [onMessage, loadCurrentRound, navigate, roomCode, user, game, advanceToNextRound]);
 
   // Initial load
   useEffect(() => {

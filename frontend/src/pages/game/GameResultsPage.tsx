@@ -33,6 +33,13 @@ interface GameResult {
     id: string;
     room_code: string;
     status: string;
+    mode: string;
+    mode_display: string;
+    answer_mode: string;
+    answer_mode_display: string;
+    guess_target: string;
+    guess_target_display: string;
+    num_rounds: number;
   };
   rankings: Player[];
   rounds: RoundDetail[];
@@ -115,6 +122,22 @@ export default function GameResultsPage() {
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-white mb-4">🎉 Partie Terminée ! 🎉</h1>
           <p className="text-xl text-white opacity-90">Partie {roomCode}</p>
+          <div className="flex flex-wrap justify-center gap-2 mt-4">
+            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-500/80 text-white">
+              {results.game.mode_display}
+            </span>
+            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-purple-500/80 text-white">
+              {results.game.answer_mode === 'mcq' ? '📋 QCM' : '⌨️ Saisie libre'}
+            </span>
+            {(results.game.mode === 'classique' || results.game.mode === 'rapide') && (
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-pink-500/80 text-white">
+                {results.game.guess_target === 'artist' ? '🎤 Artiste' : '🎵 Titre'}
+              </span>
+            )}
+            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gray-500/80 text-white">
+              {results.game.num_rounds} rounds
+            </span>
+          </div>
         </div>
 
         {/* Podium */}

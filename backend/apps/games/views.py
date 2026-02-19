@@ -380,6 +380,102 @@ class GameViewSet(viewsets.ModelViewSet):
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
 
+    @action(detail=True, methods=["post"], url_path="end-round")
+    def end_current_round(self, request, room_code=None):
+        """End the current round and broadcast results (host only)."""
+        game = self.get_object()
+
+        # Check if user is the host
+        if game.host != request.user:
+            return Response(
+                {"error": "Seul l'hôte peut terminer le round."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Get current round
+        current = game_service.get_current_round(game)
+        if not current:
+            return Response(
+                {"error": "Aucun round actif."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check if already ended
+        if current.ended_at:
+            return Response(
+                {"message": "Round déjà terminé."},
+                status=status.HTTP_200_OK,
+            )
+
+        # End the round
+        game_service.end_round(current)
+
+        # Prepare and broadcast round end results
+        try:
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+            from rest_framework.renderers import JSONRenderer
+            import json as _json
+
+            current.refresh_from_db()
+
+            round_serializer = GameRoundSerializer(current)
+            round_json = JSONRenderer().render(round_serializer.data)
+            round_data = _json.loads(round_json)
+
+            # Build per-player scores for this round
+            player_scores = {}
+            for ans in GameAnswer.objects.filter(
+                round=current
+            ).select_related("player__user"):
+                player_scores[ans.player.user.username] = {
+                    "points_earned": ans.points_earned,
+                    "is_correct": ans.is_correct,
+                    "response_time": ans.response_time,
+                }
+
+            # Build updated player list with total scores
+            updated_players = []
+            for p in game.players.select_related("user").order_by("-score"):
+                updated_players.append(
+                    {
+                        "id": p.id,
+                        "user": p.user.id,
+                        "username": p.user.username,
+                        "score": p.score,
+                        "rank": p.rank,
+                        "is_connected": p.is_connected,
+                    }
+                )
+
+            channel_layer = get_channel_layer()
+            room_group_name = f"game_{room_code}"
+
+            async_to_sync(channel_layer.group_send)(
+                room_group_name,
+                {
+                    "type": "broadcast_round_end",
+                    "results": {
+                        "correct_answer": current.correct_answer,
+                        "round_data": round_data,
+                        "player_scores": player_scores,
+                        "updated_players": updated_players,
+                    },
+                },
+            )
+
+            return Response(
+                {"message": "Round terminé.", "correct_answer": current.correct_answer},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).exception("Failed to end round")
+            return Response(
+                {"error": "Erreur lors de la fin du round."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
     @action(detail=True, methods=["post"], url_path="next-round")
     def next_round(self, request, room_code=None):
         """Move to the next round (host only)."""

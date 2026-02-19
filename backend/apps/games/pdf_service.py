@@ -74,10 +74,21 @@ def generate_results_pdf(
         Paragraph("InstantMusic — Résultats de la partie", title_style)
     )
     room_code = game_data.get("room_code", "?")
-    mode = game_data.get("mode", "?")
+    mode_display = game_data.get("mode_display", game_data.get("mode", "?"))
+    answer_mode_display = game_data.get("answer_mode_display", "")
+    guess_target_display = game_data.get("guess_target_display", "")
+    num_rounds = game_data.get("num_rounds", "?")
+    
+    config_parts = [f"Mode : <b>{mode_display}</b>"]
+    if answer_mode_display:
+        config_parts.append(f"Type : <b>{answer_mode_display}</b>")
+    if guess_target_display and game_data.get("mode") in ["classique", "rapide"]:
+        config_parts.append(f"Cible : <b>{guess_target_display}</b>")
+    config_parts.append(f"Rounds : <b>{num_rounds}</b>")
+    
     elements.append(
         Paragraph(
-            f"Partie <b>{room_code}</b> &nbsp;|&nbsp; Mode : <b>{mode}</b>",
+            f"Partie <b>{room_code}</b> &nbsp;|&nbsp; " + " &nbsp;|&nbsp; ".join(config_parts),
             subtitle_style,
         )
     )
