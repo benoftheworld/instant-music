@@ -37,10 +37,10 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserMinimalSerializer(serializers.ModelSerializer):
     """Minimal user info for lists."""
-    
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'avatar', 'total_points']
+        fields = ['id', 'username', 'avatar', 'total_points', 'total_wins']
 
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):

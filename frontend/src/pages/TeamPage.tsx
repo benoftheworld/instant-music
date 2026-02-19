@@ -13,6 +13,9 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editDescription, setEditDescription] = useState('');
+  const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!id) return navigate('/teams');
@@ -24,6 +27,7 @@ export default function TeamPage() {
     try {
       const data = await teamService.getTeam(Number(id));
       setTeam(data);
+      setEditDescription(data.description || '');
     } catch (err) {
       setMessage({ type: 'error', text: 'Impossible de charger l\'équipe.' });
     } finally {
@@ -67,6 +71,26 @@ export default function TeamPage() {
     }
   };
 
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!team) return;
+    const fd = new FormData();
+    fd.append('description', editDescription || '');
+    if (editAvatarFile) fd.append('avatar', editAvatarFile);
+
+    setProcessing(true);
+    try {
+      const updated = await teamService.updateTeam(team.id, fd);
+      setTeam(updated);
+      setMessage({ type: 'success', text: 'Équipe mise à jour.' });
+      setEditing(false);
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur lors de la mise à jour.' });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   if (loading) return <div className="container mx-auto px-4 py-8">Chargement...</div>;
   if (!team) return <div className="container mx-auto px-4 py-8">Équipe introuvable.</div>;
 
@@ -86,7 +110,24 @@ export default function TeamPage() {
           )}
           <div>
             <h1 className="text-2xl font-bold">{team.name}</h1>
-            <p className="text-sm text-gray-600">{team.description}</p>
+            {editing ? (
+              <form onSubmit={handleEditSubmit} className="space-y-2">
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="input w-full"
+                  placeholder="Description de l'équipe"
+                  maxLength={500}
+                />
+                <div className="flex items-center gap-2">
+                  <input type="file" accept="image/*" onChange={(e) => setEditAvatarFile(e.target.files?.[0] || null)} />
+                  <button type="submit" disabled={processing} className="btn-primary">{processing ? 'Enregistrement...' : 'Enregistrer'}</button>
+                  <button type="button" onClick={() => setEditing(false)} className="text-sm text-gray-500">Annuler</button>
+                </div>
+              </form>
+            ) : (
+              <p className="text-sm text-gray-600">{team.description}</p>
+            )}
             <div className="flex gap-4 mt-2 text-sm text-gray-500">
               <span>👥 {team.member_count} membres</span>
               <span>🎮 {team.total_games} parties</span>
@@ -94,6 +135,11 @@ export default function TeamPage() {
               <span>⭐ {team.total_points} pts</span>
             </div>
           </div>
+          {canManage() && !editing && (
+            <div className="ml-auto">
+              <button onClick={() => setEditing(true)} className="btn-primary">Modifier l'équipe</button>
+            </div>
+          )}
         </div>
 
         {message && (
@@ -109,10 +155,16 @@ export default function TeamPage() {
             {team.members_list.map((m) => (
               <div key={m.id} className="flex items-center justify-between p-2 border border-gray-100 rounded">
                 <div className="flex items-center gap-3">
-                  <img src={getMediaUrl(m.user.avatar || '')} alt={m.user.username} className="w-10 h-10 rounded-full object-cover" />
+                  {m.user.avatar ? (
+                    <img src={getMediaUrl(m.user.avatar)} alt={m.user.username} className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold">
+                      {m.user.username.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div>
                     <div className="font-medium">{m.user.username}</div>
-                    <div className="text-xs text-gray-500">Points: {m.user.total_points ?? '—'}</div>
+                    <div className="text-xs text-gray-500">Points: {m.user.total_points ?? '—'} · Victoires: {m.user.total_wins ?? '—'}</div>
                   </div>
                 </div>
 

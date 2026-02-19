@@ -148,4 +148,14 @@ export const teamService = {
     const response = await api.get(`/users/teams/${teamId}/requests/`);
     return response.data;
   },
+
+  /**
+   * Update team info (description/avatar) - multipart
+   */
+  async updateTeam(teamId: number, data: FormData) {
+    const response = await api.patch(`/users/teams/${teamId}/edit/`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
 };

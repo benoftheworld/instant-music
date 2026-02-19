@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { teamService } from '@/services/socialService';
 import { getMediaUrl } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
@@ -6,10 +7,10 @@ import type { Team } from '@/types';
 
 export default function TeamsPage() {
   const user = useAuthStore((state) => state.user);
-  const [myTeams, setMyTeams] = useState<Team[]>([]);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'my' | 'browse' | 'create'>('my');
+  const [activeTab, setActiveTab] = useState<'browse' | 'create'>('browse');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   // Create form
@@ -24,12 +25,7 @@ export default function TeamsPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [myData, allData] = await Promise.all([
-        teamService.getMyTeams(),
-        teamService.browseTeams(),
-      ]);
-      // Handle paginated or direct array response
-      setMyTeams(Array.isArray(myData) ? myData : (myData as any)?.results || []);
+      const allData = await teamService.browseTeams();
       setAllTeams(Array.isArray(allData) ? allData : (allData as any)?.results || []);
     } catch (err) {
       console.error('Failed to fetch teams:', err);
@@ -48,11 +44,11 @@ export default function TeamsPage() {
         name: newTeamName,
         description: newTeamDescription,
       });
-      setMyTeams([...myTeams, team]);
       setNewTeamName('');
       setNewTeamDescription('');
       setMessage({ type: 'success', text: `Équipe "${team.name}" créée !` });
-      setActiveTab('my');
+      // navigate to the created team's page
+      navigate(`/teams/${team.id}`);
     } catch (err: any) {
       setMessage({ type: 'error', text: err.response?.data?.name?.[0] || 'Erreur lors de la création' });
     } finally {
@@ -62,26 +58,16 @@ export default function TeamsPage() {
 
   const handleJoinTeam = async (teamId: number) => {
     try {
-      const team = await teamService.joinTeam(teamId);
-      setMyTeams([...myTeams, team]);
-      setMessage({ type: 'success', text: `Vous avez rejoint "${team.name}" !` });
+      await teamService.joinTeam(teamId);
+      setMessage({ type: 'success', text: `Demande d'adhésion envoyée.` });
     } catch (err: any) {
       setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur' });
     }
   };
 
-  const handleLeaveTeam = async (teamId: number) => {
-    if (!window.confirm('Quitter cette équipe ?')) return;
-    try {
-      await teamService.leaveTeam(teamId);
-      setMyTeams(myTeams.filter(t => t.id !== teamId));
-      setMessage({ type: 'success', text: 'Vous avez quitté l\'équipe' });
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur' });
-    }
-  };
+  // leave handled on team page if needed
 
-  const isInTeam = (teamId: number) => myTeams.some(t => t.id === teamId);
+  const isInTeam = (teamId: number) => false;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -105,20 +91,12 @@ export default function TeamsPage() {
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           <button
-            onClick={() => setActiveTab('my')}
-            className={`px-4 py-2 rounded-lg font-medium ${
-              activeTab === 'my' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700'
-            }`}
-          >
-            Mes équipes ({myTeams.length})
-          </button>
-          <button
             onClick={() => setActiveTab('browse')}
             className={`px-4 py-2 rounded-lg font-medium ${
               activeTab === 'browse' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700'
             }`}
           >
-            Parcourir
+            Parcourir ({allTeams.length})
           </button>
           <button
             onClick={() => setActiveTab('create')}
@@ -131,33 +109,7 @@ export default function TeamsPage() {
         </div>
 
         {/* My Teams Tab */}
-        {activeTab === 'my' && (
-          <div className="space-y-4">
-            {loading ? (
-              <div className="text-center py-8 text-gray-400">Chargement...</div>
-            ) : myTeams.length === 0 ? (
-              <div className="card text-center py-8">
-                <p className="text-gray-400 mb-4">Vous n'êtes dans aucune équipe</p>
-                <button
-                  onClick={() => setActiveTab('browse')}
-                  className="btn-primary"
-                >
-                  Parcourir les équipes
-                </button>
-              </div>
-            ) : (
-              myTeams.map((team) => (
-                <TeamCard
-                  key={team.id}
-                  team={team}
-                  currentUserId={user?.id}
-                  onLeave={() => handleLeaveTeam(team.id)}
-                  showLeave
-                />
-              ))
-            )}
-          </div>
-        )}
+        {/* Removed 'Mes équipes' tab — users are redirected to team detail pages */}
 
         {/* Browse Tab */}
         {activeTab === 'browse' && (
@@ -245,9 +197,17 @@ interface TeamCardProps {
 
 function TeamCard({ team, currentUserId, onJoin, onLeave, isJoined, showLeave }: TeamCardProps) {
   const isOwner = team.owner.id === currentUserId;
+  const navigate = useNavigate();
+
+  const handleView = (e: React.MouseEvent) => {
+    // prevent buttons inside the card from triggering navigation
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.tagName === 'SELECT' || target.closest('button')) return;
+    navigate(`/teams/${team.id}`);
+  };
 
   return (
-    <div className="card border border-gray-200">
+    <div onClick={handleView} className="card border border-gray-200 cursor-pointer">
       <div className="flex items-start gap-4">
         {team.avatar ? (
           <img

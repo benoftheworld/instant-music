@@ -400,7 +400,6 @@ class TeamViewSet(viewsets.ModelViewSet):
             membership = TeamMember.objects.get(team_id=pk, user=request.user)
         except TeamMember.DoesNotExist:
             return Response({'error': 'Vous n\'êtes pas membre de cette équipe.'}, status=status.HTTP_404_NOT_FOUND)
-        
         if membership.role == TeamMemberRole.OWNER:
             # Transfer ownership or delete team
             other_members = TeamMember.objects.filter(team_id=pk).exclude(user=request.user)
@@ -416,6 +415,30 @@ class TeamViewSet(viewsets.ModelViewSet):
         
         membership.delete()
         return Response({'message': 'Vous avez quitté l\'équipe.'})
+
+    @action(detail=True, methods=['patch'])
+    def edit(self, request, pk=None):
+        """Edit team description and avatar (owner/admin only)."""
+        try:
+            team = Team.objects.get(id=pk)
+            membership = TeamMember.objects.get(team=team, user=request.user)
+        except Team.DoesNotExist:
+            return Response({'error': 'Équipe introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        except TeamMember.DoesNotExist:
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if membership.role not in [TeamMemberRole.OWNER, TeamMemberRole.ADMIN]:
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+
+        description = request.data.get('description')
+        if description is not None:
+            team.description = description
+
+        if 'avatar' in request.FILES:
+            team.avatar = request.FILES['avatar']
+
+        team.save()
+        return Response(TeamSerializer(team).data)
     
     @action(detail=True, methods=['post'])
     def invite(self, request, pk=None):

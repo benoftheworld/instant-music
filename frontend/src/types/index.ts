@@ -237,6 +237,7 @@ export interface UserMinimal {
   username: string;
   avatar: string | null;
   total_points: number;
+  total_wins: number;
 }
 
 export interface Friendship {
