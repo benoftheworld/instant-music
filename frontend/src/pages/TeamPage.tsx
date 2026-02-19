@@ -19,6 +19,16 @@ export default function TeamPage() {
   const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
 
+  const roleLabel = (role?: string) => {
+    if (!role) return '';
+    const map: Record<string, string> = {
+      owner: 'Propriétaire',
+      admin: 'Administrateur',
+      member: 'Membre',
+    };
+    return map[role] || role;
+  };
+
   useEffect(() => {
     if (!id) return navigate('/teams');
     fetchTeam();
@@ -232,7 +242,7 @@ export default function TeamPage() {
                       <option value="owner">Propriétaire</option>
                     </select>
                   ) : (
-                    <span className="text-sm text-gray-600">{m.role}</span>
+                    <span className="text-sm text-gray-600">{roleLabel(m.role)}</span>
                   )}
 
                   {canManage() && m.role !== 'owner' && (
