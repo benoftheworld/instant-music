@@ -127,6 +127,7 @@ class QuestionGeneratorService:
         question_type: str = 'guess_title',
         game_mode: str = 'quiz_4',
         user=None,
+        lyrics_words_count: int = 1,
     ) -> List[Dict]:
         """
         Generate quiz questions from a Deezer playlist.
@@ -152,7 +153,7 @@ class QuestionGeneratorService:
             if len(questions) >= num_questions:
                 break
 
-            question = self._generate_for_mode(game_mode, track, tracks)
+            question = self._generate_for_mode(game_mode, track, tracks, lyrics_words_count=lyrics_words_count)
             if question:
                 questions.append(question)
 
@@ -197,7 +198,7 @@ class QuestionGeneratorService:
 
     # ─── Mode dispatcher ─────────────────────────────────────────────
 
-    def _generate_for_mode(self, game_mode: str, track: Dict, all_tracks: List[Dict]) -> Optional[Dict]:
+    def _generate_for_mode(self, game_mode: str, track: Dict, all_tracks: List[Dict], lyrics_words_count: int = 1) -> Optional[Dict]:
         """Route to the correct question generator based on game mode."""
         if game_mode == GameMode.BLIND_TEST_INVERSE:
             return self._generate_blind_inverse_question(track, all_tracks)
@@ -208,7 +209,7 @@ class QuestionGeneratorService:
         elif game_mode == GameMode.INTRO:
             return self._generate_intro_question(track, all_tracks)
         elif game_mode == GameMode.LYRICS:
-            return self._generate_lyrics_question(track, all_tracks)
+            return self._generate_lyrics_question(track, all_tracks, words_to_blank=lyrics_words_count)
         else:
             # Default: quiz_4
             return self._generate_guess_title_question(track, all_tracks)
@@ -362,8 +363,8 @@ class QuestionGeneratorService:
 
     # ─── Lyrics ──────────────────────────────────────────────────────
 
-    def _generate_lyrics_question(self, track: Dict, all_tracks: List[Dict]) -> Optional[Dict]:
-        """Fetch lyrics, extract a line, blank out a word, 4 MCQ options."""
+    def _generate_lyrics_question(self, track: Dict, all_tracks: List[Dict], words_to_blank: int = 1) -> Optional[Dict]:
+        """Fetch lyrics, extract a line, blank out a sequence of words (length words_to_blank), 4 MCQ options."""
         artist = ', '.join(track['artists'])
         lyrics = get_lyrics(artist, track['name'])
 
@@ -377,7 +378,7 @@ class QuestionGeneratorService:
         for t in all_tracks:
             extra_words.extend(re.findall(r'[a-zA-ZÀ-ÿ\'-]{3,}', t['name']))
 
-        result = create_lyrics_question(lyrics, extra_words)
+        result = create_lyrics_question(lyrics, extra_words, words_to_blank)
         if not result:
             logger.warning("Failed to create lyrics question for %s – %s, skipping track", artist, track['name'])
             return None
@@ -459,6 +460,7 @@ class GameService:
                     question_type=config['question_type'],
                     game_mode=mode,
                     user=game.host,
+                    lyrics_words_count=getattr(game, 'lyrics_words_count', 1),
                 )
                 
                 # Add mode info to each question
@@ -480,6 +482,7 @@ class GameService:
                 question_type=config['question_type'],
                 game_mode=mode,
                 user=game.host,
+                lyrics_words_count=getattr(game, 'lyrics_words_count', 1),
             )
             
             for q in questions:

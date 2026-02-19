@@ -427,7 +427,7 @@ class GameViewSet(viewsets.ModelViewSet):
                     {
                         'type': 'broadcast_round_end',
                         'results': {
-                            'correct_answer': current.correct_answer if hasattr(current, 'correct_answer') else None,
+                            'correct_answer': current.correct_answer,
                             'round_data': round_data,
                             'player_scores': player_scores,
                             'updated_players': updated_players,

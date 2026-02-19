@@ -85,6 +85,7 @@ export interface CreateGameData {
   is_online: boolean;
   answer_mode: AnswerMode;
   round_duration: number;
+  lyrics_words_count?: number;
   time_between_rounds: number;
 }
 

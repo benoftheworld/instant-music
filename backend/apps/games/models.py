@@ -98,6 +98,11 @@ class Game(models.Model):
         default=10,
         help_text=_('Temps de pause entre chaque round (3-30)')
     )
+    lyrics_words_count = models.IntegerField(
+        _('nombre de mots à deviner (lyrics)'),
+        default=1,
+        help_text=_('Nombre de mots à blanker dans le mode Lyrics (1-3)')
+    )
     
     created_at = models.DateTimeField(_('créé le'), auto_now_add=True)
     started_at = models.DateTimeField(_('démarré le'), null=True, blank=True)

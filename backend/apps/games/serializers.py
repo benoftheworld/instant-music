@@ -41,6 +41,7 @@ class GameSerializer(serializers.ModelSerializer):
             'is_online',
             'answer_mode',
             'round_duration',
+            'lyrics_words_count',
             'time_between_rounds',
             'players',
             'player_count',
@@ -71,7 +72,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
         fields = [
             'name', 'mode', 'modes', 'max_players', 'num_rounds',
             'playlist_id', 'is_online', 'answer_mode',
-            'round_duration', 'time_between_rounds',
+            'round_duration', 'lyrics_words_count', 'time_between_rounds',
         ]
         
     def validate_round_duration(self, value):

@@ -28,8 +28,8 @@ class GameConsumer(AsyncWebsocketConsumer):
             'message': 'Connected to game room'
         }))
         # If user is authenticated, mark them as connected and broadcast update
-        user = getattr(self.scope, 'user', None)
-        if user and getattr(user, 'is_authenticated', False):
+        user = self.scope.get('user')
+        if user and user.is_authenticated:
             await self._set_player_connected(True)
             game_data = await self.get_game_data()
             await self.channel_layer.group_send(
@@ -38,7 +38,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                     'type': 'broadcast_player_join',
                     'player': {
                         'user': user.id,
-                        'username': getattr(user, 'username', None)
+                        'username': user.username
                     },
                     'game_data': game_data
                 }
@@ -52,8 +52,8 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
         # If user is authenticated, mark them as disconnected and notify room
-        user = getattr(self.scope, 'user', None)
-        if user and getattr(user, 'is_authenticated', False):
+        user = self.scope.get('user')
+        if user and user.is_authenticated:
             await self._set_player_connected(False)
             # Broadcast player leave with updated game data
             game_data = await self.get_game_data()
@@ -63,7 +63,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                     'type': 'broadcast_player_leave',
                     'player': {
                         'user': user.id,
-                        'username': getattr(user, 'username', None)
+                        'username': user.username
                     },
                     'game_data': game_data
                 }
@@ -179,8 +179,8 @@ class GameConsumer(AsyncWebsocketConsumer):
         except Game.DoesNotExist:
             return
 
-        user = getattr(self.scope, 'user', None)
-        if not user or not getattr(user, 'is_authenticated', False):
+        user = self.scope.get('user')
+        if not user or not user.is_authenticated:
             return
 
         try:

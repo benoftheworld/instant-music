@@ -56,6 +56,7 @@ export default function CreateGamePage() {
   const [answerMode, setAnswerMode] = useState<AnswerMode>('mcq');
   const [roundDuration, setRoundDuration] = useState(30);
   const [timeBetweenRounds, setTimeBetweenRounds] = useState(10);
+  const [lyricsWordsCount, setLyricsWordsCount] = useState(1);
   const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
   const [showPlaylistSelector, setShowPlaylistSelector] = useState(false);
 
@@ -97,6 +98,7 @@ export default function CreateGamePage() {
         is_online: isOnline,
         answer_mode: answerMode,
         round_duration: roundDuration,
+        lyrics_words_count: lyricsWordsCount,
         time_between_rounds: timeBetweenRounds,
       };
 
@@ -328,6 +330,31 @@ export default function CreateGamePage() {
                   className="input max-w-xs"
                 />
               </div>
+
+              {/* Lyrics words count (only when Lyrics mode selected) */}
+              {selectedModes.includes('lyrics') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nombre de mots à deviner (Lyrics)
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min="1"
+                      max="3"
+                      value={lyricsWordsCount}
+                      onChange={(e) => setLyricsWordsCount(parseInt(e.target.value))}
+                      className="w-48"
+                    />
+                    <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
+                      {lyricsWordsCount} mot{lyricsWordsCount > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Choisissez combien de mots seront masqués dans chaque question Lyrics.
+                  </p>
+                </div>
+              )}
 
               {/* Online/Offline */}
               <div className="flex items-center gap-3">
