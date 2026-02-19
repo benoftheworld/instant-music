@@ -37,7 +37,7 @@ export interface RegisterData {
   password2: string;
 }
 
-export type GameMode = 'classique' | 'rapide' | 'generation' | 'paroles';
+export type GameMode = 'classique' | 'rapide' | 'generation' | 'paroles' | 'karaoke';
 export type GameStatus = 'waiting' | 'in_progress' | 'finished' | 'cancelled';
 export type AnswerMode = 'mcq' | 'text';
 export type GuessTarget = 'artist' | 'title';

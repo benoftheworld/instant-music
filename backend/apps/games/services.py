@@ -21,7 +21,11 @@ from .models import (
 )
 from apps.playlists.deezer_service import deezer_service, DeezerAPIError
 from apps.achievements.services import achievement_service
-from .lyrics_service import get_lyrics, create_lyrics_question
+from .lyrics_service import (
+    get_lyrics,
+    create_lyrics_question,
+    get_synced_lyrics,
+)
 
 
 def normalize_text(text: str) -> str:
@@ -119,6 +123,9 @@ MODE_CONFIG = {
     GameMode.PAROLES: {
         "question_type": "lyrics",
     },
+    GameMode.KARAOKE: {
+        "question_type": "karaoke",
+    },
 }
 
 
@@ -130,6 +137,7 @@ class QuestionGeneratorService:
         "guess_artist",
         "guess_year",
         "lyrics",
+        "karaoke",
     ]
 
     def __init__(self):
@@ -267,6 +275,8 @@ class QuestionGeneratorService:
             return self._generate_lyrics_question(
                 track, all_tracks, words_to_blank=lyrics_words_count
             )
+        elif game_mode == GameMode.KARAOKE:
+            return self._generate_karaoke_question(track, all_tracks)
         else:
             return self._generate_guess_title_question(track, all_tracks)
 
@@ -482,6 +492,67 @@ class QuestionGeneratorService:
             "extra_data": {
                 "lyrics_snippet": snippet,
             },
+        }
+
+    # ─── Karaoké ─────────────────────────────────────────────────────
+
+    def _generate_karaoke_question(
+        self, track: Dict, all_tracks: List[Dict]
+    ) -> Optional[Dict]:
+        """Generate a karaoke question with synced lyrics.
+
+        The player listens to the 30-second preview while lyrics scroll in sync.
+        They must guess the track title from 4 MCQ options.
+        If no synced lyrics are available, falls back to plain lyrics display.
+        """
+        artist = ", ".join(track["artists"])
+
+        # Try synced lyrics first
+        synced = get_synced_lyrics(artist, track["name"])
+        plain = None
+        if not synced:
+            plain = get_lyrics(artist, track["name"])
+            if not plain:
+                logger.warning(
+                    "No lyrics (synced or plain) for %s – %s, skipping",
+                    artist,
+                    track["name"],
+                )
+                return None
+
+        # Build MCQ options for guessing the title
+        correct_answer = track["name"]
+        wrong_answers = self._pick_wrong_answers(
+            track, all_tracks, key="name", count=3
+        )
+        if len(wrong_answers) < 3:
+            return None
+        options = [correct_answer] + wrong_answers
+        random.shuffle(options)
+
+        extra_data: Dict = {}
+        if synced:
+            extra_data["synced_lyrics"] = synced
+        else:
+            # Provide a few plain-text lines for display
+            lines = [
+                l.strip()
+                for l in plain.split("\n")
+                if l.strip() and len(l.strip()) > 5
+            ][:20]
+            extra_data["plain_lyrics_lines"] = lines
+
+        return {
+            "track_id": track["youtube_id"],
+            "track_name": track["name"],
+            "artist_name": artist,
+            "preview_url": track.get("preview_url"),
+            "album_image": track.get("album_image"),
+            "question_type": "karaoke",
+            "question_text": "Écoutez le karaoké et devinez le titre !",
+            "correct_answer": correct_answer,
+            "options": options,
+            "extra_data": extra_data,
         }
 
     # ─── Helpers ─────────────────────────────────────────────────────

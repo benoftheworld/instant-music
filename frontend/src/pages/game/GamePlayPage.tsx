@@ -9,6 +9,7 @@ import QuizQuestion from '../../components/game/QuizQuestion';
 import YearQuestion from '../../components/game/YearQuestion';
 import IntroQuestion from '../../components/game/IntroQuestion';
 import LyricsQuestion from '../../components/game/LyricsQuestion';
+import KaraokeQuestion from '../../components/game/KaraokeQuestion';
 import GuessArtistQuestion from '../../components/game/GuessArtistQuestion';
 import TextModeQuestion from '../../components/game/TextModeQuestion';
 import VolumeControl from '../../components/game/VolumeControl';
@@ -352,6 +353,8 @@ export default function GamePlayPage() {
         return <YearQuestion {...commonProps} />;
       case 'paroles':
         return <LyricsQuestion {...commonProps} />;
+      case 'karaoke':
+        return <KaraokeQuestion {...commonProps} />;
       default:
         return <QuizQuestion {...commonProps} />;
     }
@@ -374,6 +377,7 @@ export default function GamePlayPage() {
       case 'rapide': return '⚡ Rapide';
       case 'generation': return '📅 Génération';
       case 'paroles': return '📝 Paroles';
+      case 'karaoke': return '🎤 Karaoké';
       default: return '🎵 Classique';
     }
   };

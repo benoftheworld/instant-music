@@ -24,6 +24,11 @@ export const GAME_MODE_CONFIG: Record<GameMode, { label: string; icon: string; d
     icon: '📝',
     description: 'Complétez les paroles manquantes de la chanson',
   },
+  karaoke: {
+    label: 'Karaoké',
+    icon: '🎤',
+    description: 'Les paroles défilent en rythme, devinez le titre !',
+  },
 };
 
 export const LEADERBOARD_TABS: { value: GameMode | 'general' | 'teams'; label: string; icon: string }[] = [
@@ -33,6 +38,7 @@ export const LEADERBOARD_TABS: { value: GameMode | 'general' | 'teams'; label: s
   { value: 'rapide', label: 'Rapide', icon: '⚡' },
   { value: 'generation', label: 'Génération', icon: '📅' },
   { value: 'paroles', label: 'Paroles', icon: '📝' },
+  { value: 'karaoke', label: 'Karaoké', icon: '🎤' },
 ];
 
 /**

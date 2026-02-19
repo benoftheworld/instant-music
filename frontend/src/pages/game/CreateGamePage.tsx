@@ -31,6 +31,12 @@ const gameModes: { value: GameMode; label: string; description: string; icon: st
     description: 'Complétez les paroles manquantes. Aucune musique pendant le round.',
     icon: '📝',
   },
+  {
+    value: 'karaoke',
+    label: 'Karaoké',
+    description: 'Les paroles défilent en rythme. Devinez le titre de la chanson !',
+    icon: '🎤',
+  },
 ];
 
 export default function CreateGamePage() {
@@ -467,6 +473,21 @@ export default function CreateGamePage() {
               <li>📌 <strong>± 2 ans :</strong> Points conséquents</li>
               <li>📎 <strong>± 5 ans :</strong> Quelques points</li>
               <li>❌ <strong>Au-delà :</strong> Aucun point</li>
+            </ul>
+          </div>
+        )}
+
+        {/* Karaoké specific */}
+        {selectedMode === 'karaoke' && (
+          <div className="p-4 bg-pink-50 border border-pink-200 rounded-lg">
+            <p className="text-sm text-pink-800">
+              <strong>🎤 Mode Karaoké :</strong> La musique se lance et les paroles défilent en rythme.
+              Devinez le titre parmi 4 propositions.
+            </p>
+            <ul className="text-sm text-pink-700 mt-2 space-y-1 ml-4">
+              <li>🎵 <strong>Audio :</strong> L'extrait de 30 secondes joue pendant le round</li>
+              <li>📜 <strong>Paroles synchronisées :</strong> Les paroles s'affichent en rythme (LRCLib)</li>
+              <li>💡 <strong>Astuce :</strong> Lisez les paroles pour reconnaître la chanson</li>
             </ul>
           </div>
         )}

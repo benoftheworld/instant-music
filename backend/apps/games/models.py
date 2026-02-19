@@ -15,6 +15,7 @@ class GameMode(models.TextChoices):
     RAPIDE = "rapide", _("Rapide")
     GENERATION = "generation", _("Génération")
     PAROLES = "paroles", _("Paroles")
+    KARAOKE = "karaoke", _("Karaoké")
 
 
 class AnswerMode(models.TextChoices):
