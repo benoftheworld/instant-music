@@ -27,6 +27,22 @@ class GameConsumer(AsyncWebsocketConsumer):
             'type': 'connection_established',
             'message': 'Connected to game room'
         }))
+        # If user is authenticated, mark them as connected and broadcast update
+        user = getattr(self.scope, 'user', None)
+        if user and getattr(user, 'is_authenticated', False):
+            await self._set_player_connected(True)
+            game_data = await self.get_game_data()
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'broadcast_player_join',
+                    'player': {
+                        'user': user.id,
+                        'username': getattr(user, 'username', None)
+                    },
+                    'game_data': game_data
+                }
+            )
     
     async def disconnect(self, close_code):
         """Handle WebSocket disconnection."""
@@ -35,6 +51,23 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
+        # If user is authenticated, mark them as disconnected and notify room
+        user = getattr(self.scope, 'user', None)
+        if user and getattr(user, 'is_authenticated', False):
+            await self._set_player_connected(False)
+            # Broadcast player leave with updated game data
+            game_data = await self.get_game_data()
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'broadcast_player_leave',
+                    'player': {
+                        'user': user.id,
+                        'username': getattr(user, 'username', None)
+                    },
+                    'game_data': game_data
+                }
+            )
     
     async def receive(self, text_data):
         """Receive message from WebSocket."""
@@ -136,6 +169,27 @@ class GameConsumer(AsyncWebsocketConsumer):
             return game_data
         except Game.DoesNotExist:
             return None
+
+    @database_sync_to_async
+    def _set_player_connected(self, connected: bool):
+        """Set the GamePlayer.is_connected flag for the current user in this room."""
+        from .models import GamePlayer, Game
+        try:
+            game = Game.objects.get(room_code=self.room_code)
+        except Game.DoesNotExist:
+            return
+
+        user = getattr(self.scope, 'user', None)
+        if not user or not getattr(user, 'is_authenticated', False):
+            return
+
+        try:
+            gp = GamePlayer.objects.get(game=game, user=user)
+            gp.is_connected = connected
+            gp.save(update_fields=['is_connected'])
+        except GamePlayer.DoesNotExist:
+            # No participation record: ignore
+            return
     
     async def player_answer(self, data):
         """Handle player submitting an answer."""
@@ -220,6 +274,14 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': 'player_joined',
             'player': event['player'],
+            'game_data': event.get('game_data')
+        }))
+
+    async def broadcast_player_leave(self, event):
+        """Send player leave notification to WebSocket."""
+        await self.send(text_data=json.dumps({
+            'type': 'player_leave',
+            'player': event.get('player'),
             'game_data': event.get('game_data')
         }))
     

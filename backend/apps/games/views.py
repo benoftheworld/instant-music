@@ -380,7 +380,64 @@ class GameViewSet(viewsets.ModelViewSet):
         # End current round if still active
         current = game_service.get_current_round(game)
         if current:
+            # End the round (mark ended_at) and compute results so clients receive round_ended
             game_service.end_round(current)
+
+            # Prepare and broadcast round end results (similar logic to submit answer finalization)
+            try:
+                from asgiref.sync import async_to_sync
+                from channels.layers import get_channel_layer
+                from rest_framework.renderers import JSONRenderer
+                import json as _json
+                from django.utils import timezone
+
+                # Ensure round refreshed
+                current.refresh_from_db()
+
+                round_serializer = GameRoundSerializer(current)
+                round_json = JSONRenderer().render(round_serializer.data)
+                round_data = _json.loads(round_json)
+
+                # Build per-player scores for this round
+                player_scores = {}
+                for ans in GameAnswer.objects.filter(round=current).select_related('player__user'):
+                    player_scores[ans.player.user.username] = {
+                        'points_earned': ans.points_earned,
+                        'is_correct': ans.is_correct,
+                        'response_time': ans.response_time,
+                    }
+
+                # Build updated player list with total scores
+                updated_players = []
+                for p in game.players.select_related('user').order_by('-score'):
+                    updated_players.append({
+                        'id': p.id,
+                        'user': p.user.id,
+                        'username': p.user.username,
+                        'score': p.score,
+                        'rank': p.rank,
+                        'is_connected': p.is_connected,
+                    })
+
+                channel_layer = get_channel_layer()
+                room_group_name = f'game_{room_code}'
+
+                async_to_sync(channel_layer.group_send)(
+                    room_group_name,
+                    {
+                        'type': 'broadcast_round_end',
+                        'results': {
+                            'correct_answer': current.correct_answer if hasattr(current, 'correct_answer') else None,
+                            'round_data': round_data,
+                            'player_scores': player_scores,
+                            'updated_players': updated_players,
+                        }
+                    }
+                )
+            except Exception:
+                # Don't block next_round on broadcast errors
+                import logging
+                logging.getLogger(__name__).exception('Failed to broadcast round_end on timeout')
         
         # Get next unstarted round
         next_round = game_service.get_next_round(game)
