@@ -6,6 +6,7 @@ import RegisterPage from './pages/auth/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import FriendsPage from './pages/FriendsPage';
 import TeamsPage from './pages/TeamsPage';
+import TeamPage from './pages/TeamPage';
 import CreateGamePage from './pages/game/CreateGamePage';
 import JoinGamePage from './pages/game/JoinGamePage';
 import GameLobbyPage from './pages/game/GameLobbyPage';
@@ -30,6 +31,7 @@ function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="friends" element={<FriendsPage />} />
           <Route path="teams" element={<TeamsPage />} />
+          <Route path="teams/:id" element={<TeamPage />} />
           <Route path="history" element={<GameHistoryPage />} />
           <Route path="game/create" element={<CreateGamePage />} />
           <Route path="game/join" element={<JoinGamePage />} />

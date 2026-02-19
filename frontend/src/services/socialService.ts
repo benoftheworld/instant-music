@@ -126,4 +126,26 @@ export const teamService = {
   async inviteToTeam(teamId: number, username: string): Promise<void> {
     await api.post(`/users/teams/${teamId}/invite/`, { username });
   },
+  
+  /**
+   * Update a team member role
+   */
+  async updateMemberRole(teamId: number, memberId: number, role: string): Promise<void> {
+    await api.post(`/users/teams/${teamId}/update_member/`, { member_id: memberId, role });
+  },
+
+  /**
+   * Remove a member from the team (admin/owner only)
+   */
+  async removeMember(teamId: number, memberId: number): Promise<void> {
+    await api.post(`/users/teams/${teamId}/remove_member/`, { member_id: memberId });
+  },
+
+  /**
+   * Get pending join requests for a team
+   */
+  async getJoinRequests(teamId: number) {
+    const response = await api.get(`/users/teams/${teamId}/requests/`);
+    return response.data;
+  },
 };

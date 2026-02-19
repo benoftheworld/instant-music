@@ -9,7 +9,16 @@ from django.contrib.auth import update_session_auth_hash
 from django.db.models import Q
 from django.db import transaction
 
-from .models import User, Friendship, FriendshipStatus, Team, TeamMember, TeamMemberRole
+from .models import (
+    User,
+    Friendship,
+    FriendshipStatus,
+    Team,
+    TeamMember,
+    TeamMemberRole,
+    TeamJoinRequest,
+    TeamJoinRequestStatus,
+)
 from .serializers import (
     UserSerializer,
     UserMinimalSerializer,
@@ -20,6 +29,8 @@ from .serializers import (
     TeamSerializer,
     TeamCreateSerializer,
     TeamMemberSerializer,
+    TeamJoinRequestSerializer,
+    TeamJoinRequestCreateSerializer,
 )
 
 
@@ -295,17 +306,92 @@ class TeamViewSet(viewsets.ModelViewSet):
             team = Team.objects.get(id=pk)
         except Team.DoesNotExist:
             return Response({'error': 'Équipe introuvable.'}, status=status.HTTP_404_NOT_FOUND)
-        
-        if TeamMember.objects.filter(team=team, user=request.user).exists():
-            return Response({'error': 'Vous êtes déjà membre de cette équipe.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        TeamMember.objects.create(
-            team=team,
-            user=request.user,
-            role=TeamMemberRole.MEMBER
-        )
-        
-        return Response(TeamSerializer(team).data)
+
+        # Create a join request instead of adding immediately
+        serializer = TeamJoinRequestCreateSerializer(data=request.data, context={'request': request, 'team': team})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        join_request, created = TeamJoinRequest.objects.get_or_create(team=team, user=request.user)
+        if not created and join_request.status == TeamJoinRequestStatus.PENDING:
+            return Response({'error': 'Une demande est déjà en cours.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({'message': 'Demande d\'adhésion envoyée.'}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'])
+    def requests(self, request, pk=None):
+        """List pending join requests for a team (owner/admin only)."""
+        try:
+            team = Team.objects.get(id=pk)
+            membership = TeamMember.objects.get(team=team, user=request.user)
+        except Team.DoesNotExist:
+            return Response({'error': 'Équipe introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        except TeamMember.DoesNotExist:
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if membership.role not in [TeamMemberRole.OWNER, TeamMemberRole.ADMIN]:
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+
+        pending = TeamJoinRequest.objects.filter(team=team, status=TeamJoinRequestStatus.PENDING).select_related('user')
+        return Response(TeamJoinRequestSerializer(pending, many=True).data)
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """Approve a pending join request (owner/admin only)."""
+        request_id = request.data.get('request_id')
+        if not request_id:
+            return Response({'error': 'request_id requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            team = Team.objects.get(id=pk)
+            membership = TeamMember.objects.get(team=team, user=request.user)
+        except Team.DoesNotExist:
+            return Response({'error': 'Équipe introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        except TeamMember.DoesNotExist:
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if membership.role not in [TeamMemberRole.OWNER, TeamMemberRole.ADMIN]:
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            join_request = TeamJoinRequest.objects.get(id=request_id, team=team, status=TeamJoinRequestStatus.PENDING)
+        except TeamJoinRequest.DoesNotExist:
+            return Response({'error': 'Demande introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+
+        with transaction.atomic():
+            join_request.status = TeamJoinRequestStatus.APPROVED
+            join_request.save()
+            TeamMember.objects.create(team=team, user=join_request.user, role=TeamMemberRole.MEMBER)
+
+        return Response({'message': 'Demande approuvée.'})
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Reject a pending join request (owner/admin only)."""
+        request_id = request.data.get('request_id')
+        if not request_id:
+            return Response({'error': 'request_id requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            team = Team.objects.get(id=pk)
+            membership = TeamMember.objects.get(team=team, user=request.user)
+        except Team.DoesNotExist:
+            return Response({'error': 'Équipe introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        except TeamMember.DoesNotExist:
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if membership.role not in [TeamMemberRole.OWNER, TeamMemberRole.ADMIN]:
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            join_request = TeamJoinRequest.objects.get(id=request_id, team=team, status=TeamJoinRequestStatus.PENDING)
+        except TeamJoinRequest.DoesNotExist:
+            return Response({'error': 'Demande introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+
+        join_request.status = TeamJoinRequestStatus.REJECTED
+        join_request.save()
+
+        return Response({'message': 'Demande refusée.'})
     
     @action(detail=True, methods=['post'])
     def leave(self, request, pk=None):
@@ -362,4 +448,77 @@ class TeamViewSet(viewsets.ModelViewSet):
         )
         
         return Response({'message': f'{username} a été ajouté à l\'équipe.'})
+
+    @action(detail=True, methods=['post'])
+    def update_member(self, request, pk=None):
+        """Update a member's role (owner/admin only)."""
+        member_id = request.data.get('member_id')
+        role = request.data.get('role')
+        if not member_id or not role:
+            return Response({'error': 'member_id et role requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            team = Team.objects.get(id=pk)
+            requester_membership = TeamMember.objects.get(team=team, user=request.user)
+        except Team.DoesNotExist:
+            return Response({'error': 'Équipe introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        except TeamMember.DoesNotExist:
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if requester_membership.role not in [TeamMemberRole.OWNER, TeamMemberRole.ADMIN]:
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            member = TeamMember.objects.get(id=member_id, team=team)
+        except TeamMember.DoesNotExist:
+            return Response({'error': 'Membre introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Prevent changing owner's role except by owner
+        if member.role == TeamMemberRole.OWNER and requester_membership.role != TeamMemberRole.OWNER:
+            return Response({'error': 'Impossible de modifier le rôle du propriétaire.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if role not in [TeamMemberRole.ADMIN, TeamMemberRole.MEMBER, TeamMemberRole.OWNER]:
+            return Response({'error': 'Rôle invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # If assigning OWNER, transfer ownership
+        with transaction.atomic():
+            if role == TeamMemberRole.OWNER:
+                # demote current owner
+                TeamMember.objects.filter(team=team, role=TeamMemberRole.OWNER).update(role=TeamMemberRole.ADMIN)
+                team.owner = member.user
+                team.save()
+            member.role = role
+            member.save()
+
+        return Response({'message': 'Rôle mis à jour.'})
+
+    @action(detail=True, methods=['post'])
+    def remove_member(self, request, pk=None):
+        """Remove a member from team (owner/admin only)."""
+        member_id = request.data.get('member_id')
+        if not member_id:
+            return Response({'error': 'member_id requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            team = Team.objects.get(id=pk)
+            requester_membership = TeamMember.objects.get(team=team, user=request.user)
+        except Team.DoesNotExist:
+            return Response({'error': 'Équipe introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        except TeamMember.DoesNotExist:
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if requester_membership.role not in [TeamMemberRole.OWNER, TeamMemberRole.ADMIN]:
+            return Response({'error': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            member = TeamMember.objects.get(id=member_id, team=team)
+        except TeamMember.DoesNotExist:
+            return Response({'error': 'Membre introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Prevent removing owner unless requester is owner and is removing themselves via leave
+        if member.role == TeamMemberRole.OWNER:
+            return Response({'error': 'Impossible de supprimer le propriétaire via cette action.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        member.delete()
+        return Response({'message': 'Membre supprimé.'})
 

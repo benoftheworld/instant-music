@@ -3,6 +3,7 @@ Serializers for User models.
 """
 from rest_framework import serializers
 from .models import User, Friendship, FriendshipStatus, Team, TeamMember, TeamMemberRole
+from .models import TeamJoinRequest, TeamJoinRequestStatus
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -134,4 +135,37 @@ class TeamCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
         fields = ['name', 'description', 'avatar']
+
+
+class TeamJoinRequestSerializer(serializers.ModelSerializer):
+    """Serializer for listing join requests."""
+
+    user = UserMinimalSerializer(read_only=True)
+
+    class Meta:
+        model = TeamJoinRequest
+        fields = ['id', 'user', 'status', 'created_at']
+        read_only_fields = ['id', 'user', 'status', 'created_at']
+
+
+class TeamJoinRequestCreateSerializer(serializers.Serializer):
+    """Serializer to create a join request (no body required)."""
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        team = self.context.get('team')
+
+        # Check if already member
+        if TeamMember.objects.filter(team=team, user=request.user).exists():
+            raise serializers.ValidationError('Vous êtes déjà membre de cette équipe.')
+
+        # Check if request already exists
+        if TeamJoinRequest.objects.filter(team=team, user=request.user).exists():
+            existing = TeamJoinRequest.objects.get(team=team, user=request.user)
+            if existing.status == TeamJoinRequestStatus.PENDING:
+                raise serializers.ValidationError('Une demande est déjà en cours.')
+            elif existing.status == TeamJoinRequestStatus.APPROVED:
+                raise serializers.ValidationError('Votre demande a déjà été approuvée.')
+
+        return attrs
 
