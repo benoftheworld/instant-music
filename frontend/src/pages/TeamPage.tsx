@@ -117,7 +117,7 @@ export default function TeamPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {canManage(m) ? (
+                  {canManage() ? (
                     <select
                       value={m.role}
                       onChange={(e) => handleChangeRole(m, e.target.value as TeamMemberRole)}
@@ -132,7 +132,7 @@ export default function TeamPage() {
                     <span className="text-sm text-gray-600">{m.role}</span>
                   )}
 
-                  {canManage(m) && m.role !== 'owner' && (
+                  {canManage() && m.role !== 'owner' && (
                     <button onClick={() => handleRemove(m)} className="text-sm text-red-500">Supprimer</button>
                   )}
                 </div>
