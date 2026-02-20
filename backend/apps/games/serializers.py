@@ -90,9 +90,9 @@ class CreateGameSerializer(serializers.ModelSerializer):
         ]
 
     def validate_round_duration(self, value):
-        if value < 10 or value > 60:
+        if value < 10 or value > 300:
             raise serializers.ValidationError(
-                "La durée d'un round doit être entre 10 et 60 secondes."
+                "La durée d'un round doit être entre 10 et 300 secondes."
             )
         return value
 

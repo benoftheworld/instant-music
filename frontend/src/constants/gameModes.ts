@@ -27,7 +27,7 @@ export const GAME_MODE_CONFIG: Record<GameMode, { label: string; icon: string; d
   karaoke: {
     label: 'Karaoké',
     icon: '🎤',
-    description: 'Les paroles défilent en rythme, devinez le titre !',
+    description: 'Mode solo : musique complète via YouTube avec paroles synchronisées',
   },
 };
 

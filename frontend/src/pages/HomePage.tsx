@@ -30,7 +30,7 @@ export default function HomePage() {
             <div className="text-4xl mb-4">🎤</div>
             <h3 className="text-xl font-bold mb-2">Karaoké</h3>
             <p className="text-gray-600">
-              Chantez vos morceaux préférés et montrez votre talent
+              Chantez vos morceaux préférés avec les paroles synchronisées
             </p>
           </div>
 

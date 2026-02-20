@@ -20,6 +20,7 @@ from .models import (
     AnswerMode,
 )
 from apps.playlists.deezer_service import deezer_service, DeezerAPIError
+from apps.playlists.youtube_service import youtube_service, YouTubeAPIError
 from apps.achievements.services import achievement_service
 from .lyrics_service import (
     get_lyrics,
@@ -512,59 +513,61 @@ class QuestionGeneratorService:
     def _generate_karaoke_question(
         self, track: Dict, all_tracks: List[Dict]
     ) -> Optional[Dict]:
-        """Generate a karaoke question with synced lyrics.
+        """Generate a karaoke round: YouTube full-song playback + synced lyrics.
 
-        The player listens to the 30-second preview while lyrics scroll in sync.
-        They must guess the track title from 4 MCQ options.
-        If no synced lyrics are available, falls back to plain lyrics display.
+        Solo mode — the player sings along while lyrics scroll in sync with
+        the YouTube video.  No MCQ guessing.  Scoring will be powered by
+        voice recognition in a future update.
         """
         artist = ", ".join(track["artists"])
 
-        # Try synced lyrics first
+        # 1. Synced lyrics are required for karaoke
         synced = get_synced_lyrics(artist, track["name"])
-        plain = None
         if not synced:
-            plain = get_lyrics(artist, track["name"])
-            if not plain:
-                logger.warning(
-                    "No lyrics (synced or plain) for %s – %s, skipping",
-                    artist,
-                    track["name"],
-                )
-                return None
-
-        # Build MCQ options for guessing the title
-        correct_answer = track["name"]
-        wrong_answers = self._pick_wrong_answers(
-            track, all_tracks, key="name", count=3
-        )
-        if len(wrong_answers) < 3:
+            logger.warning(
+                "No synced lyrics for %s – %s, skipping karaoke",
+                artist,
+                track["name"],
+            )
             return None
-        options = [correct_answer] + wrong_answers
-        random.shuffle(options)
 
-        extra_data: Dict = {}
-        if synced:
-            extra_data["synced_lyrics"] = synced
-        else:
-            # Provide a few plain-text lines for display
-            lines = [
-                l.strip()
-                for l in plain.split("\n")
-                if l.strip() and len(l.strip()) > 5
-            ][:20]
-            extra_data["plain_lyrics_lines"] = lines
+        # 2. Find the YouTube video for full playback
+        youtube_video_id = None
+        video_duration_ms = 0
+        try:
+            results = youtube_service.search_music_videos(
+                f"{artist} {track['name']}", limit=3
+            )
+            if results:
+                youtube_video_id = results[0]["youtube_id"]
+                video_duration_ms = results[0].get("duration_ms", 0)
+        except YouTubeAPIError as e:
+            logger.warning("YouTube search failed for karaoke: %s", e)
+
+        if not youtube_video_id:
+            logger.warning(
+                "No YouTube video found for %s – %s, skipping karaoke",
+                artist,
+                track["name"],
+            )
+            return None
+
+        extra_data: Dict = {
+            "synced_lyrics": synced,
+            "youtube_video_id": youtube_video_id,
+            "video_duration_ms": video_duration_ms,
+        }
 
         return {
             "track_id": track["youtube_id"],
             "track_name": track["name"],
             "artist_name": artist,
-            "preview_url": track.get("preview_url"),
+            "preview_url": "",  # Not used — YouTube player handles audio
             "album_image": track.get("album_image"),
             "question_type": "karaoke",
-            "question_text": "Écoutez le karaoké et devinez le titre !",
-            "correct_answer": correct_answer,
-            "options": options,
+            "question_text": f"{track['name']} — {artist}",
+            "correct_answer": track["name"],  # Stored for display only
+            "options": [],  # No MCQ in karaoke
             "extra_data": extra_data,
         }
 
@@ -635,9 +638,19 @@ class GameService:
 
         round_duration = game.round_duration or 30
         is_text_mode = game.answer_mode == AnswerMode.TEXT
+        is_karaoke = mode == GameMode.KARAOKE
 
         rounds = []
         for i, q in enumerate(all_questions[:num_rounds], start=1):
+            # For karaoke, use the YouTube video duration (capped at 300s)
+            if is_karaoke:
+                vid_dur_ms = q.get("extra_data", {}).get("video_duration_ms", 0)
+                if vid_dur_ms > 0:
+                    round_duration_effective = min(vid_dur_ms // 1000 + 5, 300)
+                else:
+                    round_duration_effective = 180  # fallback 3 min
+            else:
+                round_duration_effective = round_duration
             extra_data = q.get("extra_data", {}).copy()
             if "album_image" not in extra_data and q.get("album_image"):
                 extra_data["album_image"] = q["album_image"]
@@ -649,8 +662,14 @@ class GameService:
             extra_data["track_name"] = q["track_name"]
 
             # In text mode for classique/rapide, keep options empty
+            # In karaoke, options are always empty
             # In MCQ mode, provide options
-            options = [] if is_text_mode else q["options"]
+            if is_karaoke:
+                options = []
+            elif is_text_mode:
+                options = []
+            else:
+                options = q["options"]
 
             round_obj = GameRound.objects.create(
                 game=game,
@@ -664,7 +683,7 @@ class GameService:
                 question_type=q.get("question_type", "guess_title"),
                 question_text=q.get("question_text", ""),
                 extra_data=extra_data,
-                duration=round_duration,
+                duration=round_duration_effective,
             )
             rounds.append(round_obj)
 

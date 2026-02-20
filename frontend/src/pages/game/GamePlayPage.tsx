@@ -211,11 +211,13 @@ export default function GamePlayPage() {
           const myScoreData = data.results?.player_scores?.[user?.username || ''];
           const wasCorrect = myScoreData?.is_correct;
 
-          // Play appropriate sound
-          if (wasCorrect) {
-            soundEffects.correctAnswer();
-          } else {
-            soundEffects.wrongAnswer();
+          // Play appropriate sound (skip for karaoke — no answer to judge)
+          if (game?.mode !== 'karaoke') {
+            if (wasCorrect) {
+              soundEffects.correctAnswer();
+            } else {
+              soundEffects.wrongAnswer();
+            }
           }
 
           setShowResults(true);
@@ -230,7 +232,9 @@ export default function GamePlayPage() {
           }
 
           // Host advances to next round after result display time
-          const resultDisplayTime = (game?.score_display_duration || 10) * 1000;
+          // Karaoke: quick transition (2s); other modes: configurable
+          const isKaraokeMode = game?.mode === 'karaoke';
+          const resultDisplayTime = isKaraokeMode ? 2000 : (game?.score_display_duration || 10) * 1000;
           if (user && game && game.host === user.id) {
             setTimeout(() => {
               advanceToNextRound();
@@ -278,6 +282,8 @@ export default function GamePlayPage() {
   // Handle answer submission
   const handleAnswerSubmit = async (answer: string) => {
     if (!roomCode || !currentRound || hasAnswered) return;
+    // Karaoke mode has no answers to submit
+    if (game?.mode === 'karaoke') return;
 
     soundEffects.answerSubmitted();
     setSelectedAnswer(answer);
@@ -306,7 +312,24 @@ export default function GamePlayPage() {
       console.error('Failed to submit answer:', error);
     }
   };
-
+  // ── Karaoke: skip to next song ──
+  const handleKaraokeSkip = useCallback(async () => {
+    if (!roomCode || isAdvancingRef.current) return;
+    isAdvancingRef.current = true;
+    try {
+      // End current round, then advance
+      await gameService.endCurrentRound(roomCode);
+      // Small delay then advance
+      setTimeout(async () => {
+        try {
+          await gameService.nextRound(roomCode);
+        } catch { /* will come via WS */ }
+        setTimeout(() => { isAdvancingRef.current = false; }, 2000);
+      }, 500);
+    } catch {
+      isAdvancingRef.current = false;
+    }
+  }, [roomCode]);
   // ─── Render the correct question component based on game mode ───
   const renderQuestionComponent = () => {
     if (!currentRound) return null;
@@ -330,7 +353,7 @@ export default function GamePlayPage() {
     // For year mode, it already has a text input, so no change needed.
     // For other modes in text mode, we strip their OptionsGrid and add TextAnswerInput.
 
-    if (isTextMode && mode !== 'generation') {
+    if (isTextMode && mode !== 'generation' && mode !== 'karaoke') {
       // Text mode: use dedicated component that includes audio player
       return (
         <TextModeQuestion
@@ -354,7 +377,7 @@ export default function GamePlayPage() {
       case 'paroles':
         return <LyricsQuestion {...commonProps} />;
       case 'karaoke':
-        return <KaraokeQuestion {...commonProps} />;
+        return <KaraokeQuestion {...commonProps} onSkipSong={handleKaraokeSkip} />;
       default:
         return <QuizQuestion {...commonProps} />;
     }
@@ -430,16 +453,23 @@ export default function GamePlayPage() {
   }
 
   // Show game screen during round
+  const isKaraoke = game?.mode === 'karaoke';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
-      <div className="container mx-auto max-w-6xl">
+      <div className={`container mx-auto ${isKaraoke ? 'max-w-7xl' : 'max-w-6xl'}`}>
         {/* Header with room code and round number */}
         <div className="flex justify-between items-center mb-6">
           <div className="text-white">
             <h1 className="text-2xl font-bold">Partie {roomCode}</h1>
             <div className="flex items-center gap-2">
-              <p className="text-lg">Round {currentRound.round_number} — {getModeLabel()}</p>
-              {game?.answer_mode === 'text' && (
+              <p className="text-lg">
+                {isKaraoke
+                  ? `Chanson ${currentRound.round_number} — ${getModeLabel()}`
+                  : `Round ${currentRound.round_number} — ${getModeLabel()}`
+                }
+              </p>
+              {game?.answer_mode === 'text' && !isKaraoke && (
                 <span className="text-xs bg-amber-500/80 text-white px-2 py-0.5 rounded-full font-medium">
                   ⌨️ Saisie libre
                 </span>
@@ -447,28 +477,42 @@ export default function GamePlayPage() {
             </div>
           </div>
 
-          {/* Timer */}
-          <div className="flex items-center gap-3">
-            <VolumeControl variant="floating" />
-            <div className={`text-6xl font-bold ${
-              timeRemaining <= 5 ? 'text-red-400 animate-pulse' : 'text-white'
-            }`}>
-              {timeRemaining}s
+          {/* Timer — hidden for karaoke */}
+          {!isKaraoke && (
+            <div className="flex items-center gap-3">
+              <VolumeControl variant="floating" />
+              <div className={`text-6xl font-bold ${
+                timeRemaining <= 5 ? 'text-red-400 animate-pulse' : 'text-white'
+              }`}>
+                {timeRemaining}s
+              </div>
             </div>
-          </div>
+          )}
+          {isKaraoke && (
+            <div className="flex items-center gap-3">
+              <VolumeControl variant="floating" />
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main quiz area */}
-          <div className="lg:col-span-2">
+        {isKaraoke ? (
+          /* Karaoke: full-width layout, no scoreboard */
+          <div>
             {renderQuestionComponent()}
           </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main quiz area */}
+            <div className="lg:col-span-2">
+              {renderQuestionComponent()}
+            </div>
 
-          {/* Live scoreboard */}
-          <div className="lg:col-span-1">
-            <LiveScoreboard players={game?.players || []} />
+            {/* Live scoreboard */}
+            <div className="lg:col-span-1">
+              <LiveScoreboard players={game?.players || []} />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

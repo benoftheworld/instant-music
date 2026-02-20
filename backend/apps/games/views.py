@@ -149,10 +149,16 @@ class GameViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_200_OK,
             )
 
-        # Check if there are enough players
-        if game.players.count() < 2:
+        # Check if there are enough players (karaoke is solo, others need 2+)
+        min_players = 1 if game.mode == 'karaoke' else 2
+        if game.players.count() < min_players:
+            msg = (
+                "Au moins 1 joueur est nécessaire."
+                if game.mode == 'karaoke'
+                else "Au moins 2 joueurs sont nécessaires."
+            )
             return Response(
-                {"error": "Au moins 2 joueurs sont nécessaires."},
+                {"error": msg},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

@@ -34,7 +34,7 @@ const gameModes: { value: GameMode; label: string; description: string; icon: st
   {
     value: 'karaoke',
     label: 'Karaoké',
-    description: 'Les paroles défilent en rythme. Devinez le titre de la chanson !',
+    description: 'Mode solo : la musique complète joue via YouTube et les paroles défilent en rythme.',
     icon: '🎤',
   },
 ];
@@ -339,38 +339,40 @@ export default function CreateGamePage() {
       <div className="card">
         <h3 className="text-lg font-bold mb-4">Configuration du mode</h3>
 
-        {/* Answer mode for all modes */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Mode de réponse
-          </label>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setAnswerMode('mcq')}
-              className={`flex-1 p-4 rounded-lg border-2 text-center transition-all ${
-                answerMode === 'mcq'
-                  ? 'border-primary-600 bg-primary-50'
-                  : 'border-gray-200 hover:border-gray-300 bg-white'
-              }`}
-            >
-              <div className="text-2xl mb-1">🔘</div>
-              <div className="font-semibold text-sm">QCM</div>
-              <p className="text-xs text-gray-500 mt-1">4 réponses proposées</p>
-            </button>
-            <button
-              onClick={() => setAnswerMode('text')}
-              className={`flex-1 p-4 rounded-lg border-2 text-center transition-all ${
-                answerMode === 'text'
-                  ? 'border-primary-600 bg-primary-50'
-                  : 'border-gray-200 hover:border-gray-300 bg-white'
-              }`}
-            >
-              <div className="text-2xl mb-1">⌨️</div>
-              <div className="font-semibold text-sm">Saisie libre</div>
-              <p className="text-xs text-gray-500 mt-1">Écrire la réponse</p>
-            </button>
+        {/* Answer mode — hidden for karaoke (solo, no guessing) */}
+        {selectedMode !== 'karaoke' && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Mode de réponse
+            </label>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setAnswerMode('mcq')}
+                className={`flex-1 p-4 rounded-lg border-2 text-center transition-all ${
+                  answerMode === 'mcq'
+                    ? 'border-primary-600 bg-primary-50'
+                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                }`}
+              >
+                <div className="text-2xl mb-1">🔘</div>
+                <div className="font-semibold text-sm">QCM</div>
+                <p className="text-xs text-gray-500 mt-1">4 réponses proposées</p>
+              </button>
+              <button
+                onClick={() => setAnswerMode('text')}
+                className={`flex-1 p-4 rounded-lg border-2 text-center transition-all ${
+                  answerMode === 'text'
+                    ? 'border-primary-600 bg-primary-50'
+                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                }`}
+              >
+                <div className="text-2xl mb-1">⌨️</div>
+                <div className="font-semibold text-sm">Saisie libre</div>
+                <p className="text-xs text-gray-500 mt-1">Écrire la réponse</p>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Classique / Rapide specific */}
         {(selectedMode === 'classique' || selectedMode === 'rapide') && (
@@ -481,13 +483,14 @@ export default function CreateGamePage() {
         {selectedMode === 'karaoke' && (
           <div className="p-4 bg-pink-50 border border-pink-200 rounded-lg">
             <p className="text-sm text-pink-800">
-              <strong>🎤 Mode Karaoké :</strong> La musique se lance et les paroles défilent en rythme.
-              Devinez le titre parmi 4 propositions.
+              <strong>🎤 Mode Karaoké (solo) :</strong> La musique complète joue via YouTube
+              et les paroles défilent en rythme. Chantez et profitez !
             </p>
             <ul className="text-sm text-pink-700 mt-2 space-y-1 ml-4">
-              <li>🎵 <strong>Audio :</strong> L'extrait de 30 secondes joue pendant le round</li>
+              <li>▶️ <strong>YouTube :</strong> La chanson complète joue (pas un extrait de 30s)</li>
               <li>📜 <strong>Paroles synchronisées :</strong> Les paroles s'affichent en rythme (LRCLib)</li>
-              <li>💡 <strong>Astuce :</strong> Lisez les paroles pour reconnaître la chanson</li>
+              <li>🎤 <strong>Bientôt :</strong> Reconnaissance vocale pour gagner des points</li>
+              <li>👤 <strong>Solo :</strong> Ce mode se joue seul, pas besoin d'adversaire</li>
             </ul>
           </div>
         )}
