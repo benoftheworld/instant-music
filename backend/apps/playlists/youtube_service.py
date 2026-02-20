@@ -430,31 +430,31 @@ class YouTubeService:
         - "Artist - Track Name"
         - "Artist - Track Name (Official Video)"
         - "Artist - Track Name [Official Music Video]"
-        - "Artist 'Track Name' Official Video"
+        - "Title (Official Video) - Artist"  ← inverted order, still handled
 
         Returns:
             Tuple of (artist, track_name)
         """
         import re
 
-        # Remove common suffixes
-        clean = re.sub(
+        SUFFIX_RE = re.compile(
             r"\s*[\(\[\|]?\s*(?:official\s+)?(?:music\s+)?(?:video|lyric|lyrics|audio|clip|hd|4k|visualizer|visualiser|mv|feat\.?|ft\.?).*$",
-            "",
-            title,
             flags=re.IGNORECASE,
         )
-        clean = clean.strip()
 
-        # Try splitting by common separators
+        def _strip(s: str) -> str:
+            return SUFFIX_RE.sub("", s).strip()
+
+        # ── Step 1: try to split the ORIGINAL title (before any stripping) ──
+        # This preserves the artist when it comes AFTER a parenthetical suffix,
+        # e.g. "Sarà perché ti amo (Official Video) - Ricchi e Poveri".
         for sep in [" - ", " – ", " — ", " | ", " // "]:
-            if sep in clean:
-                parts = clean.split(sep, 1)
-                return parts[0].strip(), parts[1].strip()
+            if sep in title:
+                parts = title.split(sep, 1)
+                return _strip(parts[0]), _strip(parts[1])
 
-        # If no separator found, use the whole title as track name
-        # and try to extract channel name later
-        return "Artiste inconnu", clean
+        # ── Step 2: no separator found — strip suffix and return whole title ──
+        return "Artiste inconnu", _strip(title)
 
 
 # Singleton instance

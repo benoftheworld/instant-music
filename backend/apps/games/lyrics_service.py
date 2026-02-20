@@ -226,14 +226,19 @@ def _lrclib_search(query: str) -> Optional[dict]:
     return None
 
 
+# Placeholder artists injected when YouTube title parsing cannot detect the artist.
+_UNKNOWN_ARTIST_MARKERS = {"artiste inconnu", "unknown artist", "unknown", ""}
+
+
 def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
     """
     Fetch synced (timestamped) lyrics from LRCLib.
 
-    Tries:
-      1. Exact artist+title query
-      2. Cleaned artist+title (strips parenthesised suffixes)
-      3. Full-text search fallback via /api/search
+    Tries (in order):
+      1. Exact artist+title via /api/get
+      2. Full-text search via /api/search with "artist title"
+      3. Full-text search with just the title (handles "Artiste inconnu" cases
+         and YouTube titles where artist/title order is inverted)
 
     Returns:
         List of {"time_ms": int, "text": str} sorted by time, or None.
@@ -244,19 +249,23 @@ def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
         return cached if cached != "__NONE__" else None
 
     artist_clean, title_clean = _clean_artist_title(artist, title)
+    artist_is_unknown = artist_clean.lower() in _UNKNOWN_ARTIST_MARKERS
 
-    # 1. Exact query
-    data = _lrclib_request(artist_clean, title_clean)
-    if data:
-        raw = data.get("syncedLyrics", "")
-        if raw:
-            lines = parse_lrc(raw)
-            if lines:
-                cache.set(key, lines, 3600)
-                return lines
+    # 1. Exact query (skip if artist is a known placeholder)
+    if not artist_is_unknown:
+        data = _lrclib_request(artist_clean, title_clean)
+        if data:
+            raw = data.get("syncedLyrics", "")
+            if raw:
+                lines = parse_lrc(raw)
+                if lines:
+                    cache.set(key, lines, 3600)
+                    return lines
 
-    # 2. Search fallback (handles slight artist/title mismatches)
-    query = f"{artist_clean} {title_clean}"
+    # 2. Full-text search: "artist title" (or just "title" if artist unknown)
+    query = (
+        title_clean if artist_is_unknown else f"{artist_clean} {title_clean}"
+    )
     data = _lrclib_search(query)
     if data:
         raw = data.get("syncedLyrics", "")
@@ -265,6 +274,19 @@ def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
             if lines:
                 cache.set(key, lines, 3600)
                 return lines
+
+    # 3. Last-resort: search with title only (covers inverted artist/title order
+    #    from YouTube, e.g. "Sarà perché ti amo (Official Video) - Ricchi e Poveri"
+    #    parsed as artist="Sarà perché ti amo", title="Ricchi e Poveri")
+    if not artist_is_unknown and query != title_clean:
+        data = _lrclib_search(title_clean)
+        if data:
+            raw = data.get("syncedLyrics", "")
+            if raw:
+                lines = parse_lrc(raw)
+                if lines:
+                    cache.set(key, lines, 3600)
+                    return lines
 
     # Cache negative result for only 5 min so retries can succeed sooner
     cache.set(key, "__NONE__", 300)
