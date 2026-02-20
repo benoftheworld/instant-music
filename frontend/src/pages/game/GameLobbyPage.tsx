@@ -129,8 +129,8 @@ export default function GameLobbyPage() {
       return;
     }
 
-    // Check if playlist is selected (required for all modes)
-    if (!selectedPlaylist && !game.playlist_id) {
+    // Check if playlist is selected (required for non-karaoke modes)
+    if (game.mode !== 'karaoke' && !selectedPlaylist && !game.playlist_id) {
       setStartError('Veuillez sélectionner une playlist avant de démarrer');
       setShowPlaylistSelector(true);
       setStartingGame(false);
@@ -360,7 +360,8 @@ export default function GameLobbyPage() {
 
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Playlist Selection */}
+            {/* Playlist Selection — hidden for karaoke (single track pre-selected) */}
+            {game.mode !== 'karaoke' && (
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Playlist</h2>
@@ -409,6 +410,7 @@ export default function GameLobbyPage() {
                 </div>
               )}
             </div>
+            )}
 
             {/* Game Actions */}
             <div className="card">

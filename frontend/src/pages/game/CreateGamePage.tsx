@@ -164,15 +164,15 @@ export default function CreateGamePage() {
   const renderStepTitle = () => {
     const titles = [
       '', // index 0 unused
-      'Configuration globale',
       'Mode de jeu',
+      'Configuration globale',
       isKaraoke ? 'Sélection du morceau' : 'Sélection de la playlist',
       'Confirmation',
     ];
     const subtitles = [
       '',
-      'Paramétrez les timers, le nombre de joueurs et les options générales',
       'Choisissez votre mode de jeu et ses options',
+      'Paramétrez les timers, le nombre de joueurs et les options générales',
       isKaraoke
         ? 'Recherchez et choisissez un morceau YouTube pour le karaoké'
         : 'Choisissez la playlist musicale pour la partie',
@@ -336,7 +336,10 @@ export default function CreateGamePage() {
             return (
               <button
                 key={mode.value}
-                onClick={() => setSelectedMode(mode.value)}
+                onClick={() => {
+                  setSelectedMode(mode.value);
+                  if (mode.value === 'karaoke') setMaxPlayers(1);
+                }}
                 className={`p-5 rounded-xl border-2 text-left transition-all relative ${
                   isSelected
                     ? 'border-primary-600 bg-primary-50 shadow-md'
@@ -717,8 +720,8 @@ export default function CreateGamePage() {
         )}
 
         {/* Step content */}
-        {currentStep === 1 && renderStep1()}
-        {currentStep === 2 && renderStep2()}
+        {currentStep === 1 && renderStep2()}
+        {currentStep === 2 && renderStep1()}
         {currentStep === 3 && renderStep3()}
         {currentStep === 4 && renderStep4()}
 
