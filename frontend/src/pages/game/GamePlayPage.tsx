@@ -319,24 +319,7 @@ export default function GamePlayPage() {
       console.error('Failed to submit answer:', error);
     }
   };
-  // ── Karaoke: skip to next song ──
-  const handleKaraokeSkip = useCallback(async () => {
-    if (!roomCode || isAdvancingRef.current) return;
-    isAdvancingRef.current = true;
-    try {
-      // End current round, then advance
-      await gameService.endCurrentRound(roomCode);
-      // Small delay then advance
-      setTimeout(async () => {
-        try {
-          await gameService.nextRound(roomCode);
-        } catch { /* will come via WS */ }
-        setTimeout(() => { isAdvancingRef.current = false; }, 2000);
-      }, 500);
-    } catch {
-      isAdvancingRef.current = false;
-    }
-  }, [roomCode]);
+  
   // ─── Render the correct question component based on game mode ───
   const renderQuestionComponent = () => {
     if (!currentRound) return null;
