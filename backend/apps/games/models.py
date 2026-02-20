@@ -222,6 +222,140 @@ class GameRound(models.Model):
         return f"Round {self.round_number} - {self.game.room_code}"
 
 
+class TrackCache(models.Model):
+    """
+    Persistent cache for (artist, track) → YouTube video + synced lyrics.
+
+    Populated automatically when a karaoke game is created or when LRCLib / YouTube
+    APIs are called.  On subsequent games with the same song the DB is hit instead
+    of consuming API quota.
+
+    Lookup is done against the *normalised* keys (lowercase, no parenthetical
+    suffixes) so slight variations in casing / suffixes still resolve to the same
+    row.
+    """
+
+    # ── Lookup keys (normalised for fuzzy matching) ──────────────────
+    artist_key = models.CharField(
+        _("clé artiste"),
+        max_length=255,
+        db_index=True,
+        help_text=_("Artiste normalisé (minuscules, sans suffixes)"),
+    )
+    track_key = models.CharField(
+        _("clé titre"),
+        max_length=255,
+        db_index=True,
+        help_text=_("Titre normalisé (minuscules, sans suffixes)"),
+    )
+
+    # ── Display names ─────────────────────────────────────────────────
+    artist_name = models.CharField(_("artiste"), max_length=255)
+    track_name = models.CharField(_("titre"), max_length=255)
+
+    # ── YouTube metadata ──────────────────────────────────────────────
+    youtube_video_id = models.CharField(
+        _("ID vidéo YouTube"),
+        max_length=20,
+        blank=True,
+        default="",
+    )
+    video_duration_ms = models.IntegerField(
+        _("durée vidéo (ms)"),
+        default=0,
+    )
+    album_image = models.URLField(
+        _("image album"),
+        max_length=500,
+        blank=True,
+        default="",
+    )
+
+    # ── Lyrics ────────────────────────────────────────────────────────
+    synced_lyrics = models.JSONField(
+        _("paroles synchronisées"),
+        default=list,
+        blank=True,
+        help_text=_('Liste de {"time_ms": int, "text": str}'),
+    )
+    plain_lyrics = models.TextField(
+        _("paroles brutes"),
+        blank=True,
+        default="",
+    )
+
+    # ── Timestamps ────────────────────────────────────────────────────
+    created_at = models.DateTimeField(_("créé le"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("mis à jour le"), auto_now=True)
+
+    class Meta:
+        unique_together = [("artist_key", "track_key")]
+        verbose_name = _("cache de piste")
+        verbose_name_plural = _("cache de pistes")
+        ordering = ["-updated_at"]
+
+    def __str__(self) -> str:  # type: ignore[override]
+        return f"{self.artist_name} — {self.track_name}"
+
+    @classmethod
+    def make_key(cls, value: str) -> str:
+        """Normalise a string for use as a lookup key."""
+        import re
+
+        return re.sub(r"\s*\(.*?\)\s*", "", value).strip().lower()
+
+    @classmethod
+    def lookup(cls, artist: str, track: str) -> "TrackCache | None":
+        """Return the cached entry for (artist, track) or None."""
+        try:
+            return cls.objects.get(
+                artist_key=cls.make_key(artist),
+                track_key=cls.make_key(track),
+            )
+        except cls.DoesNotExist:
+            return None
+
+    @classmethod
+    def upsert(
+        cls,
+        artist: str,
+        track: str,
+        *,
+        youtube_video_id: str = "",
+        video_duration_ms: int = 0,
+        album_image: str = "",
+        synced_lyrics: list | None = None,
+        plain_lyrics: str = "",
+    ) -> "TrackCache":
+        """Create or update the cache entry; only overwrites non-empty values."""
+        ak = cls.make_key(artist)
+        tk = cls.make_key(track)
+        obj, _ = cls.objects.get_or_create(
+            artist_key=ak,
+            track_key=tk,
+            defaults={"artist_name": artist, "track_name": track},
+        )
+        changed = False
+        if youtube_video_id and not obj.youtube_video_id:
+            obj.youtube_video_id = youtube_video_id
+            changed = True
+        if video_duration_ms and not obj.video_duration_ms:
+            obj.video_duration_ms = video_duration_ms
+            changed = True
+        if album_image and not obj.album_image:
+            obj.album_image = album_image
+            changed = True
+        if synced_lyrics and not obj.synced_lyrics:
+            obj.synced_lyrics = synced_lyrics
+            changed = True
+        if plain_lyrics and not obj.plain_lyrics:
+            obj.plain_lyrics = plain_lyrics
+            changed = True
+        if changed:
+            obj.save()
+        return obj
+
+
 class GameAnswer(models.Model):
     """Player's answer in a round."""
 

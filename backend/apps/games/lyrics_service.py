@@ -166,7 +166,7 @@ def _clean_artist_title(artist: str, title: str) -> Tuple[str, str]:
 
 def get_lyrics(artist: str, title: str) -> Optional[str]:
     """
-    Fetch plain lyrics (LRCLib → lyrics.ovh fallback).
+    Fetch plain lyrics (DB cache → LRCLib → lyrics.ovh fallback).
 
     Returns:
         Lyrics text or None
@@ -176,17 +176,36 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
     if cached is not None:
         return cached if cached != "__NONE__" else None
 
+    # ── 0. DB lookup ─────────────────────────────────────────────────
+    try:
+        from .models import TrackCache  # noqa: PLC0415
+
+        db_entry = TrackCache.lookup(artist, title)
+        if db_entry and db_entry.plain_lyrics:
+            cache.set(cache_key, db_entry.plain_lyrics, 3600)
+            return db_entry.plain_lyrics
+    except Exception as _exc:
+        logger.debug("TrackCache plain_lyrics lookup skipped: %s", _exc)
+
     artist_clean, title_clean = _clean_artist_title(artist, title)
 
-    # Try LRCLib first
+    # ── 1. LRCLib ────────────────────────────────────────────────────
     data = _lrclib_request(artist_clean, title_clean)
     if data:
         lyrics = data.get("plainLyrics", "")
         if lyrics and len(lyrics) >= 50:
             cache.set(cache_key, lyrics, 3600)
+            try:
+                from .models import TrackCache  # noqa: PLC0415
+
+                TrackCache.upsert(artist, title, plain_lyrics=lyrics)
+            except Exception as _exc:
+                logger.debug(
+                    "TrackCache plain_lyrics upsert skipped: %s", _exc
+                )
             return lyrics
 
-    # Fallback: lyrics.ovh
+    # ── 2. lyrics.ovh fallback ────────────────────────────────────────
     url = (
         f"https://api.lyrics.ovh/v1/"
         f"{requests.utils.quote(artist_clean)}/{requests.utils.quote(title_clean)}"
@@ -197,6 +216,14 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
             lyrics = resp.json().get("lyrics", "")
             if lyrics and len(lyrics) >= 50:
                 cache.set(cache_key, lyrics, 3600)
+                try:
+                    from .models import TrackCache  # noqa: PLC0415
+
+                    TrackCache.upsert(artist, title, plain_lyrics=lyrics)
+                except Exception as _exc:
+                    logger.debug(
+                        "TrackCache plain_lyrics upsert skipped: %s", _exc
+                    )
                 return lyrics
     except Exception as e:
         logger.warning("lyrics.ovh failed for %s - %s: %s", artist, title, e)
@@ -232,13 +259,17 @@ _UNKNOWN_ARTIST_MARKERS = {"artiste inconnu", "unknown artist", "unknown", ""}
 
 def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
     """
-    Fetch synced (timestamped) lyrics from LRCLib.
+    Fetch synced (timestamped) lyrics.
 
-    Tries (in order):
-      1. Exact artist+title via /api/get
-      2. Full-text search via /api/search with "artist title"
-      3. Full-text search with just the title (handles "Artiste inconnu" cases
-         and YouTube titles where artist/title order is inverted)
+    Resolution order:
+      0. Redis cache (fastest)
+      1. DB (TrackCache) — avoids any external API call if already persisted
+      2. LRCLib /api/get  (exact artist + title)
+      3. LRCLib /api/search ("artist title")
+      4. LRCLib /api/search (title only — handles inverted YouTube title order)
+
+    On a successful fetch from LRCLib the result is written to both the Redis
+    cache and TrackCache so future calls skip the API entirely.
 
     Returns:
         List of {"time_ms": int, "text": str} sorted by time, or None.
@@ -248,45 +279,57 @@ def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
     if cached is not None:
         return cached if cached != "__NONE__" else None
 
+    # ── 0. DB lookup ─────────────────────────────────────────────────
+    try:
+        from .models import TrackCache  # noqa: PLC0415
+
+        db_entry = TrackCache.lookup(artist, title)
+        if db_entry and db_entry.synced_lyrics:
+            cache.set(key, db_entry.synced_lyrics, 3600)
+            return db_entry.synced_lyrics
+    except Exception as _exc:
+        logger.debug("TrackCache synced_lyrics lookup skipped: %s", _exc)
+
     artist_clean, title_clean = _clean_artist_title(artist, title)
     artist_is_unknown = artist_clean.lower() in _UNKNOWN_ARTIST_MARKERS
+    query = (
+        title_clean if artist_is_unknown else f"{artist_clean} {title_clean}"
+    )
+    lines: Optional[List[Dict]] = None
 
-    # 1. Exact query (skip if artist is a known placeholder)
+    # ── 1. Exact query (skip if artist is a known placeholder) ────────
     if not artist_is_unknown:
         data = _lrclib_request(artist_clean, title_clean)
         if data:
             raw = data.get("syncedLyrics", "")
             if raw:
-                lines = parse_lrc(raw)
-                if lines:
-                    cache.set(key, lines, 3600)
-                    return lines
+                lines = parse_lrc(raw) or None
 
-    # 2. Full-text search: "artist title" (or just "title" if artist unknown)
-    query = (
-        title_clean if artist_is_unknown else f"{artist_clean} {title_clean}"
-    )
-    data = _lrclib_search(query)
-    if data:
-        raw = data.get("syncedLyrics", "")
-        if raw:
-            lines = parse_lrc(raw)
-            if lines:
-                cache.set(key, lines, 3600)
-                return lines
+    # ── 2. Full-text search: "artist title" (or title-only) ───────────
+    if lines is None:
+        data = _lrclib_search(query)
+        if data:
+            raw = data.get("syncedLyrics", "")
+            if raw:
+                lines = parse_lrc(raw) or None
 
-    # 3. Last-resort: search with title only (covers inverted artist/title order
-    #    from YouTube, e.g. "Sarà perché ti amo (Official Video) - Ricchi e Poveri"
-    #    parsed as artist="Sarà perché ti amo", title="Ricchi e Poveri")
-    if not artist_is_unknown and query != title_clean:
+    # ── 3. Last-resort: title-only (inverted YouTube order) ───────────
+    if lines is None and not artist_is_unknown and query != title_clean:
         data = _lrclib_search(title_clean)
         if data:
             raw = data.get("syncedLyrics", "")
             if raw:
-                lines = parse_lrc(raw)
-                if lines:
-                    cache.set(key, lines, 3600)
-                    return lines
+                lines = parse_lrc(raw) or None
+
+    if lines:
+        cache.set(key, lines, 3600)
+        try:
+            from .models import TrackCache  # noqa: PLC0415
+
+            TrackCache.upsert(artist, title, synced_lyrics=lines)
+        except Exception as _exc:
+            logger.debug("TrackCache synced_lyrics upsert skipped: %s", _exc)
+        return lines
 
     # Cache negative result for only 5 min so retries can succeed sooner
     cache.set(key, "__NONE__", 300)

@@ -404,7 +404,26 @@ class QuestionGeneratorService:
         attempts = 0
         while len(options) < 4 and attempts < 30:
             offset = random.choice(
-                [-10, -8, -7, -6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7, 8, 10]
+                [
+                    -10,
+                    -8,
+                    -7,
+                    -6,
+                    -5,
+                    -4,
+                    -3,
+                    -2,
+                    -1,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    10,
+                ]
             )
             wrong_year = year + offset
             if str(wrong_year) not in options and 1950 <= wrong_year <= 2030:
@@ -532,17 +551,39 @@ class QuestionGeneratorService:
             return None
 
         # 2. Find the YouTube video for full playback
+        # Check DB cache first to avoid consuming API quota
         youtube_video_id = None
         video_duration_ms = 0
+        album_image = track.get("album_image", "")
         try:
-            results = youtube_service.search_music_videos(
-                f"{artist} {track['name']}", limit=3
-            )
-            if results:
-                youtube_video_id = results[0]["youtube_id"]
-                video_duration_ms = results[0].get("duration_ms", 0)
-        except YouTubeAPIError as e:
-            logger.warning("YouTube search failed for karaoke: %s", e)
+            from apps.games.models import TrackCache
+
+            db_entry = TrackCache.lookup(artist, track["name"])
+            if db_entry and db_entry.youtube_video_id:
+                youtube_video_id = db_entry.youtube_video_id
+                video_duration_ms = db_entry.video_duration_ms
+                if db_entry.album_image:
+                    album_image = db_entry.album_image
+                logger.debug(
+                    "TrackCache HIT (youtube) for %s – %s",
+                    artist,
+                    track["name"],
+                )
+        except Exception as _exc:
+            logger.debug("TrackCache youtube lookup skipped: %s", _exc)
+
+        if not youtube_video_id:
+            try:
+                results = youtube_service.search_music_videos(
+                    f"{artist} {track['name']}", limit=3
+                )
+                if results:
+                    youtube_video_id = results[0]["youtube_id"]
+                    video_duration_ms = results[0].get("duration_ms", 0)
+                    if results[0].get("album_image"):
+                        album_image = results[0]["album_image"]
+            except YouTubeAPIError as e:
+                logger.warning("YouTube search failed for karaoke: %s", e)
 
         if not youtube_video_id:
             logger.warning(
@@ -551,6 +592,21 @@ class QuestionGeneratorService:
                 track["name"],
             )
             return None
+
+        # Persist to DB so future rounds reuse the same video
+        try:
+            from apps.games.models import TrackCache
+
+            TrackCache.upsert(
+                artist,
+                track["name"],
+                youtube_video_id=youtube_video_id,
+                video_duration_ms=video_duration_ms,
+                album_image=album_image or "",
+                synced_lyrics=synced,
+            )
+        except Exception as _exc:
+            logger.debug("TrackCache upsert skipped after YT search: %s", _exc)
 
         extra_data: Dict = {
             "synced_lyrics": synced,
@@ -651,7 +707,9 @@ class GameService:
         for i, q in enumerate(all_questions[:num_rounds], start=1):
             # For karaoke, use the YouTube video duration (capped at 300s)
             if is_karaoke:
-                vid_dur_ms = q.get("extra_data", {}).get("video_duration_ms", 0)
+                vid_dur_ms = q.get("extra_data", {}).get(
+                    "video_duration_ms", 0
+                )
                 if vid_dur_ms > 0:
                     round_duration_effective = min(vid_dur_ms // 1000 + 5, 300)
                 else:
@@ -778,6 +836,23 @@ class GameService:
 
         round_obj.started_at = timezone.now()
         round_obj.save()
+
+        # Persist to DB so future karaoke rounds reuse video + lyrics without API
+        try:
+            from apps.games.models import TrackCache
+
+            TrackCache.upsert(
+                artist_name,
+                track_name,
+                youtube_video_id=youtube_video_id,
+                video_duration_ms=duration_ms,
+                album_image=kt.get("album_image", ""),
+                synced_lyrics=synced or [],
+            )
+        except Exception as _exc:
+            logger.debug(
+                "TrackCache upsert in _start_karaoke_game skipped: %s", _exc
+            )
 
         return game, [round_obj]
 

@@ -5,7 +5,7 @@ Admin configuration for games.
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
-from .models import Game, GamePlayer, GameRound, GameAnswer
+from .models import Game, GamePlayer, GameRound, GameAnswer, TrackCache
 
 
 class GamePlayerInline(admin.TabularInline):
@@ -264,3 +264,90 @@ class GameAnswerAdmin(admin.ModelAdmin):
         return f"{obj.response_time:.1f}s"
 
     response_time_display.short_description = _("Temps")
+
+
+@admin.register(TrackCache)
+class TrackCacheAdmin(admin.ModelAdmin):
+    """Admin for TrackCache — browse and manage the local track/lyrics cache."""
+
+    list_display = [
+        "artist_name",
+        "track_name",
+        "has_youtube",
+        "has_synced",
+        "has_plain",
+        "updated_at",
+    ]
+    search_fields = ["artist_name", "track_name", "youtube_video_id"]
+    list_filter = ["updated_at"]
+    readonly_fields = ["artist_key", "track_key", "created_at", "updated_at"]
+    list_per_page = 50
+    ordering = ["-updated_at"]
+
+    fieldsets = (
+        (
+            _("Identité"),
+            {
+                "fields": (
+                    "artist_name",
+                    "artist_key",
+                    "track_name",
+                    "track_key",
+                )
+            },
+        ),
+        (
+            _("YouTube"),
+            {
+                "fields": (
+                    "youtube_video_id",
+                    "video_duration_ms",
+                    "album_image",
+                )
+            },
+        ),
+        (
+            _("Paroles synchros"),
+            {"fields": ("synced_lyrics",), "classes": ("collapse",)},
+        ),
+        (
+            _("Paroles brutes"),
+            {"fields": ("plain_lyrics",), "classes": ("collapse",)},
+        ),
+        (
+            _("Dates"),
+            {"fields": ("created_at", "updated_at")},
+        ),
+    )
+
+    def has_youtube(self, obj):
+        if obj.youtube_video_id:
+            return format_html(
+                '<a href="https://youtu.be/{0}" target="_blank" '
+                'style="color:#ef4444; font-weight:600">▶ {0}</a>',
+                obj.youtube_video_id,
+            )
+        return format_html('<span style="color:#9ca3af">—</span>')
+
+    has_youtube.short_description = _("YouTube")
+
+    def has_synced(self, obj):
+        n = len(obj.synced_lyrics) if obj.synced_lyrics else 0
+        if n:
+            return format_html(
+                '<span style="color:#10b981; font-weight:600">✓ {} lignes</span>',
+                n,
+            )
+        return format_html('<span style="color:#9ca3af">—</span>')
+
+    has_synced.short_description = _("Synchro")
+
+    def has_plain(self, obj):
+        if obj.plain_lyrics:
+            words = len(obj.plain_lyrics.split())
+            return format_html(
+                '<span style="color:#6366f1">✓ ~{} mots</span>', words
+            )
+        return format_html('<span style="color:#9ca3af">—</span>')
+
+    has_plain.short_description = _("Paroles brutes")
