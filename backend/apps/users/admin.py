@@ -30,7 +30,10 @@ class UserAdmin(BaseUserAdmin):
     date_hierarchy = "created_at"
 
     fieldsets = (
-        (None, {"fields": ("username", "email", "password")}),
+        (
+            _("Compte"),
+            {"fields": ("username", "email", "password")},
+        ),
         (
             _("Permissions"),
             {
@@ -41,7 +44,6 @@ class UserAdmin(BaseUserAdmin):
                     "groups",
                     "user_permissions",
                 ),
-                "classes": ("collapse",),
             },
         ),
         (_("Profil"), {"fields": ("avatar", "google_id")}),
@@ -54,7 +56,7 @@ class UserAdmin(BaseUserAdmin):
 
     add_fieldsets = (
         (
-            None,
+            _("Créer un compte"),
             {
                 "classes": ("wide",),
                 "fields": ("username", "email", "password1", "password2"),
@@ -64,13 +66,15 @@ class UserAdmin(BaseUserAdmin):
 
     readonly_fields = ["created_at", "updated_at", "last_login"]
 
+    @admin.display(description=_("Points"))
     def points_display(self, obj):
         return format_html("<strong>{}</strong>", obj.total_points)
 
-    points_display.short_description = _("Points")
-
+    @admin.display(description=_("Win rate"))
     def win_rate_display(self, obj):
-        rate = obj.win_rate
+        if obj.total_games_played == 0:
+            return format_html('<span style="color:#6b7280;">0%</span>')
+        rate = (obj.total_wins / obj.total_games_played) * 100
         color = (
             "#10b981" if rate >= 50 else "#f59e0b" if rate >= 25 else "#6b7280"
         )
@@ -79,8 +83,6 @@ class UserAdmin(BaseUserAdmin):
             color,
             rate,
         )
-
-    win_rate_display.short_description = _("Win rate")
 
 
 @admin.register(Friendship)

@@ -100,10 +100,13 @@ JAZZMIN_SETTINGS = {
     "custom_css": None,
     "custom_js": None,
     "use_google_fonts_cdn": True,
-    "changeform_format": "horizontal_tabs",
+    "changeform_format": "collapsible",
     "changeform_format_overrides": {
-        "users.User": "collapsible",
         "games.Game": "horizontal_tabs",
+        "games.GameRound": "horizontal_tabs",
+        "games.TrackCache": "horizontal_tabs",
+        "users.Team": "horizontal_tabs",
+        "achievements.Achievement": "horizontal_tabs",
     },
 }
 
