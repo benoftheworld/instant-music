@@ -79,9 +79,9 @@ class UserAdmin(BaseUserAdmin):
             "#10b981" if rate >= 50 else "#f59e0b" if rate >= 25 else "#6b7280"
         )
         return format_html(
-            '<span style="color:{}; font-weight:bold;">{:.0f}%</span>',
+            '<span style="color:{}; font-weight:bold;">{}%</span>',
             color,
-            rate,
+            f"{rate:.0f}",
         )
 
 

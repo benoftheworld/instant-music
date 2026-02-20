@@ -98,7 +98,7 @@ JAZZMIN_SETTINGS = {
     "default_icon_children": "fas fa-circle",
     "related_modal_active": True,
     "custom_css": None,
-    "custom_js": None,
+    "custom_js": "admin/js/jazzmin_tabs_fix.js",
     "use_google_fonts_cdn": True,
     "changeform_format": "collapsible",
     "changeform_format_overrides": {
