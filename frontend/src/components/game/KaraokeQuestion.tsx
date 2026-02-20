@@ -226,7 +226,7 @@ function KaraokeLyricsDisplay({
   return (
     <div
       ref={containerRef}
-      className="relative flex-1 overflow-hidden overflow-y-auto scrollbar-hide rounded-2xl bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950"
+      className="relative flex-1 min-h-0 overflow-hidden overflow-y-auto scrollbar-hide rounded-2xl bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950"
       style={{ minHeight: '320px' }}
     >
       {/* Gradient masks */}
@@ -317,7 +317,7 @@ const KaraokeQuestion = ({
 
   /* ── Playing phase: YouTube + lyrics + score ── */
   return (
-    <div className="bg-gradient-to-br from-gray-900 via-purple-950 to-gray-900 rounded-2xl shadow-2xl overflow-hidden">
+    <div className="bg-gradient-to-br from-gray-900 via-purple-950 to-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
       {/* Top bar: video + track info + score */}
       <div className="flex items-start gap-4 p-4">
         {/* YouTube player (visible, min 200×200 per ToS) */}
@@ -366,8 +366,8 @@ const KaraokeQuestion = ({
         <KaraokeScoreSidebar score={0} />
       </div>
 
-      {/* Lyrics area */}
-      <div className="px-4 pb-4" style={{ height: 'calc(100vh - 380px)', minHeight: '300px' }}>
+      {/* Lyrics area (flexes to remaining space without growing past viewport) */}
+      <div className="px-4 pb-4 flex-1 min-h-0">
         <KaraokeLyricsDisplay lines={syncedLines} activeIndex={activeIndex} />
       </div>
 

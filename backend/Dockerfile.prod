@@ -39,8 +39,11 @@ COPY . /app/
 # Create necessary directories
 RUN mkdir -p /app/staticfiles /app/media /app/logs
 
-# Collect static files
-RUN python manage.py collectstatic --noinput --settings=config.settings.production || true
+# Collect static files (quiet to avoid harmless duplicate static warnings)
+# Some admin/static files are provided by multiple packages (e.g. jazzmin
+# and django.contrib.admin). Reduce verbosity to avoid failing the build log
+# with duplicate-file warnings during image build.
+RUN python manage.py collectstatic --noinput --verbosity=0 --settings=config.settings.production || true
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \
