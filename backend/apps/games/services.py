@@ -725,12 +725,19 @@ class GameService:
         synced = get_synced_lyrics(artist_name, track_name)
         if not synced:
             logger.warning(
-                "No synced lyrics for karaoke track %s – %s",
+                "No synced lyrics for karaoke track %s – %s (will play without lyrics)",
                 artist_name,
                 track_name,
             )
             # Allow playing without lyrics (empty list)
             synced = []
+        else:
+            logger.info(
+                "Loaded %d synced lyric lines for karaoke track %s – %s",
+                len(synced),
+                artist_name,
+                track_name,
+            )
 
         # Determine round duration from video length
         if duration_ms > 0:
@@ -965,6 +972,7 @@ class GameService:
 
         players = game.players.order_by("-score")
         total_rounds = game.rounds.count()
+        is_karaoke = game.mode == GameMode.KARAOKE
 
         for rank, player in enumerate(players, start=1):
             player.rank = rank
@@ -973,7 +981,8 @@ class GameService:
             user = player.user
             user.total_games_played += 1
             user.total_points += player.score
-            if rank == 1:
+            # Karaoke is solo — no winner is crowned
+            if rank == 1 and not is_karaoke:
                 user.total_wins += 1
             user.save()
 

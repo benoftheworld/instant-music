@@ -205,9 +205,35 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
     return None
 
 
+def _lrclib_search(query: str) -> Optional[dict]:
+    """Call LRCLib /api/search and return the best matching result or None."""
+    try:
+        resp = requests.get(
+            "https://lrclib.net/api/search",
+            params={"q": query},
+            timeout=8,
+        )
+        if resp.status_code == 200:
+            results = resp.json()
+            if isinstance(results, list) and results:
+                # Prefer results that have synced lyrics
+                for item in results:
+                    if item.get("syncedLyrics"):
+                        return item
+                return results[0]
+    except Exception as e:
+        logger.warning("LRCLib search failed for %s: %s", query, e)
+    return None
+
+
 def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
     """
     Fetch synced (timestamped) lyrics from LRCLib.
+
+    Tries:
+      1. Exact artist+title query
+      2. Cleaned artist+title (strips parenthesised suffixes)
+      3. Full-text search fallback via /api/search
 
     Returns:
         List of {"time_ms": int, "text": str} sorted by time, or None.
@@ -218,8 +244,9 @@ def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
         return cached if cached != "__NONE__" else None
 
     artist_clean, title_clean = _clean_artist_title(artist, title)
-    data = _lrclib_request(artist_clean, title_clean)
 
+    # 1. Exact query
+    data = _lrclib_request(artist_clean, title_clean)
     if data:
         raw = data.get("syncedLyrics", "")
         if raw:
@@ -228,7 +255,19 @@ def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
                 cache.set(key, lines, 3600)
                 return lines
 
-    cache.set(key, "__NONE__", 1800)
+    # 2. Search fallback (handles slight artist/title mismatches)
+    query = f"{artist_clean} {title_clean}"
+    data = _lrclib_search(query)
+    if data:
+        raw = data.get("syncedLyrics", "")
+        if raw:
+            lines = parse_lrc(raw)
+            if lines:
+                cache.set(key, lines, 3600)
+                return lines
+
+    # Cache negative result for only 5 min so retries can succeed sooner
+    cache.set(key, "__NONE__", 300)
     return None
 
 

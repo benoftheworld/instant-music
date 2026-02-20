@@ -210,9 +210,10 @@ export default function GamePlayPage() {
           // Round finished, show results
           const myScoreData = data.results?.player_scores?.[user?.username || ''];
           const wasCorrect = myScoreData?.is_correct;
+          const isKaraokeMode = game?.mode === 'karaoke';
 
           // Play appropriate sound (skip for karaoke — no answer to judge)
-          if (game?.mode !== 'karaoke') {
+          if (!isKaraokeMode) {
             if (wasCorrect) {
               soundEffects.correctAnswer();
             } else {
@@ -221,7 +222,6 @@ export default function GamePlayPage() {
           }
 
           setShowResults(true);
-          setRoundPhase('results'); // Show results screen
           setRoundResults({
             ...data.results,
             points_earned: myScoreData?.points_earned ?? myPointsEarned,
@@ -231,14 +231,21 @@ export default function GamePlayPage() {
             setGame((prev: any) => prev ? { ...prev, players: data.results.updated_players } : prev);
           }
 
-          // Host advances to next round after result display time
-          // Karaoke: quick transition (2s); other modes: configurable
-          const isKaraokeMode = game?.mode === 'karaoke';
-          const resultDisplayTime = isKaraokeMode ? 2000 : (game?.score_display_duration || 10) * 1000;
-          if (user && game && game.host === user.id) {
-            setTimeout(() => {
+          if (isKaraokeMode) {
+            // Karaoke: skip inter-round screen, go directly to final results
+            // Host advances immediately; others wait for game_finished WS message
+            if (user && game && game.host === user.id) {
               advanceToNextRound();
-            }, resultDisplayTime);
+            }
+          } else {
+            setRoundPhase('results'); // Show results screen
+            // Host advances to next round after result display time
+            const resultDisplayTime = (game?.score_display_duration || 10) * 1000;
+            if (user && game && game.host === user.id) {
+              setTimeout(() => {
+                advanceToNextRound();
+              }, resultDisplayTime);
+            }
           }
           break;
         }
@@ -377,7 +384,7 @@ export default function GamePlayPage() {
       case 'paroles':
         return <LyricsQuestion {...commonProps} />;
       case 'karaoke':
-        return <KaraokeQuestion {...commonProps} onSkipSong={handleKaraokeSkip} />;
+        return <KaraokeQuestion {...commonProps} />;
       default:
         return <QuizQuestion {...commonProps} />;
     }
