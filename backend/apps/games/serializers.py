@@ -49,6 +49,7 @@ class GameSerializer(serializers.ModelSerializer):
             "max_players",
             "num_rounds",
             "playlist_id",
+            "karaoke_track",
             "is_online",
             "answer_mode",
             "guess_target",
@@ -80,6 +81,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
             "max_players",
             "num_rounds",
             "playlist_id",
+            "karaoke_track",
             "is_online",
             "answer_mode",
             "guess_target",
@@ -88,6 +90,22 @@ class CreateGameSerializer(serializers.ModelSerializer):
             "score_display_duration",
             "lyrics_words_count",
         ]
+
+    def validate(self, data):
+        """Cross-field validation: karaoke needs karaoke_track, others need playlist_id."""
+        mode = data.get("mode", "classique")
+        if mode == "karaoke":
+            karaoke_track = data.get("karaoke_track")
+            if not karaoke_track or not karaoke_track.get("youtube_video_id"):
+                raise serializers.ValidationError(
+                    "Le mode karaoké nécessite un morceau YouTube sélectionné."
+                )
+        else:
+            if not data.get("playlist_id"):
+                raise serializers.ValidationError(
+                    "Veuillez sélectionner une playlist."
+                )
+        return data
 
     def validate_round_duration(self, value):
         if value < 10 or value > 300:

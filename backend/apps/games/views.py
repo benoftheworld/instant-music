@@ -162,8 +162,8 @@ class GameViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check if playlist is selected
-        if not game.playlist_id:
+        # Check if playlist is selected (not needed for karaoke)
+        if game.mode != 'karaoke' and not game.playlist_id:
             return Response(
                 {"error": "Veuillez sélectionner une playlist."},
                 status=status.HTTP_400_BAD_REQUEST,

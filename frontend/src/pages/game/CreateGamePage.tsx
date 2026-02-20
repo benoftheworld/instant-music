@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { gameService } from '../../services/gameService';
-import type { GameMode, AnswerMode, GuessTarget, YouTubePlaylist, CreateGameData } from '../../types';
+import type { GameMode, AnswerMode, GuessTarget, YouTubePlaylist, KaraokeTrack, CreateGameData } from '../../types';
 import PlaylistSelector from '../../components/playlist/PlaylistSelector';
+import YouTubeSongSearch from '../../components/karaoke/YouTubeSongSearch';
 
 const TOTAL_STEPS = 4;
 
@@ -60,8 +61,9 @@ export default function CreateGamePage() {
   const [guessTarget, setGuessTarget] = useState<GuessTarget>('title');
   const [lyricsWordsCount, setLyricsWordsCount] = useState(3);
 
-  // Step 3: Playlist
+  // Step 3: Playlist (non-karaoke) or YouTube song (karaoke)
   const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
+  const [karaokeTrack, setKaraokeTrack] = useState<KaraokeTrack | null>(null);
 
   const nextStep = () => {
     if (currentStep < TOTAL_STEPS) setCurrentStep(currentStep + 1);
@@ -71,20 +73,30 @@ export default function CreateGamePage() {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
+  const isKaraoke = selectedMode === 'karaoke';
+
   const canProceed = () => {
     switch (currentStep) {
       case 1: return true;
       case 2: return true;
-      case 3: return !!selectedPlaylist;
+      case 3: return isKaraoke ? !!karaokeTrack : !!selectedPlaylist;
       default: return true;
     }
   };
 
   const handleCreateGame = async () => {
-    if (!selectedPlaylist) {
-      setError('Veuillez sélectionner une playlist');
-      setCurrentStep(3);
-      return;
+    if (isKaraoke) {
+      if (!karaokeTrack) {
+        setError('Veuillez sélectionner un morceau YouTube');
+        setCurrentStep(3);
+        return;
+      }
+    } else {
+      if (!selectedPlaylist) {
+        setError('Veuillez sélectionner une playlist');
+        setCurrentStep(3);
+        return;
+      }
     }
 
     setLoading(true);
@@ -94,9 +106,10 @@ export default function CreateGamePage() {
       const gameData: CreateGameData = {
         name: gameName || undefined,
         mode: selectedMode,
-        max_players: maxPlayers,
-        num_rounds: numRounds,
-        playlist_id: selectedPlaylist?.youtube_id,
+        max_players: isKaraoke ? 1 : maxPlayers,
+        num_rounds: isKaraoke ? 1 : numRounds,
+        playlist_id: isKaraoke ? undefined : selectedPlaylist?.youtube_id,
+        karaoke_track: isKaraoke ? karaokeTrack : undefined,
         is_online: isOnline,
         answer_mode: answerMode,
         guess_target: guessTarget,
@@ -110,8 +123,11 @@ export default function CreateGamePage() {
       navigate(`/game/lobby/${game.room_code}`);
     } catch (err) {
       console.error('Failed to create game:', err);
-      const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || 'Erreur lors de la création de la partie');
+      const error = err as { response?: { data?: { error?: string; non_field_errors?: string[] } } };
+      const msg = error.response?.data?.error
+        || error.response?.data?.non_field_errors?.[0]
+        || 'Erreur lors de la création de la partie';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -150,14 +166,16 @@ export default function CreateGamePage() {
       '', // index 0 unused
       'Configuration globale',
       'Mode de jeu',
-      'Sélection de la playlist',
+      isKaraoke ? 'Sélection du morceau' : 'Sélection de la playlist',
       'Confirmation',
     ];
     const subtitles = [
       '',
       'Paramétrez les timers, le nombre de joueurs et les options générales',
       'Choisissez votre mode de jeu et ses options',
-      'Choisissez la playlist musicale pour la partie',
+      isKaraoke
+        ? 'Recherchez et choisissez un morceau YouTube pour le karaoké'
+        : 'Choisissez la playlist musicale pour la partie',
       'Vérifiez vos choix et lancez la partie',
     ];
     return (
@@ -206,6 +224,8 @@ export default function CreateGamePage() {
         </p>
       </div>
 
+      {/* Round duration — hidden for karaoke (auto from video length) */}
+      {!isKaraoke && (
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           🎵 Temps du round
@@ -228,6 +248,7 @@ export default function CreateGamePage() {
           Durée pour répondre à chaque question
         </p>
       </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -251,6 +272,8 @@ export default function CreateGamePage() {
         </p>
       </div>
 
+      {/* Max players & rounds — hidden for karaoke (solo, 1 round) */}
+      {!isKaraoke && (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -285,6 +308,7 @@ export default function CreateGamePage() {
           </div>
         </div>
       </div>
+      )}
 
       <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
         <input
@@ -500,49 +524,61 @@ export default function CreateGamePage() {
 
   const renderStep3 = () => (
     <div className="card">
-      {selectedPlaylist ? (
-        <div className="mb-6">
-          <div className="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-            {selectedPlaylist.image_url && (
-              <img
-                src={selectedPlaylist.image_url}
-                alt={selectedPlaylist.name}
-                className="w-20 h-20 rounded-md object-cover"
-              />
-            )}
-            <div className="flex-1">
-              <h3 className="font-semibold text-lg">{selectedPlaylist.name}</h3>
-              <p className="text-sm text-gray-600">
-                {selectedPlaylist.total_tracks} morceaux • {selectedPlaylist.owner}
-              </p>
-            </div>
-            <button
-              onClick={() => setSelectedPlaylist(null)}
-              className="text-red-600 hover:text-red-700 p-2"
-              title="Retirer"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
+      {isKaraoke ? (
+        <YouTubeSongSearch
+          selectedTrack={karaokeTrack}
+          onSelectTrack={(track) => {
+            setKaraokeTrack(track);
+            setError(null);
+          }}
+        />
       ) : (
-        <div className="text-center py-4 mb-4">
-          <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z" />
-          </svg>
-          <p className="text-gray-600">Sélectionnez une playlist ci-dessous</p>
-        </div>
-      )}
+        <>
+          {selectedPlaylist ? (
+            <div className="mb-6">
+              <div className="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                {selectedPlaylist.image_url && (
+                  <img
+                    src={selectedPlaylist.image_url}
+                    alt={selectedPlaylist.name}
+                    className="w-20 h-20 rounded-md object-cover"
+                  />
+                )}
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg">{selectedPlaylist.name}</h3>
+                  <p className="text-sm text-gray-600">
+                    {selectedPlaylist.total_tracks} morceaux • {selectedPlaylist.owner}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedPlaylist(null)}
+                  className="text-red-600 hover:text-red-700 p-2"
+                  title="Retirer"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4 mb-4">
+              <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z" />
+              </svg>
+              <p className="text-gray-600">Sélectionnez une playlist ci-dessous</p>
+            </div>
+          )}
 
-      <PlaylistSelector
-        onSelectPlaylist={(playlist) => {
-          setSelectedPlaylist(playlist);
-          setError(null);
-        }}
-        selectedPlaylistId={selectedPlaylist?.youtube_id}
-      />
+          <PlaylistSelector
+            onSelectPlaylist={(playlist) => {
+              setSelectedPlaylist(playlist);
+              setError(null);
+            }}
+            selectedPlaylistId={selectedPlaylist?.youtube_id}
+          />
+        </>
+      )}
     </div>
   );
 
@@ -560,10 +596,17 @@ export default function CreateGamePage() {
             <ul className="space-y-2 text-sm">
               {gameName && <li><span className="text-gray-500">Nom :</span> <strong>{gameName}</strong></li>}
               <li><span className="text-gray-500">Timer début :</span> <strong>{timerStartRound}s</strong></li>
-              <li><span className="text-gray-500">Durée round :</span> <strong>{roundDuration}s</strong></li>
+              {!isKaraoke && (
+                <>
+                  <li><span className="text-gray-500">Durée round :</span> <strong>{roundDuration}s</strong></li>
+                  <li><span className="text-gray-500">Rounds :</span> <strong>{numRounds}</strong></li>
+                  <li><span className="text-gray-500">Joueurs max :</span> <strong>{maxPlayers}</strong></li>
+                </>
+              )}
+              {isKaraoke && (
+                <li><span className="text-gray-500">Round :</span> <strong>1 (durée auto)</strong></li>
+              )}
               <li><span className="text-gray-500">Score affichage :</span> <strong>{scoreDisplayDuration}s</strong></li>
-              <li><span className="text-gray-500">Rounds :</span> <strong>{numRounds}</strong></li>
-              <li><span className="text-gray-500">Joueurs max :</span> <strong>{maxPlayers}</strong></li>
               <li><span className="text-gray-500">Mode :</span> <strong>{isOnline ? 'En ligne' : 'Hors ligne'}</strong></li>
             </ul>
           </div>
@@ -578,29 +621,51 @@ export default function CreateGamePage() {
                 <p className="text-xs text-gray-600">{modeConfig?.description}</p>
               </div>
             </div>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <span className="text-gray-500">Réponse :</span>{' '}
-                <strong>{answerMode === 'mcq' ? 'QCM' : 'Saisie libre'}</strong>
-              </li>
-              {(selectedMode === 'classique' || selectedMode === 'rapide') && answerMode === 'mcq' && (
+            {!isKaraoke && (
+              <ul className="space-y-2 text-sm">
                 <li>
-                  <span className="text-gray-500">Cible :</span>{' '}
-                  <strong>{guessTarget === 'artist' ? 'Artiste' : 'Titre'}</strong>
+                  <span className="text-gray-500">Réponse :</span>{' '}
+                  <strong>{answerMode === 'mcq' ? 'QCM' : 'Saisie libre'}</strong>
                 </li>
-              )}
-              {selectedMode === 'paroles' && (
-                <li>
-                  <span className="text-gray-500">Mots à trouver :</span>{' '}
-                  <strong>{lyricsWordsCount}</strong>
-                </li>
-              )}
-            </ul>
+                {(selectedMode === 'classique' || selectedMode === 'rapide') && answerMode === 'mcq' && (
+                  <li>
+                    <span className="text-gray-500">Cible :</span>{' '}
+                    <strong>{guessTarget === 'artist' ? 'Artiste' : 'Titre'}</strong>
+                  </li>
+                )}
+                {selectedMode === 'paroles' && (
+                  <li>
+                    <span className="text-gray-500">Mots à trouver :</span>{' '}
+                    <strong>{lyricsWordsCount}</strong>
+                  </li>
+                )}
+              </ul>
+            )}
           </div>
         </div>
 
-        {/* Playlist summary */}
-        {selectedPlaylist && (
+        {/* Karaoke track summary */}
+        {isKaraoke && karaokeTrack && (
+          <div className="p-4 bg-pink-50 border border-pink-200 rounded-lg">
+            <h4 className="font-semibold text-sm text-pink-600 uppercase mb-3">🎤 Morceau karaoké</h4>
+            <div className="flex items-center gap-4">
+              {karaokeTrack.album_image && (
+                <img
+                  src={karaokeTrack.album_image}
+                  alt={karaokeTrack.track_name}
+                  className="w-16 h-16 rounded-md object-cover"
+                />
+              )}
+              <div>
+                <p className="font-bold">{karaokeTrack.track_name}</p>
+                <p className="text-sm text-gray-600">{karaokeTrack.artist_name}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Playlist summary (non-karaoke) */}
+        {!isKaraoke && selectedPlaylist && (
           <div className="p-4 bg-gray-50 rounded-lg">
             <h4 className="font-semibold text-sm text-gray-500 uppercase mb-3">Playlist</h4>
             <div className="flex items-center gap-4">
@@ -688,7 +753,7 @@ export default function CreateGamePage() {
               <button
                 onClick={handleCreateGame}
                 className="btn-primary flex-1"
-                disabled={loading || !selectedPlaylist}
+                disabled={loading || (isKaraoke ? !karaokeTrack : !selectedPlaylist)}
               >
                 {loading ? 'Création...' : 'Créer la partie'}
               </button>

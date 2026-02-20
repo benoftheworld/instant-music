@@ -53,6 +53,7 @@ export interface Game {
   max_players: number;
   num_rounds: number;
   playlist_id?: string;
+  karaoke_track?: KaraokeTrack | null;
   is_online: boolean;
   answer_mode: AnswerMode;
   guess_target: GuessTarget;
@@ -84,6 +85,7 @@ export interface CreateGameData {
   max_players: number;
   num_rounds: number;
   playlist_id?: string;
+  karaoke_track?: KaraokeTrack | null;
   is_online: boolean;
   answer_mode: AnswerMode;
   guess_target: GuessTarget;
@@ -91,6 +93,15 @@ export interface CreateGameData {
   timer_start_round: number;
   score_display_duration: number;
   lyrics_words_count?: number;
+}
+
+/** Track selected for karaoke mode (single YouTube song). */
+export interface KaraokeTrack {
+  youtube_video_id: string;
+  track_name: string;
+  artist_name: string;
+  duration_ms: number;
+  album_image?: string;
 }
 
 export interface GameRound {

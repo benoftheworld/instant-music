@@ -117,6 +117,16 @@ class Game(models.Model):
         default=3,
         help_text=_("Nombre de mots à deviner dans le mode Paroles (2-10)"),
     )
+    karaoke_track = models.JSONField(
+        _("morceau karaoké"),
+        null=True,
+        blank=True,
+        default=None,
+        help_text=_(
+            "Informations du morceau sélectionné pour le karaoké "
+            "(youtube_video_id, track_name, artist_name, duration_ms)"
+        ),
+    )
 
     created_at = models.DateTimeField(_("créé le"), auto_now_add=True)
     started_at = models.DateTimeField(_("démarré le"), null=True, blank=True)

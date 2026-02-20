@@ -611,6 +611,13 @@ class GameService:
         if game.status != GameStatus.WAITING:
             raise ValueError("Game is not in waiting status")
 
+        mode = game.mode
+        is_karaoke = mode == GameMode.KARAOKE
+
+        # Karaoke uses a single pre-selected YouTube track, not a playlist
+        if is_karaoke:
+            return self._start_karaoke_game(game)
+
         if not game.playlist_id:
             raise ValueError("Game must have a playlist")
 
@@ -696,6 +703,76 @@ class GameService:
             rounds[0].save()
 
         return game, rounds
+
+    def _start_karaoke_game(self, game: Game) -> Tuple[Game, List[GameRound]]:
+        """Start a karaoke game from the pre-selected YouTube track.
+
+        Unlike other modes, karaoke doesn't need a Deezer playlist.
+        It uses the single track stored in ``game.karaoke_track``.
+        """
+        kt = game.karaoke_track
+        if not kt or not kt.get("youtube_video_id"):
+            raise ValueError(
+                "Le mode karaoké nécessite un morceau YouTube sélectionné."
+            )
+
+        youtube_video_id = kt["youtube_video_id"]
+        track_name = kt.get("track_name", "Unknown")
+        artist_name = kt.get("artist_name", "Unknown")
+        duration_ms = kt.get("duration_ms", 0)
+
+        # Fetch synced lyrics from LRCLib
+        synced = get_synced_lyrics(artist_name, track_name)
+        if not synced:
+            logger.warning(
+                "No synced lyrics for karaoke track %s – %s",
+                artist_name,
+                track_name,
+            )
+            # Allow playing without lyrics (empty list)
+            synced = []
+
+        # Determine round duration from video length
+        if duration_ms > 0:
+            round_duration = min(duration_ms // 1000 + 5, 300)
+        else:
+            round_duration = 180  # fallback 3 min
+
+        extra_data = {
+            "synced_lyrics": synced,
+            "youtube_video_id": youtube_video_id,
+            "video_duration_ms": duration_ms,
+            "round_mode": GameMode.KARAOKE,
+            "answer_mode": game.answer_mode,
+            "guess_target": game.guess_target,
+            "artist_name": artist_name,
+            "track_name": track_name,
+        }
+
+        round_obj = GameRound.objects.create(
+            game=game,
+            round_number=1,
+            track_id=youtube_video_id,
+            track_name=track_name,
+            artist_name=artist_name,
+            correct_answer=track_name,
+            options=[],
+            preview_url="",
+            question_type="karaoke",
+            question_text=f"{track_name} — {artist_name}",
+            extra_data=extra_data,
+            duration=round_duration,
+        )
+
+        game.status = GameStatus.IN_PROGRESS
+        game.started_at = timezone.now()
+        game.num_rounds = 1
+        game.save()
+
+        round_obj.started_at = timezone.now()
+        round_obj.save()
+
+        return game, [round_obj]
 
     def get_current_round(self, game: Game) -> Optional[GameRound]:
         return (

@@ -10,6 +10,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from .models import Playlist, Track
 from .serializers import PlaylistSerializer, TrackSerializer, YouTubePlaylistSerializer
 from .deezer_service import deezer_service, DeezerAPIError
+from .youtube_service import youtube_service, YouTubeAPIError
 
 
 class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
@@ -115,6 +116,45 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
                 'error': str(e),
                 'source': 'deezer'
             }, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter('query', str, description='Search query for YouTube songs')
+        ],
+    )
+    @action(detail=False, methods=['get'], url_path='youtube-songs/search')
+    def search_youtube_songs(self, request):
+        """
+        Search for individual songs on YouTube (for karaoke mode).
+
+        Query params:
+        - query: Search string (required)
+        - limit: Max results (optional, default: 10)
+        """
+        query = request.query_params.get('query', '')
+
+        if not query or len(query.strip()) < 2:
+            return Response(
+                {'error': 'Le paramètre query est requis (min 2 caractères).'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            limit = min(int(request.query_params.get('limit', 10)), 20)
+        except ValueError:
+            limit = 10
+
+        try:
+            tracks = youtube_service.search_music_videos(query.strip(), limit=limit)
+            return Response({
+                'tracks': tracks,
+                'source': 'youtube',
+            })
+        except YouTubeAPIError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
 
 class TrackViewSet(viewsets.ReadOnlyModelViewSet):

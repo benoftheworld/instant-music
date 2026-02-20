@@ -3,7 +3,7 @@
  * Replaces Spotify service
  */
 import { api } from './api';
-import type { YouTubePlaylist, YouTubeTrack } from '@/types';
+import type { YouTubePlaylist, YouTubeTrack, KaraokeTrack } from '@/types';
 
 class YouTubeService {
   /**
@@ -45,6 +45,22 @@ class YouTubeService {
       return response.data;
     } catch (error) {
       console.error('Failed to get playlist tracks:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search for individual YouTube songs (for karaoke mode).
+   * Returns tracks with youtube_id, name, artists, duration_ms, album_image.
+   */
+  async searchYouTubeSongs(query: string, limit: number = 10): Promise<YouTubeTrack[]> {
+    try {
+      const response = await api.get('/playlists/playlists/youtube-songs/search/', {
+        params: { query, limit },
+      });
+      return response.data.tracks || [];
+    } catch (error) {
+      console.error('Failed to search YouTube songs:', error);
       throw error;
     }
   }
