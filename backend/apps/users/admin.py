@@ -128,6 +128,28 @@ class TeamAdmin(admin.ModelAdmin):
     search_fields = ["name", "owner__username"]
     inlines = [TeamMemberInline]
     list_per_page = 25
+    readonly_fields = ["created_at", "updated_at"]
+
+    fieldsets = (
+        (
+            _("Informations générales"),
+            {
+                "fields": ("name", "description", "avatar", "owner"),
+            },
+        ),
+        (
+            _("Statistiques"),
+            {
+                "fields": ("total_games", "total_wins", "total_points"),
+            },
+        ),
+        (
+            _("Dates"),
+            {
+                "fields": ("created_at", "updated_at"),
+            },
+        ),
+    )
 
     def member_count(self, obj):
         return obj.memberships.count()

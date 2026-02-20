@@ -91,7 +91,6 @@ class GameAdmin(admin.ModelAdmin):
                     "timer_start_round",
                     "score_display_duration",
                 ),
-                "classes": ("collapse",),
             },
         ),
         (
@@ -225,7 +224,47 @@ class GameRoundAdmin(admin.ModelAdmin):
     search_fields = ["game__room_code", "track_name", "artist_name"]
     list_per_page = 30
     raw_id_fields = ["game"]
+    readonly_fields = ["started_at", "ended_at"]
     inlines = [GameAnswerInline]
+
+    fieldsets = (
+        (
+            _("Informations générales"),
+            {
+                "fields": (
+                    "game",
+                    "round_number",
+                    "question_type",
+                    "question_text",
+                ),
+            },
+        ),
+        (
+            _("Morceau"),
+            {
+                "fields": (
+                    "track_id",
+                    "track_name",
+                    "artist_name",
+                    "correct_answer",
+                    "options",
+                    "preview_url",
+                ),
+            },
+        ),
+        (
+            _("Paramètres"),
+            {
+                "fields": ("duration", "extra_data"),
+            },
+        ),
+        (
+            _("Dates"),
+            {
+                "fields": ("started_at", "ended_at"),
+            },
+        ),
+    )
 
     def answer_count(self, obj):
         return obj.answers.count()
@@ -308,11 +347,11 @@ class TrackCacheAdmin(admin.ModelAdmin):
         ),
         (
             _("Paroles synchros"),
-            {"fields": ("synced_lyrics",), "classes": ("collapse",)},
+            {"fields": ("synced_lyrics",)},
         ),
         (
             _("Paroles brutes"),
-            {"fields": ("plain_lyrics",), "classes": ("collapse",)},
+            {"fields": ("plain_lyrics",)},
         ),
         (
             _("Dates"),

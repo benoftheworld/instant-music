@@ -28,6 +28,21 @@ class AchievementAdmin(admin.ModelAdmin):
     list_per_page = 25
     inlines = [UserAchievementInline]
 
+    fieldsets = (
+        (
+            _("Succès"),
+            {
+                "fields": ("name", "description", "icon", "points"),
+            },
+        ),
+        (
+            _("Condition"),
+            {
+                "fields": ("condition_type", "condition_value"),
+            },
+        ),
+    )
+
     def points_badge(self, obj):
         return format_html(
             '<span style="background:#8b5cf6; color:#fff; padding:2px 8px; '
