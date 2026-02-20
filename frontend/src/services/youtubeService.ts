@@ -3,7 +3,7 @@
  * Replaces Spotify service
  */
 import { api } from './api';
-import type { YouTubePlaylist, YouTubeTrack, KaraokeTrack } from '@/types';
+import type { YouTubePlaylist, YouTubeTrack } from '@/types';
 
 class YouTubeService {
   /**
