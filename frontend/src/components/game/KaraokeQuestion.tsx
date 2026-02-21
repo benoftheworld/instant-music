@@ -239,15 +239,18 @@ function KaraokeLyricsDisplay({
   if (lines.length === 0) return null;
 
   return (
-    <div
-      ref={containerRef}
-      className="relative flex-1 min-h-0 overflow-hidden overflow-y-auto scrollbar-hide rounded-2xl bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950"
-    >
+    <>
+      <style>{`[data-hide-scroll] { -ms-overflow-style: none; scrollbar-width: none; } [data-hide-scroll]::-webkit-scrollbar { display: none; }`}</style>
+      <div
+        data-hide-scroll
+        ref={containerRef}
+        className="relative flex-1 min-h-0 overflow-hidden overflow-y-auto scrollbar-hide rounded-2xl bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950"
+      >
       {/* Gradient masks */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-gray-950 to-transparent z-10" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-gray-950 to-transparent z-10" />
 
-      <div className="space-y-3 py-4 px-6">
+      <div className="space-y-6 py-8 px-6">
         {lines.map((line, i) => {
           const isCurrent = i === activeIndex;
           const isPast = i < activeIndex;
@@ -261,10 +264,10 @@ function KaraokeLyricsDisplay({
               ref={isCurrent ? activeRef : undefined}
               className={`text-center transition-all duration-500 leading-relaxed ${
                 isCurrent
-                  ? 'text-yellow-300 text-3xl md:text-4xl font-extrabold scale-105 drop-shadow-lg'
+                  ? 'text-yellow-300 text-6xl md:text-7xl font-extrabold scale-105 drop-shadow-lg'
                   : isPast
-                    ? 'text-gray-600 text-lg md:text-xl'
-                    : 'text-gray-400 text-xl md:text-2xl'
+                    ? 'text-gray-600 text-2xl md:text-3xl'
+                    : 'text-gray-400 text-4xl md:text-5xl'
               }`}
             >
               {line.text}
@@ -273,6 +276,7 @@ function KaraokeLyricsDisplay({
         })}
       </div>
     </div>
+    </>
   );
 }
 
