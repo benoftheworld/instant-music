@@ -5,12 +5,6 @@
 
 set -e
 
-# Disable BuildKit / bake — buildx is not required on this host.
-# Remove this line (or set to 1) if buildx is installed and you want
-# to benefit from layer caching and parallel builds.
-export DOCKER_BUILDKIT=0
-export COMPOSE_DOCKER_CLI_BUILD=0
-
 ENV=${1:-production}
 COMPOSE_FILE="_devops/docker/docker-compose.yml"
 COMPOSE_EXTRA=""
