@@ -77,7 +77,7 @@ export const gameService = {
     const allSongs: KaraokeSong[] = [];
     let url: string | null = '/games/karaoke-songs/';
     while (url) {
-      const response: Awaited<ReturnType<typeof api.get>> = await api.get(url);
+      const response = await api.get(url) as { data: unknown };
       const data: unknown = response.data;
       if (Array.isArray(data)) {
         // pagination_class = None → plain array, done
