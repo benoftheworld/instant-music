@@ -862,6 +862,8 @@ class KaraokeSongViewSet(viewsets.ReadOnlyModelViewSet):
 
     serializer_class = KaraokeSongSerializer
     permission_classes = [IsAuthenticated]
+    # Disable pagination — the catalogue is small and managed by admins
+    pagination_class = None
 
     def get_queryset(self):
         return KaraokeSong.objects.filter(is_active=True).order_by("artist", "title")

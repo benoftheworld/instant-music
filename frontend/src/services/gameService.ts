@@ -72,13 +72,34 @@ export const gameService = {
     window.URL.revokeObjectURL(url);
   },
 
-  /** Fetch the admin-curated karaoke song catalogue. */
+  /** Fetch the admin-curated karaoke song catalogue (all pages). */
   async listKaraokeSongs(): Promise<KaraokeSong[]> {
-    const response = await api.get('/games/karaoke-songs/');
-    // Handle both plain array and DRF paginated responses
-    const data = response.data;
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.results)) return data.results;
-    return [];
+    const allSongs: KaraokeSong[] = [];
+    let url: string | null = '/games/karaoke-songs/';
+    while (url) {
+      const response = await api.get(url);
+      const data = response.data;
+      if (Array.isArray(data)) {
+        // pagination_class = None → plain array, done
+        return data;
+      }
+      if (Array.isArray(data?.results)) {
+        allSongs.push(...data.results);
+        // Follow DRF `next` link if present (strip base URL to keep relative)
+        if (data.next) {
+          try {
+            const nextUrl = new URL(data.next);
+            url = nextUrl.pathname + nextUrl.search;
+          } catch {
+            url = data.next;
+          }
+        } else {
+          url = null;
+        }
+      } else {
+        url = null;
+      }
+    }
+    return allSongs;
   },
 };

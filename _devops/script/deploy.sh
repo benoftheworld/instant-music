@@ -43,7 +43,7 @@ CURRENT_BRANCH=$(git branch --show-current)
 git pull origin $CURRENT_BRANCH
 
 echo "🏗️  Build des images Docker..."
-docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA build --no-cache
+docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA build --no-cache --progress=auto
 
 echo "🛑 Arrêt des anciens containers..."
 docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA down
