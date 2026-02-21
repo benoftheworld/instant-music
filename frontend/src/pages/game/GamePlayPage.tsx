@@ -53,6 +53,7 @@ export default function GamePlayPage() {
   // New state for round phases: 'loading' | 'playing' | 'results'
   const [roundPhase, setRoundPhase] = useState<'loading' | 'playing' | 'results'>('loading');
   const loadingStartTimeRef = useRef<number>(0);
+  const loadingRoundIdRef = useRef<string | null>(null);
 
   // WebSocket connection
   const { sendMessage, onMessage } = useWebSocket(roomCode || '');
@@ -72,6 +73,7 @@ export default function GamePlayPage() {
         setShowResults(false);
         setRoundPhase('loading'); // Start with loading phase
         loadingStartTimeRef.current = Date.now(); // Record when loading starts
+        loadingRoundIdRef.current = response.current_round.id;
       } else if (response.message === 'Partie terminée') {
         // Game is finished
         navigate(`/game/${roomCode}/results`);
@@ -125,8 +127,9 @@ export default function GamePlayPage() {
       const startTime = new Date(currentRound.started_at).getTime();
       const now = Date.now();
 
-      // Compensate for the loading screen duration
-      const adjustedStartTime = startTime + (loadingStartTimeRef.current > 0 ? loadingDurationMs : 0);
+      // Compensate for the loading screen duration only if the loading
+      // timestamp corresponds to the current round (prevents reuse across rounds).
+      const adjustedStartTime = startTime + (loadingRoundIdRef.current === currentRound.id ? loadingDurationMs : 0);
 
       const elapsed = Math.floor((now - adjustedStartTime) / 1000);
       const remaining = Math.max(0, currentRound.duration - elapsed);
@@ -199,6 +202,7 @@ export default function GamePlayPage() {
           setShowResults(false);
           setRoundPhase('loading'); // Show loading screen first
           loadingStartTimeRef.current = Date.now(); // Record when loading starts
+          loadingRoundIdRef.current = data.round_data.id;
           break;
 
         case 'player_answered':
@@ -263,6 +267,7 @@ export default function GamePlayPage() {
           setMyPointsEarned(0);
           setRoundPhase('loading'); // Show loading screen for new round
           loadingStartTimeRef.current = Date.now(); // Record when loading starts
+          loadingRoundIdRef.current = data.round_data.id;
           // Update players with fresh scores (functional update to avoid stale closure)
           if (data.updated_players) {
             setGame((prev: any) => prev ? { ...prev, players: data.updated_players } : prev);

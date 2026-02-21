@@ -215,11 +215,26 @@ function KaraokeLyricsDisplay({
   const containerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLParagraphElement>(null);
 
+  // Keep a fixed visible area equal to 4 lines and position active line
+  // so that 2 previous lines + current + 1 next are visible.
   useEffect(() => {
-    if (activeRef.current && containerRef.current) {
-      activeRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [activeIndex]);
+    const container = containerRef.current;
+    const active = activeRef.current;
+    if (!container || !active) return;
+
+    // Determine a sensible line height: prefer the active element height,
+    // fallback to the first paragraph inside the container.
+    const firstLine = container.querySelector<HTMLParagraphElement>('p');
+    const lineHeight = (active.clientHeight || firstLine?.clientHeight || 32);
+
+    // Ensure container has height for 4 lines
+    const visibleLines = 4;
+    container.style.height = `${lineHeight * visibleLines}px`;
+
+    // Compute scroll position so active line sits after 2 previous lines
+    const target = Math.max(0, active.offsetTop - lineHeight * 2);
+    container.scrollTo({ top: target, behavior: 'smooth' });
+  }, [activeIndex, lines]);
 
   if (lines.length === 0) return null;
 
@@ -227,13 +242,12 @@ function KaraokeLyricsDisplay({
     <div
       ref={containerRef}
       className="relative flex-1 min-h-0 overflow-hidden overflow-y-auto scrollbar-hide rounded-2xl bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950"
-      style={{ minHeight: '320px' }}
     >
       {/* Gradient masks */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-gray-950 to-transparent z-10" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-gray-950 to-transparent z-10" />
 
-      <div className="space-y-3 py-20 px-6">
+      <div className="space-y-3 py-4 px-6">
         {lines.map((line, i) => {
           const isCurrent = i === activeIndex;
           const isPast = i < activeIndex;
