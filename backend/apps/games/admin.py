@@ -41,28 +41,13 @@ class GameRoundInline(admin.TabularInline):
 
 
 # TrackCache admin removed — model no longer present.
-                    "score_display_duration",
-                ),
-            },
-        ),
+@admin.register(Game)
+class GameAdmin(admin.ModelAdmin):
+    """Admin for Game model."""
+    fieldsets = (
         (
-            _("Playlist"),
-            {
-                "fields": ("playlist_id",),
-            },
-        ),
-        (
-            _("Karaoké"),
-            {
-                "fields": ("karaoke_song", "karaoke_track"),
-                "classes": ("collapse",),
-            },
-        ),
-        (
-            _("Dates"),
-            {
-                "fields": ("created_at", "started_at", "finished_at"),
-            },
+            _("Informations générales"),
+            {"fields": ("room_code", "name")},
         ),
     )
 
