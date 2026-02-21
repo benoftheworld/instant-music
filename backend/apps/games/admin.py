@@ -5,7 +5,7 @@ Admin configuration for games.
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
-from .models import Game, GamePlayer, GameRound, GameAnswer, TrackCache, KaraokeSong
+from .models import Game, GamePlayer, GameRound, GameAnswer, KaraokeSong
 
 
 class GamePlayerInline(admin.TabularInline):
@@ -40,55 +40,7 @@ class GameRoundInline(admin.TabularInline):
     show_change_link = True
 
 
-@admin.register(Game)
-class GameAdmin(admin.ModelAdmin):
-    """Admin for Game model."""
-
-    list_display = [
-        "room_code",
-        "name_display",
-        "host",
-        "mode_badge",
-        "status_badge",
-        "answer_mode",
-        "player_count",
-        "num_rounds",
-        "created_at",
-    ]
-    list_filter = ["status", "mode", "answer_mode", "is_online", "created_at"]
-    search_fields = ["room_code", "name", "host__username"]
-    readonly_fields = ["room_code", "created_at", "started_at", "finished_at"]
-    list_per_page = 25
-    date_hierarchy = "created_at"
-    inlines = [GamePlayerInline, GameRoundInline]
-    ordering = ["-created_at"]
-
-    fieldsets = (
-        (
-            _("Informations générales"),
-            {
-                "fields": ("room_code", "name", "host", "status", "is_online"),
-            },
-        ),
-        (
-            _("Configuration du jeu"),
-            {
-                "fields": (
-                    "mode",
-                    "answer_mode",
-                    "guess_target",
-                    "max_players",
-                    "num_rounds",
-                    "lyrics_words_count",
-                ),
-            },
-        ),
-        (
-            _("Timers"),
-            {
-                "fields": (
-                    "round_duration",
-                    "timer_start_round",
+# TrackCache admin removed — model no longer present.
                     "score_display_duration",
                 ),
             },
@@ -312,70 +264,76 @@ class GameAnswerAdmin(admin.ModelAdmin):
     response_time_display.short_description = _("Temps")
 
 
-@admin.register(TrackCache)
-class TrackCacheAdmin(admin.ModelAdmin):
-    """Admin for TrackCache — browse and manage the local track/lyrics cache."""
+try:
+    from .models import TrackCache  # may be removed in future migration
+except Exception:
+    TrackCache = None
 
-    list_display = [
-        "artist_name",
-        "track_name",
-        "has_youtube",
-        "has_synced",
-        "has_plain",
-        "updated_at",
-    ]
-    search_fields = ["artist_name", "track_name", "youtube_video_id"]
-    list_filter = ["updated_at"]
-    readonly_fields = ["artist_key", "track_key", "created_at", "updated_at"]
-    list_per_page = 50
-    ordering = ["-updated_at"]
+if TrackCache:
+    @admin.register(TrackCache)
+    class TrackCacheAdmin(admin.ModelAdmin):
+        """Admin for TrackCache — browse and manage the local track/lyrics cache."""
 
-    fieldsets = (
-        (
-            _("Identité"),
-            {
-                "fields": (
-                    "artist_name",
-                    "artist_key",
-                    "track_name",
-                    "track_key",
+        list_display = [
+            "artist_name",
+            "track_name",
+            "has_youtube",
+            "has_synced",
+            "has_plain",
+            "updated_at",
+        ]
+        search_fields = ["artist_name", "track_name", "youtube_video_id"]
+        list_filter = ["updated_at"]
+        readonly_fields = ["artist_key", "track_key", "created_at", "updated_at"]
+        list_per_page = 50
+        ordering = ["-updated_at"]
+
+        fieldsets = (
+            (
+                _("Identité"),
+                {
+                    "fields": (
+                        "artist_name",
+                        "artist_key",
+                        "track_name",
+                        "track_key",
+                    )
+                },
+            ),
+            (
+                _("YouTube"),
+                {
+                    "fields": (
+                        "youtube_video_id",
+                        "video_duration_ms",
+                        "album_image",
+                    )
+                },
+            ),
+            (
+                _("Paroles synchros"),
+                {"fields": ("synced_lyrics",)},
+            ),
+            (
+                _("Paroles brutes"),
+                {"fields": ("plain_lyrics",)},
+            ),
+            (
+                _("Dates"),
+                {"fields": ("created_at", "updated_at")},
+            ),
+        )
+
+        def has_youtube(self, obj):
+            if obj.youtube_video_id:
+                return format_html(
+                    '<a href="https://youtu.be/{0}" target="_blank" '
+                    'style="color:#ef4444; font-weight:600">▶ {0}</a>',
+                    obj.youtube_video_id,
                 )
-            },
-        ),
-        (
-            _("YouTube"),
-            {
-                "fields": (
-                    "youtube_video_id",
-                    "video_duration_ms",
-                    "album_image",
-                )
-            },
-        ),
-        (
-            _("Paroles synchros"),
-            {"fields": ("synced_lyrics",)},
-        ),
-        (
-            _("Paroles brutes"),
-            {"fields": ("plain_lyrics",)},
-        ),
-        (
-            _("Dates"),
-            {"fields": ("created_at", "updated_at")},
-        ),
-    )
+            return format_html('<span style="color:#9ca3af">—</span>')
 
-    def has_youtube(self, obj):
-        if obj.youtube_video_id:
-            return format_html(
-                '<a href="https://youtu.be/{0}" target="_blank" '
-                'style="color:#ef4444; font-weight:600">▶ {0}</a>',
-                obj.youtube_video_id,
-            )
-        return format_html('<span style="color:#9ca3af">—</span>')
-
-    has_youtube.short_description = _("YouTube")
+        has_youtube.short_description = _("YouTube")
 
     def has_synced(self, obj):
         n = len(obj.synced_lyrics) if obj.synced_lyrics else 0
