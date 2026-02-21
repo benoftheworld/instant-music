@@ -201,7 +201,7 @@ def _clean_artist_title(artist: str, title: str) -> Tuple[str, str]:
 
 def get_lyrics(artist: str, title: str) -> Optional[str]:
     """
-    Fetch plain lyrics (DB cache → LRCLib → lyrics.ovh fallback).
+    Fetch plain lyrics (Redis cache → LRCLib → lyrics.ovh fallback).
 
     Returns:
         Lyrics text or None
@@ -211,17 +211,6 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
     if cached is not None:
         return cached if cached != "__NONE__" else None
 
-    # ── 0. DB lookup ─────────────────────────────────────────────────
-    try:
-        from .models import TrackCache  # noqa: PLC0415
-
-        db_entry = TrackCache.lookup(artist, title)
-        if db_entry and db_entry.plain_lyrics:
-            cache.set(cache_key, db_entry.plain_lyrics, 3600)
-            return db_entry.plain_lyrics
-    except Exception as _exc:
-        logger.debug("TrackCache plain_lyrics lookup skipped: %s", _exc)
-
     artist_clean, title_clean = _clean_artist_title(artist, title)
 
     # ── 1. LRCLib ────────────────────────────────────────────────────
@@ -230,14 +219,6 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
         lyrics = data.get("plainLyrics", "")
         if lyrics and len(lyrics) >= 50:
             cache.set(cache_key, lyrics, 3600)
-            try:
-                from .models import TrackCache  # noqa: PLC0415
-
-                TrackCache.upsert(artist, title, plain_lyrics=lyrics)
-            except Exception as _exc:
-                logger.debug(
-                    "TrackCache plain_lyrics upsert skipped: %s", _exc
-                )
             return lyrics
 
     # ── 2. lyrics.ovh fallback ────────────────────────────────────────
@@ -251,14 +232,6 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
             lyrics = resp.json().get("lyrics", "")
             if lyrics and len(lyrics) >= 50:
                 cache.set(cache_key, lyrics, 3600)
-                try:
-                    from .models import TrackCache  # noqa: PLC0415
-
-                    TrackCache.upsert(artist, title, plain_lyrics=lyrics)
-                except Exception as _exc:
-                    logger.debug(
-                        "TrackCache plain_lyrics upsert skipped: %s", _exc
-                    )
                 return lyrics
     except Exception as e:
         logger.warning("lyrics.ovh failed for %s - %s: %s", artist, title, e)
@@ -298,13 +271,11 @@ def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
 
     Resolution order:
       0. Redis cache (fastest)
-      1. DB (TrackCache) — avoids any external API call if already persisted
-      2. LRCLib /api/get  (exact artist + title)
-      3. LRCLib /api/search ("artist title")
-      4. LRCLib /api/search (title only — handles inverted YouTube title order)
+      1. LRCLib /api/get  (exact artist + title)
+      2. LRCLib /api/search ("artist title")
+      3. LRCLib /api/search (title only — handles inverted YouTube title order)
 
-    On a successful fetch from LRCLib the result is written to both the Redis
-    cache and TrackCache so future calls skip the API entirely.
+    On a successful fetch from LRCLib the result is written to Redis cache.
 
     Returns:
         List of {"time_ms": int, "text": str} sorted by time, or None.
@@ -313,17 +284,6 @@ def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
     cached = cache.get(key)
     if cached is not None:
         return cached if cached != "__NONE__" else None
-
-    # ── 0. DB lookup ─────────────────────────────────────────────────
-    try:
-        from .models import TrackCache  # noqa: PLC0415
-
-        db_entry = TrackCache.lookup(artist, title)
-        if db_entry and db_entry.synced_lyrics:
-            cache.set(key, db_entry.synced_lyrics, 3600)
-            return db_entry.synced_lyrics
-    except Exception as _exc:
-        logger.debug("TrackCache synced_lyrics lookup skipped: %s", _exc)
 
     artist_clean, title_clean = _clean_artist_title(artist, title)
     artist_is_unknown = artist_clean.lower() in _UNKNOWN_ARTIST_MARKERS
@@ -358,12 +318,6 @@ def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
 
     if lines:
         cache.set(key, lines, 3600)
-        try:
-            from .models import TrackCache  # noqa: PLC0415
-
-            TrackCache.upsert(artist, title, synced_lyrics=lines)
-        except Exception as _exc:
-            logger.debug("TrackCache synced_lyrics upsert skipped: %s", _exc)
         return lines
 
     # Cache negative result for only 5 min so retries can succeed sooner

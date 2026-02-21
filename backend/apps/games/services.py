@@ -552,26 +552,9 @@ class QuestionGeneratorService:
             return None
 
         # 2. Find the YouTube video for full playback
-        # Check DB cache first to avoid consuming API quota
         youtube_video_id = None
         video_duration_ms = 0
         album_image = track.get("album_image", "")
-        try:
-            from apps.games.models import TrackCache
-
-            db_entry = TrackCache.lookup(artist, track["name"])
-            if db_entry and db_entry.youtube_video_id:
-                youtube_video_id = db_entry.youtube_video_id
-                video_duration_ms = db_entry.video_duration_ms
-                if db_entry.album_image:
-                    album_image = db_entry.album_image
-                logger.debug(
-                    "TrackCache HIT (youtube) for %s – %s",
-                    artist,
-                    track["name"],
-                )
-        except Exception as _exc:
-            logger.debug("TrackCache youtube lookup skipped: %s", _exc)
 
         if not youtube_video_id:
             try:
@@ -593,21 +576,6 @@ class QuestionGeneratorService:
                 track["name"],
             )
             return None
-
-        # Persist to DB so future rounds reuse the same video
-        try:
-            from apps.games.models import TrackCache
-
-            TrackCache.upsert(
-                artist,
-                track["name"],
-                youtube_video_id=youtube_video_id,
-                video_duration_ms=video_duration_ms,
-                album_image=album_image or "",
-                synced_lyrics=synced,
-            )
-        except Exception as _exc:
-            logger.debug("TrackCache upsert skipped after YT search: %s", _exc)
 
         extra_data: Dict = {
             "synced_lyrics": synced,
@@ -662,7 +630,6 @@ class GameService:
     def __init__(self):
         self.question_generator = QuestionGeneratorService()
 
-    @transaction.atomic
     def start_game(self, game: Game) -> Tuple[Game, List[GameRound]]:
         """Start a game and generate rounds from a Deezer playlist."""
         if game.status != GameStatus.WAITING:
@@ -704,62 +671,63 @@ class GameService:
         is_text_mode = game.answer_mode == AnswerMode.TEXT
         is_karaoke = mode == GameMode.KARAOKE
 
-        rounds = []
-        for i, q in enumerate(all_questions[:num_rounds], start=1):
-            # For karaoke, use the YouTube video duration (capped at 300s)
-            if is_karaoke:
-                vid_dur_ms = q.get("extra_data", {}).get(
-                    "video_duration_ms", 0
-                )
-                if vid_dur_ms > 0:
-                    round_duration_effective = min(vid_dur_ms // 1000 + 5, 300)
+        with transaction.atomic():
+            rounds = []
+            for i, q in enumerate(all_questions[:num_rounds], start=1):
+                # For karaoke, use the YouTube video duration (capped at 300s)
+                if is_karaoke:
+                    vid_dur_ms = q.get("extra_data", {}).get(
+                        "video_duration_ms", 0
+                    )
+                    if vid_dur_ms > 0:
+                        round_duration_effective = min(vid_dur_ms // 1000 + 5, 300)
+                    else:
+                        round_duration_effective = 180  # fallback 3 min
                 else:
-                    round_duration_effective = 180  # fallback 3 min
-            else:
-                round_duration_effective = round_duration
-            extra_data = q.get("extra_data", {}).copy()
-            if "album_image" not in extra_data and q.get("album_image"):
-                extra_data["album_image"] = q["album_image"]
-            extra_data["round_mode"] = q.get("_mode", game.mode)
-            extra_data["answer_mode"] = game.answer_mode
-            extra_data["guess_target"] = game.guess_target
-            # Store artist/title in extra_data for text mode scoring
-            extra_data["artist_name"] = q["artist_name"]
-            extra_data["track_name"] = q["track_name"]
+                    round_duration_effective = round_duration
+                extra_data = q.get("extra_data", {}).copy()
+                if "album_image" not in extra_data and q.get("album_image"):
+                    extra_data["album_image"] = q["album_image"]
+                extra_data["round_mode"] = q.get("_mode", game.mode)
+                extra_data["answer_mode"] = game.answer_mode
+                extra_data["guess_target"] = game.guess_target
+                # Store artist/title in extra_data for text mode scoring
+                extra_data["artist_name"] = q["artist_name"]
+                extra_data["track_name"] = q["track_name"]
 
-            # In text mode for classique/rapide, keep options empty
-            # In karaoke, options are always empty
-            # In MCQ mode, provide options
-            if is_karaoke:
-                options = []
-            elif is_text_mode:
-                options = []
-            else:
-                options = q["options"]
+                # In text mode for classique/rapide, keep options empty
+                # In karaoke, options are always empty
+                # In MCQ mode, provide options
+                if is_karaoke:
+                    options = []
+                elif is_text_mode:
+                    options = []
+                else:
+                    options = q["options"]
 
-            round_obj = GameRound.objects.create(
-                game=game,
-                round_number=i,
-                track_id=q["track_id"],
-                track_name=q["track_name"],
-                artist_name=q["artist_name"],
-                correct_answer=q["correct_answer"],
-                options=options,
-                preview_url=q.get("preview_url", ""),
-                question_type=q.get("question_type", "guess_title"),
-                question_text=q.get("question_text", ""),
-                extra_data=extra_data,
-                duration=round_duration_effective,
-            )
-            rounds.append(round_obj)
+                round_obj = GameRound.objects.create(
+                    game=game,
+                    round_number=i,
+                    track_id=q["track_id"],
+                    track_name=q["track_name"],
+                    artist_name=q["artist_name"],
+                    correct_answer=q["correct_answer"],
+                    options=options,
+                    preview_url=q.get("preview_url", ""),
+                    question_type=q.get("question_type", "guess_title"),
+                    question_text=q.get("question_text", ""),
+                    extra_data=extra_data,
+                    duration=round_duration_effective,
+                )
+                rounds.append(round_obj)
 
-        game.status = GameStatus.IN_PROGRESS
-        game.started_at = timezone.now()
-        game.save()
+            game.status = GameStatus.IN_PROGRESS
+            game.started_at = timezone.now()
+            game.save()
 
-        if rounds:
-            rounds[0].started_at = timezone.now()
-            rounds[0].save()
+            if rounds:
+                rounds[0].started_at = timezone.now()
+                rounds[0].save()
 
         return game, rounds
 
@@ -830,45 +798,29 @@ class GameService:
             "track_name": track_name,
         }
 
-        round_obj = GameRound.objects.create(
-            game=game,
-            round_number=1,
-            track_id=youtube_video_id,
-            track_name=track_name,
-            artist_name=artist_name,
-            correct_answer=track_name,
-            options=[],
-            preview_url="",
-            question_type="karaoke",
-            question_text=f"{track_name} — {artist_name}",
-            extra_data=extra_data,
-            duration=round_duration,
-        )
-
-        game.status = GameStatus.IN_PROGRESS
-        game.started_at = timezone.now()
-        game.num_rounds = 1
-        game.save()
-
-        round_obj.started_at = timezone.now()
-        round_obj.save()
-
-        # Persist to DB so future karaoke rounds reuse video + lyrics without API
-        try:
-            from apps.games.models import TrackCache
-
-            TrackCache.upsert(
-                artist_name,
-                track_name,
-                youtube_video_id=youtube_video_id,
-                video_duration_ms=duration_ms,
-                album_image=kt.get("album_image", ""),
-                synced_lyrics=synced or [],
+        with transaction.atomic():
+            round_obj = GameRound.objects.create(
+                game=game,
+                round_number=1,
+                track_id=youtube_video_id,
+                track_name=track_name,
+                artist_name=artist_name,
+                correct_answer=track_name,
+                options=[],
+                preview_url="",
+                question_type="karaoke",
+                question_text=f"{track_name} — {artist_name}",
+                extra_data=extra_data,
+                duration=round_duration,
             )
-        except Exception as _exc:
-            logger.debug(
-                "TrackCache upsert in _start_karaoke_game skipped: %s", _exc
-            )
+
+            game.status = GameStatus.IN_PROGRESS
+            game.started_at = timezone.now()
+            game.num_rounds = 1
+            game.save()
+
+            round_obj.started_at = timezone.now()
+            round_obj.save()
 
         return game, [round_obj]
 
