@@ -320,26 +320,26 @@ if TrackCache:
 
         has_youtube.short_description = _("YouTube")
 
-    def has_synced(self, obj):
-        n = len(obj.synced_lyrics) if obj.synced_lyrics else 0
-        if n:
-            return format_html(
-                '<span style="color:#10b981; font-weight:600">✓ {} lignes</span>',
-                n,
-            )
-        return format_html('<span style="color:#9ca3af">—</span>')
+        def has_synced(self, obj):
+            n = len(obj.synced_lyrics) if obj.synced_lyrics else 0
+            if n:
+                return format_html(
+                    '<span style="color:#10b981; font-weight:600">✓ {} lignes</span>',
+                    n,
+                )
+            return format_html('<span style="color:#9ca3af">—</span>')
 
-    has_synced.short_description = _("Synchro")
+        has_synced.short_description = _("Synchro")
 
-    def has_plain(self, obj):
-        if obj.plain_lyrics:
-            words = len(obj.plain_lyrics.split())
-            return format_html(
-                '<span style="color:#6366f1">✓ ~{} mots</span>', words
-            )
-        return format_html('<span style="color:#9ca3af">—</span>')
+        def has_plain(self, obj):
+            if obj.plain_lyrics:
+                words = len(obj.plain_lyrics.split())
+                return format_html(
+                    '<span style="color:#6366f1">✓ ~{} mots</span>', words
+                )
+            return format_html('<span style="color:#9ca3af">—</span>')
 
-    has_plain.short_description = _("Paroles brutes")
+        has_plain.short_description = _("Paroles brutes")
 
 
 @admin.register(KaraokeSong)
