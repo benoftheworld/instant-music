@@ -10,7 +10,7 @@ from django.db.models import Sum
 import random
 import string
 
-from .models import Game, GamePlayer, GameAnswer
+from .models import Game, GamePlayer, GameAnswer, KaraokeSong
 from .serializers import (
     GameSerializer,
     CreateGameSerializer,
@@ -19,6 +19,7 @@ from .serializers import (
     GameAnswerSerializer,
     GameHistorySerializer,
     LeaderboardSerializer,
+    KaraokeSongSerializer,
 )
 from .services import game_service
 
@@ -851,3 +852,16 @@ class GameViewSet(viewsets.ModelViewSet):
 
         serializer = LeaderboardSerializer(leaderboard_data, many=True)
         return Response(serializer.data)
+
+
+class KaraokeSongViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only viewset exposing the KaraokeSong catalogue to authenticated players.
+    Admins manage entries via Django admin.
+    """
+
+    serializer_class = KaraokeSongSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return KaraokeSong.objects.filter(is_active=True).order_by("artist", "title")

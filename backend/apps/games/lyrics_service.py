@@ -157,6 +157,41 @@ def _lrclib_request(artist_clean: str, title_clean: str) -> Optional[dict]:
     return None
 
 
+def get_synced_lyrics_by_lrclib_id(lrclib_id: int) -> Optional[List[Dict]]:
+    """
+    Fetch synced lyrics directly from lrclib.net using a known numeric ID.
+
+    This is faster and more reliable than a name-based search because it
+    bypasses disambiguation and always resolves the exact entry chosen by
+    an admin. Used by karaoke mode when KaraokeSong.lrclib_id is set.
+
+    Returns:
+        List of {"time_ms": int, "text": str} or None if unavailable.
+    """
+    cache_key = f"lrclib_id_{lrclib_id}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached if cached != "__NONE__" else None
+
+    try:
+        resp = requests.get(
+            f"https://lrclib.net/api/get/{lrclib_id}",
+            timeout=8,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            raw = data.get("syncedLyrics", "")
+            if raw:
+                lines = parse_lrc(raw) or None
+                cache.set(cache_key, lines if lines else "__NONE__", 3600)
+                return lines
+        # Cache negative result to avoid hammering the API
+        cache.set(cache_key, "__NONE__", 3600)
+    except Exception as exc:
+        logger.warning("LRCLib by-id request failed for id=%s: %s", lrclib_id, exc)
+    return None
+
+
 def _clean_artist_title(artist: str, title: str) -> Tuple[str, str]:
     """Strip parenthesised suffixes for cleaner API queries."""
     artist_clean = re.sub(r"\s*\(.*?\)\s*", "", artist).strip()

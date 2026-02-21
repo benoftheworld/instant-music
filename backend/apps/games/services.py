@@ -26,6 +26,7 @@ from .lyrics_service import (
     get_lyrics,
     create_lyrics_question,
     get_synced_lyrics,
+    get_synced_lyrics_by_lrclib_id,
 )
 
 
@@ -767,6 +768,8 @@ class GameService:
 
         Unlike other modes, karaoke doesn't need a Deezer playlist.
         It uses the single track stored in ``game.karaoke_track``.
+        When ``karaoke_track`` contains a ``lrclib_id`` (set from the
+        KaraokeSong catalogue), lyrics are fetched by ID for precision.
         """
         kt = game.karaoke_track
         if not kt or not kt.get("youtube_video_id"):
@@ -778,9 +781,22 @@ class GameService:
         track_name = kt.get("track_name", "Unknown")
         artist_name = kt.get("artist_name", "Unknown")
         duration_ms = kt.get("duration_ms", 0)
+        lrclib_id = kt.get("lrclib_id")
 
-        # Fetch synced lyrics from LRCLib
-        synced = get_synced_lyrics(artist_name, track_name)
+        # Fetch synced lyrics from LRCLib — prefer direct ID lookup when available
+        synced = None
+        if lrclib_id:
+            synced = get_synced_lyrics_by_lrclib_id(int(lrclib_id))
+            if synced:
+                logger.info(
+                    "Loaded %d synced lyric lines by lrclib_id=%s for %s – %s",
+                    len(synced),
+                    lrclib_id,
+                    artist_name,
+                    track_name,
+                )
+        if not synced:
+            synced = get_synced_lyrics(artist_name, track_name)
         if not synced:
             logger.warning(
                 "No synced lyrics for karaoke track %s – %s (will play without lyrics)",
@@ -789,7 +805,7 @@ class GameService:
             )
             # Allow playing without lyrics (empty list)
             synced = []
-        else:
+        elif not lrclib_id:
             logger.info(
                 "Loaded %d synced lyric lines for karaoke track %s – %s",
                 len(synced),

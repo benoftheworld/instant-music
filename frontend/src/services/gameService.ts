@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { Game, CreateGameData, GamePlayer } from '@/types';
+import type { Game, CreateGameData, GamePlayer, KaraokeSong } from '@/types';
 
 export const gameService = {
   async createGame(data: CreateGameData): Promise<Game> {
@@ -70,5 +70,11 @@ export const gameService = {
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
+  },
+
+  /** Fetch the admin-curated karaoke song catalogue. */
+  async listKaraokeSongs(): Promise<KaraokeSong[]> {
+    const response = await api.get<KaraokeSong[]>('/games/karaoke-songs/');
+    return response.data;
   },
 };

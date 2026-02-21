@@ -54,6 +54,8 @@ export interface Game {
   num_rounds: number;
   playlist_id?: string;
   karaoke_track?: KaraokeTrack | null;
+  karaoke_song?: number | null;
+  karaoke_song_detail?: KaraokeSong | null;
   is_online: boolean;
   answer_mode: AnswerMode;
   guess_target: GuessTarget;
@@ -80,19 +82,30 @@ export interface GamePlayer {
 }
 
 export interface CreateGameData {
-  name?: string;
   mode: GameMode;
   max_players: number;
   num_rounds: number;
   playlist_id?: string;
-  karaoke_track?: KaraokeTrack | null;
+  karaoke_song_id?: number | null;
   is_online: boolean;
   answer_mode: AnswerMode;
   guess_target: GuessTarget;
   round_duration: number;
-  timer_start_round: number;
   score_display_duration: number;
   lyrics_words_count?: number;
+}
+
+/** Song from the admin-curated karaoke catalogue. */
+export interface KaraokeSong {
+  id: number;
+  title: string;
+  artist: string;
+  youtube_video_id: string;
+  lrclib_id: number | null;
+  album_image_url: string;
+  duration_ms: number;
+  duration_display: string;
+  is_active: boolean;
 }
 
 /** Track selected for karaoke mode (single YouTube song). */

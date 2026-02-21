@@ -8,6 +8,54 @@ from django.utils.translation import gettext_lazy as _
 import uuid
 
 
+class KaraokeSong(models.Model):
+    """
+    Catalogue of songs available for Karaoke mode.
+    Filled manually by admins. Associates a YouTube video with
+    a LRCLib.net lyrics entry so synchronised lyrics are always
+    resolved from the correct source.
+    """
+
+    title = models.CharField(_("titre"), max_length=255)
+    artist = models.CharField(_("artiste"), max_length=255)
+    youtube_video_id = models.CharField(
+        _("ID vidéo YouTube"),
+        max_length=20,
+        unique=True,
+        help_text=_("Identifiant de la vidéo YouTube (ex: dQw4w9WgXcQ)"),
+    )
+    lrclib_id = models.IntegerField(
+        _("ID LRCLib"),
+        null=True,
+        blank=True,
+        help_text=_(
+            "ID numérique sur lrclib.net pour récupérer les paroles "
+            "synchronisées directement (évite les recherches par nom)."
+        ),
+    )
+    album_image_url = models.URLField(
+        _("image album"), max_length=500, blank=True, default=""
+    )
+    duration_ms = models.IntegerField(
+        _("durée (ms)"), default=0, help_text=_("Durée en millisecondes")
+    )
+    is_active = models.BooleanField(
+        _("actif"),
+        default=True,
+        help_text=_("Seuls les morceaux actifs sont proposés aux joueurs"),
+    )
+    created_at = models.DateTimeField(_("créé le"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("mis à jour le"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("morceau karaoké")
+        verbose_name_plural = _("morceaux karaoké")
+        ordering = ["artist", "title"]
+
+    def __str__(self) -> str:
+        return f"{self.artist} — {self.title}"
+
+
 class GameMode(models.TextChoices):
     """Game mode choices."""
 
@@ -118,14 +166,23 @@ class Game(models.Model):
         help_text=_("Nombre de mots à deviner dans le mode Paroles (2-10)"),
     )
     karaoke_track = models.JSONField(
-        _("morceau karaoké"),
+        _("morceau karaoké (legacy)"),
         null=True,
         blank=True,
         default=None,
         help_text=_(
-            "Informations du morceau sélectionné pour le karaoké "
-            "(youtube_video_id, track_name, artist_name, duration_ms)"
+            "Champ hérité — préférer karaoke_song. "
+            "Peuplé automatiquement depuis karaoke_song à la création."
         ),
+    )
+    karaoke_song = models.ForeignKey(
+        "KaraokeSong",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="games",
+        verbose_name=_("morceau karaoké"),
+        help_text=_("Morceau sélectionné depuis le catalogue administré"),
     )
 
     created_at = models.DateTimeField(_("créé le"), auto_now_add=True)

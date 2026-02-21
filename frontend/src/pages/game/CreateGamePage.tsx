@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { gameService } from '../../services/gameService';
-import type { GameMode, AnswerMode, GuessTarget, YouTubePlaylist, KaraokeTrack, CreateGameData } from '../../types';
+import type { GameMode, AnswerMode, GuessTarget, YouTubePlaylist, KaraokeSong, CreateGameData } from '../../types';
 import PlaylistSelector from '../../components/playlist/PlaylistSelector';
-import YouTubeSongSearch from '../../components/karaoke/YouTubeSongSearch';
+import KaraokeSongSelector from '../../components/karaoke/KaraokeSongSelector';
 
 const TOTAL_STEPS = 4;
 
@@ -46,48 +46,57 @@ export default function CreateGamePage() {
   const [error, setError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
 
-  // Step 1: Global config
-  const [timerStartRound, setTimerStartRound] = useState(5);
-  const [roundDuration, setRoundDuration] = useState(30);
-  const [scoreDisplayDuration, setScoreDisplayDuration] = useState(10);
-  const [maxPlayers, setMaxPlayers] = useState(8);
-  const [numRounds, setNumRounds] = useState(10);
-  const [isOnline, setIsOnline] = useState(true);
-  const [gameName, setGameName] = useState('');
-
-  // Step 2: Game mode
+  // Step 1: Game mode
   const [selectedMode, setSelectedMode] = useState<GameMode>('classique');
   const [answerMode, setAnswerMode] = useState<AnswerMode>('mcq');
   const [guessTarget, setGuessTarget] = useState<GuessTarget>('title');
   const [lyricsWordsCount, setLyricsWordsCount] = useState(3);
 
-  // Step 3: Playlist (non-karaoke) or YouTube song (karaoke)
-  const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
-  const [karaokeTrack, setKaraokeTrack] = useState<KaraokeTrack | null>(null);
+  // Step 2: Global config (non-karaoke only)
+  const [roundDuration, setRoundDuration] = useState(30);
+  const [scoreDisplayDuration, setScoreDisplayDuration] = useState(10);
+  const [maxPlayers, setMaxPlayers] = useState(8);
+  const [numRounds, setNumRounds] = useState(10);
+  const [isOnline, setIsOnline] = useState(true);
 
+  // Step 3: Playlist (non-karaoke) or karaoke song
+  const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
+  const [karaokeSelectedSong, setKaraokeSelectedSong] = useState<KaraokeSong | null>(null);
+
+  const isKaraoke = selectedMode === 'karaoke';
+
+  const TOTAL_STEPS = isKaraoke ? 3 : 4;
+
+  // Step navigation — karaoke skips step 2 (global config)
   const nextStep = () => {
-    if (currentStep < TOTAL_STEPS) setCurrentStep(currentStep + 1);
+    if (currentStep === 1 && isKaraoke) {
+      setCurrentStep(3); // jump straight to track selection
+    } else if (currentStep < 4) {
+      setCurrentStep(currentStep + 1);
+    }
   };
 
   const prevStep = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1);
+    if (currentStep === 3 && isKaraoke) {
+      setCurrentStep(1); // jump back to mode selection
+    } else if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
   };
-
-  const isKaraoke = selectedMode === 'karaoke';
 
   const canProceed = () => {
     switch (currentStep) {
       case 1: return true;
       case 2: return true;
-      case 3: return isKaraoke ? !!karaokeTrack : !!selectedPlaylist;
+      case 3: return isKaraoke ? !!karaokeSelectedSong : !!selectedPlaylist;
       default: return true;
     }
   };
 
   const handleCreateGame = async () => {
     if (isKaraoke) {
-      if (!karaokeTrack) {
-        setError('Veuillez sélectionner un morceau YouTube');
+      if (!karaokeSelectedSong) {
+        setError('Veuillez sélectionner un morceau dans le catalogue');
         setCurrentStep(3);
         return;
       }
@@ -104,18 +113,16 @@ export default function CreateGamePage() {
 
     try {
       const gameData: CreateGameData = {
-        name: gameName || undefined,
         mode: selectedMode,
         max_players: isKaraoke ? 1 : maxPlayers,
         num_rounds: isKaraoke ? 1 : numRounds,
         playlist_id: isKaraoke ? undefined : selectedPlaylist?.youtube_id,
-        karaoke_track: isKaraoke ? karaokeTrack : undefined,
-        is_online: isOnline,
+        karaoke_song_id: isKaraoke ? karaokeSelectedSong!.id : undefined,
+        is_online: isKaraoke ? false : isOnline,
         answer_mode: answerMode,
         guess_target: guessTarget,
         round_duration: roundDuration,
-        timer_start_round: timerStartRound,
-        score_display_duration: scoreDisplayDuration,
+        score_display_duration: isKaraoke ? 0 : scoreDisplayDuration,
         lyrics_words_count: selectedMode === 'paroles' ? lyricsWordsCount : undefined,
       };
 
@@ -133,51 +140,55 @@ export default function CreateGamePage() {
     }
   };
 
-  const renderStepIndicator = () => (
-    <div className="flex items-center justify-center mb-8">
-      {[1, 2, 3, 4].map((step) => (
-        <div key={step} className="flex items-center">
-          <button
-            onClick={() => step < currentStep && setCurrentStep(step)}
-            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
-              step === currentStep
-                ? 'bg-primary-600 text-white shadow-lg scale-110'
-                : step < currentStep
-                ? 'bg-primary-200 text-primary-700 cursor-pointer hover:bg-primary-300'
-                : 'bg-gray-200 text-gray-400'
-            }`}
-          >
-            {step < currentStep ? '✓' : step}
-          </button>
-          {step < 4 && (
-            <div
-              className={`w-16 h-1 mx-1 rounded ${
-                step < currentStep ? 'bg-primary-400' : 'bg-gray-200'
+  const renderStepIndicator = () => {
+    // Karaoke: only steps 1, 3, 4 (step 2 is skipped)
+    const visibleSteps = isKaraoke ? [1, 3, 4] : [1, 2, 3, 4];
+    const activeIndex = visibleSteps.indexOf(currentStep);
+
+    return (
+      <div className="flex items-center justify-center mb-8">
+        {visibleSteps.map((step, idx) => (
+          <div key={step} className="flex items-center">
+            <button
+              onClick={() => activeIndex > idx && setCurrentStep(step)}
+              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
+                step === currentStep
+                  ? 'bg-primary-600 text-white shadow-lg scale-110'
+                  : activeIndex > idx
+                  ? 'bg-primary-200 text-primary-700 cursor-pointer hover:bg-primary-300'
+                  : 'bg-gray-200 text-gray-400'
               }`}
-            />
-          )}
-        </div>
-      ))}
-    </div>
-  );
+            >
+              {activeIndex > idx ? '✓' : idx + 1}
+            </button>
+            {idx < visibleSteps.length - 1 && (
+              <div
+                className={`w-16 h-1 mx-1 rounded ${
+                  activeIndex > idx ? 'bg-primary-400' : 'bg-gray-200'
+                }`}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const renderStepTitle = () => {
-    const titles = [
-      '', // index 0 unused
-      'Mode de jeu',
-      'Configuration globale',
-      isKaraoke ? 'Sélection du morceau' : 'Sélection de la playlist',
-      'Confirmation',
-    ];
-    const subtitles = [
-      '',
-      'Choisissez votre mode de jeu et ses options',
-      'Paramétrez les timers, le nombre de joueurs et les options générales',
-      isKaraoke
-        ? 'Recherchez et choisissez un morceau YouTube pour le karaoké'
+    const titles: Record<number, string> = {
+      1: 'Mode de jeu',
+      2: 'Configuration globale',
+      3: isKaraoke ? 'Sélection du morceau' : 'Sélection de la playlist',
+      4: 'Confirmation',
+    };
+    const subtitles: Record<number, string> = {
+      1: 'Choisissez votre mode de jeu et ses options',
+      2: 'Paramétrez les timers, le nombre de joueurs et les options générales',
+      3: isKaraoke
+        ? 'Choisissez un morceau dans le catalogue karaoké'
         : 'Choisissez la playlist musicale pour la partie',
-      'Vérifiez vos choix et lancez la partie',
-    ];
+      4: 'Vérifiez vos choix et lancez la partie',
+    };
     return (
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold">{titles[currentStep]}</h2>
@@ -188,42 +199,6 @@ export default function CreateGamePage() {
 
   const renderStep1 = () => (
     <div className="card space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Nom de la partie (optionnel)
-        </label>
-        <input
-          type="text"
-          maxLength={100}
-          placeholder="Ex: Soirée Quiz 80's"
-          value={gameName}
-          onChange={(e) => setGameName(e.target.value)}
-          className="input max-w-md"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          ⏳ Timer début de round
-        </label>
-        <div className="flex items-center gap-4">
-          <input
-            type="range"
-            min="3"
-            max="15"
-            value={timerStartRound}
-            onChange={(e) => setTimerStartRound(parseInt(e.target.value))}
-            className="w-48"
-          />
-          <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
-            {timerStartRound}s
-          </span>
-        </div>
-        <p className="text-sm text-gray-500 mt-1">
-          Compte à rebours avant le début de chaque round
-        </p>
-      </div>
-
       {/* Round duration — hidden for karaoke (auto from video length) */}
       {!isKaraoke && (
       <div>
@@ -528,10 +503,10 @@ export default function CreateGamePage() {
   const renderStep3 = () => (
     <div className="card">
       {isKaraoke ? (
-        <YouTubeSongSearch
-          selectedTrack={karaokeTrack}
-          onSelectTrack={(track) => {
-            setKaraokeTrack(track);
+        <KaraokeSongSelector
+          selectedSong={karaokeSelectedSong}
+          onSelectSong={(song) => {
+            setKaraokeSelectedSong(song);
             setError(null);
           }}
         />
@@ -597,20 +572,22 @@ export default function CreateGamePage() {
           <div className="p-4 bg-gray-50 rounded-lg">
             <h4 className="font-semibold text-sm text-gray-500 uppercase mb-3">Configuration</h4>
             <ul className="space-y-2 text-sm">
-              {gameName && <li><span className="text-gray-500">Nom :</span> <strong>{gameName}</strong></li>}
-              <li><span className="text-gray-500">Timer début :</span> <strong>{timerStartRound}s</strong></li>
+              <li><span className="text-gray-500">⏳ Timer début :</span> <strong>5s</strong></li>
               {!isKaraoke && (
                 <>
                   <li><span className="text-gray-500">Durée round :</span> <strong>{roundDuration}s</strong></li>
                   <li><span className="text-gray-500">Rounds :</span> <strong>{numRounds}</strong></li>
                   <li><span className="text-gray-500">Joueurs max :</span> <strong>{maxPlayers}</strong></li>
+                  <li><span className="text-gray-500">Score affichage :</span> <strong>{scoreDisplayDuration}s</strong></li>
+                  <li><span className="text-gray-500">Mode :</span> <strong>{isOnline ? 'En ligne' : 'Hors ligne'}</strong></li>
                 </>
               )}
               {isKaraoke && (
-                <li><span className="text-gray-500">Round :</span> <strong>1 (durée auto)</strong></li>
+                <>
+                  <li><span className="text-gray-500">Round :</span> <strong>1 (durée auto)</strong></li>
+                  <li><span className="text-gray-500">Mode :</span> <strong>Hors ligne / solo</strong></li>
+                </>
               )}
-              <li><span className="text-gray-500">Score affichage :</span> <strong>{scoreDisplayDuration}s</strong></li>
-              <li><span className="text-gray-500">Mode :</span> <strong>{isOnline ? 'En ligne' : 'Hors ligne'}</strong></li>
             </ul>
           </div>
 
@@ -647,21 +624,33 @@ export default function CreateGamePage() {
           </div>
         </div>
 
-        {/* Karaoke track summary */}
-        {isKaraoke && karaokeTrack && (
+        {/* Karaoke song summary */}
+        {isKaraoke && karaokeSelectedSong && (
           <div className="p-4 bg-pink-50 border border-pink-200 rounded-lg">
             <h4 className="font-semibold text-sm text-pink-600 uppercase mb-3">🎤 Morceau karaoké</h4>
             <div className="flex items-center gap-4">
-              {karaokeTrack.album_image && (
+              {karaokeSelectedSong.album_image_url && (
                 <img
-                  src={karaokeTrack.album_image}
-                  alt={karaokeTrack.track_name}
+                  src={karaokeSelectedSong.album_image_url}
+                  alt={karaokeSelectedSong.title}
                   className="w-16 h-16 rounded-md object-cover"
                 />
               )}
               <div>
-                <p className="font-bold">{karaokeTrack.track_name}</p>
-                <p className="text-sm text-gray-600">{karaokeTrack.artist_name}</p>
+                <p className="font-bold">{karaokeSelectedSong.title}</p>
+                <p className="text-sm text-gray-600">{karaokeSelectedSong.artist}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs text-gray-400">{karaokeSelectedSong.duration_display}</span>
+                  {karaokeSelectedSong.lrclib_id ? (
+                    <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
+                      ✓ Paroles synchronisées
+                    </span>
+                  ) : (
+                    <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
+                      ⚠ Recherche auto paroles
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -756,7 +745,7 @@ export default function CreateGamePage() {
               <button
                 onClick={handleCreateGame}
                 className="btn-primary flex-1"
-                disabled={loading || (isKaraoke ? !karaokeTrack : !selectedPlaylist)}
+                disabled={loading || (isKaraoke ? !karaokeSelectedSong : !selectedPlaylist)}
               >
                 {loading ? 'Création...' : 'Créer la partie'}
               </button>

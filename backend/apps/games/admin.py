@@ -5,7 +5,7 @@ Admin configuration for games.
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
-from .models import Game, GamePlayer, GameRound, GameAnswer, TrackCache
+from .models import Game, GamePlayer, GameRound, GameAnswer, TrackCache, KaraokeSong
 
 
 class GamePlayerInline(admin.TabularInline):
@@ -97,6 +97,13 @@ class GameAdmin(admin.ModelAdmin):
             _("Playlist"),
             {
                 "fields": ("playlist_id",),
+            },
+        ),
+        (
+            _("Karaoké"),
+            {
+                "fields": ("karaoke_song", "karaoke_track"),
+                "classes": ("collapse",),
             },
         ),
         (
@@ -390,3 +397,69 @@ class TrackCacheAdmin(admin.ModelAdmin):
         return format_html('<span style="color:#9ca3af">—</span>')
 
     has_plain.short_description = _("Paroles brutes")
+
+
+@admin.register(KaraokeSong)
+class KaraokeSongAdmin(admin.ModelAdmin):
+    """Admin pour le catalogue de morceaux karaoké."""
+
+    list_display = [
+        "artist",
+        "title",
+        "youtube_link",
+        "lrclib_id",
+        "duration_display",
+        "is_active",
+        "created_at",
+    ]
+    list_filter = ["is_active", "created_at"]
+    search_fields = ["title", "artist", "youtube_video_id"]
+    list_editable = ["is_active"]
+    list_per_page = 50
+    ordering = ["artist", "title"]
+    readonly_fields = ["created_at", "updated_at"]
+
+    fieldsets = (
+        (
+            _("Morceau"),
+            {
+                "fields": ("title", "artist", "album_image_url", "duration_ms", "is_active"),
+            },
+        ),
+        (
+            _("Sources"),
+            {
+                "fields": ("youtube_video_id", "lrclib_id"),
+                "description": _(
+                    "youtube_video_id : copier l'ID depuis l'URL YouTube (ex: dQw4w9WgXcQ). "
+                    "lrclib_id : ID numérique sur lrclib.net — laisser vide pour une recherche "
+                    "automatique par titre/artiste."
+                ),
+            },
+        ),
+        (
+            _("Dates"),
+            {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
+        ),
+    )
+
+    def youtube_link(self, obj):
+        if obj.youtube_video_id:
+            return format_html(
+                '<a href="https://youtu.be/{0}" target="_blank" '
+                'style="color:#ef4444; font-weight:600">▶ {0}</a>',
+                obj.youtube_video_id,
+            )
+        return "—"
+
+    youtube_link.short_description = _("YouTube")
+
+    def duration_display(self, obj):
+        if not obj.duration_ms:
+            return "—"
+        total_seconds = obj.duration_ms // 1000
+        minutes = total_seconds // 60
+        seconds = total_seconds % 60
+        return f"{minutes}:{seconds:02d}"
+
+    duration_display.short_description = _("Durée")
