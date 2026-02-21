@@ -77,21 +77,22 @@ export const gameService = {
     const allSongs: KaraokeSong[] = [];
     let url: string | null = '/games/karaoke-songs/';
     while (url) {
-      const response = await api.get(url);
-      const data = response.data;
+      const response: Awaited<ReturnType<typeof api.get>> = await api.get(url);
+      const data: unknown = response.data;
       if (Array.isArray(data)) {
         // pagination_class = None → plain array, done
-        return data;
+        return data as KaraokeSong[];
       }
-      if (Array.isArray(data?.results)) {
-        allSongs.push(...data.results);
+      const paginated = data as { results?: unknown[]; next?: string | null };
+      if (Array.isArray(paginated?.results)) {
+        allSongs.push(...(paginated.results as KaraokeSong[]));
         // Follow DRF `next` link if present (strip base URL to keep relative)
-        if (data.next) {
+        if (paginated.next) {
           try {
-            const nextUrl = new URL(data.next);
+            const nextUrl: URL = new URL(paginated.next);
             url = nextUrl.pathname + nextUrl.search;
           } catch {
-            url = data.next;
+            url = paginated.next;
           }
         } else {
           url = null;
