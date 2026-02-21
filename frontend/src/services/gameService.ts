@@ -74,7 +74,11 @@ export const gameService = {
 
   /** Fetch the admin-curated karaoke song catalogue. */
   async listKaraokeSongs(): Promise<KaraokeSong[]> {
-    const response = await api.get<KaraokeSong[]>('/games/karaoke-songs/');
-    return response.data;
+    const response = await api.get('/games/karaoke-songs/');
+    // Handle both plain array and DRF paginated responses
+    const data = response.data;
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.results)) return data.results;
+    return [];
   },
 };

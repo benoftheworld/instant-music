@@ -24,13 +24,14 @@ export default function KaraokeSongSelector({
       .finally(() => setLoading(false));
   }, []);
 
+  const safeSongs = Array.isArray(songs) ? songs : [];
   const filtered = search.trim()
-    ? songs.filter(
+    ? safeSongs.filter(
         (s) =>
           s.title.toLowerCase().includes(search.toLowerCase()) ||
           s.artist.toLowerCase().includes(search.toLowerCase()),
       )
-    : songs;
+    : safeSongs;
 
   if (selectedSong) {
     return (
