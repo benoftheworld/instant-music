@@ -5,8 +5,6 @@ import type { GameMode, AnswerMode, GuessTarget, YouTubePlaylist, KaraokeSong, C
 import PlaylistSelector from '../../components/playlist/PlaylistSelector';
 import KaraokeSongSelector from '../../components/karaoke/KaraokeSongSelector';
 
-const TOTAL_STEPS = 4;
-
 const gameModes: { value: GameMode; label: string; description: string; icon: string }[] = [
   {
     value: 'classique',
@@ -65,7 +63,8 @@ export default function CreateGamePage() {
 
   const isKaraoke = selectedMode === 'karaoke';
 
-  const TOTAL_STEPS = isKaraoke ? 3 : 4;
+  // Last step is always 4 (confirmation). Karaoke skips step 2 but still ends at 4.
+  const LAST_STEP = 4;
 
   // Step navigation — karaoke skips step 2 (global config)
   const nextStep = () => {
@@ -733,7 +732,7 @@ export default function CreateGamePage() {
               </button>
             )}
 
-            {currentStep < TOTAL_STEPS ? (
+            {currentStep < LAST_STEP ? (
               <button
                 onClick={nextStep}
                 className="btn-primary flex-1"
