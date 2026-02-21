@@ -5,13 +5,14 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
+    apt-get install -qq -y --no-install-recommends \
     build-essential libpq-dev curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements/base.txt /app/requirements/base.txt
 COPY requirements/development.txt /app/requirements/development.txt
-RUN pip install --upgrade pip && pip install -r /app/requirements/development.txt
+RUN pip install -q --upgrade pip && pip install -q -r /app/requirements/development.txt
 
 COPY . /app/
 

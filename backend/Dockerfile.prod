@@ -6,14 +6,15 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Install dependencies
-RUN apt-get update && apt-get install -y \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
+    apt-get install -qq -y --no-install-recommends \
     build-essential libpq-dev curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements/base.txt requirements/production.txt ./requirements/
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements/production.txt
+RUN pip install -q --upgrade pip && \
+    pip install -q --no-cache-dir -r requirements/production.txt
 
 # Final stage
 FROM python:3.11-slim
@@ -25,7 +26,8 @@ ENV DJANGO_SETTINGS_MODULE=config.settings.production
 WORKDIR /app
 
 # Install runtime dependencies only
-RUN apt-get update && apt-get install -y \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
+    apt-get install -qq -y --no-install-recommends \
     libpq5 curl \
     && rm -rf /var/lib/apt/lists/*
 
