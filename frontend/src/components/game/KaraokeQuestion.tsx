@@ -215,8 +215,8 @@ function KaraokeLyricsDisplay({
   const containerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLParagraphElement>(null);
 
-  // Keep a fixed visible area equal to 4 lines and position active line
-  // so that 2 previous lines + current + 1 next are visible.
+  // Keep a fixed visible area equal to 5 lines and position active line
+  // so that 2 previous lines + current + 2 next are visible.
   useEffect(() => {
     const container = containerRef.current;
     const active = activeRef.current;
@@ -227,9 +227,11 @@ function KaraokeLyricsDisplay({
     const firstLine = container.querySelector<HTMLParagraphElement>('p');
     const lineHeight = (active.clientHeight || firstLine?.clientHeight || 32);
 
-    // Ensure container has height for 4 lines
-    const visibleLines = 4;
-    container.style.height = `${lineHeight * visibleLines}px`;
+    // Ensure container has height for 7 lines (larger visible area)
+    const visibleLines = 7;
+    const targetHeight = lineHeight * visibleLines;
+    container.style.height = `${targetHeight}px`;
+    container.style.minHeight = `${targetHeight}px`;
 
     // Compute scroll position so active line sits after 2 previous lines
     const target = Math.max(0, active.offsetTop - lineHeight * 2);
@@ -250,7 +252,7 @@ function KaraokeLyricsDisplay({
       <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-gray-950 to-transparent z-10" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-gray-950 to-transparent z-10" />
 
-      <div className="space-y-6 py-8 px-6">
+      <div className="space-y-3 py-4 px-6">
         {lines.map((line, i) => {
           const isCurrent = i === activeIndex;
           const isPast = i < activeIndex;
@@ -264,10 +266,10 @@ function KaraokeLyricsDisplay({
               ref={isCurrent ? activeRef : undefined}
               className={`text-center transition-all duration-500 leading-relaxed ${
                 isCurrent
-                  ? 'text-yellow-300 text-6xl md:text-7xl font-extrabold scale-105 drop-shadow-lg'
+                  ? 'text-yellow-300 text-3xl md:text-4xl font-extrabold scale-105 drop-shadow-lg'
                   : isPast
-                    ? 'text-gray-600 text-2xl md:text-3xl'
-                    : 'text-gray-400 text-4xl md:text-5xl'
+                    ? 'text-gray-600 text-lg md:text-xl'
+                    : 'text-gray-400 text-xl md:text-2xl'
               }`}
             >
               {line.text}
@@ -385,7 +387,7 @@ const KaraokeQuestion = ({
       </div>
 
       {/* Lyrics area (flexes to remaining space without growing past viewport) */}
-      <div className="px-4 pb-4 flex-1 min-h-0">
+      <div className="px-4 pb-4 flex-1 min-h-[480px]">
         <KaraokeLyricsDisplay lines={syncedLines} activeIndex={activeIndex} />
       </div>
 
