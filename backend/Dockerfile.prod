@@ -1,0 +1,61 @@
+FROM python:3.11-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Install dependencies
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
+    apt-get install -qq -y --no-install-recommends \
+    build-essential libpq-dev curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements/base.txt requirements/production.txt ./requirements/
+RUN pip install -q --upgrade pip && \
+    pip install -q --no-cache-dir -r requirements/production.txt
+
+# Final stage
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=config.settings.production
+
+WORKDIR /app
+
+# Install runtime dependencies only
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
+    apt-get install -qq -y --no-install-recommends \
+    libpq5 curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python dependencies from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY . /app/
+
+# Create necessary directories
+RUN mkdir -p /app/staticfiles /app/media /app/logs
+
+# Collect static files (quiet to avoid harmless duplicate static warnings)
+# Some admin/static files are provided by multiple packages (e.g. jazzmin
+# and django.contrib.admin). Reduce verbosity to avoid failing the build log
+# with duplicate-file warnings during image build.
+RUN python manage.py collectstatic --noinput --verbosity=0 --settings=config.settings.production || true
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:8000/api/health/ || exit 1
+
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "config.asgi:application"]
