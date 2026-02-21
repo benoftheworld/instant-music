@@ -104,7 +104,6 @@ JAZZMIN_SETTINGS = {
     "changeform_format_overrides": {
         "games.Game": "horizontal_tabs",
         "games.GameRound": "horizontal_tabs",
-        "games.TrackCache": "horizontal_tabs",
         "users.Team": "horizontal_tabs",
         "achievements.Achievement": "horizontal_tabs",
     },
