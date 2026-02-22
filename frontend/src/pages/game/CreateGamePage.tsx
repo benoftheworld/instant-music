@@ -227,7 +227,7 @@ export default function CreateGamePage() {
           </div>
           )}
 
-                    <div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               🏆 Temps affichage score fin de round
             </label>
@@ -252,60 +252,61 @@ export default function CreateGamePage() {
 
         {/* Right column */}
         <div className="space-y-6">
-                    {/* Max players & rounds — hidden for karaoke (solo, 1 round) */}
+          {/* Max players & rounds — hidden for karaoke (solo, 1 round) */}
           {!isKaraoke && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                👥 Nombre maximum de joueurs
-              </label>
-              <div className="flex items-center gap-4">
-                <input
-                  type="range"
-                  min="2"
-                  max="20"
-                  value={maxPlayers}
-                  onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
-                  className="w-48"
-                />
-                <span className="text-lg font-semibold text-primary-600 min-w-[3rem]">
-                  {maxPlayers}
-                </span>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  👥 Nombre maximum de joueurs
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min="2"
+                    max="20"
+                    value={maxPlayers}
+                    onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
+                    className="w-48"
+                  />
+                  <span className="text-lg font-semibold text-primary-600 min-w-[3rem]">
+                    {maxPlayers}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 mt-1">Nombre maximum de joueurs</p>
               </div>
-              <p className="text-sm text-gray-500 mt-1">Nombre maximum de joueurs</p>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                🔄 Nombre de rounds
-              </label>
-              <div className="flex items-center gap-4">
-                <input
-                  type="range"
-                  min="3"
-                  max="20"
-                  value={numRounds}
-                  onChange={(e) => setNumRounds(parseInt(e.target.value))}
-                  className="w-48"
-                />
-                <span className="text-lg font-semibold text-primary-600 min-w-[3rem]">
-                  {numRounds}
-                </span>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  🔄 Nombre de rounds
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min="3"
+                    max="20"
+                    value={numRounds}
+                    onChange={(e) => setNumRounds(parseInt(e.target.value))}
+                    className="w-48"
+                  />
+                  <span className="text-lg font-semibold text-primary-600 min-w-[3rem]">
+                    {numRounds}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-              <input
-                type="checkbox"
-                id="isOffline"
-                checked={!isOnline}
-                onChange={(e) => setIsOnline(!e.target.checked)}
-                className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-              />
-              <label htmlFor="isOffline" className="text-sm font-medium text-gray-700">
-                📴 Mode hors ligne (solo)
-              </label>
-            </div>
-          </div>
+
+              <div className="flex items-center gap-6 p-4 bg-gray-50 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="isOffline"
+                  checked={!isOnline}
+                  onChange={(e) => setIsOnline(!e.target.checked)}
+                  className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <label htmlFor="isOffline" className="text-sm font-medium text-gray-700">
+                  📴 Mode hors ligne (solo)
+                </label>
+              </div>
+            </>
           )}
         </div>
       </div>
