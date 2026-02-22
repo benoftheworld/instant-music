@@ -403,9 +403,15 @@ class GameViewSet(viewsets.ModelViewSet):
                 }
             )
 
+        game_data = GameSerializer(game).data
+        # Add user-friendly display fields (used by frontend)
+        game_data["mode_display"] = game.get_mode_display()
+        game_data["answer_mode_display"] = game.get_answer_mode_display()
+        game_data["guess_target_display"] = game.get_guess_target_display()
+
         return Response(
             {
-                "game": GameSerializer(game).data,
+                "game": game_data,
                 "rankings": GamePlayerSerializer(players, many=True).data,
                 "rounds": rounds_detail,
             }
