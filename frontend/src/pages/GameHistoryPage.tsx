@@ -13,13 +13,14 @@ export default function GameHistoryPage() {
   const [totalCount, setTotalCount] = useState<number | null>(null);
 
   useEffect(() => {
+    setPage(1);
     fetchGameHistory(1);
   }, []);
 
-  const fetchGameHistory = async () => {
+  const fetchGameHistory = async (p = page) => {
     try {
       setLoading(true);
-      const response = await api.get('/games/history/', { params: { page, page_size: pageSize } });
+      const response = await api.get('/games/history/', { params: { page: p, page_size: pageSize } });
       const data = response.data;
       const results = Array.isArray(data) ? data : data.results ?? [];
       setGames(results);
