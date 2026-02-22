@@ -13,6 +13,12 @@ from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
+# ─── Constants ───────────────────────────────────────────────────────
+
+API_TIMEOUT: int = 10          # seconds for Deezer API requests
+CACHE_TTL_SEARCH: int = 1800   # 30 min for search results
+CACHE_TTL_DETAIL: int = 3600   # 1 hour for playlist / track details
+
 
 class DeezerAPIError(Exception):
     """Custom exception for Deezer API errors."""
@@ -46,7 +52,7 @@ class DeezerService:
         url = f"{self.BASE_URL}{endpoint}"
 
         try:
-            response = requests.get(url, params=params or {}, timeout=10)
+            response = requests.get(url, params=params or {}, timeout=API_TIMEOUT)
             response.raise_for_status()
             data = response.json()
 
@@ -97,7 +103,7 @@ class DeezerService:
                 "external_url": item.get("link", ""),
             })
 
-        cache.set(cache_key, playlists, 3600)  # cache 1 hour
+        cache.set(cache_key, playlists, CACHE_TTL_DETAIL)
         return playlists
 
     def get_playlist(self, playlist_id: str) -> Optional[Dict]:
@@ -127,7 +133,7 @@ class DeezerService:
             "external_url": data.get("link", ""),
         }
 
-        cache.set(cache_key, playlist, 3600)
+        cache.set(cache_key, playlist, CACHE_TTL_DETAIL)
         return playlist
 
     def get_playlist_tracks(self, playlist_id: str, limit: int = 50) -> List[Dict]:
@@ -181,7 +187,7 @@ class DeezerService:
         tracks = tracks[:limit]
 
         if tracks:
-            cache.set(cache_key, tracks, 1800)  # cache 30 min
+            cache.set(cache_key, tracks, CACHE_TTL_SEARCH)  # cache 30 min
 
         return tracks
 
@@ -210,7 +216,7 @@ class DeezerService:
                 tracks.append(track)
 
         if tracks:
-            cache.set(cache_key, tracks, 3600)
+            cache.set(cache_key, tracks, CACHE_TTL_DETAIL)
 
         return tracks
 
@@ -242,7 +248,7 @@ class DeezerService:
         if track:
             # Deezer exposes release_date on the track endpoint
             track["release_date"] = data.get("release_date", "")
-            cache.set(cache_key, track, 3600)
+            cache.set(cache_key, track, CACHE_TTL_DETAIL)
 
         return track
 

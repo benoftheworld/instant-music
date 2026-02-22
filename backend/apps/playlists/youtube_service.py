@@ -5,6 +5,7 @@ Music streaming service integration for InstantMusic.
 
 import logging
 import random
+import re
 from typing import Dict, List, Optional
 
 import requests
@@ -12,6 +13,20 @@ from django.conf import settings
 from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
+
+# ─── Constants ───────────────────────────────────────────────────────
+
+API_TIMEOUT: int = 10          # seconds for YouTube API requests
+CACHE_TTL_SEARCH: int = 1800   # 30 min for search results
+CACHE_TTL_DETAIL: int = 3600   # 1 hour for playlist / track details
+
+# Pre-compiled regex for stripping video-title suffixes (Official Video, etc.)
+_SUFFIX_RE = re.compile(
+    r"\s*[\(\[\|]?\s*(?:official\s+)?(?:music\s+)?(?:video|lyric|lyrics|audio|clip|hd|4k|visualizer|visualiser|mv|feat\.?|ft\.?).*$",
+    flags=re.IGNORECASE,
+)
+
+_ISO_DURATION_RE = re.compile(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?")
 
 
 class YouTubeAPIError(Exception):
@@ -56,7 +71,7 @@ class YouTubeService:
         url = f"{self.BASE_URL}/{endpoint}"
 
         try:
-            response = requests.get(url, params=params, timeout=10)
+            response = requests.get(url, params=params, timeout=API_TIMEOUT)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
@@ -128,7 +143,7 @@ class YouTubeService:
                 }
             )
 
-        cache.set(cache_key, playlists, 1800)  # Cache 30 min
+        cache.set(cache_key, playlists, CACHE_TTL_SEARCH)
         return playlists
 
     def get_playlist(self, playlist_id: str) -> Optional[Dict]:
@@ -180,7 +195,7 @@ class YouTubeService:
             "external_url": f"https://www.youtube.com/playlist?list={playlist_id}",
         }
 
-        cache.set(cache_key, result, 3600)  # Cache 1 hour
+        cache.set(cache_key, result, CACHE_TTL_DETAIL)
         return result
 
     def get_playlist_tracks(
@@ -288,7 +303,7 @@ class YouTubeService:
                 }
             )
 
-        cache.set(cache_key, tracks, 3600)  # Cache 1 hour
+        cache.set(cache_key, tracks, CACHE_TTL_DETAIL)
         return tracks[:limit]
 
     def search_music_videos(self, query: str, limit: int = 50) -> List[Dict]:
@@ -361,7 +376,7 @@ class YouTubeService:
                 }
             )
 
-        cache.set(cache_key, tracks, 1800)  # Cache 30 min
+        cache.set(cache_key, tracks, CACHE_TTL_SEARCH)
         return tracks
 
     def _get_video_details(self, video_ids: List[str]) -> Dict[str, Dict]:
@@ -409,9 +424,7 @@ class YouTubeService:
         Parse ISO 8601 duration to milliseconds.
         Example: 'PT4M13S' -> 253000
         """
-        import re
-
-        match = re.match(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", duration)
+        match = _ISO_DURATION_RE.match(duration)
         if not match:
             return 0
 
@@ -435,15 +448,8 @@ class YouTubeService:
         Returns:
             Tuple of (artist, track_name)
         """
-        import re
-
-        SUFFIX_RE = re.compile(
-            r"\s*[\(\[\|]?\s*(?:official\s+)?(?:music\s+)?(?:video|lyric|lyrics|audio|clip|hd|4k|visualizer|visualiser|mv|feat\.?|ft\.?).*$",
-            flags=re.IGNORECASE,
-        )
-
         def _strip(s: str) -> str:
-            return SUFFIX_RE.sub("", s).strip()
+            return _SUFFIX_RE.sub("", s).strip()
 
         # ── Step 1: try to split the ORIGINAL title (before any stripping) ──
         # This preserves the artist when it comes AFTER a parenthetical suffix,

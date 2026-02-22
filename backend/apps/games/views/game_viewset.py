@@ -6,7 +6,6 @@ import logging
 import random
 import string
 
-from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -21,7 +20,6 @@ from ..serializers import (
     GamePlayerSerializer,
     GameRoundSerializer,
     GameSerializer,
-    LeaderboardSerializer,
 )
 from ..services import game_service
 from ..broadcast_service import (
@@ -509,51 +507,11 @@ class GameViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], permission_classes=[])
     def leaderboard(self, request):
-        """Get global leaderboard of top players."""
-        from apps.users.models import User
+        """Get global leaderboard of top players.
 
-        limit = request.query_params.get("limit", 10)
-        try:
-            limit = int(limit)
-        except ValueError:
-            limit = 10
+        Delegates to :class:`apps.stats.views.LeaderboardView` to avoid
+        duplicated logic and N+1 queries.
+        """
+        from apps.stats.views import LeaderboardView
 
-        leaderboard_data = []
-        users = User.objects.filter(
-            game_participations__isnull=False
-        ).distinct()
-
-        for user in users:
-            participations = GamePlayer.objects.filter(
-                user=user, game__status="finished"
-            )
-
-            total_games = participations.count()
-            if total_games == 0:
-                continue
-
-            total_points = (
-                participations.aggregate(total=Sum("score"))["total"] or 0
-            )
-            total_wins = participations.filter(rank=1).count()
-            win_rate = (
-                (total_wins / total_games * 100) if total_games > 0 else 0
-            )
-
-            leaderboard_data.append(
-                {
-                    "user_id": user.id,
-                    "username": user.username,
-                    "avatar": user.avatar.url if user.avatar else None,
-                    "total_games": total_games,
-                    "total_wins": total_wins,
-                    "total_points": total_points,
-                    "win_rate": round(win_rate, 1),
-                }
-            )
-
-        leaderboard_data.sort(key=lambda x: x["total_points"], reverse=True)
-        leaderboard_data = leaderboard_data[:limit]
-
-        serializer = LeaderboardSerializer(leaderboard_data, many=True)
-        return Response(serializer.data)
+        return LeaderboardView.as_view()(request._request)

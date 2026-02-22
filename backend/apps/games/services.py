@@ -3,9 +3,11 @@ Services for game logic.
 Uses Deezer API for music content (30-second MP3 previews).
 """
 
+import json
 import random
 import logging
 import re
+import unicodedata
 from typing import List, Dict, Optional, Tuple
 from django.utils import timezone
 from django.db import transaction
@@ -32,8 +34,6 @@ from .lyrics_service import (
 
 def normalize_text(text: str) -> str:
     """Normalize text for fuzzy comparison in text answer mode."""
-    import unicodedata
-
     text = text.lower().strip()
     # Remove accents
     text = "".join(
@@ -109,6 +109,20 @@ def fuzzy_match(
 
 
 logger = logging.getLogger(__name__)
+
+
+# ─── Constants (previously hardcoded) ──────────────────────────────────────────
+
+# Scoring
+SCORE_BASE_POINTS: int = 100
+SCORE_TIME_PENALTY_PER_SEC: int = 3
+SCORE_MIN_CORRECT: int = 10
+SCORE_MIN_FINAL: int = 5
+RANK_BONUS: dict = {0: 10, 1: 5, 2: 2}  # correct_before → bonus points
+
+# Karaoke
+KARAOKE_MAX_DURATION: int = 300   # seconds
+KARAOKE_FALLBACK_DURATION: int = 180  # 3 min fallback
 
 
 # ─── Mode → default question_type mapping ─────────────────────────────────────
@@ -577,15 +591,35 @@ class GameService:
             raise ValueError("Game is not in waiting status")
 
         mode = game.mode
-        is_karaoke = mode == GameMode.KARAOKE
 
         # Karaoke uses a single pre-selected YouTube track, not a playlist
-        if is_karaoke:
+        if mode == GameMode.KARAOKE:
             return self._start_karaoke_game(game)
 
         if not game.playlist_id:
             raise ValueError("Game must have a playlist")
 
+        questions = self._generate_questions(game)
+        if not questions:
+            raise ValueError("Failed to generate questions from playlist")
+
+        with transaction.atomic():
+            rounds = self._build_rounds(game, questions)
+
+            game.status = GameStatus.IN_PROGRESS
+            game.started_at = timezone.now()
+            game.save()
+
+            if rounds:
+                rounds[0].started_at = timezone.now()
+                rounds[0].save()
+
+        return game, rounds
+
+    # ── start_game helpers ───────────────────────────────────────────
+
+    def _generate_questions(self, game: Game) -> List[Dict]:
+        """Fetch and tag questions for the given game."""
         num_rounds = game.num_rounds or 10
         mode = game.mode
         config = MODE_CONFIG.get(mode, MODE_CONFIG[GameMode.CLASSIQUE])
@@ -603,74 +637,77 @@ class GameService:
         for q in questions:
             q["_mode"] = mode
 
-        all_questions = questions
+        return questions
 
-        if not all_questions:
-            raise ValueError("Failed to generate questions from playlist")
-
+    def _build_rounds(
+        self, game: Game, questions: List[Dict]
+    ) -> List[GameRound]:
+        """Create GameRound objects from questions inside an atomic block."""
+        num_rounds = game.num_rounds or 10
         round_duration = game.round_duration or 30
         is_text_mode = game.answer_mode == AnswerMode.TEXT
-        is_karaoke = mode == GameMode.KARAOKE
+        is_karaoke = game.mode == GameMode.KARAOKE
 
-        with transaction.atomic():
-            rounds = []
-            for i, q in enumerate(all_questions[:num_rounds], start=1):
-                # For karaoke, use the YouTube video duration (capped at 300s)
-                if is_karaoke:
-                    vid_dur_ms = q.get("extra_data", {}).get(
-                        "video_duration_ms", 0
-                    )
-                    if vid_dur_ms > 0:
-                        round_duration_effective = min(vid_dur_ms // 1000 + 5, 300)
-                    else:
-                        round_duration_effective = 180  # fallback 3 min
-                else:
-                    round_duration_effective = round_duration
-                extra_data = q.get("extra_data", {}).copy()
-                if "album_image" not in extra_data and q.get("album_image"):
-                    extra_data["album_image"] = q["album_image"]
-                extra_data["round_mode"] = q.get("_mode", game.mode)
-                extra_data["answer_mode"] = game.answer_mode
-                extra_data["guess_target"] = game.guess_target
-                # Store artist/title in extra_data for text mode scoring
-                extra_data["artist_name"] = q["artist_name"]
-                extra_data["track_name"] = q["track_name"]
+        rounds: List[GameRound] = []
+        for i, q in enumerate(questions[:num_rounds], start=1):
+            round_duration_effective = self._effective_round_duration(
+                q, is_karaoke, round_duration
+            )
+            extra_data = self._build_extra_data(q, game)
+            options = self._resolve_options(q, is_karaoke, is_text_mode)
 
-                # In text mode for classique/rapide, keep options empty
-                # In karaoke, options are always empty
-                # In MCQ mode, provide options
-                if is_karaoke:
-                    options = []
-                elif is_text_mode:
-                    options = []
-                else:
-                    options = q["options"]
+            round_obj = GameRound.objects.create(
+                game=game,
+                round_number=i,
+                track_id=q["track_id"],
+                track_name=q["track_name"],
+                artist_name=q["artist_name"],
+                correct_answer=q["correct_answer"],
+                options=options,
+                preview_url=q.get("preview_url", ""),
+                question_type=q.get("question_type", "guess_title"),
+                question_text=q.get("question_text", ""),
+                extra_data=extra_data,
+                duration=round_duration_effective,
+            )
+            rounds.append(round_obj)
+        return rounds
 
-                round_obj = GameRound.objects.create(
-                    game=game,
-                    round_number=i,
-                    track_id=q["track_id"],
-                    track_name=q["track_name"],
-                    artist_name=q["artist_name"],
-                    correct_answer=q["correct_answer"],
-                    options=options,
-                    preview_url=q.get("preview_url", ""),
-                    question_type=q.get("question_type", "guess_title"),
-                    question_text=q.get("question_text", ""),
-                    extra_data=extra_data,
-                    duration=round_duration_effective,
-                )
-                rounds.append(round_obj)
+    @staticmethod
+    def _effective_round_duration(
+        question: Dict, is_karaoke: bool, default_duration: int
+    ) -> int:
+        """Determine the round duration, respecting karaoke video length."""
+        if is_karaoke:
+            vid_dur_ms = question.get("extra_data", {}).get(
+                "video_duration_ms", 0
+            )
+            if vid_dur_ms > 0:
+                return min(vid_dur_ms // 1000 + 5, KARAOKE_MAX_DURATION)
+            return KARAOKE_FALLBACK_DURATION
+        return default_duration
 
-            game.status = GameStatus.IN_PROGRESS
-            game.started_at = timezone.now()
-            game.save()
+    @staticmethod
+    def _build_extra_data(question: Dict, game: Game) -> Dict:
+        """Assemble the extra_data dict stored on each GameRound."""
+        extra_data = question.get("extra_data", {}).copy()
+        if "album_image" not in extra_data and question.get("album_image"):
+            extra_data["album_image"] = question["album_image"]
+        extra_data["round_mode"] = question.get("_mode", game.mode)
+        extra_data["answer_mode"] = game.answer_mode
+        extra_data["guess_target"] = game.guess_target
+        extra_data["artist_name"] = question["artist_name"]
+        extra_data["track_name"] = question["track_name"]
+        return extra_data
 
-            if rounds:
-                rounds[0].started_at = timezone.now()
-                rounds[0].save()
-
-        return game, rounds
+    @staticmethod
+    def _resolve_options(
+        question: Dict, is_karaoke: bool, is_text_mode: bool
+    ) -> list:
+        """Return MCQ options or an empty list for text/karaoke modes."""
+        if is_karaoke or is_text_mode:
+            return []
+        return question["options"]
 
     def _start_karaoke_game(self, game: Game) -> Tuple[Game, List[GameRound]]:
         """Start a karaoke game from the pre-selected YouTube track.
@@ -724,9 +761,9 @@ class GameService:
 
         # Determine round duration from video length
         if duration_ms > 0:
-            round_duration = min(duration_ms // 1000 + 5, 300)
+            round_duration = min(duration_ms // 1000 + 5, KARAOKE_MAX_DURATION)
         else:
-            round_duration = 180  # fallback 3 min
+            round_duration = KARAOKE_FALLBACK_DURATION
 
         extra_data = {
             "synced_lyrics": synced,
@@ -851,15 +888,13 @@ class GameService:
         If both artist and title are correct, accuracy_factor = 2.0 (double points).
         If only the main target is correct, accuracy_factor = 1.0.
         """
-        import json as _json
-
         extra = extra_data or {}
         # Get artist/title from extra_data (stored at round creation time)
         round_artist = extra.get("artist_name", "")
         round_title = extra.get("track_name", "")
 
         try:
-            parsed = _json.loads(answer)
+            parsed = json.loads(answer)
             if isinstance(parsed, dict):
                 artist_answer = parsed.get("artist", "")
                 title_answer = parsed.get("title", "")
@@ -882,7 +917,7 @@ class GameService:
                     return True, 1.0
                 else:
                     return False, 0.0
-        except (_json.JSONDecodeError, TypeError):
+        except (json.JSONDecodeError, TypeError):
             pass
 
         # Fallback: simple fuzzy match against correct_answer
@@ -896,12 +931,15 @@ class GameService:
     ) -> int:
         """Calculate base points (Option C — Linear + Rank).
 
-        Correct: (100 - response_time * 3) * accuracy_factor, min 10 when correct.
+        Correct: (BASE - response_time * PENALTY) * accuracy_factor, min when correct.
         """
         if accuracy_factor <= 0.0:
             return 0
-        raw = max(10, 100 - int(response_time * 3))
-        return max(5, int(raw * accuracy_factor))
+        raw = max(
+            SCORE_MIN_CORRECT,
+            SCORE_BASE_POINTS - int(response_time * SCORE_TIME_PENALTY_PER_SEC),
+        )
+        return max(SCORE_MIN_FINAL, int(raw * accuracy_factor))
 
     @transaction.atomic
     def submit_answer(
@@ -920,18 +958,13 @@ class GameService:
             accuracy_factor, response_time, round_obj.duration
         )
 
-        # Rank bonus: +10 for 1st correct, +5 for 2nd, +2 for 3rd
+        # Rank bonus based on answer order
         rank_bonus = 0
         if is_correct:
             correct_before = GameAnswer.objects.filter(
                 round=round_obj, is_correct=True
             ).count()
-            if correct_before == 0:
-                rank_bonus = 10
-            elif correct_before == 1:
-                rank_bonus = 5
-            elif correct_before == 2:
-                rank_bonus = 2
+            rank_bonus = RANK_BONUS.get(correct_before, 0)
             points += rank_bonus
 
         game_answer = GameAnswer.objects.create(
@@ -949,26 +982,21 @@ class GameService:
 
     @transaction.atomic
     def finish_game(self, game: Game) -> Game:
-        """Finish a game and calculate final rankings."""
+        """Finish a game and calculate final rankings.
+
+        User-level denormalized stats (total_games_played, total_wins,
+        total_points) are updated by the ``update_player_stats_on_game_finish``
+        signal handler in ``games.signals``, triggered by game.save().
+        """
         game.status = GameStatus.FINISHED
         game.finished_at = timezone.now()
-        game.save()
 
         players = game.players.order_by("-score")
         total_rounds = game.rounds.count()
-        is_karaoke = game.mode == GameMode.KARAOKE
 
         for rank, player in enumerate(players, start=1):
             player.rank = rank
             player.save()
-
-            user = player.user
-            user.total_games_played += 1
-            user.total_points += player.score
-            # Karaoke is solo — no winner is crowned
-            if rank == 1 and not is_karaoke:
-                user.total_wins += 1
-            user.save()
 
             correct_answers = GameAnswer.objects.filter(
                 player=player,
@@ -979,8 +1007,11 @@ class GameService:
 
             round_data = {"perfect_game": perfect_game}
             achievement_service.check_and_award(
-                user, game=game, round_data=round_data
+                player.user, game=game, round_data=round_data
             )
+
+        # Save last so the signal fires after ranks are set
+        game.save()
 
         return game
 

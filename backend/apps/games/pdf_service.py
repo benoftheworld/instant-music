@@ -19,6 +19,14 @@ from reportlab.platypus import (
     HRFlowable,
 )
 
+# ─── PDF colour palette (centralized) ───────────────────────────────
+COLOR_PRIMARY = colors.HexColor("#6366f1")
+COLOR_BORDER = colors.HexColor("#d1d5db")
+COLOR_ROW_ALT = colors.HexColor("#f9fafb")
+COLOR_HEADER_LIGHT = colors.HexColor("#e0e7ff")
+COLOR_HR = colors.HexColor("#e5e7eb")
+COLOR_CORRECT = "#10b981"
+
 
 def _medal(rank: int) -> str:
     return {1: "🥇", 2: "🥈", 3: "🥉"}.get(rank, f"{rank}.")
@@ -49,7 +57,7 @@ def generate_results_pdf(
         parent=styles["Title"],
         fontSize=22,
         spaceAfter=6,
-        textColor=colors.HexColor("#6366f1"),
+        textColor=COLOR_PRIMARY,
     )
     subtitle_style = ParagraphStyle(
         "Subtitle2",
@@ -64,7 +72,7 @@ def generate_results_pdf(
         fontSize=14,
         spaceBefore=14,
         spaceAfter=6,
-        textColor=colors.HexColor("#6366f1"),
+        textColor=COLOR_PRIMARY,
     )
 
     elements: list = []
@@ -93,7 +101,7 @@ def generate_results_pdf(
         )
     )
     elements.append(
-        HRFlowable(width="100%", thickness=1, color=colors.HexColor("#e5e7eb"))
+        HRFlowable(width="100%", thickness=1, color=COLOR_HR)
     )
     elements.append(Spacer(1, 6))
 
@@ -117,18 +125,18 @@ def generate_results_pdf(
     rank_table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#6366f1")),
+                ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
                 ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                 ("FONTSIZE", (0, 0), (-1, 0), 11),
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#d1d5db")),
+                ("GRID", (0, 0), (-1, -1), 0.5, COLOR_BORDER),
                 (
                     "ROWBACKGROUNDS",
                     (0, 1),
                     (-1, -1),
-                    [colors.white, colors.HexColor("#f9fafb")],
+                    [colors.white, COLOR_ROW_ALT],
                 ),
                 ("TOPPADDING", (0, 0), (-1, -1), 6),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
@@ -150,7 +158,7 @@ def generate_results_pdf(
         elements.append(
             Paragraph(
                 f"<b>Round {rnum}</b> — {track} ({artist}) &nbsp; "
-                f"<font color='#10b981'>Réponse : {correct}</font>",
+                f"<font color='{COLOR_CORRECT}'>Réponse : {correct}</font>",
                 styles["Normal"],
             )
         )
@@ -177,7 +185,7 @@ def generate_results_pdf(
                             "BACKGROUND",
                             (0, 0),
                             (-1, 0),
-                            colors.HexColor("#e0e7ff"),
+                            COLOR_HEADER_LIGHT,
                         ),
                         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                         ("FONTSIZE", (0, 0), (-1, -1), 9),
@@ -187,7 +195,7 @@ def generate_results_pdf(
                             (0, 0),
                             (-1, -1),
                             0.4,
-                            colors.HexColor("#d1d5db"),
+                            COLOR_BORDER,
                         ),
                         ("TOPPADDING", (0, 0), (-1, -1), 4),
                         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
@@ -205,7 +213,7 @@ def generate_results_pdf(
     # ── Footer ──────────────────────────────────────────────────────
     elements.append(
         HRFlowable(
-            width="100%", thickness=0.5, color=colors.HexColor("#d1d5db")
+            width="100%", thickness=0.5, color=COLOR_BORDER
         )
     )
     elements.append(Spacer(1, 4))

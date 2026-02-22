@@ -14,6 +14,14 @@ from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
+# ─── Constants ───────────────────────────────────────────────────────
+
+API_TIMEOUT: int = 8            # seconds for external HTTP requests
+CACHE_TTL_LYRICS: int = 3600    # 1 hour for successful lyrics
+CACHE_TTL_NEGATIVE: int = 1800  # 30 min for "not found" lyrics
+CACHE_TTL_SYNCED_NEG: int = 300 # 5 min for "not found" synced lyrics
+CACHE_TTL_LRCLIB_ID: int = 3600 # 1 hour for lrclib-by-id results
+
 # Words that are too short or common to be interesting blanks
 BORING_WORDS = {
     # English
@@ -48,6 +56,7 @@ BORING_WORDS = {
     "my",
     "no",
     "not",
+    "of",
     "oh",
     "on",
     "ooh",
@@ -79,8 +88,6 @@ BORING_WORDS = {
     "mais",
     "ne",
     "ni",
-    "of",
-    "on",
     "ou",
     "par",
     "pas",
@@ -142,7 +149,7 @@ def _lrclib_request(artist_clean: str, title_clean: str) -> Optional[dict]:
                 "artist_name": artist_clean,
                 "track_name": title_clean,
             },
-            timeout=8,
+            timeout=API_TIMEOUT,
         )
         if resp.status_code == 200:
             return resp.json()
@@ -175,17 +182,17 @@ def get_synced_lyrics_by_lrclib_id(lrclib_id: int) -> Optional[List[Dict]]:
     try:
         resp = requests.get(
             f"https://lrclib.net/api/get/{lrclib_id}",
-            timeout=8,
+            timeout=API_TIMEOUT,
         )
         if resp.status_code == 200:
             data = resp.json()
             raw = data.get("syncedLyrics", "")
             if raw:
                 lines = parse_lrc(raw) or None
-                cache.set(cache_key, lines if lines else "__NONE__", 3600)
+                cache.set(cache_key, lines if lines else "__NONE__", CACHE_TTL_LRCLIB_ID)
                 return lines
         # Cache negative result to avoid hammering the API
-        cache.set(cache_key, "__NONE__", 3600)
+        cache.set(cache_key, "__NONE__", CACHE_TTL_LRCLIB_ID)
     except Exception as exc:
         logger.warning("LRCLib by-id request failed for id=%s: %s", lrclib_id, exc)
     return None
@@ -217,7 +224,7 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
     if data:
         lyrics = data.get("plainLyrics", "")
         if lyrics and len(lyrics) >= 50:
-            cache.set(cache_key, lyrics, 3600)
+            cache.set(cache_key, lyrics, CACHE_TTL_LYRICS)
             return lyrics
 
     # ── 2. lyrics.ovh fallback ────────────────────────────────────────
@@ -226,16 +233,16 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
         f"{requests.utils.quote(artist_clean)}/{requests.utils.quote(title_clean)}"
     )
     try:
-        resp = requests.get(url, timeout=8)
+        resp = requests.get(url, timeout=API_TIMEOUT)
         if resp.status_code == 200:
             lyrics = resp.json().get("lyrics", "")
             if lyrics and len(lyrics) >= 50:
-                cache.set(cache_key, lyrics, 3600)
+                cache.set(cache_key, lyrics, CACHE_TTL_LYRICS)
                 return lyrics
     except Exception as e:
         logger.warning("lyrics.ovh failed for %s - %s: %s", artist, title, e)
 
-    cache.set(cache_key, "__NONE__", 1800)
+    cache.set(cache_key, "__NONE__", CACHE_TTL_NEGATIVE)
     return None
 
 
@@ -245,7 +252,7 @@ def _lrclib_search(query: str) -> Optional[dict]:
         resp = requests.get(
             "https://lrclib.net/api/search",
             params={"q": query},
-            timeout=8,
+            timeout=API_TIMEOUT,
         )
         if resp.status_code == 200:
             results = resp.json()
@@ -316,11 +323,11 @@ def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
                 lines = parse_lrc(raw) or None
 
     if lines:
-        cache.set(key, lines, 3600)
+        cache.set(key, lines, CACHE_TTL_LYRICS)
         return lines
 
     # Cache negative result for only 5 min so retries can succeed sooner
-    cache.set(key, "__NONE__", 300)
+    cache.set(key, "__NONE__", CACHE_TTL_SYNCED_NEG)
     return None
 
 

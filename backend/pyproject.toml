@@ -27,5 +27,19 @@ skip_glob = ["*/migrations/*"]
 python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
+warn_unused_ignores = true
+check_untyped_defs = true
+disallow_untyped_defs = false   # enable progressively — set true per-module
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "apps.games.services",
+    "apps.games.broadcast_service",
+    "apps.games.lyrics_service",
+    "apps.games.signals",
+    "apps.playlists.youtube_service",
+    "apps.playlists.deezer_service",
+    "apps.achievements.services",
+]
+disallow_untyped_defs = true
