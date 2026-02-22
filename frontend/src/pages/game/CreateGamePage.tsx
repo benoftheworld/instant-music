@@ -200,58 +200,68 @@ export default function CreateGamePage() {
     <div className="card">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Left column */}
-        <div className="space-y-6 flex flex-col items-center text-center">
+        <div className="space-y-6">
           {/* Round duration — hidden for karaoke (auto from video length) */}
           {!isKaraoke && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              🎵 Temps du round
-            </label>
-            <div className="flex items-center gap-4">
-              <input
-                type="range"
-                min="10"
-                max="60"
-                step="5"
-                value={roundDuration}
-                onChange={(e) => setRoundDuration(parseInt(e.target.value))}
-                className="w-48"
-              />
-              <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
-                {roundDuration}s
-              </span>
+          <>
+            <div className="flex flex-col items-center gap-2 w-full">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                🎵 Temps du round
+              </label>
+              <div className="flex items-center gap-4 w-full justify-center">
+                <input
+                  type="range"
+                  min="10"
+                  max="60"
+                  step="5"
+                  value={roundDuration}
+                  onChange={(e) => setRoundDuration(parseInt(e.target.value))}
+                  className="w-48 md:w-full"
+                />
+                <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
+                  {roundDuration}s
+                </span>
+              </div>
+              <div className="flex w-full justify-between text-xs text-gray-500 px-2">
+                <span>10s</span>
+                <span>60s</span>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                Durée pour répondre à chaque question
+              </p>
             </div>
-            <p className="text-sm text-gray-500 mt-1">
-              Durée pour répondre à chaque question
-            </p>
-          </div>
-          )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              🏆 Temps affichage score fin de round
-            </label>
-            <div className="flex items-center gap-4">
-              <input
-                type="range"
-                min="3"
-                max="30"
-                value={scoreDisplayDuration}
-                onChange={(e) => setScoreDisplayDuration(parseInt(e.target.value))}
-                className="w-48"
-              />
-              <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
-                {scoreDisplayDuration}s
-              </span>
+            <div className="flex flex-col items-center gap-2 w-full">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                🏆 Temps affichage score fin de round
+              </label>
+              <div className="flex items-center gap-4 w-full justify-center">
+                <input
+                  type="range"
+                  min="3"
+                  max="30"
+                  value={scoreDisplayDuration}
+                  onChange={(e) => setScoreDisplayDuration(parseInt(e.target.value))}
+                  className="w-48 md:w-full"
+                />
+                <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
+                  {scoreDisplayDuration}s
+                </span>
+              </div>
+              <div className="flex w-full justify-between text-xs text-gray-500 px-2">
+                <span>3s</span>
+                <span>30s</span>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                Durée d'affichage des résultats après chaque round
+              </p>
             </div>
-            <p className="text-sm text-gray-500 mt-1">
-              Durée d'affichage des résultats après chaque round
-            </p>
-          </div>
+          </>
+          )}
         </div>
 
         {/* Right column */}
-        <div className="space-y-6 flex flex-col items-center text-center">
+        <div className="space-y-6">
           {/* Max players & rounds — hidden for karaoke (solo, 1 round) */}
           {!isKaraoke && (
             <>
@@ -259,38 +269,48 @@ export default function CreateGamePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   👥 Nombre maximum de joueurs
                 </label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="2"
-                    max="20"
-                    value={maxPlayers}
-                    onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
-                    className="w-48"
-                  />
-                  <span className="text-lg font-semibold text-primary-600 min-w-[3rem]">
-                    {maxPlayers}
-                  </span>
+                <div className="flex flex-col items-center gap-2 w-full">
+                  <div className="flex items-center gap-4 w-full justify-center">
+                    <input
+                      type="range"
+                      min="2"
+                      max="20"
+                      value={maxPlayers}
+                      onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
+                      className="w-48 md:w-full"
+                    />
+                    <span className="text-lg font-semibold text-primary-600 min-w-[3rem]">
+                      {maxPlayers}
+                    </span>
+                  </div>
+                  <div className="flex w-full justify-between text-xs text-gray-500 px-2">
+                    <span>2</span>
+                    <span>20</span>
+                  </div>
                 </div>
                 <p className="text-sm text-gray-500 mt-1">Nombre maximum de joueurs</p>
               </div>
 
-              <div>
+              <div className="flex flex-col items-center gap-2 w-full">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   🔄 Nombre de rounds
                 </label>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 w-full justify-center">
                   <input
                     type="range"
                     min="3"
                     max="20"
                     value={numRounds}
                     onChange={(e) => setNumRounds(parseInt(e.target.value))}
-                    className="w-48"
+                    className="w-48 md:w-full"
                   />
                   <span className="text-lg font-semibold text-primary-600 min-w-[3rem]">
                     {numRounds}
                   </span>
+                </div>
+                <div className="flex w-full justify-between text-xs text-gray-500 px-2">
+                  <span>3</span>
+                  <span>20</span>
                 </div>
               </div>
 
