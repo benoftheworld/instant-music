@@ -335,7 +335,6 @@ export default function CreateGamePage() {
                 <label htmlFor="isOffline" className="text-sm font-medium text-gray-700">
                   📴 Mode hors ligne (solo)
                 </label>
-                <p className="text-sm text-gray-500 mt-1">Jouez en solo</p>
               </div>
             </>
           )}
@@ -384,6 +383,11 @@ export default function CreateGamePage() {
       {/* Mode-specific config */}
       <div className="card">
         <h3 className="text-lg font-bold mb-4 bg-[#C42F38] text-white text-center py-2 px-3 rounded">Configuration du mode</h3>
+        {selectedMode === 'karaoke' && (
+          <div className="mb-4 p-3 bg-pink-100 border border-pink-200 rounded text-center">
+            <p className="text-sm text-pink-800 font-semibold">Le mode <strong>Karaoké</strong> n'a pas de configuration spécifique ici — il se joue en solo et les paramètres sont automatiques.</p>
+          </div>
+        )}
 
         {/* Answer mode — hidden for karaoke (solo, no guessing) */}
         {selectedMode !== 'karaoke' && (
