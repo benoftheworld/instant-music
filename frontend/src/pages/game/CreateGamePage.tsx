@@ -200,7 +200,7 @@ export default function CreateGamePage() {
     <div className="card">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Left column */}
-        <div className="space-y-6">
+        <div className="space-y-6 flex flex-col items-center text-center">
           {/* Round duration — hidden for karaoke (auto from video length) */}
           {!isKaraoke && (
           <div>
@@ -251,7 +251,7 @@ export default function CreateGamePage() {
         </div>
 
         {/* Right column */}
-        <div className="space-y-6">
+        <div className="space-y-6 flex flex-col items-center text-center">
           {/* Max players & rounds — hidden for karaoke (solo, 1 round) */}
           {!isKaraoke && (
             <>
