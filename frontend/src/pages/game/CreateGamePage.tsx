@@ -248,6 +248,33 @@ export default function CreateGamePage() {
                 Durée d'affichage des résultats après chaque round
               </p>
             </div>
+
+              {/* Lyrics words slider moved here from mode step */}
+              {selectedMode === 'paroles' && (
+                <div className="flex flex-col items-center gap-2 w-full">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nombre de mots à trouver
+                  </label>
+                  <div className="flex items-center gap-4 w-full justify-center">
+                    <input
+                      type="range"
+                      min="2"
+                      max="10"
+                      value={lyricsWordsCount}
+                      onChange={(e) => setLyricsWordsCount(parseInt(e.target.value))}
+                      className="w-48 md:w-full"
+                    />
+                    <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
+                      {lyricsWordsCount} mot{lyricsWordsCount > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="flex w-full justify-between text-xs text-gray-500 px-2">
+                    <span>2</span>
+                    <span>10</span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">Nombre de mots masqués dans les paroles</p>
+                </div>
+              )}
           </>
           )}
         </div>
@@ -434,81 +461,6 @@ export default function CreateGamePage() {
                 </p>
               </div>
             )}
-
-            {selectedMode === 'rapide' && (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>⚡ Mode Rapide :</strong> La musique se joue pendant <strong>3 secondes</strong> puis s'arrête.
-                  Le joueur a ensuite tout le temps restant du round pour répondre.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Paroles specific */}
-        {selectedMode === 'paroles' && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nombre de mots à trouver
-              </label>
-              <div className="flex items-center gap-4">
-                <input
-                  type="range"
-                  min="2"
-                  max="10"
-                  value={lyricsWordsCount}
-                  onChange={(e) => setLyricsWordsCount(parseInt(e.target.value))}
-                  className="w-48"
-                />
-                <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
-                  {lyricsWordsCount} mot{lyricsWordsCount > 1 ? 's' : ''}
-                </span>
-              </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Nombre de mots masqués dans les paroles
-              </p>
-            </div>
-
-            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-              <p className="text-sm text-purple-800">
-                <strong>📝 Mode Paroles :</strong> Aucune musique ne joue pendant le round.
-                Les joueurs doivent compléter les paroles affichées.
-                {answerMode === 'mcq'
-                  ? ' Des propositions seront affichées.'
-                  : ' Les joueurs saisissent les mots manquants.'}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Génération specific */}
-        {selectedMode === 'generation' && (
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-sm text-green-800">
-              <strong>📅 Mode Génération :</strong> Devinez l'année de sortie de la musique.
-            </p>
-            <ul className="text-sm text-green-700 mt-2 space-y-1 ml-4">
-              <li>🎯 <strong>Année exacte :</strong> Points maximum</li>
-              <li>📌 <strong>± 2 ans :</strong> Points conséquents</li>
-              <li>📎 <strong>± 5 ans :</strong> Quelques points</li>
-              <li>❌ <strong>Au-delà :</strong> Aucun point</li>
-            </ul>
-          </div>
-        )}
-
-        {/* Karaoké specific */}
-        {selectedMode === 'karaoke' && (
-          <div className="p-4 bg-pink-50 border border-pink-200 rounded-lg">
-            <p className="text-sm text-pink-800">
-              <strong>🎤 Mode Karaoké (solo) :</strong> La musique complète joue 
-              et les paroles défilent en rythme. Chantez et profitez !
-            </p>
-            <ul className="text-sm text-pink-700 mt-2 space-y-1 ml-4">
-              <li>📜 <strong>Paroles synchronisées :</strong> Les paroles s'affichent en rythme</li>
-              <li>👤 <strong>Solo :</strong> Ce mode se joue seul</li>
-            </ul>
           </div>
         )}
       </div>
