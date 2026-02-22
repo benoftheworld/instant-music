@@ -5,6 +5,7 @@ Uses ReportLab to produce a single-page (or multi-page) results PDF.
 
 import io
 from typing import List, Dict, Any
+from datetime import datetime
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -19,6 +20,14 @@ from reportlab.platypus import (
     HRFlowable,
 )
 
+from .services import (
+    SCORE_BASE_POINTS,
+    SCORE_TIME_PENALTY_PER_SEC,
+    SCORE_MIN_CORRECT,
+    SCORE_MIN_FINAL,
+    RANK_BONUS,
+)
+
 # ─── PDF colour palette (centralized) ───────────────────────────────
 COLOR_PRIMARY = colors.HexColor("#6366f1")
 COLOR_BORDER = colors.HexColor("#d1d5db")
@@ -26,6 +35,11 @@ COLOR_ROW_ALT = colors.HexColor("#f9fafb")
 COLOR_HEADER_LIGHT = colors.HexColor("#e0e7ff")
 COLOR_HR = colors.HexColor("#e5e7eb")
 COLOR_CORRECT = "#10b981"
+MEDAL_COLORS = {
+    1: colors.HexColor("#D4AF37"),
+    2: colors.HexColor("#C0C0C0"),
+    3: colors.HexColor("#CD7F32"),
+}
 
 
 def _medal(rank: int) -> str:
@@ -82,12 +96,32 @@ def generate_results_pdf(
         Paragraph("InstantMusic — Résultats de la partie", title_style)
     )
     room_code = game_data.get("room_code", "?")
+    game_name = game_data.get("name")
     mode_display = game_data.get("mode_display", game_data.get("mode", "?"))
     answer_mode_display = game_data.get("answer_mode_display", "")
     guess_target_display = game_data.get("guess_target_display", "")
     num_rounds = game_data.get("num_rounds", "?")
     
     config_parts = [f"Mode : <b>{mode_display}</b>"]
+    # Add optional fields (name, date)
+    if game_name:
+        config_parts.insert(0, f"Partie : <b>{game_name}</b>")
+    # date/time (try finished_at, then started_at)
+    date_val = game_data.get("finished_at") or game_data.get("started_at")
+    if date_val:
+        if isinstance(date_val, str):
+            try:
+                dt = datetime.fromisoformat(date_val)
+            except Exception:
+                dt = None
+        elif isinstance(date_val, datetime):
+            dt = date_val
+        else:
+            dt = None
+
+        if dt:
+            date_display = dt.strftime("%d/%m/%Y %H:%M")
+            config_parts.append(f"Date : <b>{date_display}</b>")
     if answer_mode_display:
         config_parts.append(f"Type : <b>{answer_mode_display}</b>")
     if guess_target_display and game_data.get("mode") in ["classique", "rapide"]:
@@ -108,41 +142,47 @@ def generate_results_pdf(
     # ── Classement ──────────────────────────────────────────────────
     elements.append(Paragraph("Classement", section_style))
 
-    ranking_data = [["#", "Joueur", "Score"]]
+    # Ranking with teams and medal colours
+    ranking_data = [["#", "Pseudonyme", "Équipe", "Points"]]
     for p in rankings:
         rank = p.get("rank", "—")
         username = p.get("username", "?")
+        team = p.get("team_name") or "—"
         score = p.get("score", 0)
-        ranking_data.append(
-            [
-                _medal(rank) if isinstance(rank, int) else str(rank),
-                username,
-                str(score),
-            ]
-        )
+        ranking_data.append([
+            _medal(rank) if isinstance(rank, int) else str(rank),
+            username,
+            team,
+            str(score),
+        ])
 
-    rank_table = Table(ranking_data, colWidths=[30, 300, 80])
-    rank_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, 0), 11),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("GRID", (0, 0), (-1, -1), 0.5, COLOR_BORDER),
-                (
-                    "ROWBACKGROUNDS",
-                    (0, 1),
-                    (-1, -1),
-                    [colors.white, COLOR_ROW_ALT],
-                ),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-            ]
-        )
-    )
+    rank_table = Table(ranking_data, colWidths=[40, 200, 140, 70])
+    # Base styles
+    table_style_cmds = [
+        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 11),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, COLOR_ROW_ALT]),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("ALIGN", (1, 1), (1, -1), "LEFT"),
+    ]
+
+    # Medal row backgrounds for top3
+    for idx, p in enumerate(rankings, start=1):
+        r = idx  # table row index (header is row 0)
+        rank = p.get("rank")
+        if isinstance(rank, int) and rank in MEDAL_COLORS:
+            color = MEDAL_COLORS[rank]
+            table_style_cmds.append(("BACKGROUND", (0, r), (-1, r), color))
+            # ensure readable text on medal rows
+            table_style_cmds.append(("TEXTCOLOR", (0, r), (-1, r), colors.black))
+
+    rank_table.setStyle(TableStyle(table_style_cmds))
     elements.append(rank_table)
     elements.append(Spacer(1, 10))
 
@@ -209,6 +249,29 @@ def generate_results_pdf(
             )
 
         elements.append(Spacer(1, 6))
+
+    # ── Exemple de calcul des points ─────────────────────────────────
+    elements.append(Paragraph("Exemple de calcul des points", section_style))
+    # Use scoring constants to show formula and a numeric example
+    formula = (
+        f"Points base = max({SCORE_MIN_CORRECT}, {SCORE_BASE_POINTS} - response_time × {SCORE_TIME_PENALTY_PER_SEC})\n"
+        f"Points finaux = max({SCORE_MIN_FINAL}, int(points_base × accuracy_factor)) + rank_bonus"
+    )
+    # Example values
+    example_resp_time = 7
+    example_accuracy = 1.0
+    raw = max(SCORE_MIN_CORRECT, SCORE_BASE_POINTS - int(example_resp_time * SCORE_TIME_PENALTY_PER_SEC))
+    final = max(SCORE_MIN_FINAL, int(raw * example_accuracy))
+    # top-first bonus example
+    first_bonus = RANK_BONUS.get(0, 0)
+    final_with_bonus = final + first_bonus
+
+    example_text = (
+        f"Formule : <i>{formula}</i><br/>"
+        f"Exemple : response_time={example_resp_time}s, accuracy_factor={example_accuracy} → points_base={raw}, "
+        f"points_finaux={final} (+ bonus rang {first_bonus} ⇒ {final_with_bonus})"
+    )
+    elements.append(Paragraph(example_text, styles["Normal"]))
 
     # ── Footer ──────────────────────────────────────────────────────
     elements.append(

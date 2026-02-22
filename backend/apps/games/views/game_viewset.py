@@ -434,15 +434,27 @@ class GameViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        players = game.players.order_by("-score")
-        rankings = [
-            {
+        players = (
+            game.players.order_by("-score")
+            .select_related("user")
+            .prefetch_related("user__team_memberships__team")
+        )
+        rankings = []
+        for p in players:
+            team_name = None
+            try:
+                tm = p.user.team_memberships.first()
+                if tm and tm.team:
+                    team_name = tm.team.name
+            except Exception:
+                team_name = None
+
+            rankings.append({
                 "username": p.user.username,
                 "score": p.score,
                 "rank": p.rank,
-            }
-            for p in players
-        ]
+                "team_name": team_name,
+            })
 
         rounds_detail = []
         for r in game.rounds.order_by("round_number"):
@@ -470,8 +482,13 @@ class GameViewSet(viewsets.ModelViewSet):
 
         game_data = {
             "room_code": game.room_code,
-            "mode": game.get_mode_display(),
+            "mode_display": game.get_mode_display(),
+            "answer_mode_display": game.get_answer_mode_display(),
+            "guess_target_display": game.get_guess_target_display(),
+            "num_rounds": game.num_rounds,
             "name": game.name,
+            "started_at": game.started_at.isoformat() if game.started_at else None,
+            "finished_at": game.finished_at.isoformat() if game.finished_at else None,
         }
 
         pdf_bytes = generate_results_pdf(game_data, rankings, rounds_detail)
