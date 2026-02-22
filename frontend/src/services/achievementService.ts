@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { Achievement, UserAchievement, UserDetailedStats, LeaderboardEntry, TeamLeaderboardEntry, MyRank, GameMode } from '@/types';
+import type { Achievement, UserAchievement, UserDetailedStats, MyRank, GameMode } from '@/types';
 
 export const achievementService = {
   /** Get all achievements with unlock status for current user */

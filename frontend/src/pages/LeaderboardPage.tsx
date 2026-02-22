@@ -14,7 +14,7 @@ export default function LeaderboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedMode, setSelectedMode] = useState<LeaderboardTab>('general');
   const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(50);
+  const [pageSize] = useState<number>(50);
   const [totalCount, setTotalCount] = useState<number | null>(null);
 
   useEffect(() => {
