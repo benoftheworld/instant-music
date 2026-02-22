@@ -38,18 +38,19 @@ export default function TextModeQuestion({
   const duringRoundAudio = useAudioPlayer(round, showResults, audioDuration, seekOffsetMs);
   const resultsOnlyAudio = useAudioPlayerOnResults(round, showResults);
   const audio = isLyrics ? resultsOnlyAudio : duringRoundAudio;
+  const { needsPlay, isPlaying, handlePlay } = audio;
 
   // Auto-trigger play for Rapide/Intro mode to prevent cheating
   useEffect(() => {
-    if (isIntro && audio.needsPlay && !audio.isPlaying) {
-      audio.handlePlay();
+    if (isIntro && needsPlay && !isPlaying) {
+      handlePlay();
     }
-  }, [isIntro, audio.needsPlay]);
+  }, [isIntro, needsPlay, isPlaying, handlePlay]);
 
   // Click handler to trigger play for Rapide mode (fallback if auto-trigger fails)
   const handleCardClick = () => {
-    if (isIntro && audio.needsPlay && !audio.isPlaying) {
-      audio.handlePlay();
+    if (isIntro && needsPlay && !isPlaying) {
+      handlePlay();
     }
   };
 

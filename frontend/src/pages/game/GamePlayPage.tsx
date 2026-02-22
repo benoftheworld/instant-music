@@ -141,7 +141,7 @@ export default function GamePlayPage() {
     setTimeRemaining(remaining);
     let lastSecond = remaining;
 
-    let timerTimeout: ReturnType<typeof setTimeout> | null = null;
+    const timerTimeout: ReturnType<typeof setTimeout> | null = null;
 
     // Update every 100ms for smooth countdown
     const interval = setInterval(() => {
@@ -283,7 +283,7 @@ export default function GamePlayPage() {
     });
 
     return unsubscribe;
-  }, [onMessage, loadCurrentRound, navigate, roomCode, user, game, advanceToNextRound]);
+  }, [onMessage, loadCurrentRound, navigate, roomCode, user, game, advanceToNextRound, myPointsEarned]);
 
   // Initial load
   useEffect(() => {

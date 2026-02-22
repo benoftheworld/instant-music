@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getMediaUrl } from '@/services/api';
 import { statsService } from '@/services/achievementService';
 import { LEADERBOARD_TABS } from '@/constants/gameModes';
@@ -17,12 +17,7 @@ export default function LeaderboardPage() {
   const [pageSize] = useState<number>(50);
   const [totalCount, setTotalCount] = useState<number | null>(null);
 
-  useEffect(() => {
-    setPage(1);
-    fetchLeaderboard(1);
-  }, [selectedMode]);
-
-  const fetchLeaderboard = async (p = page) => {
+  const fetchLeaderboard = useCallback(async (p: number) => {
     try {
       setLoading(true);
       setError(null);
@@ -49,7 +44,12 @@ export default function LeaderboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedMode, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+    fetchLeaderboard(1);
+  }, [selectedMode, fetchLeaderboard]);
 
   const handlePrev = () => {
     if (page > 1) {

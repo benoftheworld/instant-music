@@ -20,18 +20,19 @@ const IntroQuestion = ({
 }: Props) => {
   const audioDuration = round.extra_data?.audio_duration || 5;
   const audio = useAudioPlayer(round, showResults, audioDuration, seekOffsetMs);
+  const { needsPlay, isPlaying, handlePlay, playerError } = audio;
 
   // Auto-trigger play when browser blocks autoplay (no manual button in Rapide)
   useEffect(() => {
-    if (audio.needsPlay && !audio.isPlaying) {
-      audio.handlePlay();
+    if (needsPlay && !isPlaying) {
+      handlePlay();
     }
-  }, [audio.needsPlay]);
+  }, [needsPlay, isPlaying, handlePlay]);
 
   // Also trigger play on any click within the component
   const handleCardClick = () => {
-    if (audio.needsPlay && !audio.isPlaying) {
-      audio.handlePlay();
+    if (needsPlay && !isPlaying) {
+      handlePlay();
     }
   };
 
@@ -50,12 +51,12 @@ const IntroQuestion = ({
       {!showResults && (
         <div className="mb-6">
           <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg min-h-[120px]">
-            {audio.playerError ? (
+            {playerError ? (
               <div className="text-white text-center">
                 <div className="text-4xl mb-2">⚠️</div>
-                <p className="text-sm mb-1">{audio.playerError}</p>
+                <p className="text-sm mb-1">{playerError}</p>
               </div>
-            ) : audio.isPlaying ? (
+            ) : isPlaying ? (
               <div className="text-white text-center">
                 <div className="text-4xl mb-2 animate-pulse">🎵</div>
                 <p className="text-sm">Intro — {audioDuration}s seulement !</p>
@@ -64,7 +65,7 @@ const IntroQuestion = ({
               <div className="text-white text-center">
                 <div className="text-4xl mb-2">⏳</div>
                 <p className="text-sm">
-                  {audio.needsPlay ? 'Cliquez n\u2019importe où pour lancer l\u2019intro...' : 'Chargement de l\u2019intro...'}
+                  {needsPlay ? 'Cliquez n\u2019importe où pour lancer l\u2019intro...' : 'Chargement de l\u2019intro...'}
                 </p>
               </div>
             )}

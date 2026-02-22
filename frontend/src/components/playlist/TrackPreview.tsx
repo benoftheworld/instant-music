@@ -19,17 +19,18 @@ export default function TrackPreview({ track, autoPlay = false, showControls = t
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (autoPlay && track.preview_url && audioRef.current) {
-      audioRef.current.play().catch(console.error);
+    const audioEl = audioRef.current;
+    if (autoPlay && track.preview_url && audioEl) {
+      audioEl.play().catch(console.error);
       setIsPlaying(true);
     }
 
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
+      if (audioEl) {
+        audioEl.pause();
       }
     };
-  }, [track.youtube_id, autoPlay]);
+  }, [track.preview_url, autoPlay]);
 
   const togglePlay = () => {
     if (!audioRef.current || !track.preview_url) return;

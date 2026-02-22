@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { teamService } from '@/services/socialService';
 import { getMediaUrl } from '@/services/api';
@@ -29,18 +29,7 @@ export default function TeamPage() {
     return map[role] || role;
   };
 
-  useEffect(() => {
-    if (!id) return navigate('/teams');
-    fetchTeam();
-  }, [id]);
-
-  useEffect(() => {
-    if (!team) return;
-    if (!canManage()) return;
-    fetchRequests();
-  }, [team]);
-
-  const fetchTeam = async () => {
+  const fetchTeam = useCallback(async () => {
     setLoading(true);
     try {
       const data = await teamService.getTeam(Number(id));
@@ -51,9 +40,14 @@ export default function TeamPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const fetchRequests = async () => {
+  useEffect(() => {
+    if (!id) return navigate('/teams');
+    fetchTeam();
+  }, [id, navigate, fetchTeam]);
+
+  const fetchRequests = useCallback(async () => {
     if (!team) return;
     setRequestsLoading(true);
     try {
@@ -64,14 +58,21 @@ export default function TeamPage() {
     } finally {
       setRequestsLoading(false);
     }
-  };
+  }, [team]);
 
-  const canManage = () => {
+  const canManage = useCallback(() => {
     if (!team || !user) return false;
     const myMembership = team.members_list.find(m => m.user.id === user.id);
     if (!myMembership) return false;
     return myMembership.role === 'owner' || myMembership.role === 'admin';
-  };
+  }, [team, user]);
+
+  useEffect(() => {
+    if (!team) return;
+    if (!canManage()) return;
+    fetchRequests();
+  }, [team, canManage, fetchRequests]);
+
 
   const handleChangeRole = async (member: TeamMember, role: TeamMemberRole) => {
     if (!team) return;

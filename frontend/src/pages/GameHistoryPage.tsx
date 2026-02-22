@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api, getMediaUrl } from '@/services/api';
 import { getModeIcon, LEADERBOARD_TABS } from '@/constants/gameModes';
 import type { GameHistory } from '@/types';
@@ -13,12 +13,7 @@ export default function GameHistoryPage() {
   const [totalCount, setTotalCount] = useState<number | null>(null);
   const [selectedMode, setSelectedMode] = useState<string | null>(null);
 
-  useEffect(() => {
-    setPage(1);
-    fetchGameHistory(1, selectedMode ?? undefined);
-  }, [selectedMode]);
-
-  const fetchGameHistory = async (p = page, mode?: string) => {
+  const fetchGameHistory = useCallback(async (p: number, mode?: string) => {
     try {
       setLoading(true);
       const params: Record<string, any> = { page: p, page_size: pageSize };
@@ -34,7 +29,12 @@ export default function GameHistoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+    fetchGameHistory(1, selectedMode ?? undefined);
+  }, [selectedMode, fetchGameHistory]);
 
   const handlePrev = () => {
     if (page > 1) {

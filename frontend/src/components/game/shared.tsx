@@ -49,7 +49,7 @@ export function useAudioPlayer(
   const mountedRef = useRef(true);
   const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const scheduleStop = (audioEl: HTMLAudioElement | null) => {
+  const scheduleStop = useCallback((audioEl: HTMLAudioElement | null) => {
     if (stopTimeoutRef.current) {
       clearTimeout(stopTimeoutRef.current);
       stopTimeoutRef.current = null;
@@ -62,7 +62,7 @@ export function useAudioPlayer(
         }
       }, maxAudioDuration * 1000);
     }
-  };
+  }, [maxAudioDuration]);
 
   const getSeekTime = useCallback(() => {
     if (!round.started_at) return 0;
@@ -125,13 +125,8 @@ export function useAudioPlayer(
     // For intro mode: stop audio after maxAudioDuration seconds
     scheduleStop(audioRef.current);
 
-    const fallback = setTimeout(() => {
-      if (!isPlaying && !playerError && mountedRef.current) setNeedsPlay(true);
-    }, 3000);
-
     return () => {
       mountedRef.current = false;
-      clearTimeout(fallback);
       if (stopTimeoutRef.current) { clearTimeout(stopTimeoutRef.current); stopTimeoutRef.current = null; }
       audio.removeEventListener('canplaythrough', onCanPlay);
       audio.removeEventListener('error', onError);
@@ -141,8 +136,16 @@ export function useAudioPlayer(
       audio.load();
       audioRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [round.track_id, round.id, showResults, round.preview_url]);
+  }, [round.track_id, round.id, showResults, round.preview_url, getSeekTime, scheduleStop]);
+
+  // Fallback: if playback didn't start after a short delay, mark as needing a manual play
+  useEffect(() => {
+    if (showResults) return;
+    const fallback = setTimeout(() => {
+      if (!isPlaying && !playerError && mountedRef.current) setNeedsPlay(true);
+    }, 3000);
+    return () => clearTimeout(fallback);
+  }, [isPlaying, playerError, showResults, round.track_id, round.id, round.preview_url]);
 
   const handlePlay = () => {
     setPlayerError(null);
@@ -250,13 +253,8 @@ export function useAudioPlayerOnResults(
     audio.addEventListener('error', onError);
     audio.addEventListener('ended', onEnded);
 
-    const fallback = setTimeout(() => {
-      if (!isPlaying && !playerError && mountedRef.current) setNeedsPlay(true);
-    }, 3000);
-
     return () => {
       mountedRef.current = false;
-      clearTimeout(fallback);
       audio.removeEventListener('canplaythrough', onCanPlay);
       audio.removeEventListener('error', onError);
       audio.removeEventListener('ended', onEnded);
@@ -266,6 +264,15 @@ export function useAudioPlayerOnResults(
       audioRef.current = null;
     };
   }, [round.track_id, round.id, showResults, round.preview_url]);
+
+  // Fallback: if playback didn't start after a short delay, mark as needing a manual play
+  useEffect(() => {
+    if (!showResults) return;
+    const fallback = setTimeout(() => {
+      if (!isPlaying && !playerError && mountedRef.current) setNeedsPlay(true);
+    }, 3000);
+    return () => clearTimeout(fallback);
+  }, [isPlaying, playerError, showResults, round.track_id, round.id, round.preview_url]);
 
   const handlePlay = () => {
     setPlayerError(null);

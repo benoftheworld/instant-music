@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useWebSocket } from '../../hooks/useWebSocket';
@@ -46,13 +46,8 @@ export default function GameLobbyPage() {
     return unsubscribe;
   }, [onMessage, navigate, roomCode]);
 
-  useEffect(() => {
-    if (roomCode) {
-      loadGame();
-    }
-  }, [roomCode]);
-
-  const loadGame = async () => {
+  const loadGame = useCallback(async () => {
+    if (!roomCode) return;
     if (!roomCode) return;
 
     try {
@@ -95,7 +90,13 @@ export default function GameLobbyPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [roomCode, user, navigate]);
+
+  useEffect(() => {
+    if (roomCode) {
+      loadGame();
+    }
+  }, [roomCode, loadGame]);
 
   const handleSelectPlaylist = async (playlist: YouTubePlaylist) => {
     if (!game || !roomCode) return;
