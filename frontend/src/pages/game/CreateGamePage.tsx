@@ -257,24 +257,22 @@ export default function CreateGamePage() {
           {/* Max players & rounds — hidden for karaoke (solo, 1 round) */}
           {!isKaraoke && (
             <>
-              <div>
+              <div className="flex flex-col gap-2 w-full">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   👥 Nombre maximum de joueurs
                 </label>
-                <div className="flex flex-col gap-2 w-full">
-                  <div className="flex gap-4 w-full justify-center">
-                    <input
-                      type="range"
-                      min="2"
-                      max="20"
-                      value={maxPlayers}
-                      onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
-                      className="w-48 md:w-full"
-                    />
-                    <span className="text-lg font-semibold text-primary-600 min-w-[3rem]">
-                      {maxPlayers}
-                    </span>
-                  </div>
+                <div className="flex gap-4 w-full justify-center">
+                  <input
+                    type="range"
+                    min="2"
+                    max="20"
+                    value={maxPlayers}
+                    onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
+                    className="w-48 md:w-full"
+                  />
+                  <span className="text-lg font-semibold text-primary-600 min-w-[3rem]">
+                    {maxPlayers}
+                  </span>
                 </div>
                 <p className="text-sm text-gray-500 mt-1">Nombre maximum de joueurs</p>
               </div>
@@ -299,7 +297,7 @@ export default function CreateGamePage() {
                 <p className="text-sm text-gray-500 mt-1">Nombre de rounds à jouer</p>
               </div>
 
-              <div className="flex gap-6 p-4 bg-gray-50 rounded-lg">
+              <div className="flex gap-4 p-4 bg-gray-50 rounded-lg">
                 <input
                   type="checkbox"
                   id="isOffline"
