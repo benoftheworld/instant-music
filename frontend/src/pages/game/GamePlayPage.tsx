@@ -49,6 +49,10 @@ export default function GamePlayPage() {
   const [loading, setLoading] = useState(true);
   const [myPointsEarned, setMyPointsEarned] = useState<number>(0);
   const isAdvancingRef = useRef(false);
+  // Timestamp (ms) captured the moment the round enters the 'playing' phase.
+  // Used for an accurate response-time calculation that is immune to timer
+  // drift, Math.floor rounding, and loading-screen offset mismatches.
+  const roundPlayingStartTimeRef = useRef<number>(0);
 
   // New state for round phases: 'loading' | 'playing' | 'results'
   const [roundPhase, setRoundPhase] = useState<'loading' | 'playing' | 'results'>('loading');
@@ -74,6 +78,7 @@ export default function GamePlayPage() {
         setRoundPhase('loading'); // Start with loading phase
         loadingStartTimeRef.current = Date.now(); // Record when loading starts
         loadingRoundIdRef.current = response.current_round.id;
+        roundPlayingStartTimeRef.current = 0; // Will be set when playing phase starts
       } else if (response.message === 'Partie terminée') {
         // Game is finished
         navigate(`/game/${roomCode}/results`);
@@ -203,6 +208,7 @@ export default function GamePlayPage() {
           setRoundPhase('loading'); // Show loading screen first
           loadingStartTimeRef.current = Date.now(); // Record when loading starts
           loadingRoundIdRef.current = data.round_data.id;
+          roundPlayingStartTimeRef.current = 0; // Will be set when playing phase starts
           break;
 
         case 'player_answered':
@@ -276,6 +282,7 @@ export default function GamePlayPage() {
           setRoundPhase('loading'); // Show loading screen for new round
           loadingStartTimeRef.current = Date.now(); // Record when loading starts
           loadingRoundIdRef.current = data.round_data.id;
+          roundPlayingStartTimeRef.current = 0; // Will be set when playing phase starts
           // Update players with fresh scores (functional update to avoid stale closure), preserving avatar
           if (data.updated_players) {
             setGame((prev: any) => {
@@ -317,7 +324,11 @@ export default function GamePlayPage() {
     setSelectedAnswer(answer);
     setHasAnswered(true);
 
-    const responseTime = Math.max(0, currentRound.duration - timeRemaining);
+    // Measure directly from when the playing phase started — avoids any drift
+    // caused by Math.floor in the visual timer or loading-screen offset skew.
+    const responseTime = roundPlayingStartTimeRef.current > 0
+      ? Math.max(0, (Date.now() - roundPlayingStartTimeRef.current) / 1000)
+      : Math.max(0, currentRound.duration - timeRemaining); // fallback if ref wasn't set
 
     try {
       // Submit answer to backend — response contains points_earned
@@ -419,6 +430,7 @@ export default function GamePlayPage() {
   // Callback when loading screen completes
   const handleLoadingComplete = () => {
     soundEffects.countdownGo();
+    roundPlayingStartTimeRef.current = Date.now(); // ← start the response-time clock
     setRoundPhase('playing');
   };
 
