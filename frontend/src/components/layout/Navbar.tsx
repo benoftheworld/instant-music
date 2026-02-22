@@ -18,7 +18,9 @@ export default function Navbar() {
           <div className="flex items-center gap-6">
             <Link to="/leaderboard" className="hover:text-primary-400 transition-colors flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 21h6M12 17v4M5 3h14l-1 9a4 4 0 01-4 4H10a4 4 0 01-4-4L5 3z" />
+                <rect x="3" y="10" width="4" height="11" rx="1" strokeWidth="2" />
+                <rect x="10" y="6" width="4" height="15" rx="1" strokeWidth="2" />
+                <rect x="17" y="3" width="4" height="18" rx="1" strokeWidth="2" />
               </svg>
               <span>Classement</span>
             </Link>
@@ -32,7 +34,8 @@ export default function Navbar() {
                 </Link>
                 <Link to="/teams" className="hover:text-primary-400 transition-colors flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2v4M12 18v4M4.22 4.22l2.83 2.83M17.95 17.95l2.83 2.83M2 12h4M18 12h4M4.22 19.78l2.83-2.83M17.95 6.05l2.83-2.83M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v18" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-6 3 6 3" />
                   </svg>
                   <span>Équipes</span>
                 </Link>
