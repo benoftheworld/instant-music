@@ -348,7 +348,7 @@ export default function CreateGamePage() {
     <div className="space-y-6">
       {/* Mode selection */}
       <div className="card">
-        <h3 className="text-lg font-bold mb-4">Choisissez un mode</h3>
+        <h3 className="text-lg font-bold mb-4 bg-[#C42F38] text-white text-center py-2 px-3 rounded">Choisissez un mode</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {gameModes.map((mode) => {
             const isSelected = selectedMode === mode.value;
@@ -383,7 +383,7 @@ export default function CreateGamePage() {
 
       {/* Mode-specific config */}
       <div className="card">
-        <h3 className="text-lg font-bold mb-4">Configuration du mode</h3>
+        <h3 className="text-lg font-bold mb-4 bg-[#C42F38] text-white text-center py-2 px-3 rounded">Configuration du mode</h3>
 
         {/* Answer mode — hidden for karaoke (solo, no guessing) */}
         {selectedMode !== 'karaoke' && (
@@ -532,7 +532,7 @@ export default function CreateGamePage() {
 
     return (
       <div className="card space-y-6">
-        <h3 className="text-lg font-bold">Récapitulatif</h3>
+        <h3 className="text-lg font-bold bg-[#C42F38] text-white text-center py-2 px-3 rounded">Récapitulatif</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Global config summary */}
