@@ -294,13 +294,6 @@ function KaraokeScoreSidebar({ score }: { score: number }) {
         <div className="text-4xl font-black text-yellow-400">{score}</div>
         <div className="text-gray-500 text-xs mt-1">pts</div>
       </div>
-
-      <div className="bg-gray-900/60 border border-gray-700/50 rounded-xl p-4 text-center">
-        <div className="text-2xl mb-1">🎤</div>
-        <p className="text-gray-500 text-xs leading-tight max-w-[120px]">
-          Reconnaissance vocale bientôt disponible !
-        </p>
-      </div>
     </div>
   );
 }
