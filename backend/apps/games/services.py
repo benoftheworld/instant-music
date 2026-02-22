@@ -299,7 +299,7 @@ class QuestionGeneratorService:
         random.shuffle(options)
 
         return {
-            "track_id": correct_track["youtube_id"],
+            "track_id": correct_track["track_id"],
             "track_name": correct_track["name"],
             "artist_name": ", ".join(correct_track["artists"]),
             "preview_url": correct_track.get("preview_url"),
@@ -319,7 +319,7 @@ class QuestionGeneratorService:
         other_tracks = [
             t
             for t in all_tracks
-            if t["youtube_id"] != correct_track["youtube_id"]
+            if t["track_id"] != correct_track["track_id"]
         ]
         random.shuffle(other_tracks)
 
@@ -338,7 +338,7 @@ class QuestionGeneratorService:
         random.shuffle(options)
 
         return {
-            "track_id": correct_track["youtube_id"],
+            "track_id": correct_track["track_id"],
             "track_name": correct_track["name"],
             "artist_name": correct_answer,
             "preview_url": correct_track.get("preview_url"),
@@ -350,41 +350,11 @@ class QuestionGeneratorService:
             "extra_data": {},
         }
 
-    # ─── Blind Test Inversé ──────────────────────────────────────────
-
-    def _generate_blind_inverse_question(
-        self, correct_track: Dict, all_tracks: List[Dict]
-    ) -> Optional[Dict]:
-        """Artist is given prominently, player guesses the title."""
-        correct_answer = correct_track["name"]
-        wrong_answers = self._pick_wrong_answers(
-            correct_track, all_tracks, key="name", count=3
-        )
-        if len(wrong_answers) < 3:
-            return None
-
-        options = [correct_answer] + wrong_answers[:3]
-        random.shuffle(options)
-
-        artist = ", ".join(correct_track["artists"])
-        return {
-            "track_id": correct_track["youtube_id"],
-            "track_name": correct_track["name"],
-            "artist_name": artist,
-            "preview_url": correct_track.get("preview_url"),
-            "album_image": correct_track.get("album_image"),
-            "question_type": "blind_inverse",
-            "question_text": f"L'artiste est {artist}. Quel est le titre ?",
-            "correct_answer": correct_answer,
-            "options": options,
-            "extra_data": {},
-        }
-
     # ─── Année de Sortie ─────────────────────────────────────────────
 
     def _generate_year_question(self, track: Dict) -> Optional[Dict]:
         """Player guesses the release year (±2 tolerance)."""
-        track_id = track["youtube_id"]
+        track_id = track["track_id"]
 
         # Get detailed info including release_date
         details = self.deezer.get_track_details(track_id)
@@ -450,35 +420,6 @@ class QuestionGeneratorService:
             },
         }
 
-    # ─── Intro (3 seconds) ───────────────────────────────────────────
-
-    def _generate_intro_question(
-        self, correct_track: Dict, all_tracks: List[Dict]
-    ) -> Optional[Dict]:
-        """Same as guess_title but only 3 seconds of audio."""
-        correct_answer = correct_track["name"]
-        wrong_answers = self._pick_wrong_answers(
-            correct_track, all_tracks, key="name", count=3
-        )
-        if len(wrong_answers) < 3:
-            return None
-
-        options = [correct_answer] + wrong_answers[:3]
-        random.shuffle(options)
-
-        return {
-            "track_id": correct_track["youtube_id"],
-            "track_name": correct_track["name"],
-            "artist_name": ", ".join(correct_track["artists"]),
-            "preview_url": correct_track.get("preview_url"),
-            "album_image": correct_track.get("album_image"),
-            "question_type": "intro",
-            "question_text": "Reconnaissez ce morceau en 3 secondes !",
-            "correct_answer": correct_answer,
-            "options": options,
-            "extra_data": {"audio_duration": 3},
-        }
-
     # ─── Lyrics ──────────────────────────────────────────────────────
 
     def _generate_lyrics_question(
@@ -514,7 +455,7 @@ class QuestionGeneratorService:
         snippet, correct_word, options = result
 
         return {
-            "track_id": track["youtube_id"],
+            "track_id": track["track_id"],
             "track_name": track["name"],
             "artist_name": artist,
             "preview_url": track.get("preview_url"),
@@ -562,7 +503,7 @@ class QuestionGeneratorService:
                     f"{artist} {track['name']}", limit=3
                 )
                 if results:
-                    youtube_video_id = results[0]["youtube_id"]
+                    youtube_video_id = results[0]["track_id"]
                     video_duration_ms = results[0].get("duration_ms", 0)
                     if results[0].get("album_image"):
                         album_image = results[0]["album_image"]
@@ -584,7 +525,7 @@ class QuestionGeneratorService:
         }
 
         return {
-            "track_id": track["youtube_id"],
+            "track_id": track["track_id"],
             "track_name": track["name"],
             "artist_name": artist,
             "preview_url": "",  # Not used — YouTube player handles audio
@@ -610,7 +551,7 @@ class QuestionGeneratorService:
         other = [
             t
             for t in all_tracks
-            if t["youtube_id"] != correct_track["youtube_id"]
+            if t["track_id"] != correct_track["track_id"]
         ]
         random.shuffle(other)
 

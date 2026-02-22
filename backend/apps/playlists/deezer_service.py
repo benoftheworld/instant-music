@@ -88,7 +88,7 @@ class DeezerService:
         playlists = []
         for item in data.get("data", []):
             playlists.append({
-                "youtube_id": str(item["id"]),  # kept for interface compat
+                "playlist_id": str(item["id"]),
                 "name": item.get("title", ""),
                 "description": "",
                 "image_url": item.get("picture_medium", item.get("picture", "")),
@@ -118,7 +118,7 @@ class DeezerService:
             return None
 
         playlist = {
-            "youtube_id": str(data["id"]),
+            "playlist_id": str(data["id"]),
             "name": data.get("title", ""),
             "description": data.get("description", ""),
             "image_url": data.get("picture_medium", data.get("picture", "")),
@@ -253,8 +253,8 @@ class DeezerService:
         Parse a Deezer track item into our normalised format.
         Returns None if the track has no preview URL.
 
-        Keys kept compatible with the existing question generator:
-          youtube_id  → Deezer track id (str)
+        Keys:
+          track_id    → Deezer track id (str)
           name        → Track title
           artists     → list[str]
           album       → Album title
@@ -270,7 +270,7 @@ class DeezerService:
         album = item.get("album", {})
 
         return {
-            "youtube_id": str(item.get("id", "")),
+            "track_id": str(item.get("id", "")),
             "name": item.get("title", item.get("title_short", "")),
             "artists": [artist.get("name", "Unknown")],
             "album": album.get("title", ""),

@@ -119,7 +119,7 @@ class YouTubeService:
 
             playlists.append(
                 {
-                    "youtube_id": playlist_id,
+                    "playlist_id": playlist_id,
                     "name": snippet.get("title", ""),
                     "description": snippet.get("description", ""),
                     "image_url": image_url,
@@ -171,7 +171,7 @@ class YouTubeService:
         )
 
         result = {
-            "youtube_id": playlist_id,
+            "playlist_id": playlist_id,
             "name": snippet.get("title", ""),
             "description": snippet.get("description", ""),
             "image_url": image_url,
@@ -277,7 +277,7 @@ class YouTubeService:
 
             tracks.append(
                 {
-                    "youtube_id": vid_id,
+                    "track_id": vid_id,
                     "name": track_name,
                     "artists": [artist],
                     "album": snippet.get("videoOwnerChannelTitle", "YouTube"),
@@ -350,7 +350,7 @@ class YouTubeService:
 
             tracks.append(
                 {
-                    "youtube_id": vid_id,
+                    "track_id": vid_id,
                     "name": track_name,
                     "artists": [artist],
                     "album": snippet.get("channelTitle", "YouTube"),

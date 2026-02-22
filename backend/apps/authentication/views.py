@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate, get_user_model
 
-from .serializers import RegisterSerializer, LoginSerializer, GoogleOAuthSerializer
+from .serializers import RegisterSerializer, LoginSerializer
 
 User = get_user_model()
 
@@ -72,24 +72,5 @@ def login(request):
                 {'error': 'Identifiants invalides.'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def google_oauth(request):
-    """Handle Google OAuth login/register."""
-    serializer = GoogleOAuthSerializer(data=request.data)
-    
-    if serializer.is_valid():
-        # TODO: Implement Google OAuth verification
-        # This requires google-auth library to verify the token
-        # and extract user information
-        
-        return Response(
-            {'message': 'Google OAuth not yet implemented.'},
-            status=status.HTTP_501_NOT_IMPLEMENTED
-        )
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

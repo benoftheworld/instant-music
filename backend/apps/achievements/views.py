@@ -9,13 +9,27 @@ from .serializers import AchievementSerializer, UserAchievementSerializer
 
 class AchievementListView(generics.ListAPIView):
     """List all achievements with unlock status for the current user."""
-    
+
     serializer_class = AchievementSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
-    
+
     def get_queryset(self):
-        return Achievement.objects.all().order_by('condition_type', 'condition_value')
+        return Achievement.objects.all().order_by(
+            "condition_type", "condition_value"
+        )
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        # Pre-fetch all user achievements in one query to avoid N+1
+        if self.request.user.is_authenticated:
+            ctx["user_achievements"] = {
+                ua.achievement_id: ua
+                for ua in UserAchievement.objects.filter(
+                    user=self.request.user
+                )
+            }
+        return ctx
 
 
 class UserAchievementListView(generics.ListAPIView):

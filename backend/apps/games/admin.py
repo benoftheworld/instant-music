@@ -43,10 +43,64 @@ class GameRoundInline(admin.TabularInline):
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
     """Admin for Game model."""
+
+    list_display = [
+        "room_code",
+        "name_display",
+        "host",
+        "mode_badge",
+        "status_badge",
+        "player_count",
+        "created_at",
+    ]
+    list_filter = ["status", "mode", "is_online", "created_at"]
+    search_fields = ["room_code", "name", "host__username"]
+    list_per_page = 30
+    raw_id_fields = ["host", "karaoke_song"]
+    readonly_fields = ["room_code", "created_at", "started_at", "finished_at"]
+    inlines = [GamePlayerInline, GameRoundInline]
+
     fieldsets = (
         (
             _("Informations générales"),
-            {"fields": ("room_code", "name")},
+            {"fields": ("room_code", "name", "host", "status")},
+        ),
+        (
+            _("Configuration du jeu"),
+            {
+                "fields": (
+                    "mode",
+                    "answer_mode",
+                    "guess_target",
+                    "max_players",
+                    "num_rounds",
+                    "is_online",
+                ),
+            },
+        ),
+        (
+            _("Playlist & Karaoké"),
+            {
+                "fields": ("playlist_id", "karaoke_song", "karaoke_track"),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            _("Timers"),
+            {
+                "fields": (
+                    "round_duration",
+                    "timer_start_round",
+                    "score_display_duration",
+                    "lyrics_words_count",
+                ),
+            },
+        ),
+        (
+            _("Dates"),
+            {
+                "fields": ("created_at", "started_at", "finished_at"),
+            },
         ),
     )
 

@@ -126,14 +126,16 @@ class GameConsumer(AsyncWebsocketConsumer):
         try:
             game = Game.objects.get(room_code=self.room_code)
 
+            # Build absolute base URL from settings
+            base_url = getattr(settings, "BACKEND_BASE_URL", "").rstrip("/")
+
             # Build game data manually to include proper avatar URLs
             players_data = []
             for player in game.players.select_related("user").all():
                 avatar_url = None
                 if player.user.avatar:
-                    # Build absolute URL for avatar
                     avatar_url = (
-                        f"http://localhost:8000{player.user.avatar.url}"
+                        f"{base_url}{player.user.avatar.url}"
                     )
 
                 players_data.append(

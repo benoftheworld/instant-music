@@ -87,8 +87,7 @@ JAZZMIN_SETTINGS = {
         "games.GamePlayer": "fas fa-user-astronaut",
         "games.GameRound": "fas fa-music",
         "games.GameAnswer": "fas fa-check-circle",
-        "playlists.Playlist": "fas fa-list-ul",
-        "playlists.Track": "fas fa-compact-disc",
+        "games.KaraokeSong": "fas fa-microphone",
         "achievements.Achievement": "fas fa-trophy",
         "achievements.UserAchievement": "fas fa-medal",
         "django_celery_beat.PeriodicTask": "fas fa-clock",
@@ -251,6 +250,14 @@ SIMPLE_JWT = {
     "USER_ID_CLAIM": "user_id",
 }
 
+# Django Cache (Redis)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/0"),
+    }
+}
+
 # Channels (WebSocket)
 CHANNEL_LAYERS = {
     "default": {
@@ -275,9 +282,8 @@ YOUTUBE_API_KEY = env("YOUTUBE_API_KEY", default="")
 # Frontend URL
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
 
-# Google OAuth
-GOOGLE_OAUTH_CLIENT_ID = env("GOOGLE_OAUTH_CLIENT_ID", default="")
-GOOGLE_OAUTH_CLIENT_SECRET = env("GOOGLE_OAUTH_CLIENT_SECRET", default="")
+# Backend base URL (used for absolute URLs in WebSocket broadcasts, etc.)
+BACKEND_BASE_URL = env("BACKEND_BASE_URL", default="http://localhost:8000")
 
 # DRF Spectacular
 SPECTACULAR_SETTINGS = {

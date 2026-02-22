@@ -4,7 +4,6 @@ Health check views for monitoring.
 from django.http import JsonResponse
 from django.db import connection
 from django.core.cache import cache
-import redis
 
 
 def health_check(request):

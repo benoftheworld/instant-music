@@ -42,9 +42,3 @@ class LoginSerializer(serializers.Serializer):
     
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
-
-
-class GoogleOAuthSerializer(serializers.Serializer):
-    """Serializer for Google OAuth."""
-    
-    token = serializers.CharField(required=True)
