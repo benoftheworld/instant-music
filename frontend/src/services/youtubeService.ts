@@ -11,7 +11,7 @@ class YouTubeService {
    */
   async searchPlaylists(query: string, limit: number = 20): Promise<YouTubePlaylist[]> {
     try {
-      const response = await api.get('/playlists/playlists/search/', {
+      const response = await api.get('/playlists/search/', {
         params: { query, limit }
       });
       return response.data.playlists || response.data;
@@ -26,7 +26,7 @@ class YouTubeService {
    */
   async getPlaylist(youtubeId: string): Promise<YouTubePlaylist> {
     try {
-      const response = await api.get(`/playlists/playlists/youtube/${youtubeId}/`);
+      const response = await api.get(`/playlists/${youtubeId}/`);
       return response.data;
     } catch (error) {
       console.error('Failed to get playlist:', error);
@@ -39,7 +39,7 @@ class YouTubeService {
    */
   async getPlaylistTracks(youtubeId: string, limit: number = 50): Promise<YouTubeTrack[]> {
     try {
-      const response = await api.get(`/playlists/playlists/youtube/${youtubeId}/tracks/`, {
+      const response = await api.get(`/playlists/${youtubeId}/tracks/`, {
         params: { limit }
       });
       return response.data;
@@ -55,7 +55,7 @@ class YouTubeService {
    */
   async searchYouTubeSongs(query: string, limit: number = 10): Promise<YouTubeTrack[]> {
     try {
-      const response = await api.get('/playlists/playlists/youtube-songs/search/', {
+      const response = await api.get('/playlists/youtube-songs/search/', {
         params: { query, limit },
       });
       return response.data.tracks || [];

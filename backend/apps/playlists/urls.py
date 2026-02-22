@@ -6,7 +6,8 @@ from rest_framework.routers import DefaultRouter
 from .views import PlaylistViewSet
 
 router = DefaultRouter()
-router.register(r'playlists', PlaylistViewSet, basename='playlist')
+# Expose endpoints under /api/playlists/... (avoid duplicated 'playlists/playlists')
+router.register(r'', PlaylistViewSet, basename='playlist')
 
 urlpatterns = [
     path('', include(router.urls)),

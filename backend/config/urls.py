@@ -32,6 +32,9 @@ urlpatterns = [
     path('api/games/', include('apps.games.urls')),
     path('api/achievements/', include('apps.achievements.urls')),
     path('api/playlists/', include('apps.playlists.urls')),
+    # Backwards-compatible mount to support older frontend bundles that
+    # request /api/playlists/playlists/... — keep until clients are rebuilt.
+    path('api/playlists/playlists/', include('apps.playlists.urls')),
     path('api/stats/', include('apps.stats.urls')),
 ]
 
