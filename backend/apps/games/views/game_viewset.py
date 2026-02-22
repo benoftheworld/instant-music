@@ -13,6 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ..models import Game, GameAnswer, GamePlayer
+from ..models.enums import GameMode
 from ..serializers import (
     CreateGameSerializer,
     GameAnswerSerializer,
@@ -512,6 +513,13 @@ class GameViewSet(viewsets.ModelViewSet):
             .prefetch_related("players__user")
             .order_by("-finished_at")
         )
+
+        # Optional mode filter
+        mode = request.query_params.get('mode', None)
+        if mode:
+            valid_modes = [choice[0] for choice in GameMode.choices]
+            if mode in valid_modes:
+                games_qs = games_qs.filter(mode=mode)
 
         total_count = games_qs.count()
         games = games_qs[offset:offset + page_size]

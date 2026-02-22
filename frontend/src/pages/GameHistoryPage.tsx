@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api, getMediaUrl } from '@/services/api';
-import { getModeIcon } from '@/constants/gameModes';
+import { getModeIcon, LEADERBOARD_TABS } from '@/constants/gameModes';
 import type { GameHistory } from '@/types';
 import { Link } from 'react-router-dom';
 
@@ -11,16 +11,19 @@ export default function GameHistoryPage() {
   const [page, setPage] = useState<number>(1);
   const [pageSize] = useState<number>(20);
   const [totalCount, setTotalCount] = useState<number | null>(null);
+  const [selectedMode, setSelectedMode] = useState<string | null>(null);
 
   useEffect(() => {
     setPage(1);
-    fetchGameHistory(1);
-  }, []);
+    fetchGameHistory(1, selectedMode ?? undefined);
+  }, [selectedMode]);
 
-  const fetchGameHistory = async (p = page) => {
+  const fetchGameHistory = async (p = page, mode?: string) => {
     try {
       setLoading(true);
-      const response = await api.get('/games/history/', { params: { page: p, page_size: pageSize } });
+      const params: Record<string, any> = { page: p, page_size: pageSize };
+      if (mode) params.mode = mode;
+      const response = await api.get('/games/history/', { params });
       const data = response.data;
       const results = Array.isArray(data) ? data : data.results ?? [];
       setGames(results);
@@ -37,7 +40,7 @@ export default function GameHistoryPage() {
     if (page > 1) {
       const nextPage = page - 1;
       setPage(nextPage);
-      fetchGameHistory(nextPage);
+      fetchGameHistory(nextPage, selectedMode ?? undefined);
     }
   };
 
@@ -47,7 +50,7 @@ export default function GameHistoryPage() {
     if (page < totalPages) {
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchGameHistory(nextPage);
+      fetchGameHistory(nextPage, selectedMode ?? undefined);
     }
   };
 
@@ -91,7 +94,35 @@ export default function GameHistoryPage() {
         <p className="text-gray-600">Toutes les parties terminées</p>
       </div>
 
-      {games.length === 0 ? (
+          {/* Mode selector */}
+          <div className="flex flex-wrap gap-2 mb-6 justify-center">
+            {LEADERBOARD_TABS.filter((t) => t.value !== 'general' && t.value !== 'teams').map((mode) => (
+              <button
+                key={mode.value}
+                onClick={() => setSelectedMode(mode.value)}
+                className={`px-3 py-2 rounded-lg font-medium transition-all text-sm ${
+                  selectedMode === mode.value
+                    ? 'bg-primary-500 text-white shadow-lg'
+                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                }`}
+              >
+                <span className="mr-1">{mode.icon}</span>
+                {mode.label}
+              </button>
+            ))}
+            <button
+              onClick={() => setSelectedMode(null)}
+              className={`px-3 py-2 rounded-lg font-medium transition-all text-sm ${
+                selectedMode === null
+                  ? 'bg-primary-500 text-white shadow-lg'
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+              }`}
+            >
+              Tous
+            </button>
+          </div>
+
+          {games.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg mb-4">Aucune partie terminée pour le moment</p>
           <Link to="/create-game" className="btn-primary">
