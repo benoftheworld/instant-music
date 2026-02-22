@@ -502,14 +502,12 @@ export default function CreateGamePage() {
         {selectedMode === 'karaoke' && (
           <div className="p-4 bg-pink-50 border border-pink-200 rounded-lg">
             <p className="text-sm text-pink-800">
-              <strong>🎤 Mode Karaoké (solo) :</strong> La musique complète joue via YouTube
+              <strong>🎤 Mode Karaoké (solo) :</strong> La musique complète joue 
               et les paroles défilent en rythme. Chantez et profitez !
             </p>
             <ul className="text-sm text-pink-700 mt-2 space-y-1 ml-4">
-              <li>▶️ <strong>YouTube :</strong> La chanson complète joue (pas un extrait de 30s)</li>
-              <li>📜 <strong>Paroles synchronisées :</strong> Les paroles s'affichent en rythme (LRCLib)</li>
-              <li>🎤 <strong>Bientôt :</strong> Reconnaissance vocale pour gagner des points</li>
-              <li>👤 <strong>Solo :</strong> Ce mode se joue seul, pas besoin d'adversaire</li>
+              <li>📜 <strong>Paroles synchronisées :</strong> Les paroles s'affichent en rythme</li>
+              <li>👤 <strong>Solo :</strong> Ce mode se joue seul</li>
             </ul>
           </div>
         )}
