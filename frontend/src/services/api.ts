@@ -81,17 +81,10 @@ export const getMediaUrl = (path: string | undefined | null): string | undefined
 
   // Protocol-relative URL (e.g. //cdn.example.com/img.png)
   if (path.startsWith('//')) {
-    // Preserve current page protocol to avoid mixed-content issues
     return `${window.location.protocol}${path}`;
   }
 
-  // If path is root-relative, return it directly so the browser
-  // requests it from the current origin (avoids mixed-content).
-  if (path.startsWith('/')) {
-    return path;
-  }
-
-  // Fallback: prepend API_URL for relative paths
+  // Root-relative or relative path → always prepend API_URL (backend origin)
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${API_URL}${cleanPath}`;
 };

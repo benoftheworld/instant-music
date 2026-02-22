@@ -230,9 +230,17 @@ export default function GamePlayPage() {
             ...data.results,
             points_earned: myScoreData?.points_earned ?? myPointsEarned,
           });
-          // Update players with fresh scores from backend (functional update to avoid stale closure)
+          // Update players with fresh scores from backend, preserving existing fields (e.g. avatar)
           if (data.results?.updated_players) {
-            setGame((prev: any) => prev ? { ...prev, players: data.results.updated_players } : prev);
+            setGame((prev: any) => {
+              if (!prev) return prev;
+              const updatedMap: Record<string, any> = {};
+              for (const p of data.results.updated_players) updatedMap[p.id] = p;
+              const merged = prev.players.map((p: any) =>
+                updatedMap[p.id] ? { ...p, ...updatedMap[p.id], avatar: updatedMap[p.id].avatar ?? p.avatar } : p
+              );
+              return { ...prev, players: merged };
+            });
           }
 
           if (isKaraokeMode) {
@@ -268,9 +276,17 @@ export default function GamePlayPage() {
           setRoundPhase('loading'); // Show loading screen for new round
           loadingStartTimeRef.current = Date.now(); // Record when loading starts
           loadingRoundIdRef.current = data.round_data.id;
-          // Update players with fresh scores (functional update to avoid stale closure)
+          // Update players with fresh scores (functional update to avoid stale closure), preserving avatar
           if (data.updated_players) {
-            setGame((prev: any) => prev ? { ...prev, players: data.updated_players } : prev);
+            setGame((prev: any) => {
+              if (!prev) return prev;
+              const updatedMap: Record<string, any> = {};
+              for (const p of data.updated_players) updatedMap[p.id] = p;
+              const merged = prev.players.map((p: any) =>
+                updatedMap[p.id] ? { ...p, ...updatedMap[p.id], avatar: updatedMap[p.id].avatar ?? p.avatar } : p
+              );
+              return { ...prev, players: merged };
+            });
           }
           break;
 
@@ -301,7 +317,7 @@ export default function GamePlayPage() {
     setSelectedAnswer(answer);
     setHasAnswered(true);
 
-    const responseTime = currentRound.duration - timeRemaining;
+    const responseTime = Math.max(0, currentRound.duration - timeRemaining);
 
     try {
       // Submit answer to backend — response contains points_earned

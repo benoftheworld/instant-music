@@ -51,6 +51,7 @@ def _build_updated_players(game: Game) -> list[dict[str, Any]]:
             "score": p.score,
             "rank": p.rank,
             "is_connected": p.is_connected,
+            "avatar": p.user.avatar.url if p.user.avatar else None,
         }
         for p in game.players.select_related("user").order_by("-score")
     ]

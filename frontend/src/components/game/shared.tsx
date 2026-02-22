@@ -48,6 +48,8 @@ export function useAudioPlayer(
   const [playerError, setPlayerError] = useState<string | null>(null);
   const mountedRef = useRef(true);
   const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set to true once the timer intentionally stops the audio — prevents fallback from restarting it
+  const stoppedByTimerRef = useRef(false);
 
   const scheduleStop = useCallback((audioEl: HTMLAudioElement | null) => {
     if (stopTimeoutRef.current) {
@@ -58,6 +60,7 @@ export function useAudioPlayer(
       stopTimeoutRef.current = setTimeout(() => {
         if (audioRef.current) {
           audioRef.current.pause();
+          stoppedByTimerRef.current = true;
           if (mountedRef.current) setIsPlaying(false);
         }
       }, maxAudioDuration * 1000);
@@ -74,6 +77,7 @@ export function useAudioPlayer(
     setNeedsPlay(false);
     setPlayerError(null);
     mountedRef.current = true;
+    stoppedByTimerRef.current = false;
 
     if (audioRef.current) {
       audioRef.current.pause();
@@ -138,16 +142,19 @@ export function useAudioPlayer(
     };
   }, [round.track_id, round.id, showResults, round.preview_url, getSeekTime, scheduleStop]);
 
-  // Fallback: if playback didn't start after a short delay, mark as needing a manual play
+  // Fallback: if playback didn't start after a short delay, mark as needing a manual play.
+  // Do NOT trigger if the audio was intentionally stopped by the duration timer.
   useEffect(() => {
     if (showResults) return;
     const fallback = setTimeout(() => {
-      if (!isPlaying && !playerError && mountedRef.current) setNeedsPlay(true);
+      if (!isPlaying && !playerError && !stoppedByTimerRef.current && mountedRef.current) setNeedsPlay(true);
     }, 3000);
     return () => clearTimeout(fallback);
   }, [isPlaying, playerError, showResults, round.track_id, round.id, round.preview_url]);
 
   const handlePlay = () => {
+    // Do not restart audio if it was stopped intentionally by the duration timer
+    if (stoppedByTimerRef.current) return;
     setPlayerError(null);
     if (audioRef.current) {
       audioRef.current.volume = getGlobalMusicVolume();
