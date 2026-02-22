@@ -73,13 +73,25 @@ export const api = apiService.getApi();
  */
 export const getMediaUrl = (path: string | undefined | null): string | undefined => {
   if (!path) return undefined;
-  
-  // If already a full URL, return as-is
+
+  // If already an absolute URL, return as-is
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
-  
-  // Construct full URL with API_URL
+
+  // Protocol-relative URL (e.g. //cdn.example.com/img.png)
+  if (path.startsWith('//')) {
+    // Preserve current page protocol to avoid mixed-content issues
+    return `${window.location.protocol}${path}`;
+  }
+
+  // If path is root-relative, return it directly so the browser
+  // requests it from the current origin (avoids mixed-content).
+  if (path.startsWith('/')) {
+    return path;
+  }
+
+  // Fallback: prepend API_URL for relative paths
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${API_URL}${cleanPath}`;
 };

@@ -264,9 +264,9 @@ export default function RoundResultsScreen({
                     </div>
 
                     {/* Avatar */}
-                    {getMediaUrl(player.avatar) ? (
+                    {player.avatar ? (
                       <img
-                        src={getMediaUrl(player.avatar)}
+                        src={getMediaUrl(player.avatar) ?? player.avatar}
                         alt={player.username}
                         className="w-12 h-12 rounded-full object-cover"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
