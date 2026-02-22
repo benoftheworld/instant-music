@@ -204,11 +204,11 @@ export default function CreateGamePage() {
           {/* Round duration — hidden for karaoke (auto from video length) */}
           {!isKaraoke && (
           <>
-            <div className="flex flex-col items-center gap-2 w-full">
+            <div className="flex flex-col gap-2 w-full">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 🎵 Temps du round
               </label>
-              <div className="flex items-center gap-4 w-full justify-center">
+              <div className="flex gap-4 w-full justify-center">
                 <input
                   type="range"
                   min="10"
@@ -227,11 +227,11 @@ export default function CreateGamePage() {
               </p>
             </div>
 
-            <div className="flex flex-col items-center gap-2 w-full">
+            <div className="flex flex-col gap-2 w-full">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 🏆 Temps affichage score fin de round
               </label>
-              <div className="flex items-center gap-4 w-full justify-center">
+              <div className="flex gap-4 w-full justify-center">
                 <input
                   type="range"
                   min="3"
@@ -261,8 +261,8 @@ export default function CreateGamePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   👥 Nombre maximum de joueurs
                 </label>
-                <div className="flex flex-col items-center gap-2 w-full">
-                  <div className="flex items-center gap-4 w-full justify-center">
+                <div className="flex flex-col gap-2 w-full">
+                  <div className="flex gap-4 w-full justify-center">
                     <input
                       type="range"
                       min="2"
@@ -279,11 +279,11 @@ export default function CreateGamePage() {
                 <p className="text-sm text-gray-500 mt-1">Nombre maximum de joueurs</p>
               </div>
 
-              <div className="flex flex-col items-center gap-2 w-full">
+              <div className="flex flex-col gap-2 w-full">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   🔄 Nombre de rounds
                 </label>
-                <div className="flex items-center gap-4 w-full justify-center">
+                <div className="flex gap-4 w-full justify-center">
                   <input
                     type="range"
                     min="3"
@@ -298,7 +298,7 @@ export default function CreateGamePage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-6 p-4 bg-gray-50 rounded-lg">
+              <div className="flex gap-6 p-4 bg-gray-50 rounded-lg">
                 <input
                   type="checkbox"
                   id="isOffline"
