@@ -222,10 +222,6 @@ export default function CreateGamePage() {
                   {roundDuration}s
                 </span>
               </div>
-              <div className="flex w-full justify-between text-xs text-gray-500 px-2">
-                <span>10s</span>
-                <span>60s</span>
-              </div>
               <p className="text-sm text-gray-500 mt-1">
                 Durée pour répondre à chaque question
               </p>
@@ -247,10 +243,6 @@ export default function CreateGamePage() {
                 <span className="text-lg font-semibold text-primary-600 min-w-[4rem]">
                   {scoreDisplayDuration}s
                 </span>
-              </div>
-              <div className="flex w-full justify-between text-xs text-gray-500 px-2">
-                <span>3s</span>
-                <span>30s</span>
               </div>
               <p className="text-sm text-gray-500 mt-1">
                 Durée d'affichage des résultats après chaque round
@@ -283,10 +275,6 @@ export default function CreateGamePage() {
                       {maxPlayers}
                     </span>
                   </div>
-                  <div className="flex w-full justify-between text-xs text-gray-500 px-2">
-                    <span>2</span>
-                    <span>20</span>
-                  </div>
                 </div>
                 <p className="text-sm text-gray-500 mt-1">Nombre maximum de joueurs</p>
               </div>
@@ -307,10 +295,6 @@ export default function CreateGamePage() {
                   <span className="text-lg font-semibold text-primary-600 min-w-[3rem]">
                     {numRounds}
                   </span>
-                </div>
-                <div className="flex w-full justify-between text-xs text-gray-500 px-2">
-                  <span>3</span>
-                  <span>20</span>
                 </div>
               </div>
 
