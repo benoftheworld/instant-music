@@ -185,7 +185,7 @@ export default function LeaderboardPage() {
                 <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 text-2xl">🥈</div>
               </div>
               <p className="font-bold text-lg">{players[1].username}</p>
-              {players[1].team_name && <p className="text-xs text-gray-400">🎯 {players[1].team_name}</p>}
+              {players[1].team_name && <p className="text-xs text-gray-400">{players[1].team_name}</p>}
               <p className="text-primary-600 font-semibold">{players[1].total_points.toLocaleString()} pts</p>
               <div className="w-28 h-32 bg-gradient-to-b from-gray-300 to-gray-500 rounded-t-lg mt-2 flex items-center justify-center">
                 <span className="text-white text-4xl font-bold">2</span>
@@ -209,7 +209,7 @@ export default function LeaderboardPage() {
                 <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 text-3xl animate-bounce">🥇</div>
               </div>
               <p className="font-bold text-xl">{players[0].username}</p>
-              {players[0].team_name && <p className="text-xs text-gray-400">🎯 {players[0].team_name}</p>}
+              {players[0].team_name && <p className="text-xs text-gray-400">{players[0].team_name}</p>}
               <p className="text-primary-600 font-bold text-lg">{players[0].total_points.toLocaleString()} pts</p>
               <div className="w-28 h-44 bg-gradient-to-b from-yellow-300 to-yellow-500 rounded-t-lg mt-2 flex items-center justify-center">
                 <span className="text-white text-5xl font-bold">1</span>
@@ -233,7 +233,7 @@ export default function LeaderboardPage() {
                 <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 text-2xl">🥉</div>
               </div>
               <p className="font-bold text-lg">{players[2].username}</p>
-              {players[2].team_name && <p className="text-xs text-gray-400">🎯 {players[2].team_name}</p>}
+              {players[2].team_name && <p className="text-xs text-gray-400">{players[2].team_name}</p>}
               <p className="text-primary-600 font-semibold">{players[2].total_points.toLocaleString()} pts</p>
               <div className="w-28 h-24 bg-gradient-to-b from-orange-400 to-orange-600 rounded-t-lg mt-2 flex items-center justify-center">
                 <span className="text-white text-4xl font-bold">3</span>
@@ -290,7 +290,7 @@ export default function LeaderboardPage() {
                   <div>
                     <p className="font-bold text-lg">{player.username}</p>
                     {player.team_name && (
-                      <p className="text-xs text-gray-400">🎯 {player.team_name}</p>
+                      <p className="text-xs text-gray-400">{player.team_name}</p>
                     )}
                     <p className="text-sm text-gray-500 md:hidden">
                       {player.total_games} parties • {player.total_wins} victoires

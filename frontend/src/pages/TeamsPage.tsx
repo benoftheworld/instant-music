@@ -79,7 +79,7 @@ export default function TeamsPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2">🎯 Équipes</h1>
+          <h1 className="text-4xl font-bold mb-2">Équipes</h1>
           <p className="text-gray-600">Créez ou rejoignez des équipes pour jouer ensemble</p>
         </div>
 
