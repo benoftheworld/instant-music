@@ -13,8 +13,10 @@ export default function TopPlayers() {
 
   const fetchTopPlayers = async () => {
     try {
-      const response = await api.get('/games/leaderboard/?limit=5');
-      setPlayers(response.data);
+      const response = await api.get('/games/leaderboard/', { params: { limit: 5 } });
+      const data = response.data;
+      const results = Array.isArray(data) ? data : data.results ?? [];
+      setPlayers(results);
     } catch (err) {
       console.error('Failed to fetch leaderboard:', err);
     } finally {
