@@ -28,13 +28,24 @@ from .services import (
     RANK_BONUS,
 )
 
-# ─── PDF colour palette (centralized) ───────────────────────────────
-COLOR_PRIMARY = colors.HexColor("#6366f1")
-COLOR_BORDER = colors.HexColor("#d1d5db")
-COLOR_ROW_ALT = colors.HexColor("#f9fafb")
-COLOR_HEADER_LIGHT = colors.HexColor("#e0e7ff")
-COLOR_HR = colors.HexColor("#e5e7eb")
+# ─── PDF colour palette (centralized) — adapted to project charte ───
+# Provided brand colours mapped from CSS RGB values
+# Main background: rgb(249,239,231) → #F9EFE7
+# Navigation background (dark): rgb(34,34,34) → #222222
+# Borders: rgb(220,56,66) → #DC3842
+COLOR_BG_MAIN = colors.HexColor("#F9EFE7")
+COLOR_NAV_BG = colors.HexColor("#222222")
+COLOR_BORDER = colors.HexColor("#DC3842")
+# Row alternate background uses main background
+COLOR_ROW_ALT = COLOR_BG_MAIN
+# Header light (subtle) — keep a pale tint for table headers
+COLOR_HEADER_LIGHT = colors.HexColor("#FFF3EE")
+# Horizontal rule
+COLOR_HR = colors.HexColor("#EDE0DB")
+# Correct answer highlight (keep green)
 COLOR_CORRECT = "#10b981"
+# Primary accent used for headings and top-bars: use navigation background
+COLOR_PRIMARY = COLOR_NAV_BG
 MEDAL_COLORS = {
     1: colors.HexColor("#D4AF37"),
     2: colors.HexColor("#C0C0C0"),
