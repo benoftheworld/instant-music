@@ -37,7 +37,6 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "jazzmin",
-    "daphne",
     "rest_framework",
     "rest_framework_simplejwt",
     "channels",

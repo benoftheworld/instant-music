@@ -35,7 +35,7 @@ services:
       context: ../../backend
       dockerfile: Dockerfile
     container_name: instantmusic_backend
-    command: daphne -b 0.0.0.0 -p 8000 config.asgi:application
+    command: uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload --proxy-headers --loop uvloop --http h11
     volumes:
       - ../../backend:/app
       - static_volume:/app/staticfiles

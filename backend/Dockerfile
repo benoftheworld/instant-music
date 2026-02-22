@@ -20,4 +20,5 @@ RUN mkdir -p /app/staticfiles /app/media
 
 EXPOSE 8000
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Use uvicorn ASGI server in development for faster async handling and reloads
+CMD ["uvicorn", "config.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--reload", "--proxy-headers", "--loop", "uvloop", "--http", "h11"]
