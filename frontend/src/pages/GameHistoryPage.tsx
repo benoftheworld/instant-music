@@ -37,7 +37,7 @@ export default function GameHistoryPage() {
     if (page > 1) {
       const nextPage = page - 1;
       setPage(nextPage);
-      fetchGameHistory();
+      fetchGameHistory(nextPage);
     }
   };
 
@@ -47,7 +47,7 @@ export default function GameHistoryPage() {
     if (page < totalPages) {
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchGameHistory();
+      fetchGameHistory(nextPage);
     }
   };
 
