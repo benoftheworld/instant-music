@@ -296,6 +296,7 @@ export default function CreateGamePage() {
                     {numRounds}
                   </span>
                 </div>
+                <p className="text-sm text-gray-500 mt-1">Nombre de rounds à jouer</p>
               </div>
 
               <div className="flex gap-6 p-4 bg-gray-50 rounded-lg">
@@ -309,6 +310,7 @@ export default function CreateGamePage() {
                 <label htmlFor="isOffline" className="text-sm font-medium text-gray-700">
                   📴 Mode hors ligne (solo)
                 </label>
+                <p className="text-sm text-gray-500 mt-1">Jouez en solo</p>
               </div>
             </>
           )}
