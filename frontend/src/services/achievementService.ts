@@ -30,25 +30,25 @@ export const statsService = {
   },
 
   /** Get general leaderboard */
-  async getLeaderboard(limit = 50): Promise<LeaderboardEntry[]> {
-    const response = await api.get<LeaderboardEntry[]>('/stats/leaderboard/', {
-      params: { limit },
+  async getLeaderboard(page = 1, page_size = 50): Promise<any> {
+    const response = await api.get('/stats/leaderboard/', {
+      params: { page, page_size },
     });
     return response.data;
   },
 
   /** Get leaderboard by game mode */
-  async getLeaderboardByMode(mode: GameMode, limit = 50): Promise<LeaderboardEntry[]> {
-    const response = await api.get<LeaderboardEntry[]>(`/stats/leaderboard/${mode}/`, {
-      params: { limit },
+  async getLeaderboardByMode(mode: GameMode, page = 1, page_size = 50): Promise<any> {
+    const response = await api.get(`/stats/leaderboard/${mode}/`, {
+      params: { page, page_size },
     });
     return response.data;
   },
 
   /** Get team leaderboard */
-  async getTeamLeaderboard(limit = 50): Promise<TeamLeaderboardEntry[]> {
-    const response = await api.get<TeamLeaderboardEntry[]>('/stats/leaderboard/teams/', {
-      params: { limit },
+  async getTeamLeaderboard(page = 1, page_size = 50): Promise<any> {
+    const response = await api.get('/stats/leaderboard/teams/', {
+      params: { page, page_size },
     });
     return response.data;
   },

@@ -13,27 +13,34 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMode, setSelectedMode] = useState<LeaderboardTab>('general');
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(50);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchLeaderboard();
+    setPage(1);
+    fetchLeaderboard(1);
   }, [selectedMode]);
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = async (p = page) => {
     try {
       setLoading(true);
       setError(null);
       
       if (selectedMode === 'teams') {
-        const data = await statsService.getTeamLeaderboard(100);
-        setTeams(data);
+        const data = await statsService.getTeamLeaderboard(p, pageSize);
+        setTeams(data.results ?? []);
+        setTotalCount(data.count ?? null);
         setPlayers([]);
       } else if (selectedMode === 'general') {
-        const data = await statsService.getLeaderboard(100);
-        setPlayers(data);
+        const data = await statsService.getLeaderboard(p, pageSize);
+        setPlayers(data.results ?? []);
+        setTotalCount(data.count ?? null);
         setTeams([]);
       } else {
-        const data = await statsService.getLeaderboardByMode(selectedMode, 100);
-        setPlayers(data);
+        const data = await statsService.getLeaderboardByMode(selectedMode, p, pageSize);
+        setPlayers(data.results ?? []);
+        setTotalCount(data.count ?? null);
         setTeams([]);
       }
     } catch (err) {
@@ -41,6 +48,24 @@ export default function LeaderboardPage() {
       setError('Impossible de charger le classement');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePrev = () => {
+    if (page > 1) {
+      const nextPage = page - 1;
+      setPage(nextPage);
+      fetchLeaderboard(nextPage);
+    }
+  };
+
+  const handleNext = () => {
+    if (totalCount === null) return;
+    const totalPages = Math.ceil(totalCount / pageSize);
+    if (page < totalPages) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchLeaderboard(nextPage);
     }
   };
 
@@ -300,6 +325,26 @@ export default function LeaderboardPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {/* Pagination controls */}
+      {totalCount !== null && totalCount > pageSize && (
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <button
+            onClick={handlePrev}
+            disabled={page <= 1}
+            className={`px-3 py-2 rounded-lg border ${page <= 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+          >
+            Précédent
+          </button>
+          <div className="text-sm text-gray-600">Page {page} / {Math.max(1, Math.ceil(totalCount / pageSize))}</div>
+          <button
+            onClick={handleNext}
+            disabled={page >= Math.ceil(totalCount / pageSize)}
+            className={`px-3 py-2 rounded-lg border ${page >= Math.ceil(totalCount / pageSize) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+          >
+            Suivant
+          </button>
         </div>
       )}
         </>

@@ -68,21 +68,24 @@ class LeaderboardView(APIView):
     permission_classes = [permissions.AllowAny]
     
     def get(self, request):
-        limit = min(int(request.query_params.get('limit', 50)), 100)
-        
+        # Pagination params
+        page = max(int(request.query_params.get('page', 1)), 1)
+        page_size = min(int(request.query_params.get('page_size', request.query_params.get('limit', 50))), 100)
+        offset = (page - 1) * page_size
+
         # Get users ordered by total_points with their team info
-        users = User.objects.filter(
-            total_games_played__gt=0
-        ).prefetch_related('team_memberships__team').order_by('-total_points')[:limit]
-        
+        users_qs = User.objects.filter(total_games_played__gt=0).prefetch_related('team_memberships__team').order_by('-total_points')
+        total_count = users_qs.count()
+        users = users_qs[offset:offset + page_size]
+
         leaderboard = []
-        for rank, user in enumerate(users, 1):
+        for idx, user in enumerate(users, offset + 1):
             # Get user's primary team (first one)
             team_membership = user.team_memberships.first()
             team_name = team_membership.team.name if team_membership else None
             
             leaderboard.append({
-                'rank': rank,
+                'rank': idx,
                 'user_id': user.id,
                 'username': user.username,
                 'avatar': user.avatar.url if user.avatar else None,
@@ -92,8 +95,12 @@ class LeaderboardView(APIView):
                 'win_rate': round(user.win_rate, 1),
                 'team_name': team_name,
             })
-        
-        return Response(leaderboard)
+        return Response({
+            'count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'results': leaderboard,
+        })
 
 
 class LeaderboardByModeView(APIView):
@@ -102,29 +109,35 @@ class LeaderboardByModeView(APIView):
     permission_classes = [permissions.AllowAny]
     
     def get(self, request, mode):
-        limit = min(int(request.query_params.get('limit', 50)), 100)
-        
+        # Pagination params
+        page = max(int(request.query_params.get('page', 1)), 1)
+        page_size = min(int(request.query_params.get('page_size', request.query_params.get('limit', 50))), 100)
+        offset = (page - 1) * page_size
+
         # Validate mode
         valid_modes = [choice[0] for choice in GameMode.choices]
         if mode not in valid_modes:
             return Response({'error': 'Mode invalide.'}, status=400)
         
         # Aggregate scores by user for this mode
-        user_stats = GamePlayer.objects.filter(
+        user_stats_qs = GamePlayer.objects.filter(
             game__mode=mode,
             game__status='finished'
         ).values('user').annotate(
             total_points=Sum('score'),
             total_games=Count('id'),
             total_wins=Count('id', filter=Q(rank=1))
-        ).order_by('-total_points')[:limit]
+        ).order_by('-total_points')
+
+        total_count = user_stats_qs.count()
+        user_stats = list(user_stats_qs[offset:offset + page_size])
         
         # Get user details with team memberships
         user_ids = [stat['user'] for stat in user_stats]
         users = {u.id: u for u in User.objects.filter(id__in=user_ids).prefetch_related('team_memberships__team')}
         
         leaderboard = []
-        for rank, stat in enumerate(user_stats, 1):
+        for idx, stat in enumerate(user_stats, offset + 1):
             user = users.get(stat['user'])
             if not user:
                 continue
@@ -134,7 +147,7 @@ class LeaderboardByModeView(APIView):
             
             win_rate = (stat['total_wins'] / stat['total_games'] * 100) if stat['total_games'] > 0 else 0
             leaderboard.append({
-                'rank': rank,
+                'rank': idx,
                 'user_id': stat['user'],
                 'username': user.username,
                 'avatar': user.avatar.url if user.avatar else None,
@@ -145,7 +158,12 @@ class LeaderboardByModeView(APIView):
                 'team_name': team_name,
             })
         
-        return Response(leaderboard)
+        return Response({
+            'count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'results': leaderboard,
+        })
 
 
 class TeamLeaderboardView(APIView):
@@ -154,23 +172,30 @@ class TeamLeaderboardView(APIView):
     permission_classes = [permissions.AllowAny]
     
     def get(self, request):
-        limit = min(int(request.query_params.get('limit', 50)), 100)
+        # Pagination params
+        page = max(int(request.query_params.get('page', 1)), 1)
+        page_size = min(int(request.query_params.get('page_size', request.query_params.get('limit', 50))), 100)
+        offset = (page - 1) * page_size
+
         # Aggregate member stats per team (sum of members' stats)
-        teams = Team.objects.annotate(
+        teams_qs = Team.objects.annotate(
             sum_points=Coalesce(Sum('members__total_points'), 0),
             sum_games=Coalesce(Sum('members__total_games_played'), 0),
             sum_wins=Coalesce(Sum('members__total_wins'), 0),
-        ).order_by('-sum_points', '-sum_games')[:limit]
+        ).order_by('-sum_points', '-sum_games')
+
+        total_count = teams_qs.count()
+        teams = teams_qs[offset:offset + page_size]
 
         leaderboard = []
-        for rank, team in enumerate(teams, 1):
+        for idx, team in enumerate(teams, offset + 1):
             total_points = int(team.sum_points or 0)
             total_games = int(team.sum_games or 0)
             total_wins = int(team.sum_wins or 0)
             win_rate = round((total_wins / total_games * 100) if total_games > 0 else 0, 1)
 
             leaderboard.append({
-                'rank': rank,
+                'rank': idx,
                 'team_id': team.id,
                 'name': team.name,
                 'avatar': team.avatar.url if team.avatar else None,
@@ -182,7 +207,12 @@ class TeamLeaderboardView(APIView):
                 'win_rate': win_rate,
             })
         
-        return Response(leaderboard)
+        return Response({
+            'count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'results': leaderboard,
+        })
 
 
 class MyRankView(APIView):
