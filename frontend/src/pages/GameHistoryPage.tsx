@@ -8,21 +8,45 @@ export default function GameHistoryPage() {
   const [games, setGames] = useState<GameHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [pageSize] = useState<number>(20);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchGameHistory();
+    fetchGameHistory(1);
   }, []);
 
   const fetchGameHistory = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/games/history/');
-      setGames(response.data);
+      const response = await api.get('/games/history/', { params: { page, page_size: pageSize } });
+      const data = response.data;
+      const results = Array.isArray(data) ? data : data.results ?? [];
+      setGames(results);
+      setTotalCount(!Array.isArray(data) ? data.count ?? null : null);
     } catch (err) {
       console.error('Failed to fetch game history:', err);
       setError('Impossible de charger l\'historique des parties');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePrev = () => {
+    if (page > 1) {
+      const nextPage = page - 1;
+      setPage(nextPage);
+      fetchGameHistory();
+    }
+  };
+
+  const handleNext = () => {
+    if (totalCount === null) return;
+    const totalPages = Math.ceil(totalCount / pageSize);
+    if (page < totalPages) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchGameHistory();
     }
   };
 
@@ -156,6 +180,26 @@ export default function GameHistoryPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {/* Pagination controls */}
+      {totalCount !== null && totalCount > pageSize && (
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <button
+            onClick={handlePrev}
+            disabled={page <= 1}
+            className={`px-3 py-2 rounded-lg border ${page <= 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+          >
+            Précédent
+          </button>
+          <div className="text-sm text-gray-600">Page {page} / {Math.max(1, Math.ceil(totalCount / pageSize))}</div>
+          <button
+            onClick={handleNext}
+            disabled={page >= Math.ceil(totalCount / pageSize)}
+            className={`px-3 py-2 rounded-lg border ${page >= Math.ceil(totalCount / pageSize) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+          >
+            Suivant
+          </button>
         </div>
       )}
     </div>

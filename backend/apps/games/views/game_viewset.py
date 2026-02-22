@@ -485,25 +485,44 @@ class GameViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], permission_classes=[])
     def history(self, request):
         """Get game history (finished games)."""
-        limit = request.query_params.get("limit", None)
+        # Pagination params
+        page = max(int(request.query_params.get('page', 1)), 1)
+        page_size_param = request.query_params.get('page_size', None)
+        # keep backward-compatible 'limit' param if provided
+        limit = request.query_params.get('limit', None)
 
-        games = (
+        if page_size_param is not None:
+            try:
+                page_size = min(int(page_size_param), 100)
+            except ValueError:
+                page_size = 50
+        elif limit is not None:
+            try:
+                page_size = min(int(limit), 100)
+            except ValueError:
+                page_size = 50
+        else:
+            page_size = 50
+
+        offset = (page - 1) * page_size
+
+        games_qs = (
             Game.objects.filter(status="finished")
             .select_related("host")
             .prefetch_related("players__user")
             .order_by("-finished_at")
         )
 
-        if limit:
-            try:
-                games = games[: int(limit)]
-            except ValueError:
-                pass
+        total_count = games_qs.count()
+        games = games_qs[offset:offset + page_size]
 
-        serializer = GameHistorySerializer(
-            games, many=True, context={"request": request}
-        )
-        return Response(serializer.data)
+        serializer = GameHistorySerializer(games, many=True, context={"request": request})
+        return Response({
+            'count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'results': serializer.data,
+        })
 
     @action(detail=False, methods=["get"], permission_classes=[])
     def leaderboard(self, request):

@@ -14,8 +14,10 @@ export default function RecentGames() {
 
   const fetchRecentGames = async () => {
     try {
-      const response = await api.get('/games/history/?limit=5');
-      setGames(response.data);
+      const response = await api.get('/games/history/', { params: { page: 1, page_size: 5 } });
+      const data = response.data;
+      const results = Array.isArray(data) ? data : data.results ?? [];
+      setGames(results);
     } catch (err) {
       console.error('Failed to fetch recent games:', err);
     } finally {
