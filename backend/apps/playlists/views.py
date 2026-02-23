@@ -4,7 +4,7 @@ Views for playlists app (Deezer + YouTube search helpers).
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from .serializers import PlaylistSerializer
@@ -14,6 +14,14 @@ from .youtube_service import youtube_service, YouTubeAPIError
 
 class PlaylistViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
+
+    # Actions Deezer accessibles sans authentification (previews publics)
+    PUBLIC_ACTIONS = {'search', 'get_playlist', 'get_playlist_tracks', 'validate_playlist_access'}
+
+    def get_permissions(self):
+        if self.action in self.PUBLIC_ACTIONS:
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     @extend_schema(
         parameters=[OpenApiParameter('query', str, description='Search query for playlists')],
