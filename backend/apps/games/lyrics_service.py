@@ -49,16 +49,22 @@ class _LrclibSSLAdapter(HTTPAdapter):
         ssl, "OP_IGNORE_UNEXPECTED_EOF", 0x80
     )
 
-    def init_poolmanager(self, *args, **kwargs):
+    @staticmethod
+    def _make_ssl_context() -> ssl.SSLContext:
         ctx = ssl.create_default_context()
-        ctx.options |= self._OP_IGNORE_UNEXPECTED_EOF
-        kwargs["ssl_context"] = ctx
+        ctx.options |= _LrclibSSLAdapter._OP_IGNORE_UNEXPECTED_EOF
+        # OpenSSL 3.x defaults to SECLEVEL=2 which rejects some ciphers /
+        # certificates still used by lrclib.net (or its CDN).  Lowering to
+        # SECLEVEL=1 matches curl's effective behaviour on the same host.
+        ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
+        return ctx
+
+    def init_poolmanager(self, *args, **kwargs):
+        kwargs["ssl_context"] = self._make_ssl_context()
         super().init_poolmanager(*args, **kwargs)
 
     def proxy_manager_for(self, proxy, **proxy_kwargs):
-        ctx = ssl.create_default_context()
-        ctx.options |= self._OP_IGNORE_UNEXPECTED_EOF
-        proxy_kwargs["ssl_context"] = ctx
+        proxy_kwargs["ssl_context"] = self._make_ssl_context()
         return super().proxy_manager_for(proxy, **proxy_kwargs)
 
 
