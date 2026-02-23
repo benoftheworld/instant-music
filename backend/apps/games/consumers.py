@@ -134,9 +134,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             for player in game.players.select_related("user").all():
                 avatar_url = None
                 if player.user.avatar:
-                    avatar_url = (
-                        f"{base_url}{player.user.avatar.url}"
-                    )
+                    avatar_url = f"{base_url}{player.user.avatar.url}"
 
                 players_data.append(
                     {
@@ -285,6 +283,17 @@ class GameConsumer(AsyncWebsocketConsumer):
                 {
                     "type": "player_leave",
                     "player": event.get("player"),
+                    "game_data": event.get("game_data"),
+                }
+            )
+        )
+
+    async def broadcast_game_update(self, event):
+        """Send general game state update to WebSocket."""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "game_updated",
                     "game_data": event.get("game_data"),
                 }
             )

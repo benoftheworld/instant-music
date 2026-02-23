@@ -25,6 +25,7 @@ from ..serializers import (
 from ..services import game_service
 from ..broadcast_service import (
     broadcast_game_finish,
+    broadcast_game_update,
     broadcast_next_round,
     broadcast_player_join,
     broadcast_player_leave,
@@ -73,6 +74,23 @@ class GameViewSet(viewsets.ModelViewSet):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def partial_update(self, request, room_code=None):
+        """PATCH a game and broadcast the update to all lobby clients."""
+        game = self.get_object()
+        serializer = GameSerializer(game, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
+        serializer.save()
+        game.refresh_from_db()
+        game_data = GameSerializer(game, context={"request": request}).data
+        try:
+            broadcast_game_update(room_code, game_data)
+        except Exception:
+            pass  # non-fatal if channel layer is unavailable
+        return Response(game_data)
 
     @action(detail=True, methods=["post"])
     def join(self, request, room_code=None):

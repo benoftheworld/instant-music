@@ -94,6 +94,18 @@ def broadcast_player_leave(
     )
 
 
+def broadcast_game_update(room_code: str, game_data: dict) -> None:
+    """Notify all clients of a general game state change (e.g. playlist update)."""
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        _group_name(room_code),
+        {
+            "type": "broadcast_game_update",
+            "game_data": game_data,
+        },
+    )
+
+
 def broadcast_round_start(room_code: str, round_obj: GameRound) -> None:
     """Broadcast that a round has started with its data."""
     channel_layer = get_channel_layer()

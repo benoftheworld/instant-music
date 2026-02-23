@@ -42,6 +42,11 @@ export default function GameLobbyPage() {
             navigate('/');
           }
         }
+      } else if (data.type === 'game_updated') {
+        // Sync any lobby state change (e.g. playlist update by host)
+        if (data.game_data) {
+          setGame(data.game_data);
+        }
       } else if (data.type === 'broadcast_game_start' || data.type === 'game_started') {
         soundEffects.gameStarted();
         navigate(`/game/play/${roomCode}`);
