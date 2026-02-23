@@ -3,6 +3,10 @@ Admin configuration for games.
 """
 
 from django.contrib import admin
+from django.contrib import messages
+from django.http import HttpResponseRedirect
+from django.template.response import TemplateResponse
+from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from .models import Game, GamePlayer, GameRound, GameAnswer, KaraokeSong
@@ -320,23 +324,33 @@ class KaraokeSongAdmin(admin.ModelAdmin):
     list_editable = ["is_active"]
     list_per_page = 50
     ordering = ["artist", "title"]
-    readonly_fields = ["created_at", "updated_at"]
+    readonly_fields = ["created_at", "updated_at", "lrclib_search_button"]
 
     fieldsets = (
         (
             _("Morceau"),
             {
-                "fields": ("title", "artist", "album_image_url", "duration_ms", "is_active"),
+                "fields": (
+                    "title",
+                    "artist",
+                    "album_image_url",
+                    "duration_ms",
+                    "is_active",
+                ),
             },
         ),
         (
             _("Sources"),
             {
-                "fields": ("youtube_video_id", "lrclib_id"),
+                "fields": (
+                    "youtube_video_id",
+                    "lrclib_id",
+                    "lrclib_search_button",
+                ),
                 "description": _(
                     "youtube_video_id : copier l'ID depuis l'URL YouTube (ex: dQw4w9WgXcQ). "
                     "lrclib_id : ID numérique sur lrclib.net — laisser vide pour une recherche "
-                    "automatique par titre/artiste."
+                    "automatique par titre/artiste. Utilisez le bouton ci-dessous pour rechercher."
                 ),
             },
         ),
@@ -345,6 +359,152 @@ class KaraokeSongAdmin(admin.ModelAdmin):
             {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
         ),
     )
+
+    # ── Custom URLs ──────────────────────────────────────────────────────────
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                "<path:object_id>/lrclib-search/",
+                self.admin_site.admin_view(self.lrclib_search_view),
+                name="games_karaokesong_lrclib_search",
+            ),
+        ]
+        return custom + urls
+
+    # ── LRCLib search view ───────────────────────────────────────────────────
+
+    def lrclib_search_view(self, request, object_id):
+        """
+        Custom admin view to search lrclib.net candidates for a KaraokeSong.
+
+        GET  — display search form pre-filled with artist+title; show results
+               when query params are present.
+        POST — save the selected lrclib_id and redirect back to the change page.
+        """
+        from apps.games.lyrics_service import _lrclib_fetch
+
+        song = self.get_object(request, object_id)
+        if song is None:
+            self.message_user(
+                request, "Morceau introuvable.", level=messages.ERROR
+            )
+            return HttpResponseRedirect(
+                reverse("admin:games_karaokesong_changelist")
+            )
+
+        # POST — assign chosen ID
+        if request.method == "POST":
+            raw_id = request.POST.get("lrclib_id", "").strip()
+            if raw_id.isdigit():
+                song.lrclib_id = int(raw_id)
+                song.save(update_fields=["lrclib_id", "updated_at"])
+                self.message_user(
+                    request,
+                    f"✅ lrclib_id mis à jour : {song.lrclib_id} pour « {song} ».",
+                    level=messages.SUCCESS,
+                )
+            else:
+                self.message_user(
+                    request, "ID invalide.", level=messages.ERROR
+                )
+            return HttpResponseRedirect(
+                reverse("admin:games_karaokesong_change", args=[object_id])
+            )
+
+        # GET — run search and render results
+        query_artist = request.GET.get("artist", song.artist)
+        query_title = request.GET.get("title", song.title)
+        query_free = request.GET.get("q", "").strip()
+
+        results = None
+        error = None
+
+        if request.GET:  # Only search when the form was submitted
+            try:
+                if query_free:
+                    raw = _lrclib_fetch(
+                        "https://lrclib.net/api/search",
+                        params={"q": query_free},
+                    )
+                else:
+                    q = f"{query_artist} {query_title}".strip()
+                    raw = _lrclib_fetch(
+                        "https://lrclib.net/api/search",
+                        params={"q": q},
+                    )
+
+                if raw is None:
+                    error = (
+                        "LRCLib est inaccessible ou la recherche a échoué. "
+                        "Vérifiez la connectivité réseau du serveur."
+                    )
+                    results = []
+                elif isinstance(raw, list):
+                    results = []
+                    for item in raw:
+                        dur_ms = item.get("duration", 0) or 0
+                        total_s = dur_ms // 1000
+                        mins = total_s // 60
+                        secs = total_s % 60
+                        results.append(
+                            {
+                                "id": item.get("id"),
+                                "name": item.get("trackName", "—"),
+                                "artist_name": item.get("artistName", "—"),
+                                "album_name": item.get("albumName", ""),
+                                "duration_display": (
+                                    f"{mins}:{secs:02d}" if dur_ms else "—"
+                                ),
+                                "has_synced": bool(item.get("syncedLyrics")),
+                            }
+                        )
+                else:
+                    error = "Réponse inattendue de lrclib.net."
+                    results = []
+            except Exception as exc:  # noqa: BLE001
+                error = f"Erreur lors de la recherche : {exc}"
+                results = []
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": f"Recherche LRCLib — {song}",
+            "song": song,
+            "query_artist": query_artist,
+            "query_title": query_title,
+            "query_free": query_free,
+            "results": results,
+            "error": error,
+            "opts": self.model._meta,
+        }
+        return TemplateResponse(
+            request,
+            "admin/games/karaokesong/lrclib_search.html",
+            context,
+        )
+
+    # ── Display helpers ──────────────────────────────────────────────────────
+
+    def lrclib_search_button(self, obj):
+        """Renders a button linking to the LRCLib search view."""
+        if obj and obj.pk:
+            url = reverse(
+                "admin:games_karaokesong_lrclib_search", args=[obj.pk]
+            )
+            return format_html(
+                '<a href="{}" class="button" style="'
+                "background:#417690;color:#fff;padding:6px 16px;"
+                "border-radius:6px;text-decoration:none;font-size:13px;"
+                'font-weight:600;display:inline-block;">'
+                "🔍 Rechercher sur LRCLib.net</a>",
+                url,
+            )
+        return format_html(
+            '<em style="color:#999;">Sauvegardez d\'abord le morceau pour activer la recherche.</em>'
+        )
+
+    lrclib_search_button.short_description = _("Outil LRCLib")
 
     def youtube_link(self, obj):
         if obj.youtube_video_id:

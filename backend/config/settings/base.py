@@ -52,6 +52,7 @@ LOCAL_APPS = [
     "apps.achievements",
     "apps.playlists",
     "apps.stats",
+    "apps.administration",
 ]
 
 INSTALLED_APPS = THIRD_PARTY_APPS + DJANGO_APPS + LOCAL_APPS
@@ -88,6 +89,7 @@ JAZZMIN_SETTINGS = {
         "games.GameRound": "fas fa-music",
         "games.GameAnswer": "fas fa-check-circle",
         "games.KaraokeSong": "fas fa-microphone",
+        "administration.SiteConfiguration": "fas fa-cog",
         "achievements.Achievement": "fas fa-trophy",
         "achievements.UserAchievement": "fas fa-medal",
         "django_celery_beat.PeriodicTask": "fas fa-clock",
@@ -148,6 +150,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Maintenance mode — runs after auth so admin is always accessible
+    "apps.administration.middleware.MaintenanceMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"

@@ -1,0 +1,179 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Recherche LRCLib — {{ song }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Accueil</a>
+    &rsaquo; <a href="{% url 'admin:games_karaokesong_changelist' %}">Morceaux karaoké</a>
+    &rsaquo; <a href="{% url 'admin:games_karaokesong_change' song.pk %}">{{ song }}</a>
+    &rsaquo; Recherche LRCLib
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+  .lrclib-header { margin-bottom: 24px; }
+  .lrclib-header h1 { font-size: 20px; margin: 0 0 8px 0; }
+  .lrclib-header p { color: #666; margin: 0; }
+
+  .search-form-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .search-form-row .field-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 180px; }
+  .search-form-row label { font-size: 12px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: .5px; }
+  .search-form-row input { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
+  .search-form-row button {
+    padding: 8px 24px; background: #417690; color: #fff; border: none;
+    border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;
+    white-space: nowrap;
+  }
+  .search-form-row button:hover { background: #2b5170; }
+
+  .results-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+  .results-table th {
+    background: #417690; color: #fff; padding: 10px 12px;
+    text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .results-table td { padding: 10px 12px; border-bottom: 1px solid #e9ecef; vertical-align: middle; }
+  .results-table tr:hover td { background: #f0f7ff; }
+  .results-table tr.has-synced td { background: #f0fff4; }
+  .results-table tr.has-synced:hover td { background: #dcf5e7; }
+
+  .badge-synced {
+    display: inline-block; background: #10b981; color: #fff;
+    padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700;
+  }
+  .badge-nosynced {
+    display: inline-block; background: #6b7280; color: #fff;
+    padding: 2px 8px; border-radius: 10px; font-size: 11px;
+  }
+  .btn-use {
+    padding: 5px 14px; border: none; border-radius: 5px; cursor: pointer;
+    font-size: 12px; font-weight: 600; background: #10b981; color: #fff;
+  }
+  .btn-use:hover { background: #059669; }
+  .btn-preview {
+    padding: 5px 12px; border: 1px solid #6b7280; border-radius: 5px; cursor: pointer;
+    font-size: 12px; background: transparent; color: #374151;
+    text-decoration: none; display: inline-block;
+  }
+  .btn-preview:hover { background: #f3f4f6; }
+
+  .current-id-box {
+    margin-bottom: 20px; padding: 12px 16px;
+    background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px;
+  }
+  .current-id-box strong { color: #92400e; }
+
+  .no-result { padding: 32px; text-align: center; color: #6b7280; font-size: 15px; }
+  .error-box { padding: 16px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; color: #991b1b; margin-bottom: 16px; }
+
+  .lrclib-link { color: #417690; text-decoration: none; font-size: 12px; }
+  .lrclib-link:hover { text-decoration: underline; }
+</style>
+
+<div class="lrclib-header">
+  <h1>🔍 Recherche LRCLib — <em>{{ song }}</em></h1>
+  <p>Trouvez l'ID lrclib.net correspondant pour garantir des paroles synchronisées correctes en mode karaoké.</p>
+</div>
+
+{% if song.lrclib_id %}
+<div class="current-id-box">
+  <strong>ID actuel :</strong> {{ song.lrclib_id }}
+  — <a class="lrclib-link" href="https://lrclib.net/api/get/{{ song.lrclib_id }}" target="_blank">Voir sur lrclib.net ↗</a>
+</div>
+{% endif %}
+
+{# ── Search form ───────────────────────────────────────────────── #}
+<form method="get">
+  <div class="search-form-row">
+    <div class="field-group">
+      <label for="id_artist">Artiste</label>
+      <input type="text" id="id_artist" name="artist" value="{{ query_artist }}" placeholder="ex: The Beatles" />
+    </div>
+    <div class="field-group">
+      <label for="id_title">Titre</label>
+      <input type="text" id="id_title" name="title" value="{{ query_title }}" placeholder="ex: Hey Jude" />
+    </div>
+    <div class="field-group" style="flex: 2;">
+      <label for="id_q">Recherche libre (optionnel)</label>
+      <input type="text" id="id_q" name="q" value="{{ query_free }}" placeholder="Overrides artiste+titre" />
+    </div>
+    <button type="submit">Rechercher</button>
+  </div>
+</form>
+
+{# ── Error ─────────────────────────────────────────────────────── #}
+{% if error %}
+<div class="error-box">{{ error }}</div>
+{% endif %}
+
+{# ── Results ───────────────────────────────────────────────────── #}
+{% if results is not None %}
+  {% if results %}
+    <p><strong>{{ results|length }}</strong> résultat(s) — les lignes en vert ont des paroles synchronisées ✓</p>
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Titre</th>
+          <th>Artiste</th>
+          <th>Album</th>
+          <th>Durée</th>
+          <th>Paroles sync.</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in results %}
+        <tr class="{% if r.has_synced %}has-synced{% endif %}">
+          <td>
+            <code style="font-size:12px;">{{ r.id }}</code>
+          </td>
+          <td>{{ r.name }}</td>
+          <td>{{ r.artist_name }}</td>
+          <td style="color:#6b7280; font-size:12px;">{{ r.album_name|default:"—" }}</td>
+          <td style="font-size:12px; white-space:nowrap;">{{ r.duration_display }}</td>
+          <td>
+            {% if r.has_synced %}
+              <span class="badge-synced">✓ Sync</span>
+            {% else %}
+              <span class="badge-nosynced">Plain only</span>
+            {% endif %}
+          </td>
+          <td style="white-space:nowrap;">
+            <form method="post" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="lrclib_id" value="{{ r.id }}" />
+              <button type="submit" class="btn-use">✓ Utiliser</button>
+            </form>
+            &nbsp;
+            <a class="btn-preview" href="https://lrclib.net/api/get/{{ r.id }}" target="_blank">Aperçu API ↗</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="no-result">
+      😶 Aucun résultat trouvé. Essayez avec un artiste/titre différent ou une recherche libre.
+    </div>
+  {% endif %}
+{% endif %}
+
+{% if not results and not error %}
+<div class="no-result" style="background:#f8f9fa; border: 1px solid #dee2e6; border-radius:8px;">
+  👆 Lancez une recherche pour voir les résultats LRCLib.net
+</div>
+{% endif %}
+{% endblock %}
