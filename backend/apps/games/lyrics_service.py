@@ -9,6 +9,8 @@ import re
 import hashlib
 from typing import Optional, Tuple, List, Dict
 
+import ssl
+
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -30,12 +32,42 @@ _LRCLIB_DOWN_KEY: str = "lrclib_circuit_open"
 _LRCLIB_DOWN_TTL: int = 90  # seconds before retrying after all failures
 
 
+class _LrclibSSLAdapter(HTTPAdapter):
+    """HTTPAdapter that tolerates lrclib.net's non-standard TLS close.
+
+    lrclib.net (and many CDN-backed hosts) sometimes terminates the TLS
+    session without sending a proper close_notify alert.  curl handles this
+    transparently; Python's ssl module raises SSLEOFError instead.
+
+    OpenSSL 3.0 introduced SSL_OP_IGNORE_UNEXPECTED_EOF (0x80) to suppress
+    this error.  Python 3.12 exposes it as ssl.OP_IGNORE_UNEXPECTED_EOF;
+    for Python 3.11 we set the same flag via its numeric value.
+    """
+
+    # SSL_OP_IGNORE_UNEXPECTED_EOF = 0x00000080  (OpenSSL 3.0+)
+    _OP_IGNORE_UNEXPECTED_EOF: int = getattr(
+        ssl, "OP_IGNORE_UNEXPECTED_EOF", 0x80
+    )
+
+    def init_poolmanager(self, *args, **kwargs):
+        ctx = ssl.create_default_context()
+        ctx.options |= self._OP_IGNORE_UNEXPECTED_EOF
+        kwargs["ssl_context"] = ctx
+        super().init_poolmanager(*args, **kwargs)
+
+    def proxy_manager_for(self, proxy, **proxy_kwargs):
+        ctx = ssl.create_default_context()
+        ctx.options |= self._OP_IGNORE_UNEXPECTED_EOF
+        proxy_kwargs["ssl_context"] = ctx
+        return super().proxy_manager_for(proxy, **proxy_kwargs)
+
+
 def _lrclib_session() -> requests.Session:
     """Return a Session with one automatic retry on transient SSL/connection errors.
 
-    SSLEOFError (server closes TLS connection unexpectedly) is a well-known
-    transient failure under load.  A single automatic retry handles it without
-    opening the circuit breaker.  Read timeouts are NOT retried (already slow).
+    Uses _LrclibSSLAdapter to tolerate lrclib.net's abrupt TLS EOF, which
+    would otherwise raise SSLEOFError in Python's strict ssl module.
+    Read timeouts are NOT retried (server is reachable but slow).
     """
     session = requests.Session()
     retry = Retry(
@@ -45,7 +77,7 @@ def _lrclib_session() -> requests.Session:
         backoff_factor=0.2,
         raise_on_status=False,
     )
-    adapter = HTTPAdapter(max_retries=retry)
+    adapter = _LrclibSSLAdapter(max_retries=retry)
     session.mount("https://", adapter)
     session.mount("http://", adapter)
     return session
@@ -196,9 +228,17 @@ def _lrclib_request(artist_clean: str, title_clean: str) -> Optional[dict]:
         )
         if resp.status_code == 200:
             return resp.json()
+    except requests.exceptions.SSLError as e:
+        # SSLEOFError / cert error — transient TLS issue, do NOT open circuit breaker
+        logger.warning(
+            "LRCLib SSL error for %s - %s: %s",
+            artist_clean,
+            title_clean,
+            e,
+        )
     except requests.ConnectionError as e:
         logger.warning(
-            "LRCLib request failed for %s - %s: %s",
+            "LRCLib connection error for %s - %s: %s",
             artist_clean,
             title_clean,
             e,
@@ -248,9 +288,12 @@ def get_synced_lyrics_by_lrclib_id(lrclib_id: int) -> Optional[List[Dict]]:
                 return lines
         # Cache negative result to avoid hammering the API
         cache.set(cache_key, "__NONE__", CACHE_TTL_LRCLIB_ID)
+    except requests.exceptions.SSLError as exc:
+        # Transient TLS issue — do NOT open circuit breaker
+        logger.warning("LRCLib by-id SSL error for id=%s: %s", lrclib_id, exc)
     except requests.ConnectionError as exc:
         logger.warning(
-            "LRCLib by-id request failed for id=%s: %s", lrclib_id, exc
+            "LRCLib by-id connection error for id=%s: %s", lrclib_id, exc
         )
         _lrclib_mark_down()
     except (requests.Timeout, Exception) as exc:  # noqa: BLE001
@@ -326,8 +369,11 @@ def _lrclib_search(query: str) -> Optional[dict]:
                     if item.get("syncedLyrics"):
                         return item
                 return results[0]
+    except requests.exceptions.SSLError as e:
+        # Transient TLS issue — do NOT open circuit breaker
+        logger.warning("LRCLib search SSL error for %s: %s", query, e)
     except requests.ConnectionError as e:
-        logger.warning("LRCLib search failed for %s: %s", query, e)
+        logger.warning("LRCLib search connection error for %s: %s", query, e)
         _lrclib_mark_down()
     except (requests.Timeout, Exception) as e:  # noqa: BLE001
         logger.warning("LRCLib search failed for %s: %s", query, e)
