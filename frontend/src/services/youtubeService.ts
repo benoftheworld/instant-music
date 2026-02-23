@@ -14,7 +14,17 @@ class YouTubeService {
       const response = await api.get('/playlists/search/', {
         params: { query, limit }
       });
-      return response.data.playlists || response.data;
+      const raw = response.data.playlists || response.data;
+      // Map backend playlist_id → youtube_id (kept for interface compat)
+      return raw.map((p: any) => ({
+        youtube_id: p.playlist_id || p.youtube_id,
+        name: p.name,
+        description: p.description || '',
+        image_url: p.image_url || '',
+        total_tracks: p.total_tracks || 0,
+        owner: p.owner || '',
+        external_url: p.external_url || '',
+      }));
     } catch (error) {
       console.error('Failed to search playlists:', error);
       throw error;
