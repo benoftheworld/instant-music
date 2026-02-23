@@ -281,6 +281,25 @@ export default function CreateGamePage() {
               )}
           </>
           )}
+          {isOnline && (
+            <div className="flex gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <input
+                type="checkbox"
+                id="isPublic"
+                checked={isPublic}
+                onChange={(e) => setIsPublic(e.target.checked)}
+                className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+              />
+              <div>
+                <label htmlFor="isPublic" className="text-sm font-medium text-gray-700">
+                  🌐 Partie publique
+                </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  Visible dans la liste des parties publiques. N'importe qui peut rejoindre.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right column */}
@@ -343,26 +362,6 @@ export default function CreateGamePage() {
                   📴 Mode hors ligne (solo)
                 </label>
               </div>
-
-              {isOnline && (
-                <div className="flex gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <input
-                    type="checkbox"
-                    id="isPublic"
-                    checked={isPublic}
-                    onChange={(e) => setIsPublic(e.target.checked)}
-                    className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                  />
-                  <div>
-                    <label htmlFor="isPublic" className="text-sm font-medium text-gray-700">
-                      🌐 Partie publique
-                    </label>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Visible dans la liste des parties publiques. N'importe qui peut rejoindre.
-                    </p>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>
