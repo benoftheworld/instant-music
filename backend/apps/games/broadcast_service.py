@@ -64,13 +64,30 @@ def _group_name(room_code: str) -> str:
 # ── Public broadcast helpers ────────────────────────────────────────────
 
 
-def broadcast_player_join(room_code: str, player_data: dict, game_data: dict) -> None:
+def broadcast_player_join(
+    room_code: str, player_data: dict, game_data: dict
+) -> None:
     """Notify all clients that a new player joined the room."""
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         _group_name(room_code),
         {
             "type": "broadcast_player_join",
+            "player": player_data,
+            "game_data": game_data,
+        },
+    )
+
+
+def broadcast_player_leave(
+    room_code: str, player_data: dict, game_data: dict
+) -> None:
+    """Notify all clients that a player left the room."""
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        _group_name(room_code),
+        {
+            "type": "broadcast_player_leave",
             "player": player_data,
             "game_data": game_data,
         },
@@ -90,7 +107,9 @@ def broadcast_round_start(room_code: str, round_obj: GameRound) -> None:
     )
 
 
-def broadcast_round_end(room_code: str, round_obj: GameRound, game: Game) -> None:
+def broadcast_round_end(
+    room_code: str, round_obj: GameRound, game: Game
+) -> None:
     """Broadcast round end with correct answer, per-player scores, and updated totals."""
     channel_layer = get_channel_layer()
     round_data = _serialize_to_dict(GameRoundSerializer(round_obj))

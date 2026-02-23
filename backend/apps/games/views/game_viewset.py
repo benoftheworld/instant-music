@@ -27,6 +27,7 @@ from ..broadcast_service import (
     broadcast_game_finish,
     broadcast_next_round,
     broadcast_player_join,
+    broadcast_player_leave,
     broadcast_round_end,
     broadcast_round_start,
 )
@@ -111,6 +112,59 @@ class GameViewSet(viewsets.ModelViewSet):
         )
 
         return Response(player_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def leave(self, request, room_code=None):
+        """Leave a game (remove player from the game)."""
+        game = self.get_object()
+
+        if game.status not in ("waiting",):
+            return Response(
+                {"error": "Impossible de quitter une partie en cours."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            player = GamePlayer.objects.get(game=game, user=request.user)
+        except GamePlayer.DoesNotExist:
+            return Response(
+                {"error": "Vous n'êtes pas dans cette partie."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Host cannot leave — they should cancel the game instead
+        if game.host == request.user:
+            # Cancel the game when the host leaves
+            game.status = "cancelled"
+            game.save(update_fields=["status"])
+            player.delete()
+            game.refresh_from_db()
+            game_serializer = GameSerializer(
+                game, context={"request": request}
+            )
+            broadcast_player_leave(
+                room_code,
+                player_data={
+                    "user": request.user.id,
+                    "username": request.user.username,
+                },
+                game_data=game_serializer.data,
+            )
+            return Response({"message": "Partie annulée (l'hôte a quitté)."})
+
+        player.delete()
+        game.refresh_from_db()
+        game_serializer = GameSerializer(game, context={"request": request})
+        broadcast_player_leave(
+            room_code,
+            player_data={
+                "user": request.user.id,
+                "username": request.user.username,
+            },
+            game_data=game_serializer.data,
+        )
+
+        return Response({"message": "Vous avez quitté la partie."})
 
     @action(detail=True, methods=["post"])
     def start(self, request, room_code=None):

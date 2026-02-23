@@ -22,6 +22,10 @@ export const gameService = {
     return response.data;
   },
 
+  async leaveGame(roomCode: string): Promise<void> {
+    await api.post(`/games/${roomCode}/leave/`);
+  },
+
   async startGame(roomCode: string): Promise<Game> {
     const response = await api.post<Game>(`/games/${roomCode}/start/`);
     return response.data;

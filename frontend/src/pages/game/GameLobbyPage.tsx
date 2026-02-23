@@ -37,6 +37,9 @@ export default function GameLobbyPage() {
         // Update game data directly from WebSocket message
         if (data.game_data) {
           setGame(data.game_data);
+          // If host left and game is cancelled, redirect everyone
+          if (data.game_data.status === 'cancelled') {
+            navigate('/');\n          }
         }
       } else if (data.type === 'broadcast_game_start' || data.type === 'game_started') {
         soundEffects.gameStarted();
@@ -188,7 +191,14 @@ export default function GameLobbyPage() {
     }
   };
 
-  const handleLeaveGame = () => {
+  const handleLeaveGame = async () => {
+    if (roomCode) {
+      try {
+        await gameService.leaveGame(roomCode);
+      } catch (err) {
+        console.error('Failed to leave game:', err);
+      }
+    }
     navigate('/');
   };
 
