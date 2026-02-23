@@ -313,11 +313,18 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def broadcast_game_start(self, event):
         """Send game start to WebSocket."""
-        await self.send(
-            text_data=json.dumps(
-                {"type": "game_started", "game_data": event.get("game_data")}
+        try:
+            await self.send(
+                text_data=json.dumps(
+                    {
+                        "type": "game_started",
+                        "game_data": event.get("game_data"),
+                    }
+                )
             )
-        )
+        except RuntimeError:
+            # Connection already closed (client navigated away during start)
+            pass
 
     async def broadcast_round_start(self, event):
         """Send round start to WebSocket."""

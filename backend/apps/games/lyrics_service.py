@@ -196,7 +196,7 @@ def _lrclib_request(artist_clean: str, title_clean: str) -> Optional[dict]:
         )
         if resp.status_code == 200:
             return resp.json()
-    except (requests.Timeout, requests.ConnectionError) as e:
+    except requests.ConnectionError as e:
         logger.warning(
             "LRCLib request failed for %s - %s: %s",
             artist_clean,
@@ -204,7 +204,7 @@ def _lrclib_request(artist_clean: str, title_clean: str) -> Optional[dict]:
             e,
         )
         _lrclib_mark_down()
-    except Exception as e:  # noqa: BLE001
+    except (requests.Timeout, Exception) as e:  # noqa: BLE001
         logger.warning(
             "LRCLib request failed for %s - %s: %s",
             artist_clean,
@@ -248,12 +248,12 @@ def get_synced_lyrics_by_lrclib_id(lrclib_id: int) -> Optional[List[Dict]]:
                 return lines
         # Cache negative result to avoid hammering the API
         cache.set(cache_key, "__NONE__", CACHE_TTL_LRCLIB_ID)
-    except (requests.Timeout, requests.ConnectionError) as exc:
+    except requests.ConnectionError as exc:
         logger.warning(
             "LRCLib by-id request failed for id=%s: %s", lrclib_id, exc
         )
         _lrclib_mark_down()
-    except Exception as exc:  # noqa: BLE001
+    except (requests.Timeout, Exception) as exc:  # noqa: BLE001
         logger.warning(
             "LRCLib by-id request failed for id=%s: %s", lrclib_id, exc
         )
@@ -326,10 +326,10 @@ def _lrclib_search(query: str) -> Optional[dict]:
                     if item.get("syncedLyrics"):
                         return item
                 return results[0]
-    except (requests.Timeout, requests.ConnectionError) as e:
+    except requests.ConnectionError as e:
         logger.warning("LRCLib search failed for %s: %s", query, e)
         _lrclib_mark_down()
-    except Exception as e:  # noqa: BLE001
+    except (requests.Timeout, Exception) as e:  # noqa: BLE001
         logger.warning("LRCLib search failed for %s: %s", query, e)
     return None
 
