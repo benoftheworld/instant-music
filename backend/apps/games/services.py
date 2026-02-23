@@ -20,6 +20,7 @@ from .models import (
     GameStatus,
     GameMode,
     AnswerMode,
+    KaraokeSong,
 )
 from apps.playlists.deezer_service import deezer_service, DeezerAPIError
 from apps.playlists.youtube_service import youtube_service, YouTubeAPIError
@@ -121,7 +122,7 @@ SCORE_MIN_FINAL: int = 5
 RANK_BONUS: dict = {0: 10, 1: 5, 2: 2}  # correct_before → bonus points
 
 # Karaoke
-KARAOKE_MAX_DURATION: int = 300   # seconds
+KARAOKE_MAX_DURATION: int = 300  # seconds
 KARAOKE_FALLBACK_DURATION: int = 180  # 3 min fallback
 
 
@@ -331,9 +332,7 @@ class QuestionGeneratorService:
         """Generate a 'guess the artist' question."""
         correct_answer = ", ".join(correct_track["artists"])
         other_tracks = [
-            t
-            for t in all_tracks
-            if t["track_id"] != correct_track["track_id"]
+            t for t in all_tracks if t["track_id"] != correct_track["track_id"]
         ]
         random.shuffle(other_tracks)
 
@@ -497,7 +496,7 @@ class QuestionGeneratorService:
         artist = ", ".join(track["artists"])
 
         # 1. Synced lyrics are required for karaoke
-        synced = get_synced_lyrics(artist, track["name"])
+        synced, _ = get_synced_lyrics(artist, track["name"])
         if not synced:
             logger.warning(
                 "No synced lyrics for %s – %s, skipping karaoke",
@@ -563,9 +562,7 @@ class QuestionGeneratorService:
         """Pick distinct wrong answers from the track pool."""
         correct_val = correct_track[key]
         other = [
-            t
-            for t in all_tracks
-            if t["track_id"] != correct_track["track_id"]
+            t for t in all_tracks if t["track_id"] != correct_track["track_id"]
         ]
         random.shuffle(other)
 
@@ -742,7 +739,11 @@ class GameService:
                     track_name,
                 )
         if not synced:
-            synced = get_synced_lyrics(artist_name, track_name)
+            synced, found_lrclib_id = get_synced_lyrics(
+                artist_name, track_name
+            )
+        else:
+            found_lrclib_id = None
         if not synced:
             logger.warning(
                 "No synced lyrics for karaoke track %s – %s (will play without lyrics)",
@@ -758,6 +759,26 @@ class GameService:
                 artist_name,
                 track_name,
             )
+            # Persist the found lrclib_id so future lookups bypass search
+            if found_lrclib_id and game.karaoke_song_id:
+                try:
+                    KaraokeSong.objects.filter(pk=game.karaoke_song_id).update(
+                        lrclib_id=found_lrclib_id
+                    )
+                    logger.info(
+                        "Saved lrclib_id=%s to KaraokeSong pk=%s (%s – %s)",
+                        found_lrclib_id,
+                        game.karaoke_song_id,
+                        artist_name,
+                        track_name,
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "Failed to save lrclib_id=%s to KaraokeSong pk=%s: %s",
+                        found_lrclib_id,
+                        game.karaoke_song_id,
+                        exc,
+                    )
 
         # Determine round duration from video length
         if duration_ms > 0:
@@ -937,7 +958,8 @@ class GameService:
             return 0
         raw = max(
             SCORE_MIN_CORRECT,
-            SCORE_BASE_POINTS - int(response_time * SCORE_TIME_PENALTY_PER_SEC),
+            SCORE_BASE_POINTS
+            - int(response_time * SCORE_TIME_PENALTY_PER_SEC),
         )
         return max(SCORE_MIN_FINAL, int(raw * accuracy_factor))
 

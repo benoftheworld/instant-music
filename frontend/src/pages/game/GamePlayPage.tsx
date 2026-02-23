@@ -351,7 +351,7 @@ export default function GamePlayPage() {
       console.error('Failed to submit answer:', error);
     }
   };
-  
+
   // ─── Render the correct question component based on game mode ───
   const renderQuestionComponent = () => {
     if (!currentRound) return null;
@@ -488,7 +488,7 @@ export default function GamePlayPage() {
             <div className="flex items-center gap-2">
               <p className="text-lg">
                 {isKaraoke
-                  ? `Chanson ${currentRound.round_number} — ${getModeLabel()}`
+                  ? getModeLabel()
                   : `Round ${currentRound.round_number} — ${getModeLabel()}`
                 }
               </p>

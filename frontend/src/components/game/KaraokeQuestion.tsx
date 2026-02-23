@@ -54,6 +54,7 @@ interface UseYouTubePlayerResult {
 function useYouTubePlayer(
   videoId: string | undefined,
   active: boolean,
+  onEnded?: () => void,
 ): UseYouTubePlayerResult {
   const containerRef = useRef<HTMLDivElement>(null!);
   const playerRef = useRef<any>(null);
@@ -134,6 +135,11 @@ function useYouTubePlayer(
             if (state === 1) {
               setIsPlaying(true);
               startPoll();
+            } else if (state === 0) {
+              // Video ended — stop polling and notify parent
+              setIsPlaying(false);
+              stopPoll();
+              onEnded?.();
             } else {
               setIsPlaying(false);
               if (state !== 3) stopPoll(); // keep polling while buffering
@@ -212,72 +218,69 @@ function KaraokeLyricsDisplay({
   lines: SyncedLine[];
   activeIndex: number;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const activeRef = useRef<HTMLParagraphElement>(null);
-
-  // Keep a fixed visible area equal to 5 lines and position active line
-  // so that 2 previous lines + current + 2 next are visible.
-  useEffect(() => {
-    const container = containerRef.current;
-    const active = activeRef.current;
-    if (!container || !active) return;
-
-    // Determine a sensible line height: prefer the active element height,
-    // fallback to the first paragraph inside the container.
-    const firstLine = container.querySelector<HTMLParagraphElement>('p');
-    const lineHeight = (active.clientHeight || firstLine?.clientHeight || 32);
-
-    // Ensure container has height for 7 lines (larger visible area)
-    const visibleLines = 7;
-    const targetHeight = lineHeight * visibleLines;
-    container.style.height = `${targetHeight}px`;
-    container.style.minHeight = `${targetHeight}px`;
-
-    // Compute scroll position so active line sits after 2 previous lines
-    const target = Math.max(0, active.offsetTop - lineHeight * 2);
-    container.scrollTo({ top: target, behavior: 'smooth' });
-  }, [activeIndex, lines]);
+  const CONTAINER_HEIGHT = 540; // px — fixed visible window
+  const ROW_HEIGHT = 64;        // px — height of each lyric slot
 
   if (lines.length === 0) return null;
+
+  // Translate inner list so the active line sits at the vertical centre.
+  // Before the song starts (activeIndex === -1) keep the first line near the top.
+  const translateY =
+    activeIndex >= 0
+      ? CONTAINER_HEIGHT / 2 - (activeIndex + 0.5) * ROW_HEIGHT
+      : CONTAINER_HEIGHT / 2 - 0.5 * ROW_HEIGHT;
 
   return (
     <>
       <style>{`[data-hide-scroll] { -ms-overflow-style: none; scrollbar-width: none; } [data-hide-scroll]::-webkit-scrollbar { display: none; }`}</style>
       <div
-        data-hide-scroll
-        ref={containerRef}
-        className="relative flex-1 min-h-0 overflow-hidden overflow-y-auto scrollbar-hide rounded-2xl bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950"
+        style={{ height: CONTAINER_HEIGHT }}
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950"
       >
-      {/* Gradient masks */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-gray-950 to-transparent z-10" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-gray-950 to-transparent z-10" />
+        {/* Gradient masks — fade top & bottom edges */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-gray-950 to-transparent z-10" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-gray-950 to-transparent z-10" />
 
-      <div className="space-y-3 py-4 px-6">
-        {lines.map((line, i) => {
-          const isCurrent = i === activeIndex;
-          const isPast = i < activeIndex;
-          const isEmpty = !line.text;
+        {/* Sliding lyrics list */}
+        <div
+          style={{
+            transform: `translateY(${translateY}px)`,
+            transition: 'transform 400ms cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        >
+          {lines.map((line, i) => {
+            const isCurrent = i === activeIndex;
+            const isPast = i < activeIndex;
+            const isEmpty = !line.text;
+            const distance = Math.abs(i - (activeIndex >= 0 ? activeIndex : 0));
+            // Fade lines that are far from the active one
+            const opacity = isEmpty ? 0 : isCurrent ? 1 : Math.max(0.15, 1 - distance * 0.22);
 
-          if (isEmpty) return <div key={i} className="h-6" />;
-
-          return (
-            <p
-              key={i}
-              ref={isCurrent ? activeRef : undefined}
-              className={`text-center transition-all duration-500 leading-relaxed ${
-                isCurrent
-                  ? 'text-yellow-300 text-3xl md:text-4xl font-extrabold scale-105 drop-shadow-lg'
-                  : isPast
-                    ? 'text-gray-600 text-lg md:text-xl'
-                    : 'text-gray-400 text-xl md:text-2xl'
-              }`}
-            >
-              {line.text}
-            </p>
-          );
-        })}
+            return (
+              <div
+                key={i}
+                style={{ height: ROW_HEIGHT }}
+                className="flex items-center justify-center px-6"
+              >
+                {!isEmpty && (
+                  <p
+                    style={{ opacity, transition: 'opacity 400ms ease, font-size 400ms ease' }}
+                    className={`text-center leading-tight select-none ${
+                      isCurrent
+                        ? 'text-yellow-300 text-3xl md:text-4xl font-extrabold drop-shadow-lg scale-105'
+                        : isPast
+                          ? 'text-gray-500 text-lg md:text-xl font-medium'
+                          : 'text-gray-300 text-xl md:text-2xl font-medium'
+                    }`}
+                  >
+                    {line.text}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
     </>
   );
 }
@@ -314,7 +317,7 @@ const KaraokeQuestion = ({
   const syncedLines: SyncedLine[] = round.extra_data?.synced_lyrics ?? [];
   const youtubeVideoId: string | undefined = round.extra_data?.youtube_video_id;
 
-  const yt = useYouTubePlayer(youtubeVideoId, !showResults);
+  const yt = useYouTubePlayer(youtubeVideoId, !showResults, onSkipSong);
   const activeIndex = useActiveLyricIndex(syncedLines, yt.currentTimeMs);
 
   /* ── Results phase: show track info ── */
@@ -379,8 +382,8 @@ const KaraokeQuestion = ({
         <KaraokeScoreSidebar score={0} />
       </div>
 
-      {/* Lyrics area (flexes to remaining space without growing past viewport) */}
-      <div className="px-4 pb-4 flex-1 min-h-[480px]">
+      {/* Lyrics area (fixed-height centered display) */}
+      <div className="px-4 pb-4">
         <KaraokeLyricsDisplay lines={syncedLines} activeIndex={activeIndex} />
       </div>
 

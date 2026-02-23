@@ -16,11 +16,11 @@ logger = logging.getLogger(__name__)
 
 # ─── Constants ───────────────────────────────────────────────────────
 
-API_TIMEOUT: int = 8            # seconds for external HTTP requests
-CACHE_TTL_LYRICS: int = 3600    # 1 hour for successful lyrics
+API_TIMEOUT: int = 8  # seconds for external HTTP requests
+CACHE_TTL_LYRICS: int = 3600  # 1 hour for successful lyrics
 CACHE_TTL_NEGATIVE: int = 1800  # 30 min for "not found" lyrics
-CACHE_TTL_SYNCED_NEG: int = 300 # 5 min for "not found" synced lyrics
-CACHE_TTL_LRCLIB_ID: int = 3600 # 1 hour for lrclib-by-id results
+CACHE_TTL_SYNCED_NEG: int = 300  # 5 min for "not found" synced lyrics
+CACHE_TTL_LRCLIB_ID: int = 3600  # 1 hour for lrclib-by-id results
 
 # Words that are too short or common to be interesting blanks
 BORING_WORDS = {
@@ -189,12 +189,18 @@ def get_synced_lyrics_by_lrclib_id(lrclib_id: int) -> Optional[List[Dict]]:
             raw = data.get("syncedLyrics", "")
             if raw:
                 lines = parse_lrc(raw) or None
-                cache.set(cache_key, lines if lines else "__NONE__", CACHE_TTL_LRCLIB_ID)
+                cache.set(
+                    cache_key,
+                    lines if lines else "__NONE__",
+                    CACHE_TTL_LRCLIB_ID,
+                )
                 return lines
         # Cache negative result to avoid hammering the API
         cache.set(cache_key, "__NONE__", CACHE_TTL_LRCLIB_ID)
     except Exception as exc:
-        logger.warning("LRCLib by-id request failed for id=%s: %s", lrclib_id, exc)
+        logger.warning(
+            "LRCLib by-id request failed for id=%s: %s", lrclib_id, exc
+        )
     return None
 
 
@@ -271,7 +277,9 @@ def _lrclib_search(query: str) -> Optional[dict]:
 _UNKNOWN_ARTIST_MARKERS = {"artiste inconnu", "unknown artist", "unknown", ""}
 
 
-def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
+def get_synced_lyrics(
+    artist: str, title: str
+) -> Tuple[Optional[List[Dict]], Optional[int]]:
     """
     Fetch synced (timestamped) lyrics.
 
@@ -284,12 +292,19 @@ def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
     On a successful fetch from LRCLib the result is written to Redis cache.
 
     Returns:
-        List of {"time_ms": int, "text": str} sorted by time, or None.
+        Tuple of (List of {"time_ms": int, "text": str}, found_lrclib_id) or (None, None).
+        ``found_lrclib_id`` is the numeric ID on lrclib.net for the matched entry;
+        callers can persist it to avoid future search-based lookups.
     """
     key = f"synced_{hashlib.md5(f'{artist}|{title}'.lower().encode()).hexdigest()}"
     cached = cache.get(key)
     if cached is not None:
-        return cached if cached != "__NONE__" else None
+        if cached == "__NONE__":
+            return None, None
+        # Handle both new dict format and legacy list format
+        if isinstance(cached, list):
+            return cached, None
+        return cached.get("lines"), cached.get("lrclib_id")
 
     artist_clean, title_clean = _clean_artist_title(artist, title)
     artist_is_unknown = artist_clean.lower() in _UNKNOWN_ARTIST_MARKERS
@@ -297,6 +312,7 @@ def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
         title_clean if artist_is_unknown else f"{artist_clean} {title_clean}"
     )
     lines: Optional[List[Dict]] = None
+    found_lrclib_id: Optional[int] = None
 
     # ── 1. Exact query (skip if artist is a known placeholder) ────────
     if not artist_is_unknown:
@@ -305,6 +321,8 @@ def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
             raw = data.get("syncedLyrics", "")
             if raw:
                 lines = parse_lrc(raw) or None
+                if lines:
+                    found_lrclib_id = data.get("id")
 
     # ── 2. Full-text search: "artist title" (or title-only) ───────────
     if lines is None:
@@ -313,6 +331,8 @@ def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
             raw = data.get("syncedLyrics", "")
             if raw:
                 lines = parse_lrc(raw) or None
+                if lines:
+                    found_lrclib_id = data.get("id")
 
     # ── 3. Last-resort: title-only (inverted YouTube order) ───────────
     if lines is None and not artist_is_unknown and query != title_clean:
@@ -321,14 +341,20 @@ def get_synced_lyrics(artist: str, title: str) -> Optional[List[Dict]]:
             raw = data.get("syncedLyrics", "")
             if raw:
                 lines = parse_lrc(raw) or None
+                if lines:
+                    found_lrclib_id = data.get("id")
 
     if lines:
-        cache.set(key, lines, CACHE_TTL_LYRICS)
-        return lines
+        cache.set(
+            key,
+            {"lines": lines, "lrclib_id": found_lrclib_id},
+            CACHE_TTL_LYRICS,
+        )
+        return lines, found_lrclib_id
 
     # Cache negative result for only 5 min so retries can succeed sooner
     cache.set(key, "__NONE__", CACHE_TTL_SYNCED_NEG)
-    return None
+    return None, None
 
 
 def create_lyrics_question(
