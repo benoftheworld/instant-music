@@ -375,6 +375,56 @@ class KaraokeSongAdmin(admin.ModelAdmin):
 
     # ── LRCLib search view ───────────────────────────────────────────────────
 
+    _ADMIN_LRCLIB_TIMEOUT: int = 8  # seconds — shorter than game path (12s)
+
+    def _lrclib_admin_search(self, q: str):
+        """
+        Perform a direct /api/search call to lrclib.net for admin use.
+
+        Bypasses the circuit breaker (admin explicitly wants to probe) and
+        uses the same SSL workaround as lyrics_service._lrclib_fetch but
+        with a shorter timeout suited for a synchronous admin HTTP request.
+
+        Returns:
+            list of result dicts, or None on error.
+            A string error message if a known failure occurs.
+        """
+        import json
+        import socket
+        import ssl
+        import urllib.error
+        import urllib.request
+        from urllib.parse import urlencode
+        from apps.games.lyrics_service import _lrclib_ssl_context
+
+        url = f"https://lrclib.net/api/search?{urlencode({'q': q})}"
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": "InstantMusic/1.0 (admin lyrics search)"},
+        )
+        try:
+            with urllib.request.urlopen(
+                req,
+                context=_lrclib_ssl_context(),
+                timeout=self._ADMIN_LRCLIB_TIMEOUT,
+            ) as resp:
+                if resp.status == 200:
+                    return json.loads(resp.read().decode("utf-8"))
+                return f"HTTP {resp.status} reçu de lrclib.net."
+        except ssl.SSLError as exc:
+            return f"Erreur SSL avec lrclib.net : {exc}"
+        except (socket.timeout, TimeoutError):
+            return (
+                f"Délai dépassé ({self._ADMIN_LRCLIB_TIMEOUT}s) — "
+                "lrclib.net ne répond pas."
+            )
+        except urllib.error.HTTPError as exc:
+            return f"lrclib.net a retourné HTTP {exc.code} : {exc.reason}"
+        except urllib.error.URLError as exc:
+            return f"Impossible de joindre lrclib.net : {exc.reason}"
+        except Exception as exc:  # noqa: BLE001
+            return f"Erreur inattendue : {exc}"
+
     def lrclib_search_view(self, request, object_id):
         """
         Custom admin view to search lrclib.net candidates for a KaraokeSong.
@@ -383,7 +433,8 @@ class KaraokeSongAdmin(admin.ModelAdmin):
                when query params are present.
         POST — save the selected lrclib_id and redirect back to the change page.
         """
-        from apps.games.lyrics_service import _lrclib_fetch
+        from django.core.cache import cache
+        from apps.games.lyrics_service import _LRCLIB_DOWN_KEY
 
         song = self.get_object(request, object_id)
         if song is None:
@@ -394,8 +445,17 @@ class KaraokeSongAdmin(admin.ModelAdmin):
                 reverse("admin:games_karaokesong_changelist")
             )
 
-        # POST — assign chosen ID
+        # POST — assign chosen ID or reset circuit breaker
         if request.method == "POST":
+            if "reset_circuit_breaker" in request.POST:
+                cache.delete(_LRCLIB_DOWN_KEY)
+                self.message_user(
+                    request,
+                    "🔄 Circuit breaker LRCLib réinitialisé.",
+                    level=messages.SUCCESS,
+                )
+                return HttpResponseRedirect(request.get_full_path())
+
             raw_id = request.POST.get("lrclib_id", "").strip()
             if raw_id.isdigit():
                 song.lrclib_id = int(raw_id)
@@ -420,26 +480,22 @@ class KaraokeSongAdmin(admin.ModelAdmin):
 
         results = None
         error = None
+        circuit_open = bool(cache.get(_LRCLIB_DOWN_KEY))
 
-        if request.GET:  # Only search when the form was submitted
-            try:
-                if query_free:
-                    raw = _lrclib_fetch(
-                        "https://lrclib.net/api/search",
-                        params={"q": query_free},
-                    )
-                else:
-                    q = f"{query_artist} {query_title}".strip()
-                    raw = _lrclib_fetch(
-                        "https://lrclib.net/api/search",
-                        params={"q": q},
-                    )
-
-                if raw is None:
-                    error = (
-                        "LRCLib est inaccessible ou la recherche a échoué. "
-                        "Vérifiez la connectivité réseau du serveur."
-                    )
+        # Only search when at least one search param was explicitly submitted
+        search_submitted = any(
+            k in request.GET for k in ("artist", "title", "q")
+        )
+        if search_submitted:
+            q_string = query_free or f"{query_artist} {query_title}".strip()
+            if not q_string:
+                error = "Veuillez saisir au moins un terme de recherche."
+                results = []
+            else:
+                raw = self._lrclib_admin_search(q_string)
+                if isinstance(raw, str):
+                    # _lrclib_admin_search returned an error message
+                    error = raw
                     results = []
                 elif isinstance(raw, list):
                     results = []
@@ -463,9 +519,6 @@ class KaraokeSongAdmin(admin.ModelAdmin):
                 else:
                     error = "Réponse inattendue de lrclib.net."
                     results = []
-            except Exception as exc:  # noqa: BLE001
-                error = f"Erreur lors de la recherche : {exc}"
-                results = []
 
         context = {
             **self.admin_site.each_context(request),
@@ -476,6 +529,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
             "query_free": query_free,
             "results": results,
             "error": error,
+            "circuit_open": circuit_open,
             "opts": self.model._meta,
         }
         return TemplateResponse(

@@ -75,6 +75,18 @@
   }
   .current-id-box strong { color: #92400e; }
 
+  .circuit-box {
+    margin-bottom: 16px; padding: 12px 16px;
+    background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .circuit-box span { color: #991b1b; font-weight: 600; }
+  .circuit-box button {
+    padding: 5px 14px; background: #991b1b; color: #fff; border: none;
+    border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;
+  }
+  .circuit-box button:hover { background: #7f1d1d; }
+
   .no-result { padding: 32px; text-align: center; color: #6b7280; font-size: 15px; }
   .error-box { padding: 16px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; color: #991b1b; margin-bottom: 16px; }
 
@@ -91,6 +103,17 @@
 <div class="current-id-box">
   <strong>ID actuel :</strong> {{ song.lrclib_id }}
   — <a class="lrclib-link" href="https://lrclib.net/api/get/{{ song.lrclib_id }}" target="_blank">Voir sur lrclib.net ↗</a>
+</div>
+{% endif %}
+
+{# ── Circuit breaker warning ───────────────────────────────────── #}
+{% if circuit_open %}
+<div class="circuit-box">
+  <span>⚠️ Circuit breaker ouvert — lrclib.net a récemment échoué. La recherche ci-dessous contourne ce verrou (admin uniquement).</span>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" name="reset_circuit_breaker" value="1">🔄 Réinitialiser le circuit breaker</button>
+  </form>
 </div>
 {% endif %}
 
