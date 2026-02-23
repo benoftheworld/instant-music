@@ -11,6 +11,7 @@ from typing import Optional, Tuple, List, Dict
 
 import requests
 from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -30,10 +31,21 @@ _LRCLIB_DOWN_TTL: int = 90  # seconds before retrying after all failures
 
 
 def _lrclib_session() -> requests.Session:
-    """Return a Session with no automatic retries (we handle errors ourselves)."""
+    """Return a Session with one automatic retry on transient SSL/connection errors.
+
+    SSLEOFError (server closes TLS connection unexpectedly) is a well-known
+    transient failure under load.  A single automatic retry handles it without
+    opening the circuit breaker.  Read timeouts are NOT retried (already slow).
+    """
     session = requests.Session()
-    # retries=0 prevents urllib3 from silently masking SSL EOF as 'Max retries'
-    adapter = HTTPAdapter(max_retries=0)
+    retry = Retry(
+        total=1,  # at most 1 extra attempt
+        connect=1,  # retry SSL handshake / connection errors
+        read=0,  # never retry a read timeout
+        backoff_factor=0.2,
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
     session.mount("https://", adapter)
     session.mount("http://", adapter)
     return session

@@ -153,8 +153,8 @@ export default function GamePlayPage() {
       const newRemaining = calculateTimeRemaining();
       setTimeRemaining(newRemaining);
 
-      // Sound effects for countdown
-      if (newRemaining !== lastSecond && newRemaining > 0) {
+      // Sound effects for countdown (disabled in karaoke — no timer UX)
+      if (game?.mode !== 'karaoke' && newRemaining !== lastSecond && newRemaining > 0) {
         if (newRemaining <= 3) {
           soundEffects.timerWarning();
         } else if (newRemaining <= 5) {
