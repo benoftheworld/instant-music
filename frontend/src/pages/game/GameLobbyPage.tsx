@@ -39,7 +39,8 @@ export default function GameLobbyPage() {
           setGame(data.game_data);
           // If host left and game is cancelled, redirect everyone
           if (data.game_data.status === 'cancelled') {
-            navigate('/');\n          }
+            navigate('/');
+          }
         }
       } else if (data.type === 'broadcast_game_start' || data.type === 'game_started') {
         soundEffects.gameStarted();
