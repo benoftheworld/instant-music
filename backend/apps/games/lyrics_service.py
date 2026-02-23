@@ -51,12 +51,18 @@ class _LrclibSSLAdapter(HTTPAdapter):
 
     @staticmethod
     def _make_ssl_context() -> ssl.SSLContext:
-        ctx = ssl.create_default_context()
-        ctx.options |= _LrclibSSLAdapter._OP_IGNORE_UNEXPECTED_EOF
-        # OpenSSL 3.x defaults to SECLEVEL=2 which rejects some ciphers /
-        # certificates still used by lrclib.net (or its CDN).  Lowering to
-        # SECLEVEL=1 matches curl's effective behaviour on the same host.
+        # Use PROTOCOL_TLS_CLIENT instead of create_default_context():
+        # OpenSSL 3.5 raised the default SECLEVEL to 2, which rejects the
+        # cipher/certificate chain used by lrclib.net during the TLS handshake.
+        # PROTOCOL_TLS_CLIENT gives the same hostname+cert verification with a
+        # more permissive baseline, matching curl's effective behaviour.
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ctx.check_hostname = True
+        ctx.verify_mode = ssl.CERT_REQUIRED
+        ctx.load_default_certs()
         ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+        ctx.options |= _LrclibSSLAdapter._OP_IGNORE_UNEXPECTED_EOF
         return ctx
 
     def init_poolmanager(self, *args, **kwargs):
