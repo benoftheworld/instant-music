@@ -10,19 +10,48 @@ import hashlib
 from typing import Optional, Tuple, List, Dict
 
 import requests
+from requests.adapters import HTTPAdapter
 from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
 # ─── Constants ───────────────────────────────────────────────────────
 
-API_TIMEOUT: int = 8  # seconds for external HTTP requests
+# (connect_timeout, read_timeout) — short connect so a down server fails fast
+API_TIMEOUT: tuple = (3, 6)
 CACHE_TTL_LYRICS: int = 3600  # 1 hour for successful lyrics
 CACHE_TTL_NEGATIVE: int = 1800  # 30 min for "not found" lyrics
 CACHE_TTL_SYNCED_NEG: int = 300  # 5 min for "not found" synced lyrics
 CACHE_TTL_LRCLIB_ID: int = 3600  # 1 hour for lrclib-by-id results
 
-# Words that are too short or common to be interesting blanks
+# Circuit-breaker: if lrclib.net is unreachable, skip it for this window
+_LRCLIB_DOWN_KEY: str = "lrclib_circuit_open"
+_LRCLIB_DOWN_TTL: int = 90  # seconds before retrying after all failures
+
+
+def _lrclib_session() -> requests.Session:
+    """Return a Session with no automatic retries (we handle errors ourselves)."""
+    session = requests.Session()
+    # retries=0 prevents urllib3 from silently masking SSL EOF as 'Max retries'
+    adapter = HTTPAdapter(max_retries=0)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+
+def _lrclib_is_down() -> bool:
+    """True when the circuit breaker flag is set (lrclib recently failed)."""
+    return bool(cache.get(_LRCLIB_DOWN_KEY))
+
+
+def _lrclib_mark_down() -> None:
+    """Open the circuit breaker for _LRCLIB_DOWN_TTL seconds."""
+    # Only set if not already set (preserve the original expiry)
+    cache.add(_LRCLIB_DOWN_KEY, True, _LRCLIB_DOWN_TTL)
+
+
+# ─── Common words excluded from fill-in-the-blank ───────────────────
+
 BORING_WORDS = {
     # English
     "a",
@@ -142,8 +171,10 @@ def parse_lrc(lrc_text: str) -> List[Dict]:
 
 def _lrclib_request(artist_clean: str, title_clean: str) -> Optional[dict]:
     """Call LRCLib API and return the JSON response dict or None."""
+    if _lrclib_is_down():
+        return None
     try:
-        resp = requests.get(
+        resp = _lrclib_session().get(
             "https://lrclib.net/api/get",
             params={
                 "artist_name": artist_clean,
@@ -153,7 +184,15 @@ def _lrclib_request(artist_clean: str, title_clean: str) -> Optional[dict]:
         )
         if resp.status_code == 200:
             return resp.json()
-    except Exception as e:
+    except (requests.Timeout, requests.ConnectionError) as e:
+        logger.warning(
+            "LRCLib request failed for %s - %s: %s",
+            artist_clean,
+            title_clean,
+            e,
+        )
+        _lrclib_mark_down()
+    except Exception as e:  # noqa: BLE001
         logger.warning(
             "LRCLib request failed for %s - %s: %s",
             artist_clean,
@@ -180,7 +219,7 @@ def get_synced_lyrics_by_lrclib_id(lrclib_id: int) -> Optional[List[Dict]]:
         return cached if cached != "__NONE__" else None
 
     try:
-        resp = requests.get(
+        resp = _lrclib_session().get(
             f"https://lrclib.net/api/get/{lrclib_id}",
             timeout=API_TIMEOUT,
         )
@@ -197,7 +236,12 @@ def get_synced_lyrics_by_lrclib_id(lrclib_id: int) -> Optional[List[Dict]]:
                 return lines
         # Cache negative result to avoid hammering the API
         cache.set(cache_key, "__NONE__", CACHE_TTL_LRCLIB_ID)
-    except Exception as exc:
+    except (requests.Timeout, requests.ConnectionError) as exc:
+        logger.warning(
+            "LRCLib by-id request failed for id=%s: %s", lrclib_id, exc
+        )
+        _lrclib_mark_down()
+    except Exception as exc:  # noqa: BLE001
         logger.warning(
             "LRCLib by-id request failed for id=%s: %s", lrclib_id, exc
         )
@@ -254,8 +298,10 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
 
 def _lrclib_search(query: str) -> Optional[dict]:
     """Call LRCLib /api/search and return the best matching result or None."""
+    if _lrclib_is_down():
+        return None
     try:
-        resp = requests.get(
+        resp = _lrclib_session().get(
             "https://lrclib.net/api/search",
             params={"q": query},
             timeout=API_TIMEOUT,
@@ -268,7 +314,10 @@ def _lrclib_search(query: str) -> Optional[dict]:
                     if item.get("syncedLyrics"):
                         return item
                 return results[0]
-    except Exception as e:
+    except (requests.Timeout, requests.ConnectionError) as e:
+        logger.warning("LRCLib search failed for %s: %s", query, e)
+        _lrclib_mark_down()
+    except Exception as e:  # noqa: BLE001
         logger.warning("LRCLib search failed for %s: %s", query, e)
     return None
 

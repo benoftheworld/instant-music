@@ -165,6 +165,11 @@ export default function GamePlayPage() {
 
       if (newRemaining <= 0) {
         clearInterval(interval);
+
+        // In karaoke mode the round is driven by the YouTube video end event,
+        // not the timer — skip the automatic termination here.
+        if (game?.mode === 'karaoke') return;
+
         soundEffects.timeUp();
 
         // Host terminates the round immediately to send results to all players
@@ -398,8 +403,17 @@ export default function GamePlayPage() {
         return <YearQuestion {...commonProps} />;
       case 'paroles':
         return <LyricsQuestion {...commonProps} />;
-      case 'karaoke':
-        return <KaraokeQuestion {...commonProps} />;
+      case 'karaoke': {
+        // End the round when the YouTube video finishes (host only).
+        // Non-hosts will receive the round_ended WebSocket message.
+        const handleKaraokeEnded = () => {
+          if (user && game && game.host === user.id && !showResults) {
+            gameService.endCurrentRound(roomCode!)
+              .catch(err => console.error('Failed to end karaoke round:', err));
+          }
+        };
+        return <KaraokeQuestion {...commonProps} onSkipSong={handleKaraokeEnded} />;
+      }
       default:
         return <QuizQuestion {...commonProps} />;
     }
