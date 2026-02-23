@@ -37,7 +37,9 @@ _LRCLIB_DOWN_TTL: int = 90  # seconds before retrying after all failures
 
 
 _OP_IGNORE_UNEXPECTED_EOF: int = getattr(ssl, "OP_IGNORE_UNEXPECTED_EOF", 0x80)
-_LRCLIB_READ_TIMEOUT: int = 6
+_LRCLIB_READ_TIMEOUT: int = (
+    12  # lrclib.net can be slow; single call so 12s is acceptable
+)
 
 
 def _lrclib_ssl_context() -> ssl.SSLContext:
