@@ -60,6 +60,27 @@ class Game(models.Model):
         _("ID playlist Deezer"), max_length=255, null=True, blank=True
     )
     is_online = models.BooleanField(_("en ligne"), default=True)
+    is_public = models.BooleanField(
+        _("partie publique"),
+        default=False,
+        help_text=_(
+            "Si activé, la partie apparaît dans la liste des parties publiques"
+        ),
+    )
+    playlist_name = models.CharField(
+        _("nom de la playlist"),
+        max_length=255,
+        blank=True,
+        default="",
+        help_text=_("Nom de la playlist sélectionnée (pour affichage)"),
+    )
+    playlist_image_url = models.URLField(
+        _("image de la playlist"),
+        max_length=500,
+        blank=True,
+        default="",
+        help_text=_("URL de l'image de la playlist"),
+    )
     answer_mode = models.CharField(
         _("mode de réponse"),
         max_length=10,

@@ -53,10 +53,13 @@ export interface Game {
   max_players: number;
   num_rounds: number;
   playlist_id?: string;
+  playlist_name?: string;
+  playlist_image_url?: string;
   karaoke_track?: KaraokeTrack | null;
   karaoke_song?: number | null;
   karaoke_song_detail?: KaraokeSong | null;
   is_online: boolean;
+  is_public: boolean;
   answer_mode: AnswerMode;
   guess_target: GuessTarget;
   round_duration: number;
@@ -86,8 +89,11 @@ export interface CreateGameData {
   max_players: number;
   num_rounds: number;
   playlist_id?: string;
+  playlist_name?: string;
+  playlist_image_url?: string;
   karaoke_song_id?: number | null;
   is_online: boolean;
+  is_public: boolean;
   answer_mode: AnswerMode;
   guess_target: GuessTarget;
   round_duration: number;

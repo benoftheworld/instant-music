@@ -32,6 +32,12 @@ export const gameService = {
     return response.data;
   },
 
+  async getPublicGames(search?: string): Promise<Game[]> {
+    const params = search ? { search } : {};
+    const response = await api.get<Game[]>('/games/public/', { params });
+    return response.data;
+  },
+
   async getCurrentRound(roomCode: string): Promise<any> {
     const response = await api.get(`/games/${roomCode}/current-round/`);
     return response.data;

@@ -56,6 +56,7 @@ export default function CreateGamePage() {
   const [maxPlayers, setMaxPlayers] = useState(8);
   const [numRounds, setNumRounds] = useState(10);
   const [isOnline, setIsOnline] = useState(true);
+  const [isPublic, setIsPublic] = useState(false);
 
   // Step 3: Playlist (non-karaoke) or karaoke song
   const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
@@ -116,8 +117,11 @@ export default function CreateGamePage() {
         max_players: isKaraoke ? 1 : maxPlayers,
         num_rounds: isKaraoke ? 1 : numRounds,
         playlist_id: isKaraoke ? undefined : selectedPlaylist?.youtube_id,
+        playlist_name: isKaraoke ? undefined : selectedPlaylist?.name,
+        playlist_image_url: isKaraoke ? undefined : selectedPlaylist?.image_url,
         karaoke_song_id: isKaraoke ? karaokeSelectedSong!.id : undefined,
         is_online: isKaraoke ? false : isOnline,
+        is_public: isKaraoke ? false : isPublic,
         answer_mode: answerMode,
         guess_target: guessTarget,
         round_duration: roundDuration,
@@ -329,13 +333,36 @@ export default function CreateGamePage() {
                   type="checkbox"
                   id="isOffline"
                   checked={!isOnline}
-                  onChange={(e) => setIsOnline(!e.target.checked)}
+                  onChange={(e) => {
+                    setIsOnline(!e.target.checked);
+                    if (e.target.checked) setIsPublic(false);
+                  }}
                   className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                 />
                 <label htmlFor="isOffline" className="text-sm font-medium text-gray-700">
                   📴 Mode hors ligne (solo)
                 </label>
               </div>
+
+              {isOnline && (
+                <div className="flex gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="isPublic"
+                    checked={isPublic}
+                    onChange={(e) => setIsPublic(e.target.checked)}
+                    className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                  />
+                  <div>
+                    <label htmlFor="isPublic" className="text-sm font-medium text-gray-700">
+                      🌐 Partie publique
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Visible dans la liste des parties publiques. N'importe qui peut rejoindre.
+                    </p>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -551,6 +578,9 @@ export default function CreateGamePage() {
                   <li><span className="text-gray-500">Joueurs max :</span> <strong>{maxPlayers}</strong></li>
                   <li><span className="text-gray-500">Score affichage :</span> <strong>{scoreDisplayDuration}s</strong></li>
                   <li><span className="text-gray-500">Mode :</span> <strong>{isOnline ? 'En ligne' : 'Hors ligne'}</strong></li>
+                  {isOnline && (
+                    <li><span className="text-gray-500">Visibilité :</span> <strong>{isPublic ? '🌐 Publique' : '🔒 Privée'}</strong></li>
+                  )}
                 </>
               )}
               {isKaraoke && (

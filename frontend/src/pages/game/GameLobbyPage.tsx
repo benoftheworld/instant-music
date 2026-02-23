@@ -22,11 +22,11 @@ export default function GameLobbyPage() {
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
   const { isConnected, sendMessage, onMessage } = useWebSocket(roomCode);
-  
+
   useEffect(() => {
     const unsubscribe = onMessage('message', (data) => {
       console.log('WebSocket message received:', data);
-      
+
       if (data.type === 'player_joined') {
         soundEffects.playerJoined();
         // Update game data with new player info
@@ -54,7 +54,7 @@ export default function GameLobbyPage() {
       setLoading(true);
       const gameData = await gameService.getGame(roomCode);
       setGame(gameData);
-      
+
       // If game already started or finished, redirect
       if (gameData.status === 'in_progress') {
         navigate(`/game/play/${roomCode}`);
@@ -63,11 +63,11 @@ export default function GameLobbyPage() {
         navigate('/');
         return;
       }
-      
+
       // If not the host and not already in the game, try to join
       if (user && gameData.host !== user.id) {
         const isAlreadyInGame = gameData.players.some((p: any) => p.user === user.id);
-        
+
         if (!isAlreadyInGame) {
           try {
             await gameService.joinGame(roomCode);
@@ -100,14 +100,16 @@ export default function GameLobbyPage() {
 
   const handleSelectPlaylist = async (playlist: YouTubePlaylist) => {
     if (!game || !roomCode) return;
-    
+
     setSelectedPlaylist(playlist);
     setShowPlaylistSelector(false);
-    
+
     try {
-      // Update game with playlist ID via API
+      // Update game with playlist ID and info via API
       const updatedGame = await gameService.updateGame(roomCode, {
-        playlist_id: playlist.youtube_id
+        playlist_id: playlist.youtube_id,
+        playlist_name: playlist.name,
+        playlist_image_url: playlist.image_url,
       });
       setGame(updatedGame);
     } catch (err) {
@@ -153,19 +155,19 @@ export default function GameLobbyPage() {
     try {
       // Call API to start the game (generates rounds)
       await gameService.startGame(roomCode);
-      
+
       // Notify other players via WebSocket
       sendMessage({
         type: 'start_game',
         room_code: roomCode
       });
-      
+
       // Navigate to game play page
       navigate(`/game/play/${roomCode}`);
     } catch (err: any) {
       console.error('Failed to start game:', err);
       const errorMessage = err?.response?.data?.error || 'Erreur lors du démarrage de la partie';
-      
+
       // Add helpful message for playlist access errors
       if (errorMessage.includes('playlist') && (errorMessage.includes('403') || errorMessage.includes('404'))) {
         setStartError(
@@ -378,20 +380,22 @@ export default function GameLobbyPage() {
 
               {selectedPlaylist || game.playlist_id ? (
                 <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                  {selectedPlaylist?.image_url && (
+                  {(selectedPlaylist?.image_url || game.playlist_image_url) && (
                     <img
-                      src={selectedPlaylist.image_url}
-                      alt={selectedPlaylist.name}
+                      src={selectedPlaylist?.image_url || game.playlist_image_url}
+                      alt={selectedPlaylist?.name || game.playlist_name || 'Playlist'}
                       className="w-20 h-20 rounded-md object-cover"
                     />
                   )}
                   <div>
                     <h3 className="font-semibold">
-                      {selectedPlaylist?.name || 'Playlist sélectionnée'}
+                      {selectedPlaylist?.name || game.playlist_name || 'Playlist sélectionnée'}
                     </h3>
-                    {selectedPlaylist && (
+                    {(selectedPlaylist || game.playlist_name) && (
                       <p className="text-sm text-gray-600">
-                        {selectedPlaylist.total_tracks} morceaux • {selectedPlaylist.owner}
+                        {selectedPlaylist
+                          ? `${selectedPlaylist.total_tracks} morceaux • ${selectedPlaylist.owner}`
+                          : game.playlist_name ? `Playlist Deezer #${game.playlist_id}` : ''}
                       </p>
                     )}
                   </div>
@@ -449,4 +453,3 @@ export default function GameLobbyPage() {
     </div>
   );
 }
-

@@ -179,9 +179,7 @@ class GameViewSet(viewsets.ModelViewSet):
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
-            logger.error(
-                "Unexpected error starting game %s: %s", room_code, e
-            )
+            logger.error("Unexpected error starting game %s: %s", room_code, e)
             return Response(
                 {"error": f"Erreur inattendue: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -215,9 +213,7 @@ class GameViewSet(viewsets.ModelViewSet):
                 {"current_round": None, "message": "Partie terminée"}
             )
 
-        return Response(
-            {"current_round": GameRoundSerializer(round_obj).data}
-        )
+        return Response({"current_round": GameRoundSerializer(round_obj).data})
 
     @action(detail=True, methods=["post"])
     def answer(self, request, room_code=None):
@@ -342,9 +338,7 @@ class GameViewSet(viewsets.ModelViewSet):
                 current.refresh_from_db()
                 broadcast_round_end(room_code, current, game)
             except Exception:
-                logger.exception(
-                    "Failed to broadcast round_end on timeout"
-                )
+                logger.exception("Failed to broadcast round_end on timeout")
 
         next_rnd = game_service.get_next_round(game)
 
@@ -449,12 +443,14 @@ class GameViewSet(viewsets.ModelViewSet):
             except Exception:
                 team_name = None
 
-            rankings.append({
-                "username": p.user.username,
-                "score": p.score,
-                "rank": p.rank,
-                "team_name": team_name,
-            })
+            rankings.append(
+                {
+                    "username": p.user.username,
+                    "score": p.score,
+                    "rank": p.rank,
+                    "team_name": team_name,
+                }
+            )
 
         rounds_detail = []
         for r in game.rounds.order_by("round_number"):
@@ -487,8 +483,12 @@ class GameViewSet(viewsets.ModelViewSet):
             "guess_target_display": game.get_guess_target_display(),
             "num_rounds": game.num_rounds,
             "name": game.name,
-            "started_at": game.started_at.isoformat() if game.started_at else None,
-            "finished_at": game.finished_at.isoformat() if game.finished_at else None,
+            "started_at": (
+                game.started_at.isoformat() if game.started_at else None
+            ),
+            "finished_at": (
+                game.finished_at.isoformat() if game.finished_at else None
+            ),
         }
 
         pdf_bytes = generate_results_pdf(game_data, rankings, rounds_detail)
@@ -506,14 +506,38 @@ class GameViewSet(viewsets.ModelViewSet):
         serializer = GameSerializer(games, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=["get"], url_path="public")
+    def public_games(self, request):
+        """Get list of public games waiting for players."""
+        games = (
+            Game.objects.filter(
+                status="waiting", is_public=True, is_online=True
+            )
+            .select_related("host")
+            .prefetch_related("players")
+            .order_by("-created_at")
+        )
+        search = request.query_params.get("search", "").strip()
+        if search:
+            from django.db.models import Q
+
+            games = games.filter(
+                Q(name__icontains=search)
+                | Q(room_code__icontains=search)
+                | Q(playlist_name__icontains=search)
+                | Q(host__username__icontains=search)
+            )
+        serializer = GameSerializer(games, many=True)
+        return Response(serializer.data)
+
     @action(detail=False, methods=["get"], permission_classes=[])
     def history(self, request):
         """Get game history (finished games)."""
         # Pagination params
-        page = max(int(request.query_params.get('page', 1)), 1)
-        page_size_param = request.query_params.get('page_size', None)
+        page = max(int(request.query_params.get("page", 1)), 1)
+        page_size_param = request.query_params.get("page_size", None)
         # keep backward-compatible 'limit' param if provided
-        limit = request.query_params.get('limit', None)
+        limit = request.query_params.get("limit", None)
 
         if page_size_param is not None:
             try:
@@ -538,22 +562,26 @@ class GameViewSet(viewsets.ModelViewSet):
         )
 
         # Optional mode filter
-        mode = request.query_params.get('mode', None)
+        mode = request.query_params.get("mode", None)
         if mode:
             valid_modes = [choice[0] for choice in GameMode.choices]
             if mode in valid_modes:
                 games_qs = games_qs.filter(mode=mode)
 
         total_count = games_qs.count()
-        games = games_qs[offset:offset + page_size]
+        games = games_qs[offset : offset + page_size]
 
-        serializer = GameHistorySerializer(games, many=True, context={"request": request})
-        return Response({
-            'count': total_count,
-            'page': page,
-            'page_size': page_size,
-            'results': serializer.data,
-        })
+        serializer = GameHistorySerializer(
+            games, many=True, context={"request": request}
+        )
+        return Response(
+            {
+                "count": total_count,
+                "page": page,
+                "page_size": page_size,
+                "results": serializer.data,
+            }
+        )
 
     @action(detail=False, methods=["get"], permission_classes=[])
     def leaderboard(self, request):
