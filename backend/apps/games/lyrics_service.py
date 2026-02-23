@@ -9,11 +9,15 @@ import re
 import hashlib
 from typing import Optional, Tuple, List, Dict
 
+import json
+import socket
 import ssl
+import urllib.error
+import urllib.request
+from urllib.parse import urlencode
+from urllib.parse import quote as url_quote
 
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -32,67 +36,70 @@ _LRCLIB_DOWN_KEY: str = "lrclib_circuit_open"
 _LRCLIB_DOWN_TTL: int = 90  # seconds before retrying after all failures
 
 
-class _LrclibSSLAdapter(HTTPAdapter):
-    """HTTPAdapter that tolerates lrclib.net's non-standard TLS close.
+_OP_IGNORE_UNEXPECTED_EOF: int = getattr(ssl, "OP_IGNORE_UNEXPECTED_EOF", 0x80)
+_LRCLIB_READ_TIMEOUT: int = 6
 
-    lrclib.net (and many CDN-backed hosts) sometimes terminates the TLS
-    session without sending a proper close_notify alert.  curl handles this
-    transparently; Python's ssl module raises SSLEOFError instead.
 
-    OpenSSL 3.0 introduced SSL_OP_IGNORE_UNEXPECTED_EOF (0x80) to suppress
-    this error.  Python 3.12 exposes it as ssl.OP_IGNORE_UNEXPECTED_EOF;
-    for Python 3.11 we set the same flag via its numeric value.
+def _lrclib_ssl_context() -> ssl.SSLContext:
+    """Return an SSL context that works with lrclib.net on OpenSSL 3.5+.
+
+    OpenSSL 3.5 raised the default SECLEVEL to 2, which rejects ciphers/
+    certificates used by lrclib.net during the TLS handshake.  Lowering to
+    SECLEVEL=1 and using PROTOCOL_TLS_CLIENT (not create_default_context)
+    matches curl's effective behaviour on the same host.
+
+    urllib.request is used (not requests/urllib3) because urllib3 wraps SSL
+    sockets via MemoryBIO in a way that consistently triggers
+    SSLZeroReturnError for this host even with the same SSL options.
     """
-
-    # SSL_OP_IGNORE_UNEXPECTED_EOF = 0x00000080  (OpenSSL 3.0+)
-    _OP_IGNORE_UNEXPECTED_EOF: int = getattr(
-        ssl, "OP_IGNORE_UNEXPECTED_EOF", 0x80
-    )
-
-    @staticmethod
-    def _make_ssl_context() -> ssl.SSLContext:
-        # Use PROTOCOL_TLS_CLIENT instead of create_default_context():
-        # OpenSSL 3.5 raised the default SECLEVEL to 2, which rejects the
-        # cipher/certificate chain used by lrclib.net during the TLS handshake.
-        # PROTOCOL_TLS_CLIENT gives the same hostname+cert verification with a
-        # more permissive baseline, matching curl's effective behaviour.
-        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        ctx.check_hostname = True
-        ctx.verify_mode = ssl.CERT_REQUIRED
-        ctx.load_default_certs()
-        ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
-        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
-        ctx.options |= _LrclibSSLAdapter._OP_IGNORE_UNEXPECTED_EOF
-        return ctx
-
-    def init_poolmanager(self, *args, **kwargs):
-        kwargs["ssl_context"] = self._make_ssl_context()
-        super().init_poolmanager(*args, **kwargs)
-
-    def proxy_manager_for(self, proxy, **proxy_kwargs):
-        proxy_kwargs["ssl_context"] = self._make_ssl_context()
-        return super().proxy_manager_for(proxy, **proxy_kwargs)
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ctx.check_hostname = True
+    ctx.verify_mode = ssl.CERT_REQUIRED
+    ctx.load_default_certs()
+    ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+    ctx.options |= _OP_IGNORE_UNEXPECTED_EOF
+    return ctx
 
 
-def _lrclib_session() -> requests.Session:
-    """Return a Session with one automatic retry on transient SSL/connection errors.
+def _lrclib_fetch(url: str, params: Optional[dict] = None):
+    """GET a lrclib.net endpoint via urllib.request; return parsed JSON or None.
 
-    Uses _LrclibSSLAdapter to tolerate lrclib.net's abrupt TLS EOF, which
-    would otherwise raise SSLEOFError in Python's strict ssl module.
-    Read timeouts are NOT retried (server is reachable but slow).
+    Uses urllib.request directly to bypass urllib3's MemoryBIO SSL layer,
+    which is incompatible with lrclib.net's TLS stack on OpenSSL 3.5.
+    Marks the circuit breaker only on genuine connection failures (DNS,
+    refused), not on SSL or timeout errors.
     """
-    session = requests.Session()
-    retry = Retry(
-        total=1,  # at most 1 extra attempt
-        connect=1,  # retry SSL handshake / connection errors
-        read=0,  # never retry a read timeout
-        backoff_factor=0.2,
-        raise_on_status=False,
+    if _lrclib_is_down():
+        return None
+    if params:
+        url = f"{url}?{urlencode(params)}"
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "InstantMusic/1.0 (lyrics fetcher)"},
     )
-    adapter = _LrclibSSLAdapter(max_retries=retry)
-    session.mount("https://", adapter)
-    session.mount("http://", adapter)
-    return session
+    try:
+        with urllib.request.urlopen(
+            req, context=_lrclib_ssl_context(), timeout=_LRCLIB_READ_TIMEOUT
+        ) as resp:
+            if resp.status == 200:
+                return json.loads(resp.read().decode("utf-8"))
+    except ssl.SSLError as exc:
+        # Transient TLS issue — do NOT open circuit breaker
+        logger.warning("LRCLib SSL error for %s: %s", url, exc)
+    except (socket.timeout, TimeoutError) as exc:
+        logger.warning("LRCLib timeout for %s: %s", url, exc)
+    except urllib.error.HTTPError as exc:
+        logger.warning(
+            "LRCLib HTTP error for %s: %s %s", url, exc.code, exc.reason
+        )
+    except urllib.error.URLError as exc:
+        # Connection refused, DNS failure — server genuinely unreachable
+        logger.warning("LRCLib connection error for %s: %s", url, exc)
+        _lrclib_mark_down()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("LRCLib unexpected error for %s: %s", url, exc)
+    return None
 
 
 def _lrclib_is_down() -> bool:
@@ -226,44 +233,11 @@ def parse_lrc(lrc_text: str) -> List[Dict]:
 
 
 def _lrclib_request(artist_clean: str, title_clean: str) -> Optional[dict]:
-    """Call LRCLib API and return the JSON response dict or None."""
-    if _lrclib_is_down():
-        return None
-    try:
-        resp = _lrclib_session().get(
-            "https://lrclib.net/api/get",
-            params={
-                "artist_name": artist_clean,
-                "track_name": title_clean,
-            },
-            timeout=API_TIMEOUT,
-        )
-        if resp.status_code == 200:
-            return resp.json()
-    except requests.exceptions.SSLError as e:
-        # SSLEOFError / cert error — transient TLS issue, do NOT open circuit breaker
-        logger.warning(
-            "LRCLib SSL error for %s - %s: %s",
-            artist_clean,
-            title_clean,
-            e,
-        )
-    except requests.ConnectionError as e:
-        logger.warning(
-            "LRCLib connection error for %s - %s: %s",
-            artist_clean,
-            title_clean,
-            e,
-        )
-        _lrclib_mark_down()
-    except (requests.Timeout, Exception) as e:  # noqa: BLE001
-        logger.warning(
-            "LRCLib request failed for %s - %s: %s",
-            artist_clean,
-            title_clean,
-            e,
-        )
-    return None
+    """Call LRCLib /api/get and return the JSON response dict or None."""
+    return _lrclib_fetch(
+        "https://lrclib.net/api/get",
+        params={"artist_name": artist_clean, "track_name": title_clean},
+    )
 
 
 def get_synced_lyrics_by_lrclib_id(lrclib_id: int) -> Optional[List[Dict]]:
@@ -282,36 +256,19 @@ def get_synced_lyrics_by_lrclib_id(lrclib_id: int) -> Optional[List[Dict]]:
     if cached is not None:
         return cached if cached != "__NONE__" else None
 
-    try:
-        resp = _lrclib_session().get(
-            f"https://lrclib.net/api/get/{lrclib_id}",
-            timeout=API_TIMEOUT,
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            raw = data.get("syncedLyrics", "")
-            if raw:
-                lines = parse_lrc(raw) or None
-                cache.set(
-                    cache_key,
-                    lines if lines else "__NONE__",
-                    CACHE_TTL_LRCLIB_ID,
-                )
-                return lines
-        # Cache negative result to avoid hammering the API
-        cache.set(cache_key, "__NONE__", CACHE_TTL_LRCLIB_ID)
-    except requests.exceptions.SSLError as exc:
-        # Transient TLS issue — do NOT open circuit breaker
-        logger.warning("LRCLib by-id SSL error for id=%s: %s", lrclib_id, exc)
-    except requests.ConnectionError as exc:
-        logger.warning(
-            "LRCLib by-id connection error for id=%s: %s", lrclib_id, exc
-        )
-        _lrclib_mark_down()
-    except (requests.Timeout, Exception) as exc:  # noqa: BLE001
-        logger.warning(
-            "LRCLib by-id request failed for id=%s: %s", lrclib_id, exc
-        )
+    data = _lrclib_fetch(f"https://lrclib.net/api/get/{lrclib_id}")
+    if data is not None:
+        raw = data.get("syncedLyrics", "")
+        if raw:
+            lines = parse_lrc(raw) or None
+            cache.set(
+                cache_key,
+                lines if lines else "__NONE__",
+                CACHE_TTL_LRCLIB_ID,
+            )
+            return lines
+    # Cache negative result to avoid hammering the API
+    cache.set(cache_key, "__NONE__", CACHE_TTL_LRCLIB_ID)
     return None
 
 
@@ -347,7 +304,7 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
     # ── 2. lyrics.ovh fallback ────────────────────────────────────────
     url = (
         f"https://api.lyrics.ovh/v1/"
-        f"{requests.utils.quote(artist_clean)}/{requests.utils.quote(title_clean)}"
+        f"{url_quote(artist_clean)}/{url_quote(title_clean)}"
     )
     try:
         resp = requests.get(url, timeout=API_TIMEOUT)
@@ -365,30 +322,15 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
 
 def _lrclib_search(query: str) -> Optional[dict]:
     """Call LRCLib /api/search and return the best matching result or None."""
-    if _lrclib_is_down():
-        return None
-    try:
-        resp = _lrclib_session().get(
-            "https://lrclib.net/api/search",
-            params={"q": query},
-            timeout=API_TIMEOUT,
-        )
-        if resp.status_code == 200:
-            results = resp.json()
-            if isinstance(results, list) and results:
-                # Prefer results that have synced lyrics
-                for item in results:
-                    if item.get("syncedLyrics"):
-                        return item
-                return results[0]
-    except requests.exceptions.SSLError as e:
-        # Transient TLS issue — do NOT open circuit breaker
-        logger.warning("LRCLib search SSL error for %s: %s", query, e)
-    except requests.ConnectionError as e:
-        logger.warning("LRCLib search connection error for %s: %s", query, e)
-        _lrclib_mark_down()
-    except (requests.Timeout, Exception) as e:  # noqa: BLE001
-        logger.warning("LRCLib search failed for %s: %s", query, e)
+    results = _lrclib_fetch(
+        "https://lrclib.net/api/search", params={"q": query}
+    )
+    if isinstance(results, list) and results:
+        # Prefer results that have synced lyrics
+        for item in results:
+            if item.get("syncedLyrics"):
+                return item
+        return results[0]
     return None
 
 
