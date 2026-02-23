@@ -25,9 +25,6 @@ const GuessArtistQuestion = ({
         <h2 className="text-2xl font-bold text-gray-800 mb-2">
           {round.question_text || 'Qui interprète ce morceau ?'}
         </h2>
-        <p className="text-gray-600">
-          Titre : <span className="font-semibold">{round.track_name}</span>
-        </p>
       </div>
 
       {/* Audio player */}
