@@ -1,0 +1,667 @@
+"""ViewSet for Game model."""
+
+from __future__ import annotations
+
+import logging
+import random
+import string
+
+from django.utils import timezone
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from ..models import Game, GameAnswer, GamePlayer
+from ..models.enums import GameMode
+from ..serializers import (
+    CreateGameSerializer,
+    GameAnswerSerializer,
+    GameHistorySerializer,
+    GamePlayerSerializer,
+    GameRoundSerializer,
+    GameSerializer,
+)
+from ..services import game_service
+from ..broadcast_service import (
+    broadcast_game_finish,
+    broadcast_game_update,
+    broadcast_next_round,
+    broadcast_player_join,
+    broadcast_player_leave,
+    broadcast_round_end,
+    broadcast_round_start,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def generate_room_code() -> str:
+    """Generate a unique 6-character room code."""
+    while True:
+        code = "".join(
+            random.choices(string.ascii_uppercase + string.digits, k=6)
+        )
+        if not Game.objects.filter(room_code=code).exists():
+            return code
+
+
+class GameViewSet(viewsets.ModelViewSet):
+    """ViewSet for Game model."""
+
+    queryset = Game.objects.all()
+    serializer_class = GameSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = "room_code"
+
+    def get_serializer_class(self):
+        """Return appropriate serializer class."""
+        if self.action == "create":
+            return CreateGameSerializer
+        return GameSerializer
+
+    def create(self, request):
+        """Create a new game."""
+        serializer = CreateGameSerializer(data=request.data)
+
+        if serializer.is_valid():
+            game = serializer.save(
+                host=request.user, room_code=generate_room_code()
+            )
+            GamePlayer.objects.create(game=game, user=request.user)
+            return Response(
+                GameSerializer(game).data, status=status.HTTP_201_CREATED
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def partial_update(self, request, room_code=None):
+        """PATCH a game and broadcast the update to all lobby clients."""
+        game = self.get_object()
+        serializer = GameSerializer(game, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
+        serializer.save()
+        game.refresh_from_db()
+        game_data = GameSerializer(game, context={"request": request}).data
+        try:
+            broadcast_game_update(room_code, game_data)
+        except Exception:
+            pass  # non-fatal if channel layer is unavailable
+        return Response(game_data)
+
+    @action(detail=True, methods=["post"])
+    def join(self, request, room_code=None):
+        """Join a game."""
+        game = self.get_object()
+
+        if game.status != "waiting":
+            return Response(
+                {"error": "La partie a déjà commencé."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if game.players.count() >= game.max_players:
+            return Response(
+                {"error": "La partie est pleine."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if GamePlayer.objects.filter(game=game, user=request.user).exists():
+            return Response(
+                {"error": "Vous êtes déjà dans cette partie."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        player = GamePlayer.objects.create(game=game, user=request.user)
+
+        game.refresh_from_db()
+        game_serializer = GameSerializer(game, context={"request": request})
+        player_serializer = GamePlayerSerializer(
+            player, context={"request": request}
+        )
+
+        broadcast_player_join(
+            room_code,
+            player_data=player_serializer.data,
+            game_data=game_serializer.data,
+        )
+
+        return Response(player_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def leave(self, request, room_code=None):
+        """Leave a game (remove player from the game)."""
+        game = self.get_object()
+
+        if game.status not in ("waiting",):
+            return Response(
+                {"error": "Impossible de quitter une partie en cours."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            player = GamePlayer.objects.get(game=game, user=request.user)
+        except GamePlayer.DoesNotExist:
+            return Response(
+                {"error": "Vous n'êtes pas dans cette partie."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Host cannot leave — they should cancel the game instead
+        if game.host == request.user:
+            # Cancel the game when the host leaves
+            game.status = "cancelled"
+            game.save(update_fields=["status"])
+            player.delete()
+            game.refresh_from_db()
+            game_serializer = GameSerializer(
+                game, context={"request": request}
+            )
+            broadcast_player_leave(
+                room_code,
+                player_data={
+                    "user": request.user.id,
+                    "username": request.user.username,
+                },
+                game_data=game_serializer.data,
+            )
+            return Response({"message": "Partie annulée (l'hôte a quitté)."})
+
+        player.delete()
+        game.refresh_from_db()
+        game_serializer = GameSerializer(game, context={"request": request})
+        broadcast_player_leave(
+            room_code,
+            player_data={
+                "user": request.user.id,
+                "username": request.user.username,
+            },
+            game_data=game_serializer.data,
+        )
+
+        return Response({"message": "Vous avez quitté la partie."})
+
+    @action(detail=True, methods=["post"])
+    def start(self, request, room_code=None):
+        """Start a game and generate rounds."""
+        game = self.get_object()
+
+        if game.host != request.user:
+            return Response(
+                {"error": "Seul l'hôte peut démarrer la partie."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if game.status == "in_progress":
+            existing_rounds = game.rounds.all().order_by("round_number")
+            first_round = existing_rounds.first()
+            return Response(
+                {
+                    "game": GameSerializer(game).data,
+                    "rounds_created": existing_rounds.count(),
+                    "first_round": (
+                        GameRoundSerializer(first_round).data
+                        if first_round
+                        else None
+                    ),
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        min_players = 1 if game.mode == "karaoke" else 2
+        if game.players.count() < min_players:
+            msg = (
+                "Au moins 1 joueur est nécessaire."
+                if game.mode == "karaoke"
+                else "Au moins 2 joueurs sont nécessaires."
+            )
+            return Response(
+                {"error": msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if game.mode != "karaoke" and not game.playlist_id:
+            return Response(
+                {"error": "Veuillez sélectionner une playlist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            game, rounds = game_service.start_game(game)
+
+            if rounds:
+                broadcast_round_start(room_code, rounds[0])
+
+            return Response(
+                {
+                    "game": GameSerializer(game).data,
+                    "rounds_created": len(rounds),
+                    "first_round": (
+                        GameRoundSerializer(rounds[0]).data if rounds else None
+                    ),
+                },
+                status=status.HTTP_200_OK,
+            )
+        except ValueError as e:
+            logger.error("Failed to start game %s: %s", room_code, e)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error("Unexpected error starting game %s: %s", room_code, e)
+            return Response(
+                {"error": f"Erreur inattendue: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=True, methods=["get"], url_path="current-round")
+    def current_round(self, request, room_code=None):
+        """Get the current round of the game."""
+        game = self.get_object()
+
+        if not GamePlayer.objects.filter(
+            game=game, user=request.user
+        ).exists():
+            return Response(
+                {"error": "Vous n'êtes pas dans cette partie."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        round_obj = game_service.get_current_round(game)
+
+        if not round_obj:
+            next_round = game_service.get_next_round(game)
+            if next_round:
+                return Response(
+                    {
+                        "current_round": None,
+                        "next_round": GameRoundSerializer(next_round).data,
+                    }
+                )
+            return Response(
+                {"current_round": None, "message": "Partie terminée"}
+            )
+
+        return Response({"current_round": GameRoundSerializer(round_obj).data})
+
+    @action(detail=True, methods=["post"])
+    def answer(self, request, room_code=None):
+        """Submit an answer for the current round."""
+        game = self.get_object()
+
+        try:
+            player = GamePlayer.objects.get(game=game, user=request.user)
+        except GamePlayer.DoesNotExist:
+            return Response(
+                {"error": "Vous n'êtes pas dans cette partie."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        round_obj = game_service.get_current_round(game)
+        if not round_obj:
+            return Response(
+                {"error": "Aucun round actif."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if GameAnswer.objects.filter(round=round_obj, player=player).exists():
+            return Response(
+                {"error": "Vous avez déjà répondu à ce round."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        answer_text = request.data.get("answer")
+        response_time = request.data.get("response_time", 0)
+
+        if not answer_text:
+            return Response(
+                {"error": "Aucune réponse fournie."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            game_answer = game_service.submit_answer(
+                player=player,
+                round_obj=round_obj,
+                answer=answer_text,
+                response_time=float(response_time),
+            )
+
+            total_players = game.players.count()
+            answered_players = GameAnswer.objects.filter(
+                round=round_obj
+            ).count()
+
+            if answered_players >= total_players:
+                round_obj.ended_at = timezone.now()
+                round_obj.save()
+                broadcast_round_end(room_code, round_obj, game)
+
+            return Response(
+                GameAnswerSerializer(game_answer).data,
+                status=status.HTTP_201_CREATED,
+            )
+        except ValueError as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=True, methods=["post"], url_path="end-round")
+    def end_current_round(self, request, room_code=None):
+        """End the current round and broadcast results (host only)."""
+        game = self.get_object()
+
+        if game.host != request.user:
+            return Response(
+                {"error": "Seul l'hôte peut terminer le round."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        current = game_service.get_current_round(game)
+        if not current:
+            return Response(
+                {"error": "Aucun round actif."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if current.ended_at:
+            return Response(
+                {"message": "Round déjà terminé."},
+                status=status.HTTP_200_OK,
+            )
+
+        game_service.end_round(current)
+
+        try:
+            current.refresh_from_db()
+            broadcast_round_end(room_code, current, game)
+            return Response(
+                {
+                    "message": "Round terminé.",
+                    "correct_answer": current.correct_answer,
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception:
+            logger.exception("Failed to end round")
+            return Response(
+                {"error": "Erreur lors de la fin du round."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=True, methods=["post"], url_path="next-round")
+    def next_round(self, request, room_code=None):
+        """Move to the next round (host only)."""
+        game = self.get_object()
+
+        if game.host != request.user:
+            return Response(
+                {"error": "Seul l'hôte peut passer au round suivant."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        current = game_service.get_current_round(game)
+        if current:
+            game_service.end_round(current)
+            try:
+                current.refresh_from_db()
+                broadcast_round_end(room_code, current, game)
+            except Exception:
+                logger.exception("Failed to broadcast round_end on timeout")
+
+        next_rnd = game_service.get_next_round(game)
+
+        if not next_rnd:
+            game = game_service.finish_game(game)
+            broadcast_game_finish(room_code, game)
+            return Response(
+                {
+                    "game": GameSerializer(game).data,
+                    "message": "Partie terminée",
+                }
+            )
+
+        game_service.start_round(next_rnd)
+        next_rnd.refresh_from_db()
+        broadcast_next_round(room_code, next_rnd, game)
+        return Response(GameRoundSerializer(next_rnd).data)
+
+    @action(detail=True, methods=["get"])
+    def results(self, request, room_code=None):
+        """Get final results and rankings with per-round breakdown."""
+        game = self.get_object()
+
+        if not GamePlayer.objects.filter(
+            game=game, user=request.user
+        ).exists():
+            return Response(
+                {"error": "Vous n'êtes pas dans cette partie."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        players = game.players.order_by("-score")
+
+        rounds_detail = []
+        for r in game.rounds.order_by("round_number"):
+            answers = [
+                {
+                    "username": ans.player.user.username,
+                    "answer": ans.answer,
+                    "is_correct": ans.is_correct,
+                    "points_earned": ans.points_earned,
+                    "response_time": round(ans.response_time, 1),
+                }
+                for ans in r.answers.select_related("player__user").order_by(
+                    "-points_earned"
+                )
+            ]
+            rounds_detail.append(
+                {
+                    "round_number": r.round_number,
+                    "track_name": r.track_name,
+                    "artist_name": r.artist_name,
+                    "correct_answer": r.correct_answer,
+                    "track_id": r.track_id,
+                    "answers": answers,
+                }
+            )
+
+        game_data = GameSerializer(game).data
+        # Add user-friendly display fields (used by frontend)
+        game_data["mode_display"] = game.get_mode_display()
+        game_data["answer_mode_display"] = game.get_answer_mode_display()
+        game_data["guess_target_display"] = game.get_guess_target_display()
+
+        return Response(
+            {
+                "game": game_data,
+                "rankings": GamePlayerSerializer(players, many=True).data,
+                "rounds": rounds_detail,
+            }
+        )
+
+    @action(detail=True, methods=["get"], url_path="results/pdf")
+    def results_pdf(self, request, room_code=None):
+        """Download game results as PDF."""
+        from django.http import HttpResponse
+
+        from ..pdf_service import generate_results_pdf
+
+        game = self.get_object()
+
+        if not GamePlayer.objects.filter(
+            game=game, user=request.user
+        ).exists():
+            return Response(
+                {"error": "Vous n'êtes pas dans cette partie."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        players = (
+            game.players.order_by("-score")
+            .select_related("user")
+            .prefetch_related("user__team_memberships__team")
+        )
+        rankings = []
+        for p in players:
+            team_name = None
+            try:
+                tm = p.user.team_memberships.first()
+                if tm and tm.team:
+                    team_name = tm.team.name
+            except Exception:
+                team_name = None
+
+            rankings.append(
+                {
+                    "username": p.user.username,
+                    "score": p.score,
+                    "rank": p.rank,
+                    "team_name": team_name,
+                }
+            )
+
+        rounds_detail = []
+        for r in game.rounds.order_by("round_number"):
+            answers = [
+                {
+                    "username": ans.player.user.username,
+                    "answer": ans.answer,
+                    "is_correct": ans.is_correct,
+                    "points_earned": ans.points_earned,
+                    "response_time": round(ans.response_time, 1),
+                }
+                for ans in r.answers.select_related("player__user").order_by(
+                    "-points_earned"
+                )
+            ]
+            rounds_detail.append(
+                {
+                    "round_number": r.round_number,
+                    "track_name": r.track_name,
+                    "artist_name": r.artist_name,
+                    "correct_answer": r.correct_answer,
+                    "answers": answers,
+                }
+            )
+
+        game_data = {
+            "room_code": game.room_code,
+            "mode_display": game.get_mode_display(),
+            "answer_mode_display": game.get_answer_mode_display(),
+            "guess_target_display": game.get_guess_target_display(),
+            "num_rounds": game.num_rounds,
+            "name": game.name,
+            "started_at": (
+                game.started_at.isoformat() if game.started_at else None
+            ),
+            "finished_at": (
+                game.finished_at.isoformat() if game.finished_at else None
+            ),
+        }
+
+        pdf_bytes = generate_results_pdf(game_data, rankings, rounds_detail)
+
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="instantmusic_resultats_{room_code}.pdf"'
+        )
+        return response
+
+    @action(detail=False, methods=["get"])
+    def available(self, request):
+        """Get list of available games to join."""
+        games = Game.objects.filter(status="waiting", is_online=True)
+        serializer = GameSerializer(games, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="public")
+    def public_games(self, request):
+        """Get list of public games waiting for players."""
+        games = (
+            Game.objects.filter(
+                status="waiting", is_public=True, is_online=True
+            )
+            .select_related("host")
+            .prefetch_related("players")
+            .order_by("-created_at")
+        )
+        search = request.query_params.get("search", "").strip()
+        if search:
+            from django.db.models import Q
+
+            games = games.filter(
+                Q(name__icontains=search)
+                | Q(room_code__icontains=search)
+                | Q(playlist_name__icontains=search)
+                | Q(host__username__icontains=search)
+            )
+        serializer = GameSerializer(games, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], permission_classes=[])
+    def history(self, request):
+        """Get game history (finished games)."""
+        # Pagination params
+        page = max(int(request.query_params.get("page", 1)), 1)
+        page_size_param = request.query_params.get("page_size", None)
+        # keep backward-compatible 'limit' param if provided
+        limit = request.query_params.get("limit", None)
+
+        if page_size_param is not None:
+            try:
+                page_size = min(int(page_size_param), 100)
+            except ValueError:
+                page_size = 50
+        elif limit is not None:
+            try:
+                page_size = min(int(limit), 100)
+            except ValueError:
+                page_size = 50
+        else:
+            page_size = 50
+
+        offset = (page - 1) * page_size
+
+        games_qs = (
+            Game.objects.filter(status="finished")
+            .select_related("host")
+            .prefetch_related("players__user")
+            .order_by("-finished_at")
+        )
+
+        # Optional mode filter
+        mode = request.query_params.get("mode", None)
+        if mode:
+            valid_modes = [choice[0] for choice in GameMode.choices]
+            if mode in valid_modes:
+                games_qs = games_qs.filter(mode=mode)
+
+        total_count = games_qs.count()
+        games = games_qs[offset : offset + page_size]
+
+        serializer = GameHistorySerializer(
+            games, many=True, context={"request": request}
+        )
+        return Response(
+            {
+                "count": total_count,
+                "page": page,
+                "page_size": page_size,
+                "results": serializer.data,
+            }
+        )
+
+    @action(detail=False, methods=["get"], permission_classes=[])
+    def leaderboard(self, request):
+        """Get global leaderboard of top players.
+
+        Delegates to :class:`apps.stats.views.LeaderboardView` to avoid
+        duplicated logic and N+1 queries.
+        """
+        from apps.stats.views import LeaderboardView
+
+        return LeaderboardView.as_view()(request._request)

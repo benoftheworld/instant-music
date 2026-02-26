@@ -1,0 +1,34 @@
+# docker-compose.override.yml
+# Ce fichier permet de surcharger la configuration de développement
+# Copiez ce fichier vers docker-compose.override.yml et personnalisez selon vos besoins
+
+# Exemple: Exposer PostgreSQL pour accès externe
+# services:
+#   db:
+#     ports:
+#       - "5432:5432"
+
+# Exemple: Exposer Redis pour accès externe  
+# services:
+#   redis:
+#     ports:
+#       - "6379:6379"
+
+# Exemple: Debug avec breakpoint()
+# services:
+#   backend:
+#     stdin_open: true
+#     tty: true
+
+# Exemple: Hot reload frontend
+# services:
+#   frontend:
+#     environment:
+#       - CHOKIDAR_USEPOLLING=true
+
+# Exemple: Variables d'environnement additionnelles
+# services:
+#   backend:
+#     environment:
+#       - DEBUG_TOOLBAR=True
+#       - SQL_DEBUG=True
