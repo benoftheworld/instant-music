@@ -1,0 +1,9 @@
+# Ruff configuration – replaces flake8/isort for the backend
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+src = ["backend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
