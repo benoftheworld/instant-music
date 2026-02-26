@@ -1,6 +1,6 @@
 # Monitoring stack: ELK (Elasticsearch + Logstash + Kibana) + Prometheus + Grafana
-# Usage:
-#   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+# Usage (from repo root):
+#   docker compose -f _devops/docker/docker-compose.yml -f _devops/docker/docker-compose.monitoring.yml up -d
 #
 # Ports exposed:
 #   Kibana        http://localhost:5601
@@ -34,8 +34,8 @@ services:
   logstash:
     image: docker.elastic.co/logstash/logstash:8.13.0
     volumes:
-      - ./monitoring/logstash/pipeline:/usr/share/logstash/pipeline:ro
-      - ./monitoring/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ../../monitoring/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ../../monitoring/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
     ports:
       - "5044:5044"
       - "5000:5000/tcp"
@@ -62,7 +62,7 @@ services:
   prometheus:
     image: prom/prometheus:v2.51.0
     volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -82,7 +82,7 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
     ports:
       - "3001:3000"
     depends_on:
