@@ -170,11 +170,11 @@ if [[ "$OPT_STATUS" == "true" ]]; then
     $DC ps
     echo ""
     log_section "Test de sante de l'API"
-    BACKEND_URL="${BACKEND_URL:-http://localhost:8000}"
-    if curl -sf "$BACKEND_URL/api/health/" >/dev/null 2>&1; then
-        log_success "Backend repond sur $BACKEND_URL/api/health/"
+    # Executer le test de sante DANS le container backend (expose n'est pas publie sur l'hote)
+    if $DC exec -T backend sh -c 'curl -sf http://127.0.0.1:8000/api/health/' >/dev/null 2>&1; then
+        log_success "Backend repond (depuis le container backend) sur /api/health/"
     else
-        log_warn "Backend inaccessible sur $BACKEND_URL/api/health/"
+        log_warn "Backend inaccessible depuis le container backend sur /api/health/"
     fi
     exit 0
 fi
