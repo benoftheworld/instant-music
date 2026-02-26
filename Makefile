@@ -108,8 +108,11 @@ monitoring-htpasswd: ## Créer le fichier .htpasswd pour protéger les interface
 	@mkdir -p _devops/nginx/monitoring
 	@if command -v htpasswd >/dev/null 2>&1; then \
 	  htpasswd -c _devops/nginx/monitoring/.htpasswd admin; \
+	elif command -v openssl >/dev/null 2>&1; then \
+	  echo "htpasswd non trouvé — utilisation d'openssl (installer apache2-utils pour htpasswd natif)"; \
+	  HASH=$$(openssl passwd -apr1) && echo "admin:$$HASH" > _devops/nginx/monitoring/.htpasswd; \
 	else \
-	  docker run --rm -it xmartlabs/htpasswd admin > _devops/nginx/monitoring/.htpasswd; \
+	  docker run --rm -i xmartlabs/htpasswd admin > _devops/nginx/monitoring/.htpasswd; \
 	fi
 	@echo ""
 	@echo ".htpasswd créé dans _devops/nginx/monitoring/.htpasswd"
