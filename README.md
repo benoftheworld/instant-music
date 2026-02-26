@@ -43,9 +43,10 @@ Les fichiers de configuration DevOps sont organisés dans le dossier `_devops/` 
 _devops/
 ├── docker/              # Docker Compose files
 ├── script/              # Scripts de déploiement
-├── linter/              # Configuration pre-commit
-└── ci/                  # GitHub Actions workflows
+└── linter/              # Configuration des linters
 ```
+
+Les workflows CI/CD restent dans `.github/workflows/` (convention GitHub).
 
 📖 Voir [_devops/README.md](_devops/README.md) pour plus de détails.
 
@@ -141,7 +142,6 @@ docker compose -f _devops/docker/docker-compose.yml restart backend
 - **[GAMEPLAY_SYSTEM.md](docs/GAMEPLAY_SYSTEM.md)** - Système de jeu détaillé
 - **[PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md)** - Guide de déploiement en production
 - **[SECURITY.md](docs/SECURITY.md)** - Bonnes pratiques de sécurité
-- **[DOCKER_COMPOSE_FIX.md](docs/DOCKER_COMPOSE_FIX.md)** - Corrections Docker Compose
 - **[_devops/README.md](_devops/README.md)** - Documentation DevOps et CI/CD
 
 ## 🔧 Commandes Utiles
@@ -254,30 +254,16 @@ Ce projet est sous licence MIT. Voir [LICENSE](LICENSE) pour plus de détails.
 ---
 
 **Développé avec ❤️ pour les amateurs de musique et de jeux**
-Une application web interactive de jeux musicaux multijoueurs en temps réel.
-
-## Fonctionnalités (MVP)
-- Authentification (username/password + Google OAuth)
-- Profil utilisateur (avatar, mot de passe, statistiques)
-- Créer / rejoindre parties en ligne (lobby, WebSocket)
-- Quiz musical (mode 4 réponses, rapide)
-- Intégration Spotify (extraits 30s)
-- Backoffice administration
-- Docker pour dev & prod
-
-Voir la documentation du projet pour la suite (configuration, tests, déploiement).
-
-## 🚀 Démarrage rapide
-
-```bash
-# Application principale (dev)
-docker compose up -d
-
-# Stack de monitoring (ELK + Prometheus + Grafana)
-docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
-```
 
 ## 📊 Monitoring
+
+```bash
+# Démarrer la stack monitoring (ELK + Prometheus + Grafana)
+docker compose \
+  -f _devops/docker/docker-compose.yml \
+  -f _devops/docker/docker-compose.monitoring.yml \
+  up -d
+```
 
 | Service       | URL                        | Identifiants   |
 |---------------|----------------------------|----------------|
@@ -286,7 +272,7 @@ docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
 | Prometheus    | http://localhost:9090       | —              |
 | Elasticsearch | http://localhost:9200       | —              |
 
-La datasource **Prometheus** est provisionnée automatiquement dans Grafana.  
+La datasource **Prometheus** est provisionnée automatiquement dans Grafana.
 Les logs applicatifs sont collectés via **Logstash** et indexés dans **Elasticsearch**.
 
 ## 🔍 CI/CD – GitHub Actions
