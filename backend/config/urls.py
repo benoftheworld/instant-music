@@ -11,7 +11,12 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
-from apps.core.health import health_check, readiness_check, liveness_check
+from apps.core.health import (
+    health_check,
+    readiness_check,
+    liveness_check,
+)
+from apps.core.metrics import metrics as metrics_view
 
 urlpatterns = [
     # Admin
@@ -43,6 +48,8 @@ urlpatterns = [
     path("api/playlists/playlists/", include("apps.playlists.urls")),
     path("api/stats/", include("apps.stats.urls")),
     path("api/administration/", include("apps.administration.urls")),
+    # Prometheus metrics (scraped by Prometheus)
+    path("metrics/", metrics_view),
 ]
 
 # Serve media files in development

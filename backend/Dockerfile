@@ -13,6 +13,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
 COPY requirements/base.txt /app/requirements/base.txt
 COPY requirements/development.txt /app/requirements/development.txt
 RUN pip install -q --upgrade pip && pip install -q -r /app/requirements/development.txt
+RUN pip install -q prometheus-client
 
 COPY . /app/
 
