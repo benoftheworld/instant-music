@@ -225,8 +225,23 @@ $DC build $BUILD_FLAGS
 log_success "Images construites."
 
 log_section "Redemarrage des services"
-$DC down --remove-orphans
-$DC up -d
+$DC down --remove-orphans 2>/dev/null || true
+
+# Supprimer de force les containers qui pourraient entrer en conflit de nommage.
+# Cela couvre le cas où les containers ont été créés avec un ancien project name
+# (ex: avant l'ajout de "name: instantmusic" dans docker-compose.prod.yml).
+log_info "Nettoyage des containers en conflit eventuel..."
+CONFLICTING=$(grep 'container_name:' "$COMPOSE_FILE" 2>/dev/null | awk '{print $2}' | tr -d '"'"'" || true)
+if [[ -n "$CONFLICTING" ]]; then
+    while IFS= read -r cname; do
+        if [[ -n "$cname" ]] && docker ps -aq --filter "name=^${cname}$" | grep -q .; then
+            log_warn "Suppression forcee du container existant: $cname"
+            docker rm -f "$cname" 2>/dev/null || true
+        fi
+    done <<< "$CONFLICTING"
+fi
+
+$DC up -d --remove-orphans
 log_success "Containers demarres."
 
 log_section "Attente de la disponibilite du backend"
