@@ -22,6 +22,7 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DJANGO_SETTINGS_MODULE=config.settings.production
+ENV PROMETHEUS_MULTIPROC_DIR=/app/prometheus_multiproc
 
 WORKDIR /app
 
@@ -39,7 +40,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY . /app/
 
 # Create necessary directories
-RUN mkdir -p /app/staticfiles /app/media /app/logs
+RUN mkdir -p /app/staticfiles /app/media /app/logs /app/prometheus_multiproc
 
 # Collect static files (quiet to avoid harmless duplicate static warnings)
 # Some admin/static files are provided by multiple packages (e.g. jazzmin
@@ -49,7 +50,8 @@ RUN python manage.py collectstatic --noinput --verbosity=0 --settings=config.set
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app
+    chown -R appuser:appuser /app && \
+    chmod 755 /app/prometheus_multiproc
 USER appuser
 
 EXPOSE 8000
