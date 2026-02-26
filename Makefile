@@ -126,7 +126,7 @@ ssl-init: ## Obtenir le premier certificat SSL Let's Encrypt (première installa
 	@docker compose -f $(COMPOSE_PROD) -f $(COMPOSE_SSL_INIT) $(COMPOSE_EXTRA) up -d nginx
 	@sleep 3
 	@echo "== Étape 2/3 : Obtention du certificat Let's Encrypt (webroot)..."
-	@docker compose -f $(COMPOSE_PROD) $(COMPOSE_EXTRA) run --rm certbot certonly \
+	@docker compose -f $(COMPOSE_PROD) $(COMPOSE_EXTRA) run --rm --entrypoint certbot certbot certonly \
 	  --webroot -w /var/www/certbot \
 	  -d $(DOMAIN) \
 	  --agree-tos --email $(EMAIL) --no-eff-email
