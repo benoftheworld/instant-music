@@ -66,6 +66,9 @@ if [ "$ENV" = "production" ]; then
 
     echo "🔁 Attribution rétroactive des achievements aux joueurs (peut prendre du temps)..."
     docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA exec -T backend python manage.py award_retroactive_achievements || true
+
+    echo "🔁 Mise à jour des statistiques joueurs"
+    docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA exec -T backend python manage.py recalculate_user_stats || true
 fi
 
 echo "🧹 Nettoyage des images Docker inutilisées..."
