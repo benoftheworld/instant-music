@@ -146,9 +146,8 @@ if [[ "$ENV" == "production" ]]; then
         # Parfois certbot vient juste d'ecrire les fichiers — attendre et re-tester
         for try in 1 2 3 4 5; do
             sleep 1
-            CERT_FOUND=$(docker volume inspect instantmusic_letsencrypt \
-                --format '{{.Mountpoint}}' 2>/dev/null || true)
-            if [[ -n "$CERT_FOUND" ]] && [[ -d "${CERT_FOUND}/live" ]]; then
+            # Vérifier le contenu du volume via un conteneur (évite Permission denied sur /var/lib/docker)
+            if docker run --rm -v instantmusic_letsencrypt:/data busybox sh -c 'test -d /data/live && [ "$(ls -A /data/live | wc -l)" -gt 0 ]' >/dev/null 2>&1; then
                 CERT_MISSING=false
                 log_info "Certificat detecte dans le volume instantmusic_letsencrypt (apres ${try}s)."
                 break
