@@ -1,291 +1,346 @@
-# 🎵 InstantMusic
+# InstantMusic 🎵
 
-Une application web interactive de quiz musical multijoueur en temps réel.
+> Quiz musical multijoueur en temps réel — Django · React · WebSocket · Docker
 
-## 🎮 Fonctionnalités
+[![CI](https://github.com/benoftheworld/instant-music/actions/workflows/ci.yml/badge.svg)](https://github.com/benoftheworld/instant-music/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB.svg)](https://python.org)
+[![React 18](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev)
 
-- **Quiz musical multijoueur** - Affrontez vos amis en temps réel
-- **Authentification complète** - Inscription/connexion classique + Google OAuth
-- **Profils personnalisables** - Avatar, statistiques, historique
-- **Système de jeu avancé** - Timer, scoring dynamique, classement en direct
-- **Intégration musicale** - Morceaux via Deezer (extraits 30s gratuits)
-- **Communication temps réel** - WebSocket pour synchronisation instantanée
-- **Interface moderne** - React + TypeScript + Tailwind CSS
-- **Administration** - Backoffice Django pour gestion complète
+---
 
-## 🏗️ Architecture
+## Sommaire
 
-### Stack Technique
+- [Présentation](#-présentation)
+- [Stack technique](#-stack-technique)
+- [Architecture](#-architecture)
+- [Structure du dépôt](#-structure-du-dépôt)
+- [Démarrage rapide (local)](#-démarrage-rapide-local)
+- [Déploiement en production](#-déploiement-en-production)
+- [Linters & qualité du code](#-linters--qualité-du-code)
+- [Tests](#-tests)
+- [Documentation](#-documentation)
 
-**Backend:**
-- Django 5.1 + Django REST Framework
-- WebSocket (Django Channels + Daphne)
-- PostgreSQL (base de données)
-- Redis (cache + broker WebSocket)
-- Celery (tâches asynchrones)
+---
 
-**Frontend:**
-- React 18 + TypeScript
-- Vite (build tool)
-- TanStack Query (gestion API)
-- Zustand (state management)
-- Tailwind CSS (styling)
+## 🎮 Présentation
 
-**Infrastructure:**
-- Docker + Docker Compose
-- Nginx (reverse proxy en production)
+InstantMusic est une application web de quiz musical multijoueur en temps réel.
+Les joueurs rejoignent des salles, écoutent des extraits musicaux (via l'API Deezer)
+et doivent identifier le titre ou l'artiste le plus rapidement possible.
 
-### Structure DevOps
+**Fonctionnalités principales :**
 
-Les fichiers de configuration DevOps sont organisés dans le dossier `_devops/` :
+- Quiz musical multijoueur en temps réel (WebSocket)
+- Scoring dynamique basé sur la rapidité de réponse
+- Système d'achievements et de statistiques par joueur
+- Authentification locale + Google OAuth 2.0
+- Interface d'administration avancée (Jazzmin)
+- Stack de monitoring optionnelle (Prometheus · Grafana · ELK)
+
+---
+
+## 🛠 Stack technique
+
+| Couche        | Technologies                                                         |
+|---------------|----------------------------------------------------------------------|
+| **Backend**   | Django 5.1 · DRF · Django Channels · Daphne · Celery · JWT          |
+| **Frontend**  | React 18 · TypeScript · Vite · TanStack Query · Zustand · Tailwind  |
+| **Base de données** | PostgreSQL 15                                                  |
+| **Cache / Broker** | Redis 7                                                         |
+| **Temps réel** | Django Channels (WebSocket) · Daphne ASGI                          |
+| **Infra**     | Docker · Docker Compose · Nginx · Gunicorn + uvicorn workers         |
+| **CI/CD**     | GitHub Actions (ruff · bandit · hadolint · shellcheck · pytest · vitest · trivy) |
+| **API externe** | Deezer (gratuit, sans clé)                                        |
+
+---
+
+## 🏗 Architecture
 
 ```
-_devops/
-├── docker/              # Docker Compose files
-├── script/              # Scripts de déploiement
-└── linter/              # Configuration des linters
+Navigateur
+    │
+    ▼
+Nginx (reverse proxy, SSL, rate-limiting)
+    │
+    ├─── /          ──►  Frontend (React SPA, container nginx:alpine)
+    ├─── /api/      ──►  Backend (Django REST Framework, port 8000)
+    ├─── /ws/       ──►  Backend (Django Channels WebSocket, upgrade HTTP→WS)
+    └─── /admin/    ──►  Backend (Jazzmin admin)
+                              │
+                    ┌─────────┼─────────┐
+                    ▼         ▼         ▼
+               PostgreSQL   Redis    Celery Worker
+               (données)    (cache,  (tâches async)
+                            broker)
+                              │
+                         Celery Beat
+                         (tâches planifiées)
 ```
 
-Les workflows CI/CD restent dans `.github/workflows/` (convention GitHub).
+**Flux WebSocket (partie quiz) :**
 
-📖 Voir [_devops/README.md](_devops/README.md) pour plus de détails.
+1. Le client se connecte sur `/ws/game/<room_code>/`
+2. Django Channels route vers `GameConsumer`
+3. Les messages transitent via un channel layer Redis
+4. Le consumer diffuse les événements à tous les joueurs de la salle
 
-### APIs Externes
+Pour plus de détails : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-- **Deezer API** - Recherche de playlists et morceaux (gratuit, pas de clé requise)
-- **Google OAuth 2.0** - Authentification sociale (optionnel)
+---
 
-## 🚀 Démarrage Rapide
+## 📁 Structure du dépôt
+
+```
+instant-music/
+│
+├── Makefile                    # Façade principale — toutes les commandes DevOps
+├── pyproject.toml              # Config des linters (ruff, bandit) — niveau racine
+├── .pre-commit-config.yaml     # Hooks git pré-commit
+│
+├── _devops/                    # Tout ce qui concerne le déploiement et les outils
+│   ├── docker/
+│   │   ├── docker-compose.yml            # Développement local
+│   │   ├── docker-compose.prod.yml       # Production
+│   │   ├── docker-compose.monitoring.yml # Stack ELK + Prometheus + Grafana
+│   │   └── docker-compose.override.yml.example
+│   ├── nginx/
+│   │   ├── nginx.conf                    # Config Nginx production
+│   │   ├── instantmusic.conf.example     # Config Nginx hors Docker
+│   │   └── ssl/                          # Certificats SSL (non versionnés)
+│   ├── monitoring/
+│   │   ├── grafana/provisioning/         # Dashboards & datasources Grafana
+│   │   ├── logstash/                     # Config et pipeline Logstash
+│   │   └── prometheus/prometheus.yml     # Config Prometheus
+│   ├── script/
+│   │   ├── deploy.sh                     # Script de déploiement principal
+│   │   └── backup.sh                     # Sauvegarde de la base de données
+│   └── linter/
+│       ├── .bandit.yml                   # Config Bandit
+│       ├── .hadolint.yaml                # Config Hadolint
+│       └── .yamllint.yml                 # Config Yamllint
+│
+├── backend/                    # Application Django
+│   ├── config/                 # Settings (base, development, production), ASGI, Celery
+│   ├── apps/
+│   │   ├── achievements/       # Système d'achievements
+│   │   ├── administration/     # Mode maintenance, administration
+│   │   ├── authentication/     # JWT, Google OAuth
+│   │   ├── core/               # Health check
+│   │   ├── games/              # Logique de jeu, WebSocket consumer, services
+│   │   ├── playlists/          # Intégration Deezer, gestion des playlists
+│   │   ├── stats/              # Statistiques joueurs
+│   │   └── users/              # Modèle utilisateur personnalisé
+│   ├── requirements/
+│   │   ├── base.txt
+│   │   ├── development.txt
+│   │   └── production.txt
+│   └── pyproject.toml          # Config mypy uniquement
+│
+├── frontend/                   # Application React
+│   ├── src/
+│   │   ├── components/          # Composants réutilisables
+│   │   ├── pages/               # Pages de l'application
+│   │   ├── hooks/               # Custom React hooks
+│   │   ├── services/            # Appels API et WebSocket
+│   │   ├── store/               # Store Zustand
+│   │   └── types/               # Types TypeScript
+│   └── package.json
+│
+├── docs/                       # Documentation détaillée
+│   ├── ARCHITECTURE.md
+│   ├── QUICK_START.md
+│   ├── PRODUCTION_DEPLOYMENT.md
+│   ├── GAMEPLAY_SYSTEM.md
+│   ├── LINTERS.md
+│   ├── CONTRIBUTING.md
+│   └── SECURITY.md
+│
+└── .github/
+    └── workflows/ci.yml        # Pipeline CI/CD GitHub Actions
+```
+
+---
+
+## 🚀 Démarrage rapide (local)
 
 ### Prérequis
 
-- Docker & Docker Compose
+- Docker 24+ avec Docker Compose v2
 - Git
 
-### Installation
+### 1. Cloner le dépôt
 
-1. **Cloner le repository**
 ```bash
-git clone <votre-repo>
+git clone https://github.com/benoftheworld/instant-music.git
 cd instant-music
 ```
 
-2. **Configurer l'environnement**
+### 2. Configurer l'environnement
+
 ```bash
-# Copier le fichier d'exemple
 cp backend/.env.example backend/.env
-
-# Éditer backend/.env et configurer au minimum :
-# - SECRET_KEY (générer avec: python -c "import secrets; print(secrets.token_urlsafe(50))")
-# - GOOGLE_OAUTH_CLIENT_ID (optionnel - voir section OAuth)
-# - GOOGLE_OAUTH_CLIENT_SECRET (optionnel)
+# Éditez backend/.env si nécessaire (les valeurs par défaut fonctionnent en dev)
 ```
 
-3. **Démarrer l'application**
-```bash
-# Depuis la racine du projet
-./_devops/script/deploy.sh development
-
-# Ou directement
-cd _devops/docker && docker compose up -d
-```
-
-4. **Initialiser la base de données**
-```bash
-# Appliquer les migrations
-docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py migrate
-
-# Créer un superutilisateur
-docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py createsuperuser
-```
-
-5. **Accéder à l'application**
-- Frontend: http://localhost:3000
-- API Backend: http://localhost:8000/api
-- Admin Django: http://localhost:8000/admin
-
-## 🎯 Configuration Google OAuth (Optionnel)
-
-L'authentification Google OAuth est optionnelle. Sans elle, les utilisateurs peuvent toujours :
-- S'inscrire avec email/mot de passe
-- Se connecter normalement
-- Utiliser toutes les fonctionnalités
-
-### Pour activer Google OAuth :
-
-1. **Créer un projet Google Cloud**
-   - Accédez à https://console.cloud.google.com
-   - Créez un nouveau projet
-
-2. **Configurer OAuth 2.0**
-   - APIs & Services → Identifiants
-   - Créer des identifiants → ID client OAuth 2.0
-   - Type : Application Web
-   - Origines JavaScript autorisées : `http://localhost:3000`
-   - URI de redirection : `http://localhost:3000/auth/google/callback`
-
-3. **Ajouter les credentials**
-```bash
-# Dans backend/.env
-GOOGLE_OAUTH_CLIENT_ID=votre_client_id
-GOOGLE_OAUTH_CLIENT_SECRET=votre_client_secret
-```
-
-4. **Redémarrer les services**
-```bash
-docker compose -f _devops/docker/docker-compose.yml restart backend
-```
-
-## 📖 Documentation
-
-- **[QUICK_START.md](docs/QUICK_START.md)** - Guide de démarrage ultra-rapide
-- **[GAMEPLAY_SYSTEM.md](docs/GAMEPLAY_SYSTEM.md)** - Système de jeu détaillé
-- **[PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md)** - Guide de déploiement en production
-- **[SECURITY.md](docs/SECURITY.md)** - Bonnes pratiques de sécurité
-- **[_devops/README.md](_devops/README.md)** - Documentation DevOps et CI/CD
-
-## 🔧 Commandes Utiles
-
-### Développement
+### 3. Lancer l'application
 
 ```bash
-# Voir les logs
-docker compose -f _devops/docker/docker-compose.yml logs -f [service]
-
-# Redémarrer un service
-docker compose -f _devops/docker/docker-compose.yml restart [service]
-
-# Arrêter l'application
-docker compose -f _devops/docker/docker-compose.yml down
-
-# Arrêter et supprimer les volumes
-docker compose -f _devops/docker/docker-compose.yml down -v
-
-# Shell Django
-docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py shell
-
-# Créer une migration
-docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py makemigrations
-
-# Appliquer les migrations
-docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py migrate
-
-# Collecter les fichiers statiques
-docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py collectstatic --noinput
-
-# Lancer les tests
-docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py test
+make deploy-dev
 ```
 
-### Production
+C'est tout. L'application est disponible sur :
 
-Consultez [PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md) pour le guide complet.
+| Service    | URL                          |
+|------------|------------------------------|
+| Frontend   | http://localhost:3000        |
+| Backend    | http://localhost:8000        |
+| Admin      | http://localhost:8000/admin  |
+| API docs   | http://localhost:8000/api/schema/swagger-ui/ |
+
+### Commandes utiles en développement
 
 ```bash
-# Déployer en production
-./_devops/script/deploy.sh production
-
-# Créer un backup de la base de données
-./_devops/script/backup.sh
+make logs-dev                        # Logs en temps réel
+make dev-shell                       # Shell dans le container backend
+make dev-createsuperuser             # Créer un compte admin
+make dev-migrate                     # Appliquer les migrations
+make dev-makemigrations              # Créer de nouvelles migrations
 ```
 
-## 🎮 Comment Jouer
+Pour toutes les commandes disponibles :
 
-1. **Créer un compte** ou se connecter
-2. **Créer une partie** et choisir une playlist Deezer
-3. **Partager le code** de la salle avec vos amis
-4. **Lancer la partie** une fois que tout le monde est prêt
-5. **Répondre aux questions** le plus vite possible
-6. **Consulter le classement** et la victoire ! 🏆
+```bash
+make help
+```
 
-## 📊 Système de Scoring
+---
 
-- **Points de base** : jusqu'à 100 points (réduit avec le temps)
-- **Formule de base** : `points = max(10, 100 - (temps_reponse * 3))`
-- **Tolérance année** : facteur d'exactitude (1.0, 0.6, 0.3) applique sur les points
-- **Bonus de rang** : +10 (1er), +5 (2e), +2 (3e) si bonne réponse
-- **Mauvaise réponse** : 0 point
+## 🏭 Déploiement en production
 
-Exemple : 3 secondes = 91 points (hors bonus de rang)
+> Guide complet : [docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md)
 
-## 🛠️ Services Docker
+### Depuis votre VPS
 
-| Service     | Port | Description                    |
-| ----------- | ---- | ------------------------------ |
-| frontend    | 3000 | Interface React                |
-| backend     | 8000 | API Django + WebSocket         |
-| db          | 5432 | PostgreSQL                     |
-| redis       | 6379 | Cache & Message Broker         |
-| celery      | -    | Worker pour tâches asynchrones |
-| celery-beat | -    | Planificateur de tâches        |
+```bash
+# 1. Cloner et configurer
+git clone https://github.com/benoftheworld/instant-music.git
+cd instant-music
+cp .env.prod.example .env.prod
+nano .env.prod  # Renseigner les variables (DB, SECRET_KEY, domaine, SSL...)
+
+# 2. Déployer (une seule commande)
+make deploy-prod
+```
+
+### Mise à jour
+
+```bash
+# Sur le VPS — récupère le code, rebuild et redémarre automatiquement
+make deploy-prod
+```
+
+### Rollback
+
+```bash
+# Revenir à la version déployée précédemment
+make rollback
+```
+
+### Monitoring
+
+```bash
+# État des services
+make status
+
+# Logs en temps réel
+make logs
+
+# Logs d'un service spécifique
+make logs-backend
+
+# Démarrer la stack de monitoring (Grafana, Prometheus, ELK)
+make monitoring-up
+```
+
+### Accès directs
+
+```bash
+make prod-shell             # Shell dans le container backend
+make prod-createsuperuser   # Créer un compte admin
+make backup                 # Sauvegarder la base de données
+```
+
+---
+
+## 🔍 Linters & qualité du code
+
+| Outil         | Rôle                                    | Config                             |
+|---------------|-----------------------------------------|------------------------------------|
+| **ruff**      | Lint + formatage Python (remplace black + flake8 + isort) | `pyproject.toml`     |
+| **bandit**    | Scan de sécurité Python                 | `pyproject.toml` + `_devops/linter/.bandit.yml` |
+| **mypy**      | Vérification des types Python           | `backend/pyproject.toml`           |
+| **hadolint**  | Lint Dockerfiles                        | `_devops/linter/.hadolint.yaml`    |
+| **shellcheck**| Lint scripts shell                      | (inline CI)                        |
+| **yamllint**  | Lint fichiers YAML                      | `_devops/linter/.yamllint.yml`     |
+| **prettier**  | Formatage TypeScript/CSS/JSON           | `frontend/.prettierrc`             |
+| **ESLint**    | Lint TypeScript/React                   | `frontend/.eslintrc.json`          |
+
+```bash
+# Lancer tous les linters
+make lint
+
+# Formater automatiquement le code Python
+make format
+
+# Vérification des types
+make typecheck
+```
+
+### Pre-commit (recommandé)
+
+```bash
+make pre-commit-install   # Installe les hooks git
+# Les hooks s'exécutent ensuite automatiquement à chaque commit
+```
+
+---
 
 ## 🧪 Tests
 
 ```bash
-# Tests backend
-docker compose -f _devops/docker/docker-compose.yml exec backend python manage.py test
+# Tous les tests
+make test
 
-# Tests avec couverture
-docker compose -f _devops/docker/docker-compose.yml exec backend pytest --cov=apps --cov-report=html
+# Backend uniquement
+make test-backend
 
-# Tests frontend
-docker compose -f _devops/docker/docker-compose.yml exec frontend npm test
+# Frontend uniquement
+make test-frontend
+
+# Avec rapport de couverture
+make test-coverage
 ```
 
-## 🤝 Contribution
-
-Les contributions sont les bienvenues ! N'hésitez pas à :
-- Signaler des bugs
-- Proposer de nouvelles fonctionnalités
-- Soumettre des pull requests
-
-## 📝 Licence
-
-Ce projet est sous licence MIT. Voir [LICENSE](LICENSE) pour plus de détails.
-
-## 🔗 Liens Utiles
-
-- [Documentation Django](https://docs.djangoproject.com/)
-- [Documentation React](https://react.dev/)
-- [API Deezer](https://developers.deezer.com/api)
-- [Django Channels](https://channels.readthedocs.io/)
-- [Docker Documentation](https://docs.docker.com/)
+Le pipeline CI tourne automatiquement tous les tests + linters à chaque push.
 
 ---
 
-**Développé avec ❤️ pour les amateurs de musique et de jeux**
+## 📖 Documentation
 
-## 📊 Monitoring
+| Document | Description |
+|---|---|
+| [docs/QUICK_START.md](docs/QUICK_START.md) | Installation express |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture détaillée des composants |
+| [docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md) | Guide complet de déploiement VPS |
+| [docs/GAMEPLAY_SYSTEM.md](docs/GAMEPLAY_SYSTEM.md) | Système de jeu, scoring, WebSocket |
+| [docs/LINTERS.md](docs/LINTERS.md) | Outils de qualité du code |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Contribuer au projet |
+| [docs/SECURITY.md](docs/SECURITY.md) | Checklist de sécurité production |
+| [_devops/README.md](_devops/README.md) | Documentation DevOps |
 
-```bash
-# Démarrer la stack monitoring (ELK + Prometheus + Grafana)
-docker compose \
-  -f _devops/docker/docker-compose.yml \
-  -f _devops/docker/docker-compose.monitoring.yml \
-  up -d
-```
+---
 
-| Service       | URL                        | Identifiants   |
-|---------------|----------------------------|----------------|
-| Kibana        | http://localhost:5601       | —              |
-| Grafana       | http://localhost:3001       | admin / admin  |
-| Prometheus    | http://localhost:9090       | —              |
-| Elasticsearch | http://localhost:9200       | —              |
+## 📄 Licence
 
-La datasource **Prometheus** est provisionnée automatiquement dans Grafana.
-Les logs applicatifs sont collectés via **Logstash** et indexés dans **Elasticsearch**.
-
-## 🔍 CI/CD – GitHub Actions
-
-Le pipeline `.github/workflows/ci.yml` exécute les jobs suivants sur chaque push/PR :
-
-| Job             | Outil          | Description                              |
-|-----------------|----------------|------------------------------------------|
-| lint-python     | ruff + bandit  | Style PEP8, imports, sécurité Python     |
-| lint-docker     | hadolint       | Bonnes pratiques Dockerfile              |
-| lint-shell      | shellcheck     | Vérification des scripts shell           |
-| lint-yaml       | yamllint       | Validation des fichiers YAML             |
-| trivy-scan      | trivy          | Analyse de vulnérabilités des images     |
-| sbom            | syft           | Génération de la SBOM (SPDX JSON)        |
-| backend-tests   | pytest         | Tests unitaires Django                   |
-| frontend-tests  | vitest         | Tests unitaires React                    |
+[MIT](LICENSE) — benoftheworld

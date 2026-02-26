@@ -1,160 +1,84 @@
-# 🚀 Déploiement Rapide - InstantMusic
+# Déploiement Rapide — InstantMusic
 
-## TL;DR - Commandes Essentielles
+> Pour le guide complet : [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md)
+
+---
+
+## TL;DR — Depuis votre VPS
 
 ```bash
-# 1. Cloner et configurer
-git clone <votre-repo>
+# 1. Cloner
+git clone https://github.com/benoftheworld/instant-music.git
 cd instant-music
+
+# 2. Configurer
 cp .env.prod.example .env.prod
-nano .env.prod  # Configurer vos variables
+nano .env.prod  # Renseigner les variables déployement
 
-# 2. Déployer
-./deploy.sh production
-
-# 3. Créer un admin
-docker compose -f docker-compose.prod.yml exec backend python manage.py createsuperuser
-
-# 4. Voir les logs
-docker compose -f docker-compose.prod.yml logs -f
+# 3. Déployer (une seule commande)
+make deploy-prod
 ```
 
-## 📁 Fichiers de Configuration Créés
+---
 
-### Production
-- `docker-compose.prod.yml` - Configuration Docker pour production
-- `backend/Dockerfile.prod` - Image Docker optimisée backend
-- `frontend/Dockerfile.prod` - Image Docker optimisée frontend  
-- `nginx/nginx.conf` - Serveur web Nginx
-- `.env.prod.example` - Template variables d'environnement
+## Checklist pré-déploiement
 
-### Scripts Utiles
-- `deploy.sh` - Script de déploiement automatique
-- `backup.sh` - Script de sauvegarde DB
+- [ ] Serveur Ubuntu 20.04+ avec Docker 24+ et Docker Compose v2
+- [ ] Nom de domaine pointant vers le serveur (enregistrement A/AAAA)
+- [ ] Port 80 et 443 ouverts dans le pare-feu
+- [ ] Certificat SSL Let's Encrypt configuré (voir guide complet)
+- [ ] Fichier `.env.prod` rempli
 
-### Documentation
-- `docs/PRODUCTION_DEPLOYMENT.md` - **Guide complet étape par étape**
-
-## 🎯 Guide Complet
-
-**👉 Consultez [docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md) pour le guide détaillé avec:**
-
-- Configuration serveur complet
-- Installation Docker
-- Configuration SSL/HTTPS
-- Configuration APIs (YouTube, OAuth)
-- Monitoring et maintenance
-- Dépannage
-- Optimisations
-
-## 📋 Checklist Rapide
-
-### Avant le Déploiement
-
-- [ ] Serveur avec Docker installé
-- [ ] Nom de domaine configuré (DNS)
-- [ ] YouTube API Key obtenue
-- [ ] Google OAuth configuré
-- [ ] Variables dans `.env.prod` remplies
-- [ ] Certificat SSL obtenu (Let's Encrypt)
-
-### Configuration Minimale `.env.prod`
+### Variables minimales dans `.env.prod`
 
 ```bash
-# Essentiels à configurer
-SECRET_KEY=<générer-avec-python>
+SECRET_KEY=<générer: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())">
 ALLOWED_HOSTS=votredomaine.com
 POSTGRES_PASSWORD=<mot-de-passe-fort>
 VITE_API_URL=https://votredomaine.com/api
 VITE_WS_URL=wss://votredomaine.com/ws
 ```
 
-## 🔧 Commandes Utiles
+---
 
-### Déploiement
+## Commandes utiles (Makefile)
+
 ```bash
-# Production
-./deploy.sh production
-
-# Development
-./deploy.sh development
+make deploy-prod          # Déployer / mettre à jour
+make status               # État des services
+make logs                 # Logs en temps réel
+make logs-backend         # Logs backend uniquement
+make rollback             # Revenir à la version précédente
+make backup               # Sauvegarder la base de données
+make prod-createsuperuser # Créer un compte admin
 ```
 
-### Maintenance
+## Script direct (sans Makefile)
+
 ```bash
-# Voir les logs
-docker compose -f docker-compose.prod.yml logs -f [service]
+# Déploiement production
+./_devops/script/deploy.sh production
 
-# Redémarrer un service
-docker compose -f docker-compose.prod.yml restart [service]
+# Développement local
+./_devops/script/deploy.sh development
 
-# Backup DB
-./backup.sh
-
-# Accéder au shell Django
-docker compose -f docker-compose.prod.yml exec backend python manage.py shell
-
-# Migrations
-docker compose -f docker-compose.prod.yml exec backend python manage.py migrate
+# Options disponibles
+./_devops/script/deploy.sh production --no-pull   # Sans git pull
+./_devops/script/deploy.sh production --status    # État des services
+./_devops/script/deploy.sh production --logs      # Tous les logs
+./_devops/script/deploy.sh production --logs backend  # Logs d'un service
+./_devops/script/deploy.sh production --rollback  # Rollback
 ```
-
-### Monitoring
-```bash
-# Status des containers
-docker compose -f docker-compose.prod.yml ps
-
-# Stats ressources
-docker stats
-
-# Health check
-curl https://votredomaine.com/api/health/
-```
-
-## 🌐 Hébergeurs Recommandés
-
-| Hébergeur | Prix/mois | Complexité | Recommandé pour |
-|-----------|-----------|------------|-----------------|
-| **Hetzner** | 5-20€ | Moyen | Meilleur rapport qualité/prix |
-| **DigitalOcean** | 12-24$ | Moyen | Documentation excellente |
-| **OVH** | 5-20€ | Moyen | Support français |
-| **Railway** | 5-20$ | Facile | Déploiement rapide |
-| **Render** | 7-25$ | Facile | CI/CD intégré |
-
-## ⚡ Déploiement 1-Click (Railway/Render)
-
-Pour un déploiement ultra-rapide sans serveur:
-
-1. Fork le projet sur GitHub
-2. Connectez Railway/Render à votre repo
-3. Configurez les variables d'environnement
-4. Deploy automatique à chaque push
-
-## 🆘 Problèmes Fréquents
-
-### "Cannot connect to database"
-```bash
-docker compose -f docker-compose.prod.yml restart db backend
-```
-
-### "502 Bad Gateway"
-```bash
-# Vérifier que le backend est démarré
-docker compose -f docker-compose.prod.yml logs backend
-```
-
-### "Static files not found"
-```bash
-docker compose -f docker-compose.prod.yml exec backend python manage.py collectstatic --noinput
-```
-
-## 📞 Support
-
-Pour plus d'aide, consultez:
-- Le guide complet: `docs/PRODUCTION_DEPLOYMENT.md`
-- Les logs: `docker compose -f docker-compose.prod.yml logs`
-- Documentation Django: https://docs.djangoproject.com
-- Documentation Docker: https://docs.docker.com
 
 ---
 
-**Bonne chance pour votre déploiement ! 🎉**
+## Fichiers de configuration clés
+
+| Fichier                                  | Usage                              |
+|------------------------------------------|------------------------------------|
+| `_devops/docker/docker-compose.prod.yml` | Orchestration production           |
+| `_devops/docker/docker-compose.yml`      | Orchestration développement        |
+| `_devops/nginx/nginx.conf`               | Reverse proxy Nginx                |
+| `_devops/nginx/ssl/`                     | Certificats SSL (non versionnés)   |
+| `_devops/script/deploy.sh`               | Script de déploiement              |
+| `.env.prod`                              | Variables d'environnement prod     |
