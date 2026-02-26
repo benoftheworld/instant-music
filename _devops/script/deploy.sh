@@ -143,12 +143,26 @@ if [[ "$ENV" == "production" ]]; then
     fi
 
     if [[ "$CERT_MISSING" == "true" ]]; then
-        log_warn "Aucun certificat SSL detecte dans le volume instantmusic_letsencrypt."
-        log_warn "nginx demarrera en mode HTTP-only (sans SSL)."
-        log_warn "Lancez 'make ssl-init DOMAIN=votredomaine.com EMAIL=vous@mail.com' pour obtenir le certificat."
-        log_warn "Les autres services (backend, db, redis...) vont quand meme demarrer."
-        # Ajouter l'overlay ssl-init pour que nginx utilise la config HTTP-only
-        DC="docker compose -f $COMPOSE_FILE -f $COMPOSE_SSL_INIT $COMPOSE_EXTRA"
+        # Parfois certbot vient juste d'ecrire les fichiers — attendre et re-tester
+        for try in 1 2 3 4 5; do
+            sleep 1
+            CERT_FOUND=$(docker volume inspect instantmusic_letsencrypt \
+                --format '{{.Mountpoint}}' 2>/dev/null || true)
+            if [[ -n "$CERT_FOUND" ]] && [[ -d "${CERT_FOUND}/live" ]]; then
+                CERT_MISSING=false
+                log_info "Certificat detecte dans le volume instantmusic_letsencrypt (apres ${try}s)."
+                break
+            fi
+        done
+
+        if [[ "$CERT_MISSING" == "true" ]]; then
+            log_warn "Aucun certificat SSL detecte dans le volume instantmusic_letsencrypt."
+            log_warn "nginx demarrera en mode HTTP-only (sans SSL)."
+            log_warn "Lancez 'make ssl-init DOMAIN=votredomaine.com EMAIL=vous@mail.com' pour obtenir le certificat."
+            log_warn "Les autres services (backend, db, redis...) vont quand meme demarrer."
+            # Ajouter l'overlay ssl-init pour que nginx utilise la config HTTP-only
+            DC="docker compose -f $COMPOSE_FILE -f $COMPOSE_SSL_INIT $COMPOSE_EXTRA"
+        fi
     fi
 fi
 
