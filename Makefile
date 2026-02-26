@@ -23,6 +23,8 @@ DEPLOY_SCRIPT  := ./_devops/script/deploy.sh
 COMPOSE_PROD   := _devops/docker/docker-compose.prod.yml
 COMPOSE_DEV    := _devops/docker/docker-compose.yml
 COMPOSE_MON    := _devops/docker/docker-compose.monitoring.yml
+COMPOSE_MON_PROD := _devops/docker/docker-compose.monitoring-prod.yml
+COMPOSE_SSL_INIT := _devops/docker/docker-compose.ssl-init.yml
 
 # Récupère le fichier .env.prod si présent
 ENV_FILE       := $(wildcard _devops/docker/.env.prod)
@@ -72,15 +74,77 @@ logs-dev: ## Logs en développement
 	@$(DC_DEV) logs -f --tail=100
 
 .PHONY: monitoring-up
-monitoring-up: ## Lancer la stack de monitoring (ELK + Prometheus + Grafana)
-	@docker compose -f $(COMPOSE_PROD) -f $(COMPOSE_MON) $(COMPOSE_EXTRA) up -d
+monitoring-up: ## Lancer la stack de monitoring (ELK + Prometheus + Grafana) — DEV
+	@docker compose -f $(COMPOSE_DEV) -f $(COMPOSE_MON) $(COMPOSE_EXTRA) up -d
 	@echo "Kibana   -> http://localhost:5601"
 	@echo "Grafana  -> http://localhost:3001  (admin/admin)"
 	@echo "Prometheus -> http://localhost:9090"
 
+.PHONY: monitoring-up-prod
+monitoring-up-prod: ## Lancer le monitoring en production (derrière nginx, pas de ports exposés)
+	@test -f _devops/nginx/monitoring/.htpasswd || \
+	  { echo ""; echo "  ERREUR: fichier .htpasswd manquant."; echo "  Exécuter : make monitoring-htpasswd"; echo ""; exit 1; }
+	@docker compose -f $(COMPOSE_MON_PROD) up -d
+	@echo ""
+	@echo "Monitoring disponible sur https://benoftheworld.fr"
+	@echo "  Grafana    -> https://benoftheworld.fr/grafana/"
+	@echo "  Prometheus -> https://benoftheworld.fr/prometheus/"
+	@echo "  Kibana     -> https://benoftheworld.fr/kibana/"
+	@echo ""
+	@echo "Connexion protégée par HTTP Basic Auth (utilisateur défini dans .htpasswd)"
+
 .PHONY: monitoring-down
-monitoring-down: ## Arrêter la stack de monitoring
-	@docker compose -f $(COMPOSE_PROD) -f $(COMPOSE_MON) $(COMPOSE_EXTRA) down
+monitoring-down: ## Arrêter la stack de monitoring (dev)
+	@docker compose -f $(COMPOSE_DEV) -f $(COMPOSE_MON) $(COMPOSE_EXTRA) down
+
+.PHONY: monitoring-down-prod
+monitoring-down-prod: ## Arrêter la stack de monitoring (production)
+	@docker compose -f $(COMPOSE_MON_PROD) down
+
+.PHONY: monitoring-htpasswd
+monitoring-htpasswd: ## Créer le fichier .htpasswd pour protéger les interfaces monitoring
+	@echo ""
+	@echo "Création du fichier de mots de passe pour le monitoring..."
+	@mkdir -p _devops/nginx/monitoring
+	@if command -v htpasswd >/dev/null 2>&1; then \
+	  htpasswd -c _devops/nginx/monitoring/.htpasswd admin; \
+	else \
+	  docker run --rm -it xmartlabs/htpasswd admin > _devops/nginx/monitoring/.htpasswd; \
+	fi
+	@echo ""
+	@echo ".htpasswd créé dans _devops/nginx/monitoring/.htpasswd"
+	@echo "Redémarrer nginx pour appliquer : docker compose -f $(COMPOSE_PROD) restart nginx"
+
+# ─── SSL / Certificats ────────────────────────────────────────────────────────
+
+.PHONY: ssl-init
+ssl-init: ## Obtenir le premier certificat SSL Let's Encrypt (première installation)
+	@test -n "$(DOMAIN)" || { echo ""; echo "  Usage: make ssl-init DOMAIN=benoftheworld.fr EMAIL=admin@benoftheworld.fr"; echo ""; exit 1; }
+	@test -n "$(EMAIL)"  || { echo ""; echo "  Usage: make ssl-init DOMAIN=benoftheworld.fr EMAIL=admin@benoftheworld.fr"; echo ""; exit 1; }
+	@echo ""
+	@echo "== Étape 1/3 : Démarrage nginx en mode HTTP-only (init)..."
+	@docker compose -f $(COMPOSE_PROD) -f $(COMPOSE_SSL_INIT) $(COMPOSE_EXTRA) up -d nginx
+	@sleep 3
+	@echo "== Étape 2/3 : Obtention du certificat Let's Encrypt (webroot)..."
+	@docker compose -f $(COMPOSE_PROD) $(COMPOSE_EXTRA) run --rm certbot certonly \
+	  --webroot -w /var/www/certbot \
+	  -d $(DOMAIN) \
+	  --agree-tos --email $(EMAIL) --no-eff-email
+	@echo "== Étape 3/3 : Redémarrage nginx avec la config SSL complète..."
+	@docker compose -f $(COMPOSE_PROD) $(COMPOSE_EXTRA) up -d nginx
+	@echo ""
+	@echo "Certificat SSL obtenu pour $(DOMAIN)!"
+	@echo "Le service certbot assure le renouvellement automatique toutes les 12h."
+
+.PHONY: ssl-renew
+ssl-renew: ## Forcer le renouvellement du certificat SSL (normalement automatique)
+	@docker compose -f $(COMPOSE_PROD) $(COMPOSE_EXTRA) exec certbot certbot renew --quiet
+	@docker compose -f $(COMPOSE_PROD) $(COMPOSE_EXTRA) exec nginx nginx -s reload
+	@echo "Certificat renouvelé et nginx rechargé."
+
+.PHONY: ssl-status
+ssl-status: ## Vérifier l'état et la date d'expiration du certificat SSL
+	@docker compose -f $(COMPOSE_PROD) $(COMPOSE_EXTRA) run --rm certbot certbot certificates
 
 # ─── Développement ───────────────────────────────────────────────────────────
 

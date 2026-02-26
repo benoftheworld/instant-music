@@ -124,6 +124,45 @@ fi
 
 DC="docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA"
 
+# ─── Vérification SSL (production uniquement) ─────────────────────────────────
+if [[ "$ENV" == "production" ]]; then
+    # Cherche les certs dans le volume Docker ou le dossier nginx/ssl/
+    LETSENCRYPT_CERT_CHECK="$DEVOPS_DIR/nginx/ssl/live"
+    CERT_MISSING=false
+
+    # Vérification via docker volume (si le volume letsencrypt existe)
+    if docker volume ls --format '{{.Name}}' 2>/dev/null | grep -q "instantmusic_letsencrypt"; then
+        # Volume existe — vérifier qu'un cert y est présent
+        CERT_FOUND=$(docker run --rm -v instantmusic_letsencrypt:/etc/letsencrypt:ro \
+            alpine:3 ls /etc/letsencrypt/live/ 2>/dev/null | grep -v "README" | head -1)
+        if [[ -z "$CERT_FOUND" ]]; then
+            CERT_MISSING=true
+        fi
+    else
+        CERT_MISSING=true
+    fi
+
+    if [[ "$CERT_MISSING" == "true" ]]; then
+        echo ""
+        echo -e "${YELLOW}╔══════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${YELLOW}║  ATTENTION : Aucun certificat SSL détecté                   ║${NC}"
+        echo -e "${YELLOW}╠══════════════════════════════════════════════════════════════╣${NC}"
+        echo -e "${YELLOW}║  nginx ne démarrera pas sans les certificats Let's Encrypt. ║${NC}"
+        echo -e "${YELLOW}║                                                              ║${NC}"
+        echo -e "${YELLOW}║  Obtenir le certificat avant de déployer :                  ║${NC}"
+        echo -e "${YELLOW}║                                                              ║${NC}"
+        echo -e "${YELLOW}║  make ssl-init DOMAIN=votre-domaine.com EMAIL=you@mail.com  ║${NC}"
+        echo -e "${YELLOW}╚══════════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        echo -e "${YELLOW}Continuer quand même sans nginx ? (les autres services démarreront)${NC}"
+        read -r -p "Continuer ? [y/N] " CONTINUE_WITHOUT_SSL
+        if [[ "${CONTINUE_WITHOUT_SSL,,}" != "y" ]]; then
+            exit 1
+        fi
+        log_warn "Déploiement sans nginx — lancez 'make ssl-init' puis 'make deploy-prod'."
+    fi
+fi
+
 if [[ "$OPT_STATUS" == "true" ]]; then
     log_section "Etat des services"
     $DC ps

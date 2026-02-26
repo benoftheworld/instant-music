@@ -45,4 +45,4 @@ logs/
 *.log
 
 # Misc
-.DS_Store
+.DS_Store_devops/nginx/monitoring/.htpasswd

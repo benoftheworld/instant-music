@@ -1,0 +1,129 @@
+# docker-compose.monitoring-prod.yml
+#
+# Stack de monitoring en PRODUCTION.
+# - Les services rejoignent app-network (réseau Docker de l'application)
+# - Aucun port exposé publiquement (accessible via nginx uniquement)
+# - Grafana accessible sur https://benoftheworld.fr/grafana/
+# - Prometheus accessible sur https://benoftheworld.fr/prometheus/
+# - Kibana accessible sur https://benoftheworld.fr/kibana/
+#
+# Prérequis :
+#   1. make monitoring-htpasswd    → créer le fichier .htpasswd pour Basic Auth
+#   2. make monitoring-up-prod     → démarrer la stack
+#   3. make deploy-prod            → s'assurer que nginx recharge sa config
+
+name: instantmusic
+
+services:
+  # ── Elasticsearch ──────────────────────────────────────────────────────────
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: instantmusic_elasticsearch_prod
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    expose:
+      - "9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Logstash ───────────────────────────────────────────────────────────────
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.13.0
+    container_name: instantmusic_logstash_prod
+    volumes:
+      - ../monitoring/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ../monitoring/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+    expose:
+      - "5044"
+      - "5000"
+      - "9600"
+    environment:
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Kibana ─────────────────────────────────────────────────────────────────
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.0
+    container_name: instantmusic_kibana_prod
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_BASEPATH=/kibana
+      - SERVER_REWRITEBASEPATH=true
+    expose:
+      - "5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Prometheus ─────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: instantmusic_prometheus_prod
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      # Subpath pour l'accès via nginx /prometheus/
+      - '--web.external-url=https://benoftheworld.fr/prometheus/'
+      - '--web.route-prefix=/'
+    expose:
+      - "9090"
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Grafana ────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: instantmusic_grafana_prod
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # Changer en production !
+      - GF_USERS_ALLOW_SIGN_UP=false
+      # Subpath pour l'accès via nginx /grafana/
+      - GF_SERVER_ROOT_URL=https://benoftheworld.fr/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    expose:
+      - "3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - app-network
+
+volumes:
+  elasticsearch_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  # Réseau de l'application principale (créé par docker-compose.prod.yml)
+  app-network:
+    external: true
+    name: instantmusic_app-network

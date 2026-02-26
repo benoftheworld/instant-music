@@ -1,0 +1,13 @@
+# docker-compose.ssl-init.yml
+#
+# Override utilisé UNIQUEMENT pour l'obtention du premier certificat SSL.
+# Lance nginx en mode HTTP-only (nginx-init.conf) pour permettre le challenge ACME.
+#
+# Ne pas utiliser directement — lancé automatiquement par : make ssl-init
+
+services:
+  nginx:
+    volumes:
+      - ../nginx/nginx-init.conf:/etc/nginx/nginx.conf:ro
+      - certbot_webroot:/var/www/certbot
+    # Pas de volume letsencrypt en lecture seule — les certs n'existent pas encore

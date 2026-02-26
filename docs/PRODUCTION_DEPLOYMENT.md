@@ -155,47 +155,47 @@ Si vous préférez contrôler ces commandes manuellement (par exemple en raison 
 
 ## 🔒 Étape 3: Configuration SSL (HTTPS)
 
-```bash
-# Installer Certbot
-sudo apt install certbot python3-certbot-nginx -y
+Les certificats sont gérés automatiquement par un service `certbot` Docker intégré.
+Le renouvellement se fait toutes les 12h sans intervention manuelle.
 
-# Créer le dossier SSL
-mkdir -p nginx/ssl
-
-# Obtenir un certificat SSL
-sudo certbot certonly --standalone -d yourdomain.com -d www.yourdomain.com
-
-# Copier les certificats dans le dossier nginx
-sudo cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem nginx/ssl/cert.pem
-sudo cp /etc/letsencrypt/live/yourdomain.com/privkey.pem nginx/ssl/key.pem
-sudo chmod 644 nginx/ssl/*.pem
-
-# Renouvellement automatique
-sudo crontab -e
-# Ajouter: 0 0 1 * * certbot renew --quiet && docker compose -f /root/apps/instant-music/_devops/docker/docker-compose.prod.yml restart nginx
-```
-
-### 3.1 Activer HTTPS dans Nginx
-
-Éditez `nginx/nginx.conf` et décommentez la section HTTPS:
+### 3.1 Obtenir le certificat initial (première installation)
 
 ```bash
-nano nginx/nginx.conf
-
-# Décommenter le bloc:
-# server {
-#     listen 443 ssl http2;
-#     ...
-# }
-
-# Et activer la redirection HTTP → HTTPS dans le bloc server listen 80
+# S'assurer que le port 80 est libre et accessible depuis Internet (DNS configuré)
+make ssl-init DOMAIN=benoftheworld.fr EMAIL=admin@benoftheworld.fr
 ```
 
-Redémarrez Nginx:
+Cette commande :
+1. Démarre nginx en mode HTTP-only (pas de SSL requis)
+2. Exécute certbot qui complète le challenge ACME via webroot
+3. Stocke les certs dans un volume Docker `instantmusic_letsencrypt`
+4. Redémarre nginx avec la config SSL complète
+
+### 3.2 Vérifier l'état du certificat
+
+```bash
+make ssl-status
+```
+
+### 3.3 Renouvellement (normalement automatique)
+
+Le service `certbot` tourne en arrière-plan et renouvelle automatiquement.
+Pour forcer un renouvellement manuel :
+
+```bash
+make ssl-renew
+```
+
+### 3.4 Redémarrer nginx après modification de la config
 
 ```bash
 docker compose -f _devops/docker/docker-compose.prod.yml restart nginx
 ```
+
+> **Note** : La section SSL dans `_devops/nginx/nginx.conf` référence
+> `/etc/letsencrypt/live/benoftheworld.fr/fullchain.pem` qui est monté
+> depuis le volume Docker `instantmusic_letsencrypt`.
+
 
 ---
 
