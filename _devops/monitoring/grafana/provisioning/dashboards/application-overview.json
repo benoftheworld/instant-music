@@ -4,7 +4,7 @@
   "tags": ["instantmusic", "application", "django"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "editable": true,
   "graphTooltip": 1,
   "refresh": "15s",
@@ -333,11 +333,262 @@
       }
     },
     {
+      "id": 23,
+      "type": "row",
+      "title": "Erreurs HTTP",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "panels": []
+    },
+    {
+      "id": 24,
+      "type": "stat",
+      "title": "Taux d'erreur 4xx %",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 12, "x": 0, "y": 15 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(instantmusic_http_requests_total{status_code=~\"4..\"}[5m])) / sum(rate(instantmusic_http_requests_total[5m])) * 100",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 2 },
+              { "color": "orange", "value": 10 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "0%"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 25,
+      "type": "stat",
+      "title": "Taux d'erreur 5xx %",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 15 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(instantmusic_http_requests_total{status_code=~\"5..\"}[5m])) / sum(rate(instantmusic_http_requests_total[5m])) * 100",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "0%"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 26,
+      "type": "timeseries",
+      "title": "Détail erreurs 4xx (400 / 401 / 403 / 404 / 429)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(instantmusic_http_requests_total{status_code=\"400\"}[5m]))",
+          "legendFormat": "400 Bad Request",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(instantmusic_http_requests_total{status_code=\"401\"}[5m]))",
+          "legendFormat": "401 Unauthorized",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(instantmusic_http_requests_total{status_code=\"403\"}[5m]))",
+          "legendFormat": "403 Forbidden",
+          "refId": "C"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(instantmusic_http_requests_total{status_code=\"404\"}[5m]))",
+          "legendFormat": "404 Not Found",
+          "refId": "D"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(instantmusic_http_requests_total{status_code=\"429\"}[5m]))",
+          "legendFormat": "429 Too Many Requests",
+          "refId": "E"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "showPoints": "never"
+          },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "403 Forbidden" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "orange", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "429 Too Many Requests" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "red", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "401 Unauthorized" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "yellow", "mode": "fixed" }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max"]
+        }
+      }
+    },
+    {
+      "id": 27,
+      "type": "timeseries",
+      "title": "Détail erreurs 5xx (500 / 502 / 503)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(instantmusic_http_requests_total{status_code=\"500\"}[5m]))",
+          "legendFormat": "500 Internal Server Error",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(instantmusic_http_requests_total{status_code=\"502\"}[5m]))",
+          "legendFormat": "502 Bad Gateway",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(instantmusic_http_requests_total{status_code=\"503\"}[5m]))",
+          "legendFormat": "503 Service Unavailable",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 25,
+            "showPoints": "never"
+          },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "500 Internal Server Error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "red", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "502 Bad Gateway" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "dark-red", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "503 Service Unavailable" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "purple", "mode": "fixed" }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max"]
+        }
+      }
+    },
+    {
       "id": 10,
       "type": "row",
       "title": "Jeux & Joueurs",
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
       "panels": []
     },
     {
@@ -345,7 +596,7 @@
       "type": "timeseries",
       "title": "Parties créées par mode",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 15 },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 28 },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -377,7 +628,7 @@
       "type": "timeseries",
       "title": "Parties actives",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 15 },
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 28 },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -409,7 +660,7 @@
       "type": "timeseries",
       "title": "Réponses correctes vs incorrectes",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 15 },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 28 },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -467,7 +718,7 @@
       "type": "timeseries",
       "title": "Temps de réponse moyen par mode",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 15 },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 28 },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -499,7 +750,7 @@
       "type": "row",
       "title": "WebSocket",
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 36 },
       "panels": []
     },
     {
@@ -507,7 +758,7 @@
       "type": "timeseries",
       "title": "Connexions WS actives",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 37 },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -539,7 +790,7 @@
       "type": "timeseries",
       "title": "Messages WS par type",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 37 },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -576,7 +827,7 @@
       "type": "timeseries",
       "title": "Connexions / Déconnexions WS",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 37 },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -614,7 +865,7 @@
       "type": "row",
       "title": "APIs Externes & Celery",
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 45 },
       "panels": []
     },
     {
@@ -622,7 +873,7 @@
       "type": "timeseries",
       "title": "Appels APIs externes",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 33 },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 46 },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -654,7 +905,7 @@
       "type": "timeseries",
       "title": "Erreurs APIs externes",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 33 },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 46 },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -686,7 +937,7 @@
       "type": "timeseries",
       "title": "Tâches Celery",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 33 },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 46 },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
