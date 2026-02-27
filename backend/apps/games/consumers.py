@@ -6,6 +6,12 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 
+from apps.core.prometheus_metrics import (
+    WS_CONNECTIONS_TOTAL,
+    WS_CONNECTIONS_ACTIVE,
+    WS_MESSAGES_TOTAL,
+)
+
 
 class GameConsumer(AsyncWebsocketConsumer):
     """WebSocket consumer for game rooms."""
@@ -21,6 +27,10 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+
+        # Métriques Prometheus
+        WS_CONNECTIONS_TOTAL.labels(action="connect").inc()
+        WS_CONNECTIONS_ACTIVE.inc()
 
         # Send connection confirmation
         await self.send(
@@ -47,6 +57,10 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         """Handle WebSocket disconnection."""
+        # Métriques Prometheus
+        WS_CONNECTIONS_TOTAL.labels(action="disconnect").inc()
+        WS_CONNECTIONS_ACTIVE.dec()
+
         # Leave room group
         await self.channel_layer.group_discard(
             self.room_group_name, self.channel_name
@@ -71,6 +85,11 @@ class GameConsumer(AsyncWebsocketConsumer):
         try:
             data = json.loads(text_data)
             message_type = data.get("type")
+
+            # Métrique : message entrant
+            WS_MESSAGES_TOTAL.labels(
+                direction="inbound", message_type=message_type or "unknown"
+            ).inc()
 
             # Route message to appropriate handler
             if message_type == "player_join":

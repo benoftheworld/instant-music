@@ -144,6 +144,8 @@ JAZZMIN_UI_TWEAKS = {
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    # Prometheus — collecte des métriques HTTP (early pour mesurer la latence totale)
+    "apps.core.middleware.PrometheusMetricsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",

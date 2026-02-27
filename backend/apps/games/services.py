@@ -25,6 +25,17 @@ from .models import (
 from apps.playlists.deezer_service import deezer_service, DeezerAPIError
 from apps.playlists.youtube_service import youtube_service, YouTubeAPIError
 from apps.achievements.services import achievement_service
+from apps.core.prometheus_metrics import (
+    GAMES_CREATED_TOTAL,
+    GAMES_ACTIVE,
+    GAMES_FINISHED_TOTAL,
+    ANSWERS_TOTAL,
+    ANSWER_RESPONSE_TIME,
+    SCORES_EARNED,
+    EXTERNAL_API_REQUESTS_TOTAL,
+    EXTERNAL_API_ERRORS_TOTAL,
+    EXTERNAL_API_DURATION_SECONDS,
+)
 from .lyrics_service import (
     get_lyrics,
     create_lyrics_question,
@@ -216,10 +227,25 @@ class QuestionGeneratorService:
 
     def _fetch_tracks(self, playlist_id: str, limit: int = 50) -> List[Dict]:
         """Fetch tracks from Deezer playlist with fallback."""
+        import time as _time
+
+        EXTERNAL_API_REQUESTS_TOTAL.labels(
+            service="deezer", endpoint="get_playlist_tracks"
+        ).inc()
+        _t0 = _time.monotonic()
         try:
             logger.info("Fetching tracks from Deezer playlist %s", playlist_id)
             tracks = self.deezer.get_playlist_tracks(playlist_id, limit=limit)
+            EXTERNAL_API_DURATION_SECONDS.labels(service="deezer").observe(
+                _time.monotonic() - _t0
+            )
         except DeezerAPIError as e:
+            EXTERNAL_API_DURATION_SECONDS.labels(service="deezer").observe(
+                _time.monotonic() - _t0
+            )
+            EXTERNAL_API_ERRORS_TOTAL.labels(
+                service="deezer", error_type="api_error"
+            ).inc()
             logger.error(
                 "Failed to get tracks from Deezer playlist %s: %s",
                 playlist_id,
@@ -591,7 +617,10 @@ class GameService:
 
         # Karaoke uses a single pre-selected YouTube track, not a playlist
         if mode == GameMode.KARAOKE:
-            return self._start_karaoke_game(game)
+            result = self._start_karaoke_game(game)
+            GAMES_CREATED_TOTAL.labels(mode=mode).inc()
+            GAMES_ACTIVE.inc()
+            return result
 
         if not game.playlist_id:
             raise ValueError("Game must have a playlist")
@@ -610,6 +639,10 @@ class GameService:
             if rounds:
                 rounds[0].started_at = timezone.now()
                 rounds[0].save()
+
+        # Métriques Prometheus
+        GAMES_CREATED_TOTAL.labels(mode=mode).inc()
+        GAMES_ACTIVE.inc()
 
         return game, rounds
 
@@ -1000,6 +1033,15 @@ class GameService:
 
         player.score += points
         player.save()
+
+        # Métriques Prometheus
+        ANSWERS_TOTAL.labels(
+            is_correct=str(is_correct), game_mode=game_mode
+        ).inc()
+        ANSWER_RESPONSE_TIME.labels(game_mode=game_mode).observe(response_time)
+        if points > 0:
+            SCORES_EARNED.labels(game_mode=game_mode).observe(points)
+
         return game_answer
 
     @transaction.atomic
@@ -1034,6 +1076,10 @@ class GameService:
 
         # Save last so the signal fires after ranks are set
         game.save()
+
+        # Métriques Prometheus
+        GAMES_FINISHED_TOTAL.labels(mode=game.mode).inc()
+        GAMES_ACTIVE.dec()
 
         return game
 
