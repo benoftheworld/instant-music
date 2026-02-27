@@ -264,6 +264,9 @@ class QuestionGeneratorService:
             )
 
             try:
+                EXTERNAL_API_REQUESTS_TOTAL.labels(
+                    service="deezer", endpoint="get_playlist"
+                ).inc()
                 meta = self.deezer.get_playlist(playlist_id)
                 query = (
                     meta["name"] if meta and meta.get("name") else playlist_id
@@ -272,6 +275,9 @@ class QuestionGeneratorService:
                 query = playlist_id
 
             try:
+                EXTERNAL_API_REQUESTS_TOTAL.labels(
+                    service="deezer", endpoint="search_music_videos"
+                ).inc()
                 fallback = self.deezer.search_music_videos(query, limit=limit)
             except Exception as e:
                 logger.error("Fallback search failed: %s", e)
@@ -396,6 +402,9 @@ class QuestionGeneratorService:
         track_id = track["track_id"]
 
         # Get detailed info including release_date
+        EXTERNAL_API_REQUESTS_TOTAL.labels(
+            service="deezer", endpoint="get_track_details"
+        ).inc()
         details = self.deezer.get_track_details(track_id)
         if not details or not details.get("release_date"):
             return None
@@ -538,6 +547,9 @@ class QuestionGeneratorService:
 
         if not youtube_video_id:
             try:
+                EXTERNAL_API_REQUESTS_TOTAL.labels(
+                    service="youtube", endpoint="search_music_videos"
+                ).inc()
                 results = youtube_service.search_music_videos(
                     f"{artist} {track['name']}", limit=3
                 )

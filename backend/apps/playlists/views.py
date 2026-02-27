@@ -11,6 +11,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from .serializers import PlaylistSerializer
 from .deezer_service import deezer_service, DeezerAPIError
 from .youtube_service import youtube_service, YouTubeAPIError
+from apps.core.prometheus_metrics import EXTERNAL_API_REQUESTS_TOTAL
 
 
 class PlaylistViewSet(viewsets.ViewSet):
@@ -52,6 +53,9 @@ class PlaylistViewSet(viewsets.ViewSet):
             limit = 20
 
         try:
+            EXTERNAL_API_REQUESTS_TOTAL.labels(
+                service="deezer", endpoint="search_playlists"
+            ).inc()
             playlists = deezer_service.search_playlists(query, limit)
             serializer = PlaylistSerializer(playlists, many=True)
             return Response({"playlists": serializer.data, "source": "deezer"})
@@ -64,6 +68,9 @@ class PlaylistViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="(?P<playlist_id>\d+)")
     def get_playlist(self, request, playlist_id=None):
         try:
+            EXTERNAL_API_REQUESTS_TOTAL.labels(
+                service="deezer", endpoint="get_playlist"
+            ).inc()
             playlist = deezer_service.get_playlist(playlist_id)
             if not playlist:
                 return Response(
@@ -86,6 +93,9 @@ class PlaylistViewSet(viewsets.ViewSet):
         except ValueError:
             limit = 50
         try:
+            EXTERNAL_API_REQUESTS_TOTAL.labels(
+                service="deezer", endpoint="get_playlist_tracks"
+            ).inc()
             tracks = deezer_service.get_playlist_tracks(playlist_id, limit)
             return Response(tracks)
         except DeezerAPIError as e:
@@ -98,6 +108,9 @@ class PlaylistViewSet(viewsets.ViewSet):
     )
     def validate_playlist_access(self, request, playlist_id=None):
         try:
+            EXTERNAL_API_REQUESTS_TOTAL.labels(
+                service="deezer", endpoint="get_playlist_tracks"
+            ).inc()
             tracks = deezer_service.get_playlist_tracks(playlist_id, limit=5)
             return Response(
                 {
@@ -133,6 +146,9 @@ class PlaylistViewSet(viewsets.ViewSet):
         except ValueError:
             limit = 10
         try:
+            EXTERNAL_API_REQUESTS_TOTAL.labels(
+                service="youtube", endpoint="search_music_videos"
+            ).inc()
             tracks = youtube_service.search_music_videos(
                 query.strip(), limit=limit
             )

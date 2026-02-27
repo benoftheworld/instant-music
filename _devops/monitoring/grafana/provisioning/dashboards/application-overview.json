@@ -64,6 +64,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "instantmusic_games_active",
+          "legendFormat": "Parties actives",
           "refId": "A",
           "instant": true
         }
@@ -100,6 +101,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "instantmusic_ws_connections_active",
+          "legendFormat": "Connexions WebSocket",
           "refId": "A",
           "instant": true
         }

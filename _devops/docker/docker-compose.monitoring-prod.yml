@@ -26,9 +26,9 @@ services:
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     expose:
-      - "9200"
+      - '9200'
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      test: ['CMD-SHELL', 'curl -f http://localhost:9200/_cluster/health || exit 1']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -44,9 +44,9 @@ services:
       - ../monitoring/logstash/pipeline:/usr/share/logstash/pipeline:ro
       - ../monitoring/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
     expose:
-      - "5044"
-      - "5000"
-      - "9600"
+      - '5044'
+      - '5000'
+      - '9600'
     environment:
       - LS_JAVA_OPTS=-Xms256m -Xmx256m
     depends_on:
@@ -65,10 +65,37 @@ services:
       - SERVER_BASEPATH=/kibana
       - SERVER_REWRITEBASEPATH=true
     expose:
-      - "5601"
+      - '5601'
     depends_on:
       elasticsearch:
         condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Node Exporter ──────────────────────────────────────────────────────────
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: instantmusic_node_exporter_prod
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Redis Exporter ──────────────────────────────────────────────────────────
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.58.0
+    container_name: instantmusic_redis_exporter_prod
+    environment:
+      - REDIS_ADDR=redis://redis:6379
     restart: unless-stopped
     networks:
       - app-network
@@ -90,7 +117,7 @@ services:
       - '--web.external-url=https://benoftheworld.fr/prometheus/'
       - '--web.route-prefix=/'
     expose:
-      - "9090"
+      - '9090'
     restart: unless-stopped
     networks:
       - app-network
@@ -101,7 +128,7 @@ services:
     container_name: instantmusic_grafana_prod
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin  # Changer en production !
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Changer en production !
       - GF_USERS_ALLOW_SIGN_UP=false
       # Subpath pour l'accès via nginx /grafana/
       - GF_SERVER_ROOT_URL=https://benoftheworld.fr/grafana/
@@ -110,7 +137,7 @@ services:
       - grafana_data:/var/lib/grafana
       - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
     expose:
-      - "3000"
+      - '3000'
     depends_on:
       - prometheus
     restart: unless-stopped
