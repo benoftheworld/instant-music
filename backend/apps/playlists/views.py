@@ -12,6 +12,7 @@ from .serializers import PlaylistSerializer
 from .deezer_service import deezer_service, DeezerAPIError
 from .youtube_service import youtube_service, YouTubeAPIError
 from apps.core.prometheus_metrics import EXTERNAL_API_REQUESTS_TOTAL
+from apps.core.throttles import PlaylistSearchThrottle
 
 
 class PlaylistViewSet(viewsets.ViewSet):
@@ -29,6 +30,11 @@ class PlaylistViewSet(viewsets.ViewSet):
         if self.action in self.PUBLIC_ACTIONS:
             return [AllowAny()]
         return [IsAuthenticated()]
+
+    def get_throttles(self):
+        if self.action == "search":
+            return [PlaylistSearchThrottle()]
+        return super().get_throttles()
 
     @extend_schema(
         parameters=[

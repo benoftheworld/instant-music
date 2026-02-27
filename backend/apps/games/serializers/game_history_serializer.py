@@ -48,33 +48,36 @@ class GameHistorySerializer(serializers.ModelSerializer):
             "finished_at",
         ]
 
+    def _sorted_players(self, obj):
+        """Tri en mémoire sur le prefetch — évite toute requête DB supplémentaire.
+
+        Nécessite que le queryset appelant prefetch_related("players__user").
+        """
+        return sorted(obj.players.all(), key=lambda p: p.score, reverse=True)
+
     def get_winner(self, obj):
         """Get the winner of the game."""
-        top_player = obj.players.order_by("-score").first()
-        if top_player:
-            return {
-                "id": top_player.user.id,
-                "username": top_player.user.username,
-                "avatar": (
-                    top_player.user.avatar.url
-                    if top_player.user.avatar
-                    else None
-                ),
-            }
-        return None
+        players = self._sorted_players(obj)
+        if not players:
+            return None
+        top = players[0]
+        return {
+            "id": top.user.id,
+            "username": top.user.username,
+            "avatar": top.user.avatar.url if top.user.avatar else None,
+        }
 
     def get_winner_score(self, obj):
         """Get the winner's score."""
-        top_player = obj.players.order_by("-score").first()
-        return top_player.score if top_player else 0
+        players = self._sorted_players(obj)
+        return players[0].score if players else 0
 
     def get_player_count(self, obj):
         """Get number of players in the game."""
-        return obj.players.count()
+        return len(obj.players.all())
 
     def get_participants(self, obj):
         """Get list of all participants with their rankings."""
-        players = obj.players.order_by("-score")
         return [
             {
                 "id": player.user.id,
@@ -85,5 +88,5 @@ class GameHistorySerializer(serializers.ModelSerializer):
                 "score": player.score,
                 "rank": idx + 1,
             }
-            for idx, player in enumerate(players)
+            for idx, player in enumerate(self._sorted_players(obj))
         ]

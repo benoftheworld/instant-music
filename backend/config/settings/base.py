@@ -146,6 +146,8 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     # Prometheus — collecte des métriques HTTP (early pour mesurer la latence totale)
     "apps.core.middleware.PrometheusMetricsMiddleware",
+    # Logging structuré HTTP (request_id, user_id, duration_ms)
+    "apps.core.logging_middleware.StructuredLoggingMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -237,6 +239,16 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_CLASSES": [],
+    "DEFAULT_THROTTLE_RATES": {
+        "register": "5/min",
+        "login": "10/min",
+        "token_refresh": "20/min",
+        "game_create": "10/min",
+        "game_join": "20/min",
+        "playlist_search": "20/min",
+        "leaderboard": "30/min",
+    },
 }
 
 # JWT Settings
@@ -297,4 +309,47 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "API pour l'application InstantMusic - Jeux musicaux multijoueurs",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+}
+
+# Logging structuré JSON
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "json": {
+            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+            "static_fields": {
+                "environment": env("DJANGO_ENV", default="development"),
+                "app": "instantmusic",
+            },
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "json",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "apps": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+    },
 }

@@ -7,12 +7,13 @@ import random
 import string
 
 from django.utils import timezone
+from django.db.models import Prefetch
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..models import Game, GameAnswer, GamePlayer
+from ..models import Game, GameAnswer, GamePlayer, GameRound
 from ..models.enums import GameMode
 from ..serializers import (
     CreateGameSerializer,
@@ -32,6 +33,7 @@ from ..broadcast_service import (
     broadcast_round_end,
     broadcast_round_start,
 )
+from apps.core.throttles import GameCreateThrottle, GameJoinThrottle
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +51,17 @@ def generate_room_code() -> str:
 class GameViewSet(viewsets.ModelViewSet):
     """ViewSet for Game model."""
 
-    queryset = Game.objects.all()
+    queryset = Game.objects.select_related("host")
     serializer_class = GameSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = "room_code"
+
+    def get_throttles(self):
+        if self.action == "create":
+            return [GameCreateThrottle()]
+        if self.action == "join":
+            return [GameJoinThrottle()]
+        return super().get_throttles()
 
     def get_serializer_class(self):
         """Return appropriate serializer class."""
@@ -442,10 +451,20 @@ class GameViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        players = game.players.order_by("-score")
+        # Précharger rounds + answers en 2 requêtes au lieu de 1 par round
+        rounds = GameRound.objects.filter(game=game).prefetch_related(
+            Prefetch(
+                "answers",
+                queryset=GameAnswer.objects.select_related(
+                    "player__user"
+                ).order_by("-points_earned"),
+            )
+        ).order_by("round_number")
+
+        players = game.players.select_related("user").order_by("-score")
 
         rounds_detail = []
-        for r in game.rounds.order_by("round_number"):
+        for r in rounds:
             answers = [
                 {
                     "username": ans.player.user.username,
@@ -454,9 +473,7 @@ class GameViewSet(viewsets.ModelViewSet):
                     "points_earned": ans.points_earned,
                     "response_time": round(ans.response_time, 1),
                 }
-                for ans in r.answers.select_related("player__user").order_by(
-                    "-points_earned"
-                )
+                for ans in r.answers.all()
             ]
             rounds_detail.append(
                 {

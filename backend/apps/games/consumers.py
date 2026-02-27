@@ -3,14 +3,18 @@ WebSocket consumers for games.
 """
 
 import json
-from channels.generic.websocket import AsyncWebsocketConsumer
+import logging
+
 from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
 
 from apps.core.prometheus_metrics import (
     WS_CONNECTIONS_TOTAL,
     WS_CONNECTIONS_ACTIVE,
     WS_MESSAGES_TOTAL,
 )
+
+logger = logging.getLogger("apps.games.consumer")
 
 
 class GameConsumer(AsyncWebsocketConsumer):
@@ -20,6 +24,8 @@ class GameConsumer(AsyncWebsocketConsumer):
         """Handle WebSocket connection."""
         self.room_code = self.scope["url_route"]["kwargs"]["room_code"]
         self.room_group_name = f"game_{self.room_code}"
+        # scope["user"] est garanti authentifié par JwtWebSocketMiddleware
+        user = self.scope["user"]
 
         # Join room group
         await self.channel_layer.group_add(
@@ -32,6 +38,15 @@ class GameConsumer(AsyncWebsocketConsumer):
         WS_CONNECTIONS_TOTAL.labels(action="connect").inc()
         WS_CONNECTIONS_ACTIVE.inc()
 
+        logger.info(
+            "ws_connect",
+            extra={
+                "event_type": "connect",
+                "room_code": self.room_code,
+                "user_id": user.id,
+            },
+        )
+
         # Send connection confirmation
         await self.send(
             text_data=json.dumps(
@@ -41,19 +56,17 @@ class GameConsumer(AsyncWebsocketConsumer):
                 }
             )
         )
-        # If user is authenticated, mark them as connected and broadcast update
-        user = self.scope.get("user")
-        if user and user.is_authenticated:
-            await self._set_player_connected(True)
-            game_data = await self.get_game_data()
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "broadcast_player_join",
-                    "player": {"user": user.id, "username": user.username},
-                    "game_data": game_data,
-                },
-            )
+
+        await self._set_player_connected(True)
+        game_data = await self.get_game_data()
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "broadcast_player_join",
+                "player": {"user": user.id, "username": user.username},
+                "game_data": game_data,
+            },
+        )
 
     async def disconnect(self, close_code):
         """Handle WebSocket disconnection."""
@@ -65,9 +78,18 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(
             self.room_group_name, self.channel_name
         )
-        # If user is authenticated, mark them as disconnected and notify room
+
         user = self.scope.get("user")
         if user and user.is_authenticated:
+            logger.info(
+                "ws_disconnect",
+                extra={
+                    "event_type": "disconnect",
+                    "room_code": self.room_code,
+                    "user_id": user.id,
+                    "close_code": close_code,
+                },
+            )
             await self._set_player_connected(False)
             # Broadcast player leave with updated game data
             game_data = await self.get_game_data()
@@ -90,6 +112,15 @@ class GameConsumer(AsyncWebsocketConsumer):
             WS_MESSAGES_TOTAL.labels(
                 direction="inbound", message_type=message_type or "unknown"
             ).inc()
+
+            logger.debug(
+                "ws_message",
+                extra={
+                    "event_type": message_type,
+                    "room_code": self.room_code,
+                    "user_id": self.scope["user"].id,
+                },
+            )
 
             # Route message to appropriate handler
             if message_type == "player_join":
@@ -114,6 +145,15 @@ class GameConsumer(AsyncWebsocketConsumer):
                 )
 
         except json.JSONDecodeError:
+            logger.warning(
+                "ws_receive_error",
+                extra={
+                    "event_type": "error",
+                    "room_code": self.room_code,
+                    "error": "invalid_json",
+                    "user_id": getattr(self.scope.get("user"), "id", None),
+                },
+            )
             await self.send(
                 text_data=json.dumps(
                     {"type": "error", "message": "Invalid JSON"}
@@ -139,7 +179,6 @@ class GameConsumer(AsyncWebsocketConsumer):
     def get_game_data(self):
         """Get game data with players."""
         from .models import Game
-        from .serializers import GameSerializer, GamePlayerSerializer
         from django.conf import settings
 
         try:
@@ -208,10 +247,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         except Game.DoesNotExist:
             return
 
-        user = self.scope.get("user")
-        if not user or not user.is_authenticated:
-            return
-
+        user = self.scope["user"]
         try:
             gp = GamePlayer.objects.get(game=game, user=user)
             gp.is_connected = connected
@@ -219,6 +255,15 @@ class GameConsumer(AsyncWebsocketConsumer):
         except GamePlayer.DoesNotExist:
             # No participation record: ignore
             return
+
+    @database_sync_to_async
+    def _is_host(self) -> bool:
+        """Vérifie si l'utilisateur connecté est l'hôte de la partie."""
+        from .models import Game
+
+        return Game.objects.filter(
+            room_code=self.room_code, host=self.scope["user"]
+        ).exists()
 
     async def player_answer(self, data):
         """Handle player submitting an answer."""
@@ -238,6 +283,22 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def start_game(self, data):
         """Handle game start."""
+        if not await self._is_host():
+            logger.warning(
+                "ws_auth_forbidden",
+                extra={
+                    "action": "start_game",
+                    "user_id": self.scope["user"].id,
+                    "room_code": self.room_code,
+                },
+            )
+            await self.send(
+                text_data=json.dumps(
+                    {"type": "error", "message": "Action réservée à l'hôte."}
+                )
+            )
+            return
+
         # Get initial game data
         game_data = await self.get_game_data()
 
@@ -248,6 +309,14 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def start_round(self, data):
         """Handle round start."""
+        if not await self._is_host():
+            await self.send(
+                text_data=json.dumps(
+                    {"type": "error", "message": "Action réservée à l'hôte."}
+                )
+            )
+            return
+
         round_data = data.get("round_data")
 
         await self.channel_layer.group_send(
@@ -257,6 +326,14 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def end_round(self, data):
         """Handle round end."""
+        if not await self._is_host():
+            await self.send(
+                text_data=json.dumps(
+                    {"type": "error", "message": "Action réservée à l'hôte."}
+                )
+            )
+            return
+
         round_results = data.get("results")
 
         await self.channel_layer.group_send(
@@ -266,6 +343,14 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def next_round(self, data):
         """Handle next round."""
+        if not await self._is_host():
+            await self.send(
+                text_data=json.dumps(
+                    {"type": "error", "message": "Action réservée à l'hôte."}
+                )
+            )
+            return
+
         round_data = data.get("round_data")
 
         await self.channel_layer.group_send(
@@ -275,6 +360,14 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def finish_game(self, data):
         """Handle game finish."""
+        if not await self._is_host():
+            await self.send(
+                text_data=json.dumps(
+                    {"type": "error", "message": "Action réservée à l'hôte."}
+                )
+            )
+            return
+
         results = data.get("results")
 
         await self.channel_layer.group_send(
