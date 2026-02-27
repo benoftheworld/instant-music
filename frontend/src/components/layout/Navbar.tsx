@@ -1,11 +1,18 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useLogout } from '@/hooks/useAuth';
 import { getMediaUrl } from '@/services/api';
+import { authService } from '@/services/authService';
 
 export default function Navbar() {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, updateUser } = useAuthStore();
   const logout = useLogout();
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    authService.getCurrentUser().then(updateUser).catch(() => {});
+  }, [isAuthenticated]);
 
   return (
     <nav className="bg-dark text-cream-100 shadow-lg border-b-4 border-primary-500">
