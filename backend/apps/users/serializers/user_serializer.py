@@ -17,6 +17,7 @@ class UserSerializer(serializers.ModelSerializer):
             "username",
             "email",
             "avatar",
+            "is_staff",
             "total_games_played",
             "total_wins",
             "total_points",
@@ -26,6 +27,7 @@ class UserSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id",
+            "is_staff",
             "total_games_played",
             "total_wins",
             "total_points",

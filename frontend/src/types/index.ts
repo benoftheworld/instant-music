@@ -7,6 +7,7 @@ export interface User {
   username: string;
   email: string;
   avatar?: string;
+  is_staff: boolean;
   total_games_played: number;
   total_wins: number;
   total_points: number;
