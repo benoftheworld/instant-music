@@ -38,6 +38,7 @@ HTTP_REQUESTS_IN_PROGRESS = Gauge(
     "instantmusic_http_requests_in_progress",
     "Nombre de requêtes HTTP en cours de traitement",
     ["method"],
+    multiprocess_mode="livesum",
 )
 
 # ─── WebSocket ──────────────────────────────────────────────────────────────
@@ -51,6 +52,7 @@ WS_CONNECTIONS_TOTAL = Counter(
 WS_CONNECTIONS_ACTIVE = Gauge(
     "instantmusic_ws_connections_active",
     "Nombre de connexions WebSocket actives",
+    multiprocess_mode="livesum",
 )
 
 WS_MESSAGES_TOTAL = Counter(
@@ -70,6 +72,7 @@ GAMES_CREATED_TOTAL = Counter(
 GAMES_ACTIVE = Gauge(
     "instantmusic_games_active",
     "Nombre de parties actuellement en cours",
+    multiprocess_mode="livesum",
 )
 
 GAMES_FINISHED_TOTAL = Counter(
@@ -81,6 +84,7 @@ GAMES_FINISHED_TOTAL = Counter(
 PLAYERS_IN_GAMES = Gauge(
     "instantmusic_players_in_games",
     "Nombre total de joueurs dans des parties actives",
+    multiprocess_mode="livesum",
 )
 
 ANSWERS_TOTAL = Counter(
