@@ -1,6 +1,6 @@
 /**
  * WebSocket service using native WebSocket (compatible with Django Channels).
- * 
+ *
  * Django Channels uses native WebSocket protocol, NOT Socket.IO.
  */
 import type { WebSocketMessage } from '@/types';
@@ -37,7 +37,9 @@ export class WebSocketService {
     this.intentionalDisconnect = false;
     const currentConnectId = ++this.connectId;
 
-    const url = `${WS_BASE_URL}/ws/game/${roomCode}/`;
+    const accessToken = localStorage.getItem('access_token');
+    const tokenParam = accessToken ? `?token=${accessToken}` : '';
+    const url = `${WS_BASE_URL}/ws/game/${roomCode}/${tokenParam}`;
     console.log('Connecting to WebSocket:', url);
 
     return new Promise((resolve, reject) => {
@@ -101,10 +103,10 @@ export class WebSocketService {
 
         try {
           const data = JSON.parse(event.data) as WebSocketMessage;
-          
+
           // Emit to 'message' listeners (general)
           this._emitEvent('message', data);
-          
+
           // Also emit by specific type (e.g., 'player_joined', 'game_started')
           if (data.type) {
             this._emitEvent(data.type, data);
