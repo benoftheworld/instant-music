@@ -99,15 +99,19 @@ END $$;
                 # 2. Convertir les colonnes PK bigint → uuid.
                 migrations.RunSQL(
                     sql=[
+                        "ALTER TABLE games_gameanswer ALTER COLUMN id DROP IDENTITY IF EXISTS",
                         "ALTER TABLE games_gameanswer ALTER COLUMN id DROP DEFAULT",
                         "ALTER TABLE games_gameanswer ALTER COLUMN id TYPE uuid USING gen_random_uuid()",
                         "DROP SEQUENCE IF EXISTS games_gameanswer_id_seq",
+                        "ALTER TABLE games_gameplayer ALTER COLUMN id DROP IDENTITY IF EXISTS",
                         "ALTER TABLE games_gameplayer ALTER COLUMN id DROP DEFAULT",
                         "ALTER TABLE games_gameplayer ALTER COLUMN id TYPE uuid USING gen_random_uuid()",
                         "DROP SEQUENCE IF EXISTS games_gameplayer_id_seq",
+                        "ALTER TABLE games_gameround ALTER COLUMN id DROP IDENTITY IF EXISTS",
                         "ALTER TABLE games_gameround ALTER COLUMN id DROP DEFAULT",
                         "ALTER TABLE games_gameround ALTER COLUMN id TYPE uuid USING gen_random_uuid()",
                         "DROP SEQUENCE IF EXISTS games_gameround_id_seq",
+                        "ALTER TABLE games_karaokesong ALTER COLUMN id DROP IDENTITY IF EXISTS",
                         "ALTER TABLE games_karaokesong ALTER COLUMN id DROP DEFAULT",
                         "ALTER TABLE games_karaokesong ALTER COLUMN id TYPE uuid USING gen_random_uuid()",
                         "DROP SEQUENCE IF EXISTS games_karaokesong_id_seq",

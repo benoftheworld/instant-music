@@ -68,9 +68,11 @@ END $$;
                 # 2. Convertir les colonnes PK bigint → uuid.
                 migrations.RunSQL(
                     sql=[
+                        "ALTER TABLE achievements_achievement ALTER COLUMN id DROP IDENTITY IF EXISTS",
                         "ALTER TABLE achievements_achievement ALTER COLUMN id DROP DEFAULT",
                         "ALTER TABLE achievements_achievement ALTER COLUMN id TYPE uuid USING gen_random_uuid()",
                         "DROP SEQUENCE IF EXISTS achievements_achievement_id_seq",
+                        "ALTER TABLE achievements_userachievement ALTER COLUMN id DROP IDENTITY IF EXISTS",
                         "ALTER TABLE achievements_userachievement ALTER COLUMN id DROP DEFAULT",
                         "ALTER TABLE achievements_userachievement ALTER COLUMN id TYPE uuid USING gen_random_uuid()",
                         "DROP SEQUENCE IF EXISTS achievements_userachievement_id_seq",

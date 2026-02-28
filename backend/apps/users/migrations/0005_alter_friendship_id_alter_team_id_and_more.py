@@ -105,20 +105,28 @@ END $$;
                     reverse_sql=migrations.RunSQL.noop,
                 ),
                 # 2. Convertir les colonnes PK bigint → uuid.
+                #    DROP IDENTITY IF EXISTS couvre les colonnes IDENTITY (Django ≥ 4.1 /
+                #    PostgreSQL GENERATED … AS IDENTITY) ; DROP DEFAULT couvre les colonnes
+                #    avec séquence classique. Les deux commandes sont safe si inapplicables.
                 migrations.RunSQL(
                     sql=[
+                        "ALTER TABLE users_user ALTER COLUMN id DROP IDENTITY IF EXISTS",
                         "ALTER TABLE users_user ALTER COLUMN id DROP DEFAULT",
                         "ALTER TABLE users_user ALTER COLUMN id TYPE uuid USING gen_random_uuid()",
                         "DROP SEQUENCE IF EXISTS users_user_id_seq",
+                        "ALTER TABLE users_friendship ALTER COLUMN id DROP IDENTITY IF EXISTS",
                         "ALTER TABLE users_friendship ALTER COLUMN id DROP DEFAULT",
                         "ALTER TABLE users_friendship ALTER COLUMN id TYPE uuid USING gen_random_uuid()",
                         "DROP SEQUENCE IF EXISTS users_friendship_id_seq",
+                        "ALTER TABLE users_team ALTER COLUMN id DROP IDENTITY IF EXISTS",
                         "ALTER TABLE users_team ALTER COLUMN id DROP DEFAULT",
                         "ALTER TABLE users_team ALTER COLUMN id TYPE uuid USING gen_random_uuid()",
                         "DROP SEQUENCE IF EXISTS users_team_id_seq",
+                        "ALTER TABLE users_teamjoinrequest ALTER COLUMN id DROP IDENTITY IF EXISTS",
                         "ALTER TABLE users_teamjoinrequest ALTER COLUMN id DROP DEFAULT",
                         "ALTER TABLE users_teamjoinrequest ALTER COLUMN id TYPE uuid USING gen_random_uuid()",
                         "DROP SEQUENCE IF EXISTS users_teamjoinrequest_id_seq",
+                        "ALTER TABLE users_teammember ALTER COLUMN id DROP IDENTITY IF EXISTS",
                         "ALTER TABLE users_teammember ALTER COLUMN id DROP DEFAULT",
                         "ALTER TABLE users_teammember ALTER COLUMN id TYPE uuid USING gen_random_uuid()",
                         "DROP SEQUENCE IF EXISTS users_teammember_id_seq",
