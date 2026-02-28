@@ -133,7 +133,10 @@ END $$;
                     ],
                     reverse_sql=migrations.RunSQL.noop,
                 ),
-                # 3. Convertir les colonnes FK (même app + cross-app).
+                # 3. Convertir les colonnes FK (app users uniquement).
+                #    Les FK cross-app (games_gameplayer.user_id, games_game.host_id,
+                #    achievements_userachievement.user_id) sont traitées dans
+                #    games/0020 et achievements/0003 qui dépendent de cette migration.
                 migrations.RunSQL(
                     sql=[
                         # users_friendship
@@ -147,15 +150,10 @@ END $$;
                         # users_teamjoinrequest
                         "ALTER TABLE users_teamjoinrequest ALTER COLUMN user_id TYPE uuid USING gen_random_uuid()",
                         "ALTER TABLE users_teamjoinrequest ALTER COLUMN team_id TYPE uuid USING gen_random_uuid()",
-                        # Cross-app : games_gameplayer.user_id et games_game.host_id
-                        "ALTER TABLE games_gameplayer ALTER COLUMN user_id TYPE uuid USING gen_random_uuid()",
-                        "ALTER TABLE games_game ALTER COLUMN host_id TYPE uuid USING gen_random_uuid()",
-                        # Cross-app : achievements_userachievement.user_id
-                        "ALTER TABLE achievements_userachievement ALTER COLUMN user_id TYPE uuid USING gen_random_uuid()",
                     ],
                     reverse_sql=migrations.RunSQL.noop,
                 ),
-                # 4. Recréer les contraintes FK avec les nouveaux types UUID.
+                # 4. Recréer les contraintes FK users uniquement.
                 migrations.RunSQL(
                     sql=[
                         # users_friendship
@@ -169,11 +167,6 @@ END $$;
                         # users_teamjoinrequest
                         "ALTER TABLE users_teamjoinrequest ADD CONSTRAINT users_teamjoinrequest_team_id_fk FOREIGN KEY (team_id) REFERENCES users_team(id) ON DELETE CASCADE",
                         "ALTER TABLE users_teamjoinrequest ADD CONSTRAINT users_teamjoinrequest_user_id_fk FOREIGN KEY (user_id) REFERENCES users_user(id) ON DELETE CASCADE",
-                        # Cross-app : games
-                        "ALTER TABLE games_gameplayer ADD CONSTRAINT games_gameplayer_user_id_fk FOREIGN KEY (user_id) REFERENCES users_user(id) ON DELETE CASCADE",
-                        "ALTER TABLE games_game ADD CONSTRAINT games_game_host_id_fk FOREIGN KEY (host_id) REFERENCES users_user(id) ON DELETE CASCADE",
-                        # Cross-app : achievements
-                        "ALTER TABLE achievements_userachievement ADD CONSTRAINT achievements_userachievement_user_id_fk FOREIGN KEY (user_id) REFERENCES users_user(id) ON DELETE CASCADE",
                     ],
                     reverse_sql=migrations.RunSQL.noop,
                 ),

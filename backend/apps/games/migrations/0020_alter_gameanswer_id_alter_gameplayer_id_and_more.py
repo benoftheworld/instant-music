@@ -3,15 +3,14 @@
 #
 # Solution : SeparateDatabaseAndState avec RunSQL explicite.
 #
-# Dépendance sur users/0005 ajoutée pour garantir que :
-#   - users_user.id est déjà uuid quand cette migration tourne
-#   - games_gameplayer.user_id et games_game.host_id sont déjà uuid
-#     (convertis par la migration users/0005 en cross-app)
+# Dépendance sur users/0005 ajoutée pour garantir que users_user.id est uuid
+# avant que les FK games→users soient recréées ici.
 #
-# Cette migration gère uniquement :
+# Cette migration gère :
 #   - PKs : gameanswer.id, gameplayer.id, gameround.id, karaokesong.id
-#   - FKs dans games qui référencent ces PKs :
-#       gameanswer.round_id, gameanswer.player_id, game.karaoke_song_id
+#   - FKs games internes : gameanswer.round_id, gameanswer.player_id, game.karaoke_song_id
+#   - FKs games→users : gameplayer.user_id, game.host_id
+#     (les contraintes avaient été supprimées par users/0005, colonnes converties ici)
 
 from django.db import migrations, models
 import uuid
@@ -118,10 +117,9 @@ END $$;
                     ],
                     reverse_sql=migrations.RunSQL.noop,
                 ),
-                # 3. Convertir les colonnes FK dans les tables games qui
-                #    référençaient les PKs modifiées ci-dessus.
-                #    Remarque : gameplayer.user_id et game.host_id sont déjà
-                #    en uuid (traités par users/0005).
+                # 3. Convertir les colonnes FK dans les tables games.
+                #    gameplayer.user_id et game.host_id : contraintes supprimées par
+                #    users/0005 (DO block), colonnes encore en bigint → convertir ici.
                 migrations.RunSQL(
                     sql=[
                         # gameanswer.round_id → gameround.id
@@ -130,6 +128,10 @@ END $$;
                         "ALTER TABLE games_gameanswer ALTER COLUMN player_id TYPE uuid USING gen_random_uuid()",
                         # game.karaoke_song_id → karaokesong.id (nullable)
                         "ALTER TABLE games_game ALTER COLUMN karaoke_song_id TYPE uuid USING NULL::uuid",
+                        # Cross-app : gameplayer.user_id → users_user.id
+                        "ALTER TABLE games_gameplayer ALTER COLUMN user_id TYPE uuid USING gen_random_uuid()",
+                        # Cross-app : game.host_id → users_user.id
+                        "ALTER TABLE games_game ALTER COLUMN host_id TYPE uuid USING gen_random_uuid()",
                     ],
                     reverse_sql=migrations.RunSQL.noop,
                 ),
@@ -142,6 +144,10 @@ END $$;
                         "ALTER TABLE games_gameanswer ADD CONSTRAINT games_gameanswer_player_id_fk FOREIGN KEY (player_id) REFERENCES games_gameplayer(id) ON DELETE CASCADE",
                         # game.karaoke_song_id → karaokesong (SET NULL, nullable)
                         "ALTER TABLE games_game ADD CONSTRAINT games_game_karaoke_song_id_fk FOREIGN KEY (karaoke_song_id) REFERENCES games_karaokesong(id) ON DELETE SET NULL",
+                        # Cross-app : gameplayer.user_id → users_user (CASCADE)
+                        "ALTER TABLE games_gameplayer ADD CONSTRAINT games_gameplayer_user_id_fk FOREIGN KEY (user_id) REFERENCES users_user(id) ON DELETE CASCADE",
+                        # Cross-app : game.host_id → users_user (CASCADE)
+                        "ALTER TABLE games_game ADD CONSTRAINT games_game_host_id_fk FOREIGN KEY (host_id) REFERENCES users_user(id) ON DELETE CASCADE",
                     ],
                     reverse_sql=migrations.RunSQL.noop,
                 ),

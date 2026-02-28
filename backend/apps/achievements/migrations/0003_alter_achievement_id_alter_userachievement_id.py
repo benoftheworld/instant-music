@@ -1,11 +1,12 @@
 # Réécriture de la migration auto-générée.
 # Problème original : AlterField sans clause USING → "cannot cast type bigint to uuid".
 #
-# Dépendance sur users/0005 ajoutée car achievements_userachievement.user_id
-# a déjà été converti en uuid par users/0005 (cross-app).
-# Cette migration gère uniquement :
+# Dépendance sur users/0005 pour garantir que users_user.id est uuid.
+# Cette migration gère :
 #   - PKs : achievement.id, userachievement.id
-#   - FK  : userachievement.achievement_id → achievement.id
+#   - FK interne : userachievement.achievement_id → achievement.id
+#   - FK cross-app : userachievement.user_id → users_user.id
+#     (contrainte supprimée par users/0005, colonne convertie ici)
 
 from django.db import migrations, models
 import uuid
@@ -79,18 +80,23 @@ END $$;
                     ],
                     reverse_sql=migrations.RunSQL.noop,
                 ),
-                # 3. Convertir la colonne FK userachievement.achievement_id.
-                #    userachievement.user_id est déjà uuid (converti par users/0005).
+                # 3. Convertir les colonnes FK.
+                #    userachievement.user_id : contrainte supprimée par users/0005,
+                #    colonne encore en bigint → convertir ici.
                 migrations.RunSQL(
                     sql=[
                         "ALTER TABLE achievements_userachievement ALTER COLUMN achievement_id TYPE uuid USING gen_random_uuid()",
+                        # Cross-app : userachievement.user_id → users_user.id
+                        "ALTER TABLE achievements_userachievement ALTER COLUMN user_id TYPE uuid USING gen_random_uuid()",
                     ],
                     reverse_sql=migrations.RunSQL.noop,
                 ),
-                # 4. Recréer la contrainte FK.
+                # 4. Recréer les contraintes FK.
                 migrations.RunSQL(
                     sql=[
                         "ALTER TABLE achievements_userachievement ADD CONSTRAINT achievements_userachievement_achievement_id_fk FOREIGN KEY (achievement_id) REFERENCES achievements_achievement(id) ON DELETE CASCADE",
+                        # Cross-app : userachievement.user_id → users_user (CASCADE)
+                        "ALTER TABLE achievements_userachievement ADD CONSTRAINT achievements_userachievement_user_id_fk FOREIGN KEY (user_id) REFERENCES users_user(id) ON DELETE CASCADE",
                     ],
                     reverse_sql=migrations.RunSQL.noop,
                 ),
