@@ -1,5 +1,7 @@
 """Friendship model."""
 
+import uuid
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -10,6 +12,7 @@ from .user import User
 class Friendship(models.Model):
     """Friendship between two users."""
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     from_user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

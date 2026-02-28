@@ -2,6 +2,8 @@
 GameAnswer model — player's answer in a round.
 """
 
+import uuid
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -12,6 +14,7 @@ from .game_round import GameRound
 class GameAnswer(models.Model):
     """Player's answer in a round."""
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     round = models.ForeignKey(
         GameRound,
         on_delete=models.CASCADE,

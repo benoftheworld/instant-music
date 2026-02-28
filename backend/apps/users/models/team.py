@@ -1,5 +1,7 @@
 """Team model."""
 
+import uuid
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -9,8 +11,11 @@ from .user import User
 class Team(models.Model):
     """Team for group play."""
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(_("nom"), max_length=100, unique=True)
-    description = models.TextField(_("description"), max_length=500, blank=True)
+    description = models.TextField(
+        _("description"), max_length=500, blank=True
+    )
     avatar = models.ImageField(
         _("avatar"),
         upload_to="team_avatars/",

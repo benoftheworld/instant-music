@@ -1,7 +1,9 @@
 """
 Serializers for achievements.
 """
+
 from rest_framework import serializers
+
 from .models import Achievement, UserAchievement
 
 
@@ -22,6 +24,8 @@ class AchievementSerializer(serializers.ModelSerializer):
     unlocked_at = serializers.SerializerMethodField()
 
     class Meta:
+        """Meta options for the AchievementSerializer."""
+
         model = Achievement
         fields = [
             "id",
@@ -34,8 +38,6 @@ class AchievementSerializer(serializers.ModelSerializer):
             "unlocked",
             "unlocked_at",
         ]
-
-    # ── helpers ──────────────────────────────────────────────────────
 
     def _get_user_achievement(self, obj):
         """Return the UserAchievement for the current user or None."""
@@ -53,9 +55,11 @@ class AchievementSerializer(serializers.ModelSerializer):
         return None
 
     def get_unlocked(self, obj):
+        """Return True if the current user has unlocked this achievement."""
         return self._get_user_achievement(obj) is not None
 
     def get_unlocked_at(self, obj):
+        """Return the timestamp when the current user unlocked this achievement."""
         ua = self._get_user_achievement(obj)
         if ua:
             return ua.unlocked_at.isoformat()
@@ -64,9 +68,11 @@ class AchievementSerializer(serializers.ModelSerializer):
 
 class UserAchievementSerializer(serializers.ModelSerializer):
     """Serializer for UserAchievement model."""
-    
+
     achievement = AchievementSerializer(read_only=True)
-    
+
     class Meta:
+        """Meta options for the UserAchievementSerializer."""
+
         model = UserAchievement
-        fields = ['id', 'achievement', 'unlocked_at']
+        fields = ["id", "achievement", "unlocked_at"]

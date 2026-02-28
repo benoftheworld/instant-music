@@ -1,5 +1,7 @@
 """TeamMember model."""
 
+import uuid
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -11,6 +13,7 @@ from .user import User
 class TeamMember(models.Model):
     """Team membership."""
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     team = models.ForeignKey(
         Team,
         on_delete=models.CASCADE,

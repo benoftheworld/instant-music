@@ -8,6 +8,11 @@ Excluded paths (always pass through):
   - /api/ready/  — Readiness probe
   - /api/alive/  — Liveness probe
   - /api/administration/status/ — so the frontend can fetch the maintenance message
+
+Staff bypass:
+  Authenticated users with is_staff=True bypass maintenance mode entirely.
+  AuthenticationMiddleware must run before this middleware (guaranteed by
+  the MIDDLEWARE order in settings).
 """
 
 import json
@@ -75,6 +80,13 @@ class MaintenanceMiddleware(MiddlewareMixin):
         for prefix in _EXCLUDED_PREFIXES:
             if path.startswith(prefix):
                 return None  # Whitelisted path — let through
+
+        # Staff users bypass maintenance mode entirely.
+        # AuthenticationMiddleware runs before MaintenanceMiddleware so
+        # request.user is already populated here.
+        user = getattr(request, "user", None)
+        if user is not None and user.is_authenticated and user.is_staff:
+            return None
 
         payload = {
             "maintenance": True,

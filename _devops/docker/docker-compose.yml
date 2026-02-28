@@ -53,6 +53,12 @@ services:
       - DEBUG=True
       - POSTGRES_HOST=db
       - REDIS_URL=redis://redis:6379/0
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/api/health/']
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
 
   # Celery Worker (Async Tasks)
   celery:
@@ -66,12 +72,20 @@ services:
     env_file:
       - ../../backend/.env
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       - DEBUG=True
       - POSTGRES_HOST=db
       - REDIS_URL=redis://redis:6379/0
+    healthcheck:
+      test: ['CMD-SHELL', 'celery -A config inspect ping -d celery@$$HOSTNAME --timeout=5 -q || exit 1']
+      interval: 30s
+      timeout: 15s
+      start_period: 60s
+      retries: 3
 
   # Celery Beat (Scheduled Tasks)
   celery-beat:
@@ -79,18 +93,26 @@ services:
       context: ../../backend
       dockerfile: Dockerfile
     container_name: instantmusic_celery_beat
-    command: celery -A config beat -l info
+    command: celery -A config beat -l info --pidfile=/app/celerybeat.pid
     volumes:
       - ../../backend:/app
     env_file:
       - ../../backend/.env
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       - DEBUG=True
       - POSTGRES_HOST=db
       - REDIS_URL=redis://redis:6379/0
+    healthcheck:
+      test: ['CMD-SHELL', 'test -f /app/celerybeat.pid || exit 1']
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
 
   # React Frontend
   frontend:
@@ -107,10 +129,17 @@ services:
     env_file:
       - ../../frontend/.env
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     environment:
       - VITE_API_URL=http://localhost:8000
       - VITE_WS_URL=ws://localhost:8000
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q --spider http://localhost:3000 || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
 
 volumes:
   postgres_data:

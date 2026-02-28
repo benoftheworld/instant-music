@@ -48,6 +48,36 @@ def generate_room_code() -> str:
             return code
 
 
+def _maintenance_response_if_needed(user) -> Response | None:
+    """Retourne une 503 si le site est en maintenance et que l'user n'est pas staff.
+
+    Vérification de défense en profondeur : le MaintenanceMiddleware bloque déjà
+    les non-staff au niveau HTTP, mais ce contrôle offre un message d'erreur
+    spécifique aux opérations de jeu.
+    """
+    from apps.administration.models import SiteConfiguration
+
+    try:
+        cfg = SiteConfiguration.get_solo()
+    except Exception:
+        return None  # table absente (migrations en attente) — on laisse passer
+
+    if not cfg.maintenance_mode:
+        return None
+
+    if user.is_staff:
+        return None  # les staff peuvent toujours créer/rejoindre des parties
+
+    return Response(
+        {
+            "error": "Le site est en cours de maintenance. Impossible de créer ou rejoindre une partie pour le moment.",
+            "maintenance": True,
+            "maintenance_title": cfg.maintenance_title,
+        },
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
+
+
 class GameViewSet(viewsets.ModelViewSet):
     """ViewSet for Game model."""
 
@@ -71,6 +101,9 @@ class GameViewSet(viewsets.ModelViewSet):
 
     def create(self, request):
         """Create a new game."""
+        if maint := _maintenance_response_if_needed(request.user):
+            return maint
+
         serializer = CreateGameSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -104,6 +137,9 @@ class GameViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def join(self, request, room_code=None):
         """Join a game."""
+        if maint := _maintenance_response_if_needed(request.user):
+            return maint
+
         game = self.get_object()
 
         if game.status != "waiting":
@@ -452,14 +488,18 @@ class GameViewSet(viewsets.ModelViewSet):
             )
 
         # Précharger rounds + answers en 2 requêtes au lieu de 1 par round
-        rounds = GameRound.objects.filter(game=game).prefetch_related(
-            Prefetch(
-                "answers",
-                queryset=GameAnswer.objects.select_related(
-                    "player__user"
-                ).order_by("-points_earned"),
+        rounds = (
+            GameRound.objects.filter(game=game)
+            .prefetch_related(
+                Prefetch(
+                    "answers",
+                    queryset=GameAnswer.objects.select_related(
+                        "player__user"
+                    ).order_by("-points_earned"),
+                )
             )
-        ).order_by("round_number")
+            .order_by("round_number")
+        )
 
         players = game.players.select_related("user").order_by("-score")
 

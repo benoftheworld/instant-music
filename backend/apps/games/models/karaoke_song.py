@@ -2,6 +2,8 @@
 KaraokeSong model — catalogue of songs available for Karaoke mode.
 """
 
+import uuid
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -14,6 +16,7 @@ class KaraokeSong(models.Model):
     resolved from the correct source.
     """
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(_("titre"), max_length=255)
     artist = models.CharField(_("artiste"), max_length=255)
     youtube_video_id = models.CharField(
