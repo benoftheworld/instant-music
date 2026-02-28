@@ -101,6 +101,21 @@ monitoring-down: ## Arrêter la stack de monitoring (dev)
 monitoring-down-prod: ## Arrêter la stack de monitoring (production)
 	@docker compose -f $(COMPOSE_MON_PROD) down
 
+.PHONY: monitoring-kibana-import
+monitoring-kibana-import: ## Importer index patterns + dashboards dans Kibana (prod)
+	@echo ""
+	@echo "Import des saved objects Kibana..."
+	@docker compose -f $(COMPOSE_MON_PROD) cp \
+	  _devops/monitoring/kibana/saved-objects.ndjson \
+	  kibana:/tmp/kibana-saved-objects.ndjson
+	@docker compose -f $(COMPOSE_MON_PROD) exec kibana \
+	  curl -sf -X POST "http://localhost:5601/kibana/api/saved_objects/_import?overwrite=true" \
+	  -H "kbn-xsrf: true" \
+	  --form "file=@/tmp/kibana-saved-objects.ndjson"
+	@echo ""
+	@echo "Import terminé. Dashboard disponible sur https://benoftheworld.fr/kibana/"
+	@echo ""
+
 .PHONY: monitoring-htpasswd
 monitoring-htpasswd: ## Créer le fichier .htpasswd pour protéger les interfaces monitoring
 	@echo ""

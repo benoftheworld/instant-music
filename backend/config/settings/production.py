@@ -38,6 +38,23 @@ LOGGING["loggers"].setdefault("apps", {}).update(  # noqa: F405
     {"handlers": ["console", "file"], "level": "INFO", "propagate": False}
 )
 
+# Handler Logstash (optionnel — activé si LOGSTASH_HOST est défini)
+# En production avec le monitoring actif : LOGSTASH_HOST=logstash dans .env.prod
+_logstash_host = env("LOGSTASH_HOST", default="")
+if _logstash_host:
+    LOGGING["handlers"]["logstash"] = {  # noqa: F405
+        "class": "logstash.TCPLogstashHandler",
+        "host": _logstash_host,
+        "port": env.int("LOGSTASH_PORT", default=5000),
+        "version": 1,
+        "message_type": "django",
+        "fqdn": False,
+        "tags": ["django", "instantmusic"],
+    }
+    LOGGING["root"]["handlers"].append("logstash")  # noqa: F405
+    LOGGING["loggers"]["django"]["handlers"].append("logstash")  # noqa: F405
+    LOGGING["loggers"]["apps"]["handlers"].append("logstash")  # noqa: F405
+
 # Email configuration
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = env("EMAIL_HOST", default="smtp.gmail.com")
