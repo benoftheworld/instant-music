@@ -63,7 +63,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {
                 "type": "broadcast_player_join",
-                "player": {"user": user.id, "username": user.username},
+                "player": {"user": str(user.id), "username": user.username},
                 "game_data": game_data,
             },
         )
@@ -97,7 +97,10 @@ class GameConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 {
                     "type": "broadcast_player_leave",
-                    "player": {"user": user.id, "username": user.username},
+                    "player": {
+                        "user": str(user.id),
+                        "username": user.username,
+                    },
                     "game_data": game_data,
                 },
             )
@@ -196,8 +199,8 @@ class GameConsumer(AsyncWebsocketConsumer):
 
                 players_data.append(
                     {
-                        "id": player.id,
-                        "user": player.user.id,
+                        "id": str(player.id),
+                        "user": str(player.user.id),
                         "username": player.user.username,
                         "avatar": avatar_url,
                         "score": player.score,
@@ -210,7 +213,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             game_data = {
                 "id": str(game.id),
                 "room_code": game.room_code,
-                "host": game.host.id,
+                "host": str(game.host.id),
                 "host_username": game.host.username,
                 "mode": game.mode,
                 "status": game.status,
