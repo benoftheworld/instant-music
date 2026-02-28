@@ -38,7 +38,7 @@ class JwtWebSocketMiddleware(BaseMiddleware):
 
         try:
             token = AccessToken(token_str)
-            user = await self._get_user(int(token["user_id"]))
+            user = await self._get_user(token["user_id"])
             if user is None:
                 raise TokenError("user_not_found")
             scope["user"] = user
@@ -63,7 +63,7 @@ class JwtWebSocketMiddleware(BaseMiddleware):
 
     @staticmethod
     @database_sync_to_async
-    def _get_user(user_id: int):
+    def _get_user(user_id: str):
         try:
             return User.objects.get(id=user_id)
         except User.DoesNotExist:
