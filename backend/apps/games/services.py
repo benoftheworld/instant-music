@@ -64,55 +64,75 @@ def normalize_text(text: str) -> str:
     return text
 
 
+def _levenshtein_similarity(g: str, c: str) -> float:
+    """Compute Levenshtein-based similarity between two normalized strings."""
+    if not g or not c:
+        return 0.0
+    max_len = max(len(g), len(c))
+    if max_len > 50:
+        # For very long strings, fall back to character-based only
+        common = sum(1 for a, b in zip(g, c) if a == b)
+        return common / max_len
+    dp = list(range(len(c) + 1))
+    for i in range(1, len(g) + 1):
+        prev = dp[0]
+        dp[0] = i
+        for j in range(1, len(c) + 1):
+            temp = dp[j]
+            if g[i - 1] == c[j - 1]:
+                dp[j] = prev
+            else:
+                dp[j] = 1 + min(prev, dp[j], dp[j - 1])
+            prev = temp
+    edit_dist = dp[len(c)]
+    return 1.0 - (edit_dist / max_len)
+
+
 def fuzzy_match(
-    given: str, correct: str, threshold: float = 0.8
+    given: str, correct: str, threshold: float = 0.65
 ) -> Tuple[bool, float]:
     """Compare two strings with fuzzy matching for text answer mode.
 
     Returns (is_match, similarity_factor) where similarity_factor is 0.0-1.0.
+    Uses multiple strategies: exact match, containment, word-set overlap,
+    and Levenshtein edit-distance.  Threshold default is intentionally
+    tolerant (0.65) so that minor typos are accepted.
     """
     g = normalize_text(given)
     c = normalize_text(correct)
 
-    if g == c:
-        return True, 1.0
-
-    # Check if one contains the other
-    if g in c or c in g:
-        ratio = (
-            min(len(g), len(c)) / max(len(g), len(c))
-            if max(len(g), len(c)) > 0
-            else 0
-        )
-        if ratio >= threshold:
-            return True, ratio
-
-    # Levenshtein-like similarity
     if not g or not c:
         return False, 0.0
 
-    max_len = max(len(g), len(c))
-    # Simple character-based similarity
-    common = sum(1 for a, b in zip(g, c) if a == b)
-    similarity = common / max_len
+    # 1. Exact match after normalisation
+    if g == c:
+        return True, 1.0
 
-    # Also try with edit distance approximation
-    if max_len <= 30:
-        # DP edit distance for short strings
-        dp = list(range(len(c) + 1))
-        for i in range(1, len(g) + 1):
-            prev = dp[0]
-            dp[0] = i
-            for j in range(1, len(c) + 1):
-                temp = dp[j]
-                if g[i - 1] == c[j - 1]:
-                    dp[j] = prev
-                else:
-                    dp[j] = 1 + min(prev, dp[j], dp[j - 1])
-                prev = temp
-        edit_dist = dp[len(c)]
-        edit_similarity = 1.0 - (edit_dist / max_len)
-        similarity = max(similarity, edit_similarity)
+    # 2. Containment check (one is a substring of the other)
+    if g in c or c in g:
+        ratio = min(len(g), len(c)) / max(len(g), len(c))
+        if ratio >= 0.4:  # accept partial matches (e.g. just the artist name)
+            return True, max(ratio, 0.75)
+
+    # 3. Word-set overlap (order-independent)
+    g_words = set(g.split())
+    c_words = set(c.split())
+    if g_words and c_words:
+        common_words = g_words & c_words
+        union_words = g_words | c_words
+        word_sim = len(common_words) / len(union_words)  # Jaccard
+        if word_sim >= threshold:
+            return True, word_sim
+
+    # 4. Levenshtein edit-distance similarity
+    edit_sim = _levenshtein_similarity(g, c)
+
+    # 5. Character-based positional similarity
+    max_len = max(len(g), len(c))
+    common = sum(1 for a, b in zip(g, c) if a == b)
+    char_sim = common / max_len
+
+    similarity = max(edit_sim, char_sim)
 
     if similarity >= threshold:
         return True, similarity
@@ -947,7 +967,7 @@ class GameService:
                 )
             else:
                 is_match, similarity = fuzzy_match(
-                    answer, correct_answer, threshold=0.75
+                    answer, correct_answer, threshold=0.60
                 )
                 return is_match, similarity if is_match else 0.0
         else:
@@ -960,47 +980,82 @@ class GameService:
     ) -> Tuple[bool, float]:
         """
         Check text answer for Classique/Rapide modes.
-        The answer may be JSON {"artist": "...", "title": "..."} for double points.
-        If both artist and title are correct, accuracy_factor = 2.0 (double points).
-        If only the main target is correct, accuracy_factor = 1.0.
+
+        Accepts:
+          - Free text like "artist - title", "title - artist", or just one of them.
+          - Legacy JSON {"artist": "...", "title": "..."}.
+
+        Each part is matched against BOTH artist and title (order does not matter).
+        Both correct → accuracy_factor 2.0 (double points).
+        One correct  → accuracy_factor 1.0.
+        None correct → 0.0.
         """
         extra = extra_data or {}
-        # Get artist/title from extra_data (stored at round creation time)
         round_artist = extra.get("artist_name", "")
         round_title = extra.get("track_name", "")
 
+        # ── 1. Extract the parts the user provided ──
+        parts: list[str] = []
+
+        # Try JSON first (legacy dual-step format)
         try:
             parsed = json.loads(answer)
             if isinstance(parsed, dict):
-                artist_answer = parsed.get("artist", "")
-                title_answer = parsed.get("title", "")
-
-                artist_ok = False
-                title_ok = False
-
-                if artist_answer and round_artist:
-                    artist_ok, _ = fuzzy_match(
-                        artist_answer, round_artist, threshold=0.75
-                    )
-                if title_answer and round_title:
-                    title_ok, _ = fuzzy_match(
-                        title_answer, round_title, threshold=0.75
-                    )
-
-                if artist_ok and title_ok:
-                    return True, 2.0  # Double points
-                elif artist_ok or title_ok:
-                    return True, 1.0
-                else:
-                    return False, 0.0
+                a = (parsed.get("artist") or "").strip()
+                t = (parsed.get("title") or "").strip()
+                if a:
+                    parts.append(a)
+                if t:
+                    parts.append(t)
         except (json.JSONDecodeError, TypeError):
             pass
 
-        # Fallback: simple fuzzy match against correct_answer
-        is_match, similarity = fuzzy_match(
-            answer, correct_answer, threshold=0.75
-        )
-        return is_match, similarity if is_match else 0.0
+        # If not JSON, split by common separators (-, /, |)
+        if not parts:
+            for sep in (" - ", " / ", " | "):
+                if sep in answer:
+                    parts = [p.strip() for p in answer.split(sep, 1) if p.strip()]
+                    break
+            if not parts:
+                parts = [answer.strip()] if answer.strip() else []
+
+        if not parts:
+            return False, 0.0
+
+        # ── 2. Match each part against both artist and title (order-free) ──
+        artist_ok = False
+        title_ok = False
+        threshold = 0.55  # intentionally tolerant
+
+        for part in parts:
+            if not artist_ok and round_artist:
+                matched, _ = fuzzy_match(part, round_artist, threshold=threshold)
+                if matched:
+                    artist_ok = True
+                    continue
+            if not title_ok and round_title:
+                matched, _ = fuzzy_match(part, round_title, threshold=threshold)
+                if matched:
+                    title_ok = True
+                    continue
+
+        # If a single part wasn't matched yet, try it against title too
+        # (covers the case where the only part is the title but artist was checked first)
+        if not artist_ok and not title_ok and len(parts) == 1:
+            part = parts[0]
+            if round_title:
+                title_ok, _ = fuzzy_match(part, round_title, threshold=threshold)
+            if not title_ok and round_artist:
+                artist_ok, _ = fuzzy_match(part, round_artist, threshold=threshold)
+
+        if artist_ok and title_ok:
+            return True, 2.0
+        elif artist_ok or title_ok:
+            return True, 1.0
+        else:
+            # Last-resort: fuzzy against the full correct_answer string
+            is_match, similarity = fuzzy_match(answer, correct_answer, threshold=0.55)
+            return is_match, similarity if is_match else 0.0
 
     def calculate_score(
         self, accuracy_factor: float, response_time: float, max_time: int = 30

@@ -139,6 +139,20 @@ export default function RoundResultsScreen({
   const year = round.extra_data?.year || round.extra_data?.release_date?.substring(0, 4) || null;
   const albumImage = round.extra_data?.album_image;
 
+  /** Format a player answer that may be JSON (legacy) or plain text for display. */
+  const formatAnswer = (answer: string): string => {
+    try {
+      const parsed = JSON.parse(answer);
+      if (parsed && typeof parsed === 'object') {
+        const parts: string[] = [];
+        if (parsed.artist) parts.push(parsed.artist);
+        if (parsed.title) parts.push(parsed.title);
+        if (parts.length) return parts.join(' - ');
+      }
+    } catch { /* not JSON, use as-is */ }
+    return answer;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 flex items-center justify-center">
       <div className="container mx-auto max-w-5xl">
@@ -227,9 +241,9 @@ export default function RoundResultsScreen({
                   <div>
                     <p className="text-sm text-gray-500 font-medium">Votre réponse</p>
                     <p className={`text-lg font-bold ${
-                      myAnswer === correctAnswer ? 'text-green-600' : 'text-red-500'
+                      myPointsEarned > 0 ? 'text-green-600' : 'text-red-500'
                     }`}>
-                      {myAnswer} {myAnswer === correctAnswer ? '✓' : '✗'}
+                      {formatAnswer(myAnswer)} {myPointsEarned > 0 ? '✓' : '✗'}
                     </p>
                   </div>
                 )}
