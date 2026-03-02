@@ -120,25 +120,20 @@ export default function GamePlayPage() {
     }
   }, [roomCode]);
 
-  // Timer countdown - calculate based on server time
+  // Timer countdown - calculate based on client-side elapsed time
   useEffect(() => {
     if (!currentRound || showResults || roundPhase !== 'playing') return;
 
-    // Use game's timer_start_round for loading screen offset
-    const loadingDurationMs = (game?.timer_start_round || 5) * 1000;
-
     const calculateTimeRemaining = () => {
-      if (!currentRound.started_at) return currentRound.duration;
-      const startTime = new Date(currentRound.started_at).getTime();
-      const now = Date.now();
-
-      // Compensate for the loading screen duration only if the loading
-      // timestamp corresponds to the current round (prevents reuse across rounds).
-      const adjustedStartTime = startTime + (loadingRoundIdRef.current === currentRound.id ? loadingDurationMs : 0);
-
-      const elapsed = Math.floor((now - adjustedStartTime) / 1000);
-      const remaining = Math.max(0, currentRound.duration - elapsed);
-      return remaining;
+      // Use client-side elapsed time from the moment the playing phase started.
+      // This is immune to server-client clock drift (common with Docker/WSL2 after suspend/resume).
+      // roundPlayingStartTimeRef.current is set to Date.now() in handleLoadingComplete().
+      if (roundPlayingStartTimeRef.current > 0) {
+        const elapsed = Math.floor((Date.now() - roundPlayingStartTimeRef.current) / 1000);
+        return Math.max(0, currentRound.duration - elapsed);
+      }
+      // Fallback: should not happen in normal flow (playing phase requires handleLoadingComplete to have run)
+      return currentRound.duration;
     };
 
     // Update immediately
@@ -493,10 +488,10 @@ export default function GamePlayPage() {
   const isKaraoke = game?.mode === 'karaoke';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
-      <div className={`container mx-auto ${isKaraoke ? 'max-w-7xl' : 'max-w-6xl'}`}>
+    <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
+      <div className={`flex-1 flex flex-col min-h-0 container mx-auto ${isKaraoke ? 'max-w-7xl' : 'max-w-6xl'}`}>
         {/* Header with room code and round number */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-3">
           <div className="text-white">
             <h1 className="text-2xl font-bold">Partie {roomCode}</h1>
             <div className="flex items-center gap-2">
@@ -534,18 +529,18 @@ export default function GamePlayPage() {
 
         {isKaraoke ? (
           /* Karaoke: full-width layout, no scoreboard */
-          <div>
+          <div className="flex-1 min-h-0 overflow-y-auto">
             {renderQuestionComponent()}
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main quiz area */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 overflow-y-auto min-h-0">
               {renderQuestionComponent()}
             </div>
 
             {/* Live scoreboard */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 overflow-y-auto min-h-0">
               <LiveScoreboard players={game?.players || []} />
             </div>
           </div>

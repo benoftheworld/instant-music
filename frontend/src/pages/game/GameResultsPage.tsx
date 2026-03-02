@@ -116,7 +116,7 @@ export default function GameResultsPage() {
   const others = results.rankings.slice(3);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
+    <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
       <div className="container mx-auto max-w-6xl py-8">
         {/* Header */}
         <div className="text-center mb-12">
@@ -304,7 +304,7 @@ export default function GameResultsPage() {
         )}
 
         {/* Actions */}
-        <div className="flex justify-center space-x-4">
+        <div className="flex flex-wrap justify-center gap-3">
           <button
             onClick={() => navigate('/')}
             className="px-8 py-3 bg-white text-blue-600 rounded-lg font-bold hover:bg-gray-100 transition"
