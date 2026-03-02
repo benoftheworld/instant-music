@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { api, getMediaUrl } from '@/services/api';
 import { authService } from '@/services/authService';
@@ -16,6 +17,8 @@ interface PasswordData {
 export default function ProfilePage() {
   const user = useAuthStore((state) => state.user);
   const updateUser = useAuthStore((state) => state.updateUser);
+  const logout = useAuthStore((state) => state.logout);
+  const navigate = useNavigate();
 
   const [passwordData, setPasswordData] = useState<PasswordData>({
     old_password: '',
@@ -25,7 +28,7 @@ export default function ProfilePage() {
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -95,7 +98,7 @@ export default function ProfilePage() {
 
     try {
       const formData = new FormData();
-      
+
       if (avatarFile) {
         formData.append('avatar', avatarFile);
       }
@@ -112,9 +115,9 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Profile update error:', error);
       const err = error as { response?: { data?: { detail?: string } } };
-      setMessage({ 
-        type: 'error', 
-        text: err.response?.data?.detail || 'Erreur lors de la mise à jour du profil' 
+      setMessage({
+        type: 'error',
+        text: err.response?.data?.detail || 'Erreur lors de la mise à jour du profil'
       });
     } finally {
       setLoading(false);
@@ -153,9 +156,9 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Password change error:', error);
       const err = error as { response?: { data?: { old_password?: string; detail?: string } } };
-      setPasswordMessage({ 
-        type: 'error', 
-        text: err.response?.data?.old_password || err.response?.data?.detail || 'Erreur lors du changement de mot de passe' 
+      setPasswordMessage({
+        type: 'error',
+        text: err.response?.data?.old_password || err.response?.data?.detail || 'Erreur lors du changement de mot de passe'
       });
     } finally {
       setLoading(false);
@@ -262,7 +265,7 @@ export default function ProfilePage() {
             </svg>
             Succès ({Array.isArray(achievements) ? achievements.filter(a => a.unlocked).length : 0}/{Array.isArray(achievements) ? achievements.length : 0})
           </h2>
-          
+
           {achievementsLoading ? (
             <div className="text-center py-8 text-gray-400">Chargement des succès...</div>
           ) : achievements.length === 0 ? (
@@ -331,8 +334,8 @@ export default function ProfilePage() {
 
             {message && (
               <div className={`mb-4 p-3 rounded-lg ${
-                message.type === 'success' 
-                  ? 'bg-green-50 text-green-800 border border-green-200' 
+                message.type === 'success'
+                  ? 'bg-green-50 text-green-800 border border-green-200'
                   : 'bg-red-50 text-red-800 border border-red-200'
               }`}>
                 {message.text}
@@ -417,8 +420,8 @@ export default function ProfilePage() {
 
             {passwordMessage && (
               <div className={`mb-4 p-3 rounded-lg ${
-                passwordMessage.type === 'success' 
-                  ? 'bg-green-50 text-green-800 border border-green-200' 
+                passwordMessage.type === 'success'
+                  ? 'bg-green-50 text-green-800 border border-green-200'
                   : 'bg-red-50 text-red-800 border border-red-200'
               }`}>
                 {passwordMessage.text}
@@ -497,7 +500,7 @@ export default function ProfilePage() {
             Supprimer mon compte
           </h2>
           <p className="text-sm text-red-600 mb-4">
-            Cette action est irréversible. Toutes vos données seront définitivement supprimées : 
+            Cette action est irréversible. Toutes vos données seront définitivement supprimées :
             profil, statistiques, historique de parties, amitiés et équipes.
           </p>
           <button
@@ -505,8 +508,10 @@ export default function ProfilePage() {
               if (window.confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')) {
                 if (window.confirm('Dernière confirmation : toutes vos données seront définitivement perdues. Continuer ?')) {
                   api.delete('/users/delete_account/')
-                    .then(() => {
-                      window.location.href = '/';
+                    .then(async () => {
+                      await authService.logout();
+                      logout();
+                      navigate('/login');
                     })
                     .catch((err) => {
                       console.error('Delete account error:', err);

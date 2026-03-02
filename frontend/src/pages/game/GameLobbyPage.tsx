@@ -107,6 +107,16 @@ export default function GameLobbyPage() {
     }
   }, [roomCode, loadGame]);
 
+  // On reconnexion WebSocket (après coupure réseau), resynchroniser l'état
+  // du jeu depuis l'API pour rattraper les messages manqués pendant la coupure
+  useEffect(() => {
+    const unsubscribe = onMessage('reconnected', () => {
+      console.log('WebSocket reconnected — refreshing game state');
+      loadGame();
+    });
+    return unsubscribe;
+  }, [onMessage, loadGame]);
+
   const handleSelectPlaylist = async (playlist: YouTubePlaylist) => {
     if (!game || !roomCode) return;
 

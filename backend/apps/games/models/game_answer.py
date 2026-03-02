@@ -30,6 +30,7 @@ class GameAnswer(models.Model):
     answer = models.CharField(_("réponse"), max_length=255)
     is_correct = models.BooleanField(_("correct"), default=False)
     points_earned = models.IntegerField(_("points gagnés"), default=0)
+    streak_bonus = models.IntegerField(_("bonus série"), default=0)
     response_time = models.FloatField(_("temps de réponse (secondes)"))
     answered_at = models.DateTimeField(_("répondu le"), auto_now_add=True)
 

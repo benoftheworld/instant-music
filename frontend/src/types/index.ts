@@ -83,6 +83,7 @@ export interface GamePlayer {
   rank?: number;
   is_connected: boolean;
   joined_at: string;
+  consecutive_correct?: number;
 }
 
 export interface CreateGameData {

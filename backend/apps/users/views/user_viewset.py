@@ -6,6 +6,10 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_simplejwt.token_blacklist.models import (
+    BlacklistedToken,
+    OutstandingToken,
+)
 
 from ..models import User
 from ..serializers import (
@@ -46,9 +50,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             serializer.save()
             return Response(
-                UserSerializer(
-                    request.user, context={"request": request}
-                ).data
+                UserSerializer(request.user, context={"request": request}).data
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -82,8 +84,12 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["delete"])
     def delete_account(self, request):
         """Delete user account and all associated data (GDPR)."""
+        user = request.user
+        # Invalider tous les tokens avant suppression pour déconnecter les sessions actives
+        for token in OutstandingToken.objects.filter(user=user):
+            BlacklistedToken.objects.get_or_create(token=token)
         with transaction.atomic():
-            request.user.delete()
+            user.delete()
 
         return Response(
             {"message": "Compte supprimé avec succès."},
@@ -97,10 +103,9 @@ class UserViewSet(viewsets.ModelViewSet):
         if len(query) < 2:
             return Response([])
 
-        users = (
-            User.objects.filter(username__icontains=query)
-            .exclude(id=request.user.id)[:10]
-        )
+        users = User.objects.filter(username__icontains=query).exclude(
+            id=request.user.id
+        )[:10]
 
         serializer = UserMinimalSerializer(users, many=True)
         return Response(serializer.data)

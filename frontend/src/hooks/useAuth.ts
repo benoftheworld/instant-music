@@ -34,8 +34,8 @@ export const useLogout = () => {
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
 
-  return () => {
-    authService.logout();
+  return async () => {
+    await authService.logout();
     logout();
     navigate('/login');
   };

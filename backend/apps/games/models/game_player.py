@@ -29,6 +29,11 @@ class GamePlayer(models.Model):
     )
     score = models.IntegerField(_("score"), default=0)
     rank = models.IntegerField(_("classement"), null=True, blank=True)
+    consecutive_correct = models.IntegerField(
+        _("série en cours"),
+        default=0,
+        help_text="Nombre de bonnes réponses consécutives dans la partie",
+    )
     is_connected = models.BooleanField(_("connecté"), default=True)
     joined_at = models.DateTimeField(_("a rejoint le"), auto_now_add=True)
 

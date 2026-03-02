@@ -3,6 +3,8 @@ import Layout from './components/layout/Layout';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import ProfilePage from './pages/ProfilePage';
 import FriendsPage from './pages/FriendsPage';
 import TeamsPage from './pages/TeamsPage';
@@ -24,8 +26,10 @@ function App() {
         <Route index element={<HomePage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="reset-password/:uid/:token" element={<ResetPasswordPage />} />
         <Route path="leaderboard" element={<LeaderboardPage />} />
-        
+
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="profile" element={<ProfilePage />} />
@@ -39,7 +43,7 @@ function App() {
           <Route path="game/play/:roomCode" element={<GamePlayPage />} />
           <Route path="game/:roomCode/results" element={<GameResultsPage />} />
         </Route>
-        
+
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

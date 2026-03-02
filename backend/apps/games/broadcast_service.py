@@ -64,6 +64,8 @@ def _build_player_scores(round_obj: GameRound) -> dict[str, dict[str, Any]]:
             "points_earned": ans.points_earned,
             "is_correct": ans.is_correct,
             "response_time": ans.response_time,
+            "streak_bonus": ans.streak_bonus,
+            "consecutive_correct": ans.player.consecutive_correct,
         }
     return scores
 
@@ -77,6 +79,7 @@ def _build_updated_players(game: Game) -> list[dict[str, Any]]:
             "username": p.user.username,
             "score": p.score,
             "rank": p.rank,
+            "consecutive_correct": p.consecutive_correct,
             "is_connected": p.is_connected,
             "avatar": p.user.avatar.url if p.user.avatar else None,
         }
@@ -142,6 +145,15 @@ def broadcast_round_end(
     room_code: str, round_obj: GameRound, game: Game
 ) -> None:
     """Broadcast round end with correct answer, per-player scores, and updated totals."""
+    # Réinitialiser la série des joueurs qui n'ont pas répondu ce round
+    answered_player_ids = set(
+        GameAnswer.objects.filter(round=round_obj).values_list("player_id", flat=True)
+    )
+    for gp in game.players.all():
+        if gp.id not in answered_player_ids and gp.consecutive_correct > 0:
+            gp.consecutive_correct = 0
+            gp.save(update_fields=["consecutive_correct"])
+
     round_data = _serialize_to_dict(GameRoundSerializer(round_obj))
     _group_send(
         room_code,

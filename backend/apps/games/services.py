@@ -132,9 +132,19 @@ SCORE_MIN_CORRECT: int = 10
 SCORE_MIN_FINAL: int = 5
 RANK_BONUS: dict = {0: 10, 1: 5, 2: 2}  # correct_before → bonus points
 
+# Win streak
+SCORE_STREAK_BONUS_PER_LEVEL: int = 10
+SCORE_STREAK_MAX_LEVEL: int = 5  # plafond : série 6+ = +50 pts max
+
 # Karaoke
 KARAOKE_MAX_DURATION: int = 300  # seconds
 KARAOKE_FALLBACK_DURATION: int = 180  # 3 min fallback
+
+
+def calculate_streak_bonus(streak: int) -> int:
+    """Bonus additionnel par palier de série (plafonné à SCORE_STREAK_MAX_LEVEL)."""
+    level = min(max(streak - 1, 0), SCORE_STREAK_MAX_LEVEL)
+    return level * SCORE_STREAK_BONUS_PER_LEVEL
 
 
 # ─── Mode → default question_type mapping ─────────────────────────────────────
@@ -1034,17 +1044,27 @@ class GameService:
             rank_bonus = RANK_BONUS.get(correct_before, 0)
             points += rank_bonus
 
+        # Streak bonus — récompense les séries de bonnes réponses consécutives
+        streak_bonus = 0
+        if is_correct:
+            player.consecutive_correct += 1
+            streak_bonus = calculate_streak_bonus(player.consecutive_correct)
+            points += streak_bonus
+        else:
+            player.consecutive_correct = 0
+
         game_answer = GameAnswer.objects.create(
             round=round_obj,
             player=player,
             answer=answer,
             is_correct=is_correct,
             points_earned=points,
+            streak_bonus=streak_bonus,
             response_time=response_time,
         )
 
         player.score += points
-        player.save()
+        player.save(update_fields=["score", "consecutive_correct"])
 
         # Métriques Prometheus
         ANSWERS_TOTAL.labels(

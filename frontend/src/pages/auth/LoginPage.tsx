@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useLogin } from '@/hooks/useAuth';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const loginMutation = useLogin();
+  const location = useLocation();
+  const passwordResetSuccess = (location.state as { passwordResetSuccess?: boolean } | null)?.passwordResetSuccess;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,6 +18,12 @@ export default function LoginPage() {
     <div className="container mx-auto px-4 py-16">
       <div className="max-w-md mx-auto card">
         <h1 className="text-3xl font-bold mb-6 text-center">Connexion</h1>
+
+        {passwordResetSuccess && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+            Mot de passe réinitialisé avec succès. Vous pouvez vous connecter.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -32,9 +40,14 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Mot de passe
-            </label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-sm font-medium">
+                Mot de passe
+              </label>
+              <Link to="/forgot-password" className="text-sm text-primary-600 hover:underline">
+                Mot de passe oublié ?
+              </Link>
+            </div>
             <input
               type="password"
               value={password}

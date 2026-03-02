@@ -7,6 +7,7 @@ interface Player {
   rank: number | null;
   avatar?: string;
   is_connected?: boolean;
+  consecutive_correct?: number;
 }
 
 interface LiveScoreboardProps {
@@ -16,7 +17,7 @@ interface LiveScoreboardProps {
 const LiveScoreboard = ({ players }: LiveScoreboardProps) => {
   // Sort players by score (highest first)
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
-  
+
   const getMedalEmoji = (index: number) => {
     switch (index) {
       case 0:
@@ -29,14 +30,14 @@ const LiveScoreboard = ({ players }: LiveScoreboardProps) => {
         return `${index + 1}.`;
     }
   };
-  
+
   return (
     <div className="bg-white rounded-lg shadow-xl p-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
         <span className="mr-2">🏆</span>
         Classement
       </h2>
-      
+
       <div className="space-y-3">
         {sortedPlayers.map((player, index) => (
           <div
@@ -52,7 +53,7 @@ const LiveScoreboard = ({ players }: LiveScoreboardProps) => {
               <div className="text-2xl font-bold w-8">
                 {getMedalEmoji(index)}
               </div>
-              
+
               {/* Avatar */}
               {player.avatar ? (
                 <img
@@ -65,16 +66,23 @@ const LiveScoreboard = ({ players }: LiveScoreboardProps) => {
                   {player.username.charAt(0).toUpperCase()}
                 </div>
               )}
-              
+
               {/* Username */}
               <div>
-                <p className="font-semibold text-gray-800">{player.username}</p>
+                <p className="font-semibold text-gray-800 flex items-center gap-1">
+                  {player.username}
+                  {(player.consecutive_correct ?? 0) >= 2 && (
+                    <span className="text-xs font-bold text-orange-500">
+                      🔥×{player.consecutive_correct}
+                    </span>
+                  )}
+                </p>
                 {!player.is_connected && (
                   <p className="text-xs text-gray-500">Déconnecté</p>
                 )}
               </div>
             </div>
-            
+
             {/* Score */}
             <div className="text-right">
               <p className="text-2xl font-bold text-blue-600">{player.score}</p>
@@ -83,7 +91,7 @@ const LiveScoreboard = ({ players }: LiveScoreboardProps) => {
           </div>
         ))}
       </div>
-      
+
       {players.length === 0 && (
         <div className="text-center text-gray-500 py-8">
           Aucun joueur

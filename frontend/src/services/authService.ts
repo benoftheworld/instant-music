@@ -29,7 +29,32 @@ export const authService = {
     });
   },
 
-  logout(): void {
+  async requestPasswordReset(email: string): Promise<void> {
+    await api.post('/auth/password/reset/', { email });
+  },
+
+  async confirmPasswordReset(
+    uid: string,
+    token: string,
+    newPassword: string
+  ): Promise<void> {
+    await api.post('/auth/password/reset/confirm/', {
+      uid,
+      token,
+      new_password: newPassword,
+      new_password2: newPassword,
+    });
+  },
+
+  async logout(): Promise<void> {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (refreshToken) {
+      try {
+        await api.post('/auth/logout/', { refresh: refreshToken });
+      } catch {
+        // Ignorer les erreurs réseau — la déconnexion locale reste effective
+      }
+    }
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
   },

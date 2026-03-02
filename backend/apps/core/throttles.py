@@ -29,3 +29,7 @@ class PlaylistSearchThrottle(UserRateThrottle):
 
 class LeaderboardThrottle(UserRateThrottle):
     scope = "leaderboard"
+
+
+class PasswordResetThrottle(AnonRateThrottle):
+    scope = "password_reset"

@@ -18,6 +18,7 @@ export class WebSocketService {
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private intentionalDisconnect = false;
   private connectId = 0; // Track connect generation to ignore stale callbacks
+  private hasConnectedOnce = false; // True after the first successful connection
 
   getRoomCode(): string | null {
     return this.roomCode;
@@ -59,6 +60,14 @@ export class WebSocketService {
 
         console.log('WebSocket connected to room:', roomCode);
         this.reconnectAttempts = 0;
+
+        // Emit 'reconnected' on every connection that follows the initial one
+        // so subscribers can resync state after a network drop
+        if (this.hasConnectedOnce) {
+          this._emitEvent('reconnected', { roomCode });
+        }
+        this.hasConnectedOnce = true;
+
         settled = true;
         resolve();
       };
@@ -155,6 +164,7 @@ export class WebSocketService {
 
   disconnect(): void {
     this.intentionalDisconnect = true;
+    this.hasConnectedOnce = false;
     this.connectId++; // Invalidate any pending connect callbacks
 
     if (this.reconnectTimeout) {

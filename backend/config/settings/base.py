@@ -39,6 +39,7 @@ THIRD_PARTY_APPS = [
     "jazzmin",
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "channels",
     "django_celery_beat",
     "corsheaders",
@@ -248,6 +249,7 @@ REST_FRAMEWORK = {
         "game_join": "20/min",
         "playlist_search": "20/min",
         "leaderboard": "30/min",
+        "password_reset": "5/hour",
     },
 }
 
@@ -302,6 +304,23 @@ FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
 
 # Backend base URL (used for absolute URLs in WebSocket broadcasts, etc.)
 BACKEND_BASE_URL = env("BACKEND_BASE_URL", default="http://localhost:8000")
+
+# ─── Chiffrement des données personnelles (RGPD) ─────────────────────
+# Clé Fernet (AES-128) pour le chiffrement des emails au repos.
+# Générer avec : python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+EMAIL_ENCRYPTION_KEY = env(
+    "EMAIL_ENCRYPTION_KEY",
+    default="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",  # À REMPLACER en production
+)
+# Pepper HMAC-SHA256 pour les lookups email (unicité + recherche sans déchiffrement)
+EMAIL_HASH_KEY = env(
+    "EMAIL_HASH_KEY", default="change-this-hash-key-in-production"
+)
+
+# Expéditeur par défaut des emails transactionnels
+DEFAULT_FROM_EMAIL = env(
+    "DEFAULT_FROM_EMAIL", default="noreply@instant-music.fr"
+)
 
 # DRF Spectacular
 SPECTACULAR_SETTINGS = {

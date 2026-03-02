@@ -30,6 +30,8 @@ interface PlayerRoundScore {
   points_earned: number;
   is_correct: boolean;
   response_time: number;
+  streak_bonus?: number;
+  consecutive_correct?: number;
 }
 
 interface RoundResultsScreenProps {
@@ -295,20 +297,27 @@ export default function RoundResultsScreen({
                       </p>
                       {/* Per-round details */}
                       {playerScores?.[player.username] && (
-                        <div className={`flex items-center gap-2 mt-0.5 text-xs ${
+                        <div className={`flex flex-col gap-0.5 mt-0.5 text-xs ${
                           index < 3 ? 'text-white/70' : 'text-gray-400'
                         }`}>
-                          <span className={playerScores[player.username].is_correct
-                            ? (index < 3 ? 'text-green-200' : 'text-green-500')
-                            : (index < 3 ? 'text-red-200' : 'text-red-400')
-                          }>
-                            {playerScores[player.username].is_correct ? '✓' : '✗'}
-                            {' '}+{playerScores[player.username].points_earned} pts
-                          </span>
-                          <span>•</span>
-                          <span>
-                            ⏱ {playerScores[player.username].response_time.toFixed(1)}s
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={playerScores[player.username].is_correct
+                              ? (index < 3 ? 'text-green-200' : 'text-green-500')
+                              : (index < 3 ? 'text-red-200' : 'text-red-400')
+                            }>
+                              {playerScores[player.username].is_correct ? '✓' : '✗'}
+                              {' '}+{playerScores[player.username].points_earned} pts
+                            </span>
+                            <span>•</span>
+                            <span>
+                              ⏱ {playerScores[player.username].response_time.toFixed(1)}s
+                            </span>
+                          </div>
+                          {(playerScores[player.username].streak_bonus ?? 0) > 0 && (
+                            <span className={index < 3 ? 'text-orange-200' : 'text-orange-400'}>
+                              🔥 Série ×{playerScores[player.username].consecutive_correct} +{playerScores[player.username].streak_bonus} pts
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>

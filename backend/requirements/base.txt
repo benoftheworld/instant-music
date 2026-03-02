@@ -17,6 +17,7 @@ gunicorn>=21.2.0
 requests>=2.31.0
 django-jazzmin>=3.0.0
 reportlab>=4.0.0
+cryptography>=41.0.0
 
 uvicorn[standard]>=0.22.0
 prometheus-client>=0.16.0

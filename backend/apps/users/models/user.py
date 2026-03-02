@@ -1,4 +1,4 @@
-"""Custom User model without first_name/last_name."""
+"""Custom User model sans first_name/last_name, avec email chiffré."""
 
 import uuid
 
@@ -10,6 +10,9 @@ from django.contrib.auth.models import (
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.users.encryption import hash_email
+from apps.users.fields import EncryptedEmailField
+
 
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None, **extra_fields):
@@ -17,7 +20,8 @@ class UserManager(BaseUserManager):
             raise ValueError("The Username must be set")
         if not email:
             raise ValueError("The Email must be set")
-        email = self.normalize_email(email)
+        # Normalise l'email (minuscules domaine + local)
+        email = self.normalize_email(email).lower()
         user = self.model(username=username, email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -35,13 +39,27 @@ class UserManager(BaseUserManager):
 
         return self.create_user(username, email, password, **extra_fields)
 
+    def get_by_email(self, email: str) -> "User":
+        """Recherche un utilisateur par email en clair via le hash HMAC."""
+        return self.get(email_hash=hash_email(email))
+
 
 class User(AbstractBaseUser, PermissionsMixin):
-    """Custom user model without first_name/last_name."""
+    """Custom user model sans first_name/last_name, email chiffré au repos."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     username = models.CharField(_("username"), max_length=150, unique=True)
-    email = models.EmailField(_("email address"), unique=True)
+
+    # Email chiffré (Fernet AES) — le champ Python retourne l'email en clair
+    email = EncryptedEmailField(_("email address"))
+    # HMAC-SHA256 de l'email normalisé — utilisé pour les lookups ORM et l'unicité
+    email_hash = models.CharField(
+        _("email hash"),
+        max_length=64,
+        unique=True,
+        db_index=True,
+        editable=False,
+    )
 
     avatar = models.ImageField(
         _("avatar"),
@@ -85,6 +103,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self) -> str:
         return self.username
+
+    def save(self, *args, **kwargs):
+        """Calcule automatiquement le hash de l'email avant chaque sauvegarde."""
+        if self.email:
+            # Normalise en minuscules (cohérence avec encrypt_email/hash_email)
+            if isinstance(self.email, str):
+                self.email = self.email.lower()
+            self.email_hash = hash_email(self.email)
+        super().save(*args, **kwargs)
 
     @property
     def win_rate(self) -> float:
