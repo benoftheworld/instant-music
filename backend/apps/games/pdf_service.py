@@ -209,7 +209,6 @@ def generate_results_pdf(
         elements.append(
             Paragraph(
                 f"<b>Round {rnum}</b> — {track} ({artist}) &nbsp; "
-                f"<font color='{COLOR_CORRECT}'>Réponse : {correct}</font>",
                 styles["Normal"],
             )
         )
