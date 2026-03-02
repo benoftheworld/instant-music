@@ -333,7 +333,7 @@ def generate_results_pdf(
     elements.append(Spacer(1, 4))
     elements.append(
         Paragraph(
-            "Généré par InstantMusic • instantmusic.app",
+            "Généré par InstantMusic — © 2024",
             ParagraphStyle(
                 "footer",
                 parent=styles["Normal"],
