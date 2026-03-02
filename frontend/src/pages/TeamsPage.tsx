@@ -56,7 +56,7 @@ export default function TeamsPage() {
     }
   };
 
-  const handleJoinTeam = async (teamId: number) => {
+  const handleJoinTeam = async (teamId: string) => {
     try {
       await teamService.joinTeam(teamId);
       setMessage({ type: 'success', text: `Demande d'adhésion envoyée.` });
@@ -67,7 +67,7 @@ export default function TeamsPage() {
 
   // leave handled on team page if needed
 
-  const isInTeam = (teamId: number) => {
+  const isInTeam = (teamId: string) => {
     if (!user) return false;
     const t = allTeams.find((tt) => tt.id === teamId);
     if (!t) return false;
