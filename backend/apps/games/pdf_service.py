@@ -215,7 +215,7 @@ def generate_results_pdf(
     # ════════════════════════════════════════════════════════════════════════
     title_label = game_name if game_name else f"Partie {room_code}<br/><br/>"
     elements.append(Paragraph(title_label, S["title"]))
-    sub_parts = [f"<brSalle <b>{room_code}</b>"]
+    sub_parts = [f"Salle <b>{room_code}</b>"]
     if date_display:
         sub_parts.append(date_display)
     elements.append(Paragraph("  ·  ".join(sub_parts), S["sub"]))
