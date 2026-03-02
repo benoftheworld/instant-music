@@ -213,9 +213,9 @@ def generate_results_pdf(
     # ════════════════════════════════════════════════════════════════════════
     # 1 — TITRE + FICHE INFO
     # ════════════════════════════════════════════════════════════════════════
-    title_label = game_name if game_name else f"Partie {room_code}"
+    title_label = game_name if game_name else f"Partie {room_code}<br/><br/>"
     elements.append(Paragraph(title_label, S["title"]))
-    sub_parts = [f"Salle <b>{room_code}</b>"]
+    sub_parts = [f"<brSalle <b>{room_code}</b>"]
     if date_display:
         sub_parts.append(date_display)
     elements.append(Paragraph("  ·  ".join(sub_parts), S["sub"]))
@@ -309,71 +309,95 @@ def generate_results_pdf(
         elements.append(Spacer(1, 10))
 
     # ════════════════════════════════════════════════════════════════════════
-    # 3 — CLASSEMENT COMPLET (alphabetical, top-scorer gold highlight)
+    # 3 — CLASSEMENT COMPLET (trié par score desc, podium 1/2/3 coloré)
     # ════════════════════════════════════════════════════════════════════════
     if rankings:
         elements.append(_section_header("Classement complet", S["sec"]))
         elements.append(Spacer(1, 4))
 
-        top_scorer = max(rankings, key=lambda p: p.get("score", 0)).get("username")
-        alpha_list = sorted(rankings, key=lambda p: p.get("username", "").lower())
+        # Sort by score descending, then username alphabetically as tiebreaker
+        sorted_list = sorted(
+            rankings,
+            key=lambda p: (-p.get("score", 0), p.get("username", "").lower()),
+        )
+
+        # Per-rank display config: (bg_color, border_color, medal_text_color)
+        RANK_STYLE = {
+            1: (colors.HexColor("#FEF9C3"), C_GOLD,   C_GOLD),
+            2: (colors.HexColor("#F1F5F9"), C_SILVER, C_SILVER),
+            3: (colors.HexColor("#FFF7ED"), C_BRONZE, C_BRONZE),
+        }
 
         rk_header = [
-            Paragraph("<b>Rang</b>",   S["bold_sm"]),
-            Paragraph("<b>Joueur</b>", S["bold_sm"]),
-            Paragraph("<b>Points</b>", S["bold_sm"]),
-            Paragraph("<b>Équipe</b>", S["bold_sm"]),
+            Paragraph("<b>Rang</b>",   S["white_sm"]),
+            Paragraph("<b>Joueur</b>", S["white_sm"]),
+            Paragraph("<b>Points</b>", S["white_sm"]),
+            Paragraph("<b>Équipe</b>", S["white_sm"]),
         ]
-        rk_rows  = [rk_header]
-        gold_idx: list[int] = []
+        rk_rows: list = [rk_header]
+        podium_rows: dict[int, int] = {}   # row_index → rank (1/2/3)
 
-        for i, p in enumerate(alpha_list, start=1):
+        for i, p in enumerate(sorted_list, start=1):
             rank   = p.get("rank", "—")
             uname  = p.get("username", "?")
             score  = p.get("score", 0)
             team   = p.get("team_name") or "—"
-            is_top = uname == top_scorer
 
-            rs  = S["bold"]  if is_top else S["body"]
-            rsg = S["bold"]  if is_top else S["grey"]
+            rank_int = rank if isinstance(rank, int) else None
+            in_podium = rank_int in RANK_STYLE
+            _, _, medal_color = RANK_STYLE.get(rank_int, (None, None, C_GREY_TEXT))
+
+            medal_sty = _s(
+                f"rk_medal_{i}",
+                fontSize=9,
+                fontName="Helvetica-Bold" if in_podium else "Helvetica",
+                textColor=medal_color,
+            )
+            txt_sty  = S["bold"] if in_podium else S["body"]
+            grey_sty = S["bold"] if in_podium else S["grey"]
+
             rk_rows.append([
-                Paragraph(_medal(rank) if isinstance(rank, int) else str(rank), rsg),
-                Paragraph(uname, rs),
-                Paragraph(f"{score} pts", rs),
-                Paragraph(team, rsg),
+                Paragraph(_medal(rank_int) if rank_int else str(rank), medal_sty),
+                Paragraph(uname,          txt_sty),
+                Paragraph(f"{score} pts", txt_sty),
+                Paragraph(team,           grey_sty),
             ])
-            if is_top:
-                gold_idx.append(i)
+            if in_podium:
+                podium_rows[i] = rank_int
 
         rk_table = Table(
             rk_rows,
             colWidths=[COL_W * 0.12, COL_W * 0.40, COL_W * 0.24, COL_W * 0.24],
         )
         rk_cmds = [
-            ("BACKGROUND",     (0, 0), (-1, 0), C_DARK),
-            ("TEXTCOLOR",      (0, 0), (-1, 0), C_WHITE),
-            ("FONTNAME",       (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE",       (0, 0), (-1, -1), 9),
-            ("TOPPADDING",     (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING",  (0, 0), (-1, -1), 5),
-            ("LEFTPADDING",    (0, 0), (-1, -1), 7),
-            ("RIGHTPADDING",   (0, 0), (-1, -1), 7),
-            ("ALIGN",          (0, 0), (-1, -1), "LEFT"),
-            ("VALIGN",         (0, 0), (-1, -1), "MIDDLE"),
+            ("BACKGROUND",    (0, 0), (-1, 0), C_DARK),
+            ("TEXTCOLOR",     (0, 0), (-1, 0), C_WHITE),
+            ("FONTNAME",      (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE",      (0, 0), (-1, -1), 9),
+            ("TOPPADDING",    (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 7),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 7),
+            ("ALIGN",         (0, 0), (-1, -1), "LEFT"),
+            ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [C_WHITE, C_ROW_ALT]),
-            ("LINEBELOW",      (0, 0), (-1, -1), 0.35, C_RULE),
+            ("LINEBELOW",     (0, 0), (-1, -1), 0.35, C_RULE),
         ]
-        for r in gold_idx:
+        for row_idx, rank_val in podium_rows.items():
+            bg, border, _ = RANK_STYLE[rank_val]
             rk_cmds += [
-                ("BACKGROUND", (0, r), (-1, r), colors.HexColor("#FEF9C3")),
-                ("LINEABOVE",  (0, r), (-1, r), 1.5, C_GOLD),
-                ("LINEBELOW",  (0, r), (-1, r), 1.5, C_GOLD),
+                ("BACKGROUND", (0, row_idx), (-1, row_idx), bg),
+                ("LINEABOVE",  (0, row_idx), (-1, row_idx), 1.5, border),
+                ("LINEBELOW",  (0, row_idx), (-1, row_idx), 1.5, border),
             ]
         rk_table.setStyle(TableStyle(rk_cmds))
         elements.append(rk_table)
         elements.append(Spacer(1, 3))
         elements.append(Paragraph(
-            "<font color='#B45309'>★  Fond jaune = meilleur score de la partie</font>",
+            "<font color='#B45309'>🥇 Jaune</font>"
+            "  <font color='#6B7280'>🥈 Gris</font>"
+            "  <font color='#92400E'>🥉 Orange</font>"
+            "  = top 3 de la partie",
             S["grey"],
         ))
         elements.append(Spacer(1, 12))
@@ -515,7 +539,7 @@ def generate_results_pdf(
         [Paragraph("<b>Précision</b>",    S["bold_sm"]),
          Paragraph("× facteur d'exactitude (0.0 → 1.0 selon le mode)", S["body_sm"])],
         [Paragraph("<b>Bonus rang</b>",   S["bold_sm"]),
-         Paragraph(f"+{first_bonus} pts pour le 1er joueur à répondre correctement", S["body_sm"])],
+         Paragraph(f"+{first_bonus} pts pour le 1er joueur à répondre correctement, 5 pts pour le 2e, 3 pts pour le 3e", S["body_sm"])],
         [Paragraph("<b>Bonus série</b>",  S["bold_sm"]),
          Paragraph("Points croissants selon le nombre de bonnes réponses consécutives", S["body_sm"])],
     ]
