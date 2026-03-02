@@ -47,6 +47,154 @@ interface GameResult {
   rounds: RoundDetail[];
 }
 
+const MEDAL = ['🥇', '🥈', '🥉'];
+const RANK_COLORS = [
+  'from-yellow-400/20 to-yellow-600/10 border-yellow-400/40',
+  'from-slate-300/20 to-slate-500/10 border-slate-400/40',
+  'from-orange-400/20 to-orange-600/10 border-orange-400/40',
+];
+
+function Avatar({ username, avatar, size = 'md' }: { username: string; avatar?: string; size?: 'sm' | 'md' | 'lg' }) {
+  const cls = size === 'lg' ? 'w-24 h-24 text-3xl' : size === 'sm' ? 'w-8 h-8 text-xs' : 'w-11 h-11 text-base';
+  if (avatar) {
+    return <img src={getMediaUrl(avatar)} alt={username} className={`${cls} rounded-full object-cover ring-2 ring-white/20`} />;
+  }
+  return (
+    <div className={`${cls} rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white font-bold ring-2 ring-white/20`}>
+      {username.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
+function RoundRow({ round, players }: { round: RoundDetail; players: Player[] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  // Sort answers by points earned desc for ranking
+  const sorted = [...round.answers].sort((a, b) => b.points_earned - a.points_earned || a.response_time - b.response_time);
+  const top3 = sorted.slice(0, 3);
+  const rest = sorted.slice(3);
+
+  const playerAvatar = (username: string) =>
+    players.find((p) => p.username === username)?.avatar;
+
+  const minTime = sorted.length > 0 ? Math.min(...sorted.map((a) => a.response_time)) : null;
+
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+      {/* Round header */}
+      <div className="flex items-center justify-between px-5 py-3 bg-white/5 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <span className="bg-violet-500/80 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+            Round {round.round_number}
+          </span>
+          <span className="text-white font-semibold truncate max-w-xs">
+            {round.track_name}
+          </span>
+          <span className="text-white/50 text-sm hidden sm:inline">— {round.artist_name}</span>
+        </div>
+        <span className="text-emerald-400 text-sm font-medium shrink-0">
+          ✅ {round.correct_answer}
+        </span>
+      </div>
+
+      {/* Top-3 table */}
+      {top3.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-white/40 text-xs uppercase tracking-wider">
+                <th className="text-left pl-5 pr-3 py-2 w-12">#</th>
+                <th className="text-left pr-3 py-2">Joueur</th>
+                <th className="text-left pr-3 py-2 hidden sm:table-cell">Réponse</th>
+                <th className="text-right pr-3 py-2">Pts</th>
+                <th className="text-right pr-5 py-2 hidden md:table-cell">Temps</th>
+              </tr>
+            </thead>
+            <tbody>
+              {top3.map((ans, i) => {
+                const isFastest = minTime !== null && ans.response_time === minTime;
+                return (
+                  <tr key={ans.username} className={`border-t border-white/5 bg-gradient-to-r ${RANK_COLORS[i]} border-l-2`}>
+                    <td className="pl-5 pr-3 py-2.5 text-xl w-12">{MEDAL[i]}</td>
+                    <td className="pr-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <Avatar username={ans.username} avatar={playerAvatar(ans.username)} size="sm" />
+                        <span className="text-white font-medium">{ans.username}</span>
+                        {isFastest && <span className="text-yellow-300 text-xs">⚡</span>}
+                      </div>
+                    </td>
+                    <td className="pr-3 py-2.5 hidden sm:table-cell">
+                      <span className={ans.is_correct ? 'text-emerald-400' : 'text-red-400'}>
+                        {ans.is_correct ? '✓' : '✗'} {ans.answer}
+                      </span>
+                      {ans.streak_bonus !== undefined && ans.streak_bonus > 0 && (
+                        <span className="ml-2 text-orange-300 text-xs">🔥×{ans.consecutive_correct}</span>
+                      )}
+                    </td>
+                    <td className="pr-3 py-2.5 text-right font-bold text-white">
+                      +{ans.points_earned}
+                    </td>
+                    <td className="pr-5 py-2.5 text-right text-white/50 hidden md:table-cell">
+                      {ans.response_time.toFixed(1)}s
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {/* Expanded rows */}
+              {expanded && rest.map((ans, i) => {
+                const isFastest = minTime !== null && ans.response_time === minTime;
+                return (
+                  <tr key={ans.username} className="border-t border-white/5">
+                    <td className="pl-5 pr-3 py-2.5 text-white/40 text-sm">{i + 4}.</td>
+                    <td className="pr-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <Avatar username={ans.username} avatar={playerAvatar(ans.username)} size="sm" />
+                        <span className="text-white/80 font-medium">{ans.username}</span>
+                        {isFastest && <span className="text-yellow-300 text-xs">⚡</span>}
+                      </div>
+                    </td>
+                    <td className="pr-3 py-2.5 hidden sm:table-cell">
+                      <span className={ans.is_correct ? 'text-emerald-400/80' : 'text-red-400/60'}>
+                        {ans.is_correct ? '✓' : '✗'} {ans.answer}
+                      </span>
+                      {ans.streak_bonus !== undefined && ans.streak_bonus > 0 && (
+                        <span className="ml-2 text-orange-300 text-xs">🔥×{ans.consecutive_correct}</span>
+                      )}
+                    </td>
+                    <td className="pr-3 py-2.5 text-right font-bold text-white/70">
+                      +{ans.points_earned}
+                    </td>
+                    <td className="pr-5 py-2.5 text-right text-white/40 hidden md:table-cell">
+                      {ans.response_time.toFixed(1)}s
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="text-white/30 text-sm px-5 py-4">Aucune réponse enregistrée</p>
+      )}
+
+      {/* Expand button */}
+      {rest.length > 0 && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full py-2.5 text-white/50 hover:text-white/80 text-xs font-medium border-t border-white/10 transition-colors hover:bg-white/5 flex items-center justify-center gap-1"
+        >
+          {expanded ? (
+            <><span>↑ Masquer</span></>
+          ) : (
+            <><span>↓ Voir les {rest.length} autre{rest.length > 1 ? 's' : ''} joueur{rest.length > 1 ? 's' : ''}</span></>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function GameResultsPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
@@ -54,11 +202,11 @@ export default function GameResultsPage() {
   const [results, setResults] = useState<GameResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [showFullRanking, setShowFullRanking] = useState(false);
 
   useEffect(() => {
     const loadResults = async () => {
       if (!roomCode) return;
-
       try {
         const data = await gameService.getResults(roomCode);
         setResults(data);
@@ -68,265 +216,188 @@ export default function GameResultsPage() {
         setLoading(false);
       }
     };
-
     loadResults();
   }, [roomCode]);
 
-  const getPodiumPosition = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return 'h-48 bg-gradient-to-b from-yellow-400 to-yellow-600';
-      case 2:
-        return 'h-40 bg-gradient-to-b from-gray-300 to-gray-500';
-      case 3:
-        return 'h-32 bg-gradient-to-b from-orange-400 to-orange-600';
-      default:
-        return 'h-24 bg-gradient-to-b from-blue-300 to-blue-500';
-    }
-  };
-
-  const getMedal = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return '🥇';
-      case 2:
-        return '🥈';
-      case 3:
-        return '🥉';
-      default:
-        return `${rank}º`;
-    }
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-white text-2xl">Chargement des résultats...</div>
+      <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] flex items-center justify-center">
+        <div className="text-white/70 text-xl animate-pulse">Chargement des résultats…</div>
       </div>
     );
   }
 
   if (!results) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-white text-2xl">Résultats introuvables</div>
+      <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] flex items-center justify-center">
+        <div className="text-white/70 text-xl">Résultats introuvables</div>
       </div>
     );
   }
 
-  const topThree = results.rankings.slice(0, 3);
-  const others = results.rankings.slice(3);
+  const { rankings, rounds, game } = results;
+  const top3 = rankings.slice(0, 3);
+  const others = rankings.slice(3);
+  const winner = rankings[0];
+
+  const podiumOrder = [
+    top3[1] ?? null,  // 2nd — left
+    top3[0] ?? null,  // 1st — center
+    top3[2] ?? null,  // 3rd — right
+  ];
+  const podiumHeights = ['h-32', 'h-48', 'h-24'];
+  const podiumPos = [1, 0, 2]; // index into top3
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
-      <div className="container mx-auto max-w-6xl py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-white mb-4">🎉 Partie Terminée ! 🎉</h1>
-          <p className="text-xl text-white opacity-90">Partie {roomCode}</p>
-          <div className="flex flex-wrap justify-center gap-2 mt-4">
-            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-500/80 text-white">
-              {results.game.mode_display}
+    <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] text-white">
+      <div className="container mx-auto max-w-5xl px-4 py-10 space-y-12">
+
+        {/* ── Header ─────────────────────────────────────────────── */}
+        <div className="text-center space-y-4">
+          <div className="text-6xl animate-bounce inline-block">🎉</div>
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">Partie terminée !</h1>
+          <p className="text-white/50 text-lg">Salle {roomCode}</p>
+          <div className="flex flex-wrap justify-center gap-2 mt-3">
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-violet-500/30 border border-violet-400/40 text-violet-200">
+              {game.mode_display}
             </span>
-            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-purple-500/80 text-white">
-              {results.game.answer_mode === 'mcq' ? '📋 QCM' : '⌨️ Saisie libre'}
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/30 border border-blue-400/40 text-blue-200">
+              {game.answer_mode === 'mcq' ? '📋 QCM' : '⌨️ Saisie libre'}
             </span>
-            {(results.game.mode === 'classique' || results.game.mode === 'rapide') && (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-pink-500/80 text-white">
-                {results.game.guess_target === 'artist' ? '🎤 Artiste' : '🎵 Titre'}
+            {(game.mode === 'classique' || game.mode === 'rapide') && (
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-pink-500/30 border border-pink-400/40 text-pink-200">
+                {game.guess_target === 'artist' ? '🎤 Artiste' : '🎵 Titre'}
               </span>
             )}
-            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gray-500/80 text-white">
-              {results.game.num_rounds} rounds
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/10 border border-white/20 text-white/70">
+              {game.num_rounds} rounds
             </span>
           </div>
         </div>
 
-        {/* Podium */}
-        <div className="mb-12">
-          <h2 className="text-3xl font-bold text-white text-center mb-8">🏆 Podium 🏆</h2>
-
-          <div className="flex items-end justify-center space-x-4 mb-8">
-            {/* 2nd place */}
-            {topThree[1] && (
-              <div className="flex flex-col items-center">
-                <div className="text-4xl mb-2">🥈</div>
-                {topThree[1].avatar ? (
-                  <img
-                    src={getMediaUrl(topThree[1].avatar)}
-                    alt={topThree[1].username}
-                    className="w-20 h-20 rounded-full mb-2 border-4 border-gray-400"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-2xl font-bold mb-2 border-4 border-gray-400">
-                    {topThree[1].username.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <p className="text-white font-bold text-lg mb-2">{topThree[1].username}</p>
-                <div className={`w-32 ${getPodiumPosition(2)} rounded-t-lg flex flex-col items-center justify-center text-white`}>
-                  <p className="text-3xl font-bold">{topThree[1].score}</p>
-                  <p className="text-sm">points</p>
-                </div>
-              </div>
-            )}
-
-            {/* 1st place */}
-            {topThree[0] && (
-              <div className="flex flex-col items-center">
-                <div className="text-5xl mb-2 animate-bounce">🥇</div>
-                {topThree[0].avatar ? (
-                  <img
-                    src={getMediaUrl(topThree[0].avatar)}
-                    alt={topThree[0].username}
-                    className="w-24 h-24 rounded-full mb-2 border-4 border-yellow-400"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-white text-3xl font-bold mb-2 border-4 border-yellow-400">
-                    {topThree[0].username.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <p className="text-white font-bold text-xl mb-2">{topThree[0].username}</p>
-                <div className={`w-32 ${getPodiumPosition(1)} rounded-t-lg flex flex-col items-center justify-center text-white`}>
-                  <p className="text-4xl font-bold">{topThree[0].score}</p>
-                  <p className="text-sm">points</p>
-                </div>
-              </div>
-            )}
-
-            {/* 3rd place */}
-            {topThree[2] && (
-              <div className="flex flex-col items-center">
-                <div className="text-4xl mb-2">🥉</div>
-                {topThree[2].avatar ? (
-                  <img
-                    src={getMediaUrl(topThree[2].avatar)}
-                    alt={topThree[2].username}
-                    className="w-20 h-20 rounded-full mb-2 border-4 border-orange-400"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-2xl font-bold mb-2 border-4 border-orange-400">
-                    {topThree[2].username.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <p className="text-white font-bold text-lg mb-2">{topThree[2].username}</p>
-                <div className={`w-32 ${getPodiumPosition(3)} rounded-t-lg flex flex-col items-center justify-center text-white`}>
-                  <p className="text-3xl font-bold">{topThree[2].score}</p>
-                  <p className="text-sm">points</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Other players */}
-        {others.length > 0 && (
-          <div className="max-w-2xl mx-auto mb-8">
-            <h3 className="text-2xl font-bold text-white text-center mb-4">Autres joueurs</h3>
-            <div className="space-y-2">
-              {others.map((player) => (
-                <div
-                  key={player.id}
-                  className="bg-white/10 backdrop-blur-sm rounded-lg p-4 flex items-center justify-between"
-                >
-                  <div className="flex items-center space-x-4">
-                    <span className="text-2xl font-bold text-white">{getMedal(player.rank)}</span>
-                    {player.avatar ? (
-                      <img
-                        src={getMediaUrl(player.avatar)}
-                        alt={player.username}
-                        className="w-12 h-12 rounded-full"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold">
-                        {player.username.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <span className="text-white font-semibold text-lg">{player.username}</span>
-                  </div>
-                  <div className="text-white font-bold text-2xl">{player.score} pts</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Per-round recap */}
-        {results.rounds && results.rounds.length > 0 && (
-          <div className="max-w-4xl mx-auto mb-12">
-            <h3 className="text-3xl font-bold text-white text-center mb-6">📋 Récapitulatif par round</h3>
-            <div className="space-y-4">
-              {results.rounds.map((round) => {
-                const minTime = round.answers && round.answers.length > 0
-                  ? Math.min(...round.answers.map((a) => a.response_time))
-                  : null;
-
+        {/* ── Podium ─────────────────────────────────────────────── */}
+        {top3.length > 0 && (
+          <div className="space-y-6">
+            <h2 className="text-center text-2xl font-bold text-white/80">🏆 Podium</h2>
+            <div className="flex items-end justify-center gap-3 sm:gap-6">
+              {podiumOrder.map((player, colIdx) => {
+                if (!player) return <div key={colIdx} className="w-28 sm:w-36" />;
+                const pos = podiumPos[colIdx]; // 0=1st,1=2nd,2=3rd
+                const isWinner = pos === 0;
+                const borderColors = ['border-yellow-400', 'border-slate-400', 'border-orange-400'];
+                const glowColors = ['shadow-yellow-500/30', 'shadow-slate-400/20', 'shadow-orange-500/20'];
+                const barColors = [
+                  'bg-gradient-to-t from-yellow-600 to-yellow-400',
+                  'bg-gradient-to-t from-slate-600 to-slate-400',
+                  'bg-gradient-to-t from-orange-600 to-orange-400',
+                ];
                 return (
-                <div
-                  key={round.round_number}
-                  className="bg-white/10 backdrop-blur-sm rounded-xl p-5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <span className="text-white font-bold text-lg">
-                        Round {round.round_number}
-                      </span>
-                      <span className="text-white/70 ml-3">
-                        🎵 {round.track_name} — {round.artist_name}
-                      </span>
+                  <div key={player.id} className="flex flex-col items-center gap-1">
+                    <span className="text-3xl sm:text-4xl">{isWinner ? '👑' : MEDAL[pos]}</span>
+                    <Avatar username={player.username} avatar={player.avatar} size={isWinner ? 'lg' : 'md'} />
+                    <p className={`font-bold mt-1 ${isWinner ? 'text-lg text-yellow-300' : 'text-sm text-white/80'}`}>
+                      {player.username}
+                    </p>
+                    <div className={`w-28 sm:w-36 ${podiumHeights[colIdx]} ${barColors[pos]} rounded-t-xl flex flex-col items-center justify-center shadow-lg ${glowColors[pos]} border-t-4 ${borderColors[pos]}`}>
+                      <p className={`font-extrabold ${isWinner ? 'text-3xl' : 'text-2xl'} text-white drop-shadow`}>
+                        {player.score}
+                      </p>
+                      <p className="text-white/60 text-xs">pts</p>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                    {round.answers.map((ans, idx) => {
-                      const isFastest = minTime !== null && ans.response_time === minTime;
-                      return (
-                      <div
-                        key={idx}
-                        className={`rounded-lg px-4 py-2 flex items-center justify-between ${
-                          ans.is_correct
-                            ? 'bg-green-500/30 border border-green-400/50'
-                            : 'bg-red-500/20 border border-red-400/30'
-                        } ${isFastest ? 'ring-2 ring-yellow-400 bg-yellow-500/10' : ''}`}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <span className="text-lg">{ans.is_correct ? '✅' : '❌'}</span>
-                          <span className="text-white font-medium">{ans.username}</span>
-                          {isFastest && (
-                            <span className="ml-2 text-yellow-300 text-sm">⚡ Plus rapide</span>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <span className={`font-bold ${ans.is_correct ? 'text-green-300' : 'text-red-300'}`}>
-                            +{ans.points_earned}
-                          </span>
-                          <span className="text-white/50 text-xs ml-1">
-                            ({ans.response_time}s)
-                          </span>
-                          {ans.streak_bonus !== undefined && ans.consecutive_correct !== undefined && (
-                            <div className="text-xs text-yellow-200 mt-1">{ans.streak_bonus > 0 ? `🔥 Série ×${ans.consecutive_correct} +${ans.streak_bonus} pts` : ''}</div>
-                          )}
-                        </div>
-                      </div>
-                      );
-                    })}
-                    {round.answers.length === 0 && (
-                      <p className="text-white/50 text-sm col-span-full">Aucune réponse</p>
-                    )}
-                  </div>
-                </div>
                 );
               })}
             </div>
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex flex-wrap justify-center gap-3">
+        {/* ── Classement complet ─────────────────────────────────── */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-white/80">📊 Classement</h2>
+            {others.length > 0 && (
+              <button
+                onClick={() => setShowFullRanking(!showFullRanking)}
+                className="text-xs text-white/50 hover:text-white/80 border border-white/20 hover:border-white/40 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                {showFullRanking ? '↑ Masquer' : `↓ Voir tous (${rankings.length})`}
+              </button>
+            )}
+          </div>
+          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-white/40 text-xs uppercase tracking-wider border-b border-white/10">
+                  <th className="text-center pl-5 pr-3 py-3 w-12">#</th>
+                  <th className="text-left pr-3 py-3">Joueur</th>
+                  <th className="text-right pr-5 py-3">Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(showFullRanking ? rankings : top3).map((player, idx) => {
+                  const isWinner = idx === 0;
+                  return (
+                    <tr key={player.id} className={`border-t border-white/5 ${isWinner ? 'bg-yellow-400/10' : ''}`}>
+                      <td className="text-center pl-5 pr-3 py-3 text-xl">
+                        {idx < 3 ? MEDAL[idx] : <span className="text-white/40 text-sm">{idx + 1}.</span>}
+                      </td>
+                      <td className="pr-3 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <Avatar username={player.username} avatar={player.avatar} size="sm" />
+                          <span className={`font-medium ${isWinner ? 'text-yellow-300' : 'text-white'}`}>
+                            {player.username}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="pr-5 py-3 text-right font-bold text-white">
+                        {player.score} <span className="text-white/40 font-normal text-xs">pts</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!showFullRanking && others.length > 0 && (
+              <button
+                onClick={() => setShowFullRanking(true)}
+                className="w-full py-3 text-white/40 hover:text-white/70 text-xs font-medium border-t border-white/10 transition-colors hover:bg-white/5"
+              >
+                ↓ + {others.length} autre{others.length > 1 ? 's' : ''} joueur{others.length > 1 ? 's' : ''}
+              </button>
+            )}
+          </div>
+
+          {/* Mise en avant du gagnant */}
+          {winner && (
+            <div className="flex items-center gap-4 bg-yellow-400/10 border border-yellow-400/30 rounded-2xl px-5 py-3">
+              <span className="text-3xl">👑</span>
+              <div>
+                <p className="text-yellow-300 font-bold text-lg">{winner.username}</p>
+                <p className="text-white/50 text-sm">remporte la partie avec {winner.score} pts</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Détail par round ───────────────────────────────────── */}
+        {rounds.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-white/80">🎵 Détail par round</h2>
+            <div className="space-y-3">
+              {rounds.map((round) => (
+                <RoundRow key={round.round_number} round={round} players={rankings} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Actions ────────────────────────────────────────────── */}
+        <div className="flex flex-wrap justify-center gap-3 pb-8">
           <button
             onClick={() => navigate('/')}
-            className="px-8 py-3 bg-white text-blue-600 rounded-lg font-bold hover:bg-gray-100 transition"
+            className="px-6 py-2.5 rounded-xl font-semibold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 transition-all text-white"
           >
-            Retour à l'accueil
+            ← Accueil
           </button>
           <button
             onClick={async () => {
@@ -341,27 +412,28 @@ export default function GameResultsPage() {
               }
             }}
             disabled={downloadingPdf}
-            className="px-8 py-3 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition disabled:opacity-50 flex items-center gap-2"
+            className="px-6 py-2.5 rounded-xl font-semibold bg-emerald-600/80 hover:bg-emerald-600 border border-emerald-500/50 transition-all text-white disabled:opacity-50 flex items-center gap-2"
           >
             {downloadingPdf ? (
               <>
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
                 Génération…
               </>
             ) : (
-              <>📄 Télécharger PDF</>
+              '📄 Télécharger PDF'
             )}
           </button>
           <button
             onClick={() => navigate('/game/create')}
-            className="px-8 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition"
+            className="px-6 py-2.5 rounded-xl font-semibold bg-violet-600/80 hover:bg-violet-600 border border-violet-500/50 transition-all text-white"
           >
-            Nouvelle partie
+            + Nouvelle partie
           </button>
         </div>
+
       </div>
     </div>
   );

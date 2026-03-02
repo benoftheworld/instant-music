@@ -155,9 +155,20 @@ def generate_results_pdf(
     # ── Classement ──────────────────────────────────────────────────
     elements.append(Paragraph("Classement", section_style))
 
-    # Ranking with teams and medal colours
+    # Déterminer le meilleur joueur (plus de points) avant le tri
+    top_scorer_username: str | None = None
+    if rankings:
+        top = max(rankings, key=lambda p: p.get("score", 0))
+        top_scorer_username = top.get("username")
+
+    # Tri alphabétique pour l'affichage (le rang/score reste visible dans les colonnes)
+    rankings_alpha = sorted(rankings, key=lambda p: p.get("username", "").lower())
+
+    # Couleur de fond distincte pour le meilleur joueur
+    COLOR_TOP_SCORER = colors.HexColor("#D4AF37")  # or gold
+
     ranking_data = [["#", "Pseudonyme", "Équipe", "Points"]]
-    for p in rankings:
+    for p in rankings_alpha:
         rank = p.get("rank", "—")
         username = p.get("username", "?")
         team = p.get("team_name") or "—"
@@ -185,15 +196,12 @@ def generate_results_pdf(
         ("ALIGN", (1, 1), (1, -1), "LEFT"),
     ]
 
-    # Medal row backgrounds for top3
-    for idx, p in enumerate(rankings, start=1):
-        r = idx  # table row index (header is row 0)
-        rank = p.get("rank")
-        if isinstance(rank, int) and rank in MEDAL_COLORS:
-            color = MEDAL_COLORS[rank]
-            table_style_cmds.append(("BACKGROUND", (0, r), (-1, r), color))
-            # ensure readable text on medal rows
-            table_style_cmds.append(("TEXTCOLOR", (0, r), (-1, r), colors.black))
+    # Mettre en avant le meilleur joueur (fond or distinctif, texte gras)
+    for idx, p in enumerate(rankings_alpha, start=1):
+        if p.get("username") == top_scorer_username:
+            table_style_cmds.append(("BACKGROUND", (0, idx), (-1, idx), COLOR_TOP_SCORER))
+            table_style_cmds.append(("TEXTCOLOR", (0, idx), (-1, idx), colors.black))
+            table_style_cmds.append(("FONTNAME", (0, idx), (-1, idx), "Helvetica-Bold"))
 
     rank_table.setStyle(TableStyle(table_style_cmds))
     elements.append(rank_table)

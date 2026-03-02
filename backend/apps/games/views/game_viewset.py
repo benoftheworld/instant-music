@@ -7,6 +7,7 @@ import random
 import string
 
 from django.utils import timezone
+from django.db import transaction
 from django.db.models import Prefetch
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -375,14 +376,28 @@ class GameViewSet(viewsets.ModelViewSet):
                 response_time=float(response_time),
             )
 
-            total_players = game.players.count()
-            answered_players = GameAnswer.objects.filter(
-                round=round_obj
-            ).count()
+            # Verrou atomique pour éviter la condition de course où deux joueurs
+            # répondent simultanément : sans ce verrou, les deux requêtes peuvent
+            # lire le même total, mettre ended_at et broadcaster round_ended deux
+            # fois → l'hôte programme deux setTimeout → appel double à next_round
+            # → la partie saute des rounds et se termine prématurément.
+            should_broadcast = False
+            with transaction.atomic():
+                locked_round = GameRound.objects.select_for_update().get(
+                    id=round_obj.id
+                )
+                if not locked_round.ended_at:
+                    total_players = game.players.count()
+                    answered_players = GameAnswer.objects.filter(
+                        round=locked_round
+                    ).count()
+                    if answered_players >= total_players:
+                        locked_round.ended_at = timezone.now()
+                        locked_round.save()
+                        should_broadcast = True
 
-            if answered_players >= total_players:
-                round_obj.ended_at = timezone.now()
-                round_obj.save()
+            if should_broadcast:
+                round_obj.refresh_from_db()
                 broadcast_round_end(room_code, round_obj, game)
 
             return Response(

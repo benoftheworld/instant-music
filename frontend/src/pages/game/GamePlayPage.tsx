@@ -49,6 +49,9 @@ export default function GamePlayPage() {
   const [loading, setLoading] = useState(true);
   const [myPointsEarned, setMyPointsEarned] = useState<number>(0);
   const isAdvancingRef = useRef(false);
+  // Ref pour le timeout de passage au round suivant — permet de l'annuler si
+  // round_ended est reçu deux fois (race condition) ou si le composant se démonte.
+  const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Timestamp (ms) captured the moment the round enters the 'playing' phase.
   // Used for an accurate response-time calculation that is immune to timer
   // drift, Math.floor rounding, and loading-screen offset mismatches.
@@ -110,6 +113,10 @@ export default function GamePlayPage() {
   const advanceToNextRound = useCallback(async () => {
     if (isAdvancingRef.current || !roomCode) return;
     isAdvancingRef.current = true;
+    if (advanceTimeoutRef.current) {
+      clearTimeout(advanceTimeoutRef.current);
+      advanceTimeoutRef.current = null;
+    }
     try {
       await gameService.nextRound(roomCode);
     } catch (error) {
@@ -260,7 +267,11 @@ export default function GamePlayPage() {
             // Host advances to next round after result display time
             const resultDisplayTime = (game?.score_display_duration || 10) * 1000;
             if (user && game && game.host === user.id) {
-              setTimeout(() => {
+              // Annuler tout timeout précédent avant d'en reprogrammer un —
+              // évite le double appel si round_ended est reçu deux fois.
+              if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+              advanceTimeoutRef.current = setTimeout(() => {
+                advanceTimeoutRef.current = null;
                 advanceToNextRound();
               }, resultDisplayTime);
             }
@@ -271,6 +282,11 @@ export default function GamePlayPage() {
         case 'next_round':
           // Move to next round automatically
           soundEffects.roundLoading();
+          // Annuler le timeout en attente : le round suivant est déjà lancé.
+          if (advanceTimeoutRef.current) {
+            clearTimeout(advanceTimeoutRef.current);
+            advanceTimeoutRef.current = null;
+          }
           isAdvancingRef.current = false;
           setCurrentRound(data.round_data);
           setTimeRemaining(data.round_data.duration);
@@ -307,6 +323,17 @@ export default function GamePlayPage() {
 
     return unsubscribe;
   }, [onMessage, loadCurrentRound, navigate, roomCode, user, game, advanceToNextRound, myPointsEarned]);
+
+  // Annuler le timeout de passage au round suivant si le composant se démonte
+  // (navigation, fermeture de la page) avant qu'il se déclenche.
+  useEffect(() => {
+    return () => {
+      if (advanceTimeoutRef.current) {
+        clearTimeout(advanceTimeoutRef.current);
+        advanceTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Initial load
   useEffect(() => {
