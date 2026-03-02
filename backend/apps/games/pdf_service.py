@@ -300,7 +300,7 @@ def generate_results_pdf(
     elements.append(Paragraph(
         "Le score de chaque réponse est calculé en fonction du temps de réponse et de la précision (exactitude) de la réponse. "
         "Un bonus de rang est ajouté pour les meilleurs joueurs. De plus, une série de réponses correctes peut générer des "
-        "points bonus supplémentaires. Voici la formule détaillée :",
+        "points bonus supplémentaires.<br/><br/>",
         styles["Normal"]
     ))
 
@@ -318,9 +318,10 @@ def generate_results_pdf(
     final_with_bonus = final + first_bonus
 
     example_text = (
-        f"Formule : <i>{formula}</i><br/>"
+        f"Voici un exemple de calcul pour une réponse donnée :<br/>"
+        f"Formule : <i>{formula}</i><br/><br/>"
         f"Exemple : Temps de réponse = {example_resp_time}s, Précision = {example_accuracy*100:.0f}%<br/>"
-        f"points_finaux={final} (+ bonus rang {first_bonus} ⇒ {final_with_bonus})"
+        f"points_finaux={final} (+ bonus rang {first_bonus} ⇒ {final_with_bonus}) <br/><br/>"
     )
     elements.append(Paragraph(example_text, styles["Normal"]))
 
