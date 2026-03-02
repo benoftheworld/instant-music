@@ -254,7 +254,7 @@ def generate_results_pdf(
                 if is_fastest:
                     fastest_rows.append(i + 1)  # +1 because header occupies row 0
 
-                username_cell = Paragraph(f"{a.get('username', '?')}", styles["Normal"]) if not is_fastest else Paragraph(f"⚡ <b>{a.get('username', '?')}</b>", styles["Normal"])
+                username_cell = Paragraph(f"{a.get('username', '?')}", styles["Normal"]) if not is_fastest else Paragraph(f"<b>{a.get('username', '?')}</b>", styles["Normal"])
 
                 ans_data.append([
                     username_cell,
