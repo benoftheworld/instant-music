@@ -293,12 +293,20 @@ def generate_results_pdf(
 
         elements.append(Spacer(1, 6))
 
-    # ── Exemple de calcul des points ─────────────────────────────────
-    elements.append(Paragraph("Exemple de calcul des points", section_style))
+    # ── Calcul des points ─────────────────────────────────
+    elements.append(Paragraph("Calcul des points", section_style))
     # Use scoring constants to show formula and a numeric example
+
+    elements.append(Paragraph(
+        "Le score de chaque réponse est calculé en fonction du temps de réponse et de la précision (exactitude) de la réponse. "
+        "Un bonus de rang est ajouté pour les meilleurs joueurs. De plus, une série de réponses correctes peut générer des "
+        "points bonus supplémentaires. Voici la formule détaillée :",
+        styles["Normal"]
+    ))
+
     formula = (
-        f"Points base = max({SCORE_MIN_CORRECT}, {SCORE_BASE_POINTS} - response_time × {SCORE_TIME_PENALTY_PER_SEC})\n"
-        f"Points finaux = max({SCORE_MIN_FINAL}, int(points_base × accuracy_factor)) + rank_bonus"
+        f"points_base = max({SCORE_MIN_CORRECT}, {SCORE_BASE_POINTS} - int(response_time * {SCORE_TIME_PENALTY_PER_SEC}))<br/>"
+        f"points_finaux = max({SCORE_MIN_FINAL}, int(points_base * accuracy_factor)) + bonus_rang + bonus_série"
     )
     # Example values
     example_resp_time = 7
@@ -311,7 +319,7 @@ def generate_results_pdf(
 
     example_text = (
         f"Formule : <i>{formula}</i><br/>"
-        f"Exemple : response_time={example_resp_time}s, accuracy_factor={example_accuracy} → points_base={raw}, "
+        f"Exemple : Temps de réponse = {example_resp_time}s, Précision = {example_accuracy*100:.0f}%<br/>"
         f"points_finaux={final} (+ bonus rang {first_bonus} ⇒ {final_with_bonus})"
     )
     elements.append(Paragraph(example_text, styles["Normal"]))
