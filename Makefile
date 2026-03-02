@@ -109,7 +109,7 @@ monitoring-kibana-import: ## Importer index patterns + dashboards dans Kibana (p
 	  _devops/monitoring/kibana/saved-objects.ndjson \
 	  kibana:/tmp/kibana-saved-objects.ndjson
 	@docker compose -f $(COMPOSE_MON_PROD) exec kibana \
-	  curl -sf -X POST "http://localhost:5601/kibana/api/saved_objects/_import?overwrite=true" \
+	  curl -f -X POST "http://localhost:5601/kibana/api/saved_objects/_import?overwrite=true" \
 	  -H "kbn-xsrf: true" \
 	  --form "file=@/tmp/kibana-saved-objects.ndjson"
 	@echo ""
