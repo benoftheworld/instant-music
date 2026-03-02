@@ -208,7 +208,7 @@ def generate_results_pdf(
 
         elements.append(
             Paragraph(
-                f"<b>Round {rnum}</b> — {track} ({artist}) &nbsp; "
+                f"<b>Round {rnum}</b> — {track} ({artist}) &nbsp; ",
                 styles["Normal"],
             )
         )
