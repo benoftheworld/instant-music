@@ -216,43 +216,75 @@ def generate_results_pdf(
 
         answers = rd.get("answers", [])
         if answers:
-            ans_data = [["Joueur", "Réponse", "Pts", "Temps"]]
-            for a in answers:
+            # small adaptive paragraph style for long answers
+            ans_style_small = ParagraphStyle(
+                "ans_small",
+                parent=styles["Normal"],
+                fontSize=8,
+            )
+
+            # Add a little vertical space between the round header and its table
+            elements.append(Spacer(1, 4))
+
+            # Determine fastest response_time for this round
+            try:
+                min_time = min(float(a.get("response_time", 9999)) for a in answers)
+            except Exception:
+                min_time = None
+
+            ans_data = [["Joueur", "Réponse", "Pts", "Temps", "Série"]]
+            fastest_rows: list[int] = []
+            for i, a in enumerate(answers):
                 icon = "✓" if a.get("is_correct") else "✗"
-                ans_data.append(
-                    [
-                        a.get("username", "?"),
-                        f"{icon} {a.get('answer', '')}",
-                        str(a.get("points_earned", 0)),
-                        f"{a.get('response_time', 0)}s",
-                    ]
+                answer_text = f"{icon} {a.get('answer', '')}"
+                # choose style based on length to avoid overflow
+                cell_answer = (
+                    Paragraph(answer_text, ans_style_small)
+                    if len(answer_text) > 60
+                    else Paragraph(answer_text, styles["Normal"]) 
+                )
+                streak_len = a.get("consecutive_correct")
+                streak_bonus = a.get("streak_bonus", 0)
+                streak_text = (
+                    f"×{streak_len} +{streak_bonus} pts" if streak_len and streak_len > 1 else "-"
                 )
 
-            ans_table = Table(ans_data, colWidths=[120, 200, 40, 50])
-            ans_table.setStyle(
-                TableStyle(
-                    [
-                        (
-                            "BACKGROUND",
-                            (0, 0),
-                            (-1, 0),
-                            COLOR_HEADER_LIGHT,
-                        ),
-                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                        ("FONTSIZE", (0, 0), (-1, -1), 9),
-                        ("ALIGN", (2, 0), (-1, -1), "CENTER"),
-                        (
-                            "GRID",
-                            (0, 0),
-                            (-1, -1),
-                            0.4,
-                            COLOR_BORDER,
-                        ),
-                        ("TOPPADDING", (0, 0), (-1, -1), 4),
-                        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                    ]
-                )
-            )
+                is_fastest = (min_time is not None and float(a.get("response_time", 9999)) == min_time)
+                if is_fastest:
+                    fastest_rows.append(i + 1)  # +1 because header occupies row 0
+
+                username_cell = Paragraph(f"{a.get('username', '?')}", styles["Normal"]) if not is_fastest else Paragraph(f"⚡ <b>{a.get('username', '?')}</b>", styles["Normal"])
+
+                ans_data.append([
+                    username_cell,
+                    cell_answer,
+                    str(a.get("points_earned", 0)),
+                    f"{a.get('response_time', 0)}s",
+                    streak_text,
+                ])
+
+            # slightly adjusted widths to accommodate new column and wrapping
+            ans_table = Table(ans_data, colWidths=[100, 220, 40, 40, 60])
+
+            # Base style
+            base_cmds = [
+                ("BACKGROUND", (0, 0), (-1, 0), COLOR_HEADER_LIGHT),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("ALIGN", (2, 0), (-2, -1), "CENTER"),
+                ("GRID", (0, 0), (-1, -1), 0.4, COLOR_BORDER),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ]
+
+            # Highlight fastest rows
+            for r in fastest_rows:
+                base_cmds.append(("BACKGROUND", (0, r), (-1, r), colors.HexColor("#FFF7ED")))
+                base_cmds.append(("TEXTCOLOR", (0, r), (-1, r), colors.HexColor("#B45309")))
+                base_cmds.append(("FONTNAME", (0, r), (0, r), "Helvetica-Bold"))
+
+            ans_table.setStyle(TableStyle(base_cmds))
             elements.append(ans_table)
         else:
             elements.append(

@@ -503,18 +503,34 @@ class GameViewSet(viewsets.ModelViewSet):
 
         players = game.players.select_related("user").order_by("-score")
 
+        # Recompute per-player consecutive_correct per round (séries de victoires)
         rounds_detail = []
+        player_streaks: dict = {}
         for r in rounds:
-            answers = [
-                {
-                    "username": ans.player.user.username,
-                    "answer": ans.answer,
-                    "is_correct": ans.is_correct,
-                    "points_earned": ans.points_earned,
-                    "response_time": round(ans.response_time, 1),
-                }
-                for ans in r.answers.all()
-            ]
+            answers = []
+            # iterate answers in deterministic order (answered_at)
+            for ans in r.answers.all().order_by("answered_at"):
+                username = ans.player.user.username
+                curr = player_streaks.get(username, 0)
+                if ans.is_correct:
+                    curr += 1
+                else:
+                    curr = 0
+                player_streaks[username] = curr
+
+                answers.append(
+                    {
+                        "username": username,
+                        "answer": ans.answer,
+                        "is_correct": ans.is_correct,
+                        "points_earned": ans.points_earned,
+                        "response_time": round(ans.response_time, 1),
+                        # expose both the streak length and the stored bonus
+                        "consecutive_correct": curr,
+                        "streak_bonus": ans.streak_bonus,
+                    }
+                )
+
             rounds_detail.append(
                 {
                     "round_number": r.round_number,
@@ -581,20 +597,32 @@ class GameViewSet(viewsets.ModelViewSet):
                 }
             )
 
+        # Recompute per-player consecutive_correct per round for PDF export
         rounds_detail = []
+        player_streaks: dict = {}
         for r in game.rounds.order_by("round_number"):
-            answers = [
-                {
-                    "username": ans.player.user.username,
-                    "answer": ans.answer,
-                    "is_correct": ans.is_correct,
-                    "points_earned": ans.points_earned,
-                    "response_time": round(ans.response_time, 1),
-                }
-                for ans in r.answers.select_related("player__user").order_by(
-                    "-points_earned"
+            answers = []
+            for ans in r.answers.select_related("player__user").order_by("answered_at"):
+                username = ans.player.user.username
+                curr = player_streaks.get(username, 0)
+                if ans.is_correct:
+                    curr += 1
+                else:
+                    curr = 0
+                player_streaks[username] = curr
+
+                answers.append(
+                    {
+                        "username": username,
+                        "answer": ans.answer,
+                        "is_correct": ans.is_correct,
+                        "points_earned": ans.points_earned,
+                        "response_time": round(ans.response_time, 1),
+                        "consecutive_correct": curr,
+                        "streak_bonus": ans.streak_bonus,
+                    }
                 )
-            ]
+
             rounds_detail.append(
                 {
                     "round_number": r.round_number,
