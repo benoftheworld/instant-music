@@ -84,7 +84,7 @@ export const teamService = {
   /**
    * Get a specific team
    */
-  async getTeam(teamId: number): Promise<Team> {
+  async getTeam(teamId: string): Promise<Team> {
     const response = await api.get(`/users/teams/${teamId}/`);
     return response.data;
   },
@@ -108,7 +108,7 @@ export const teamService = {
   /**
    * Join a team
    */
-  async joinTeam(teamId: number): Promise<Team> {
+  async joinTeam(teamId: string): Promise<Team> {
     const response = await api.post(`/users/teams/${teamId}/join/`);
     return response.data;
   },
@@ -116,35 +116,35 @@ export const teamService = {
   /**
    * Leave a team
    */
-  async leaveTeam(teamId: number): Promise<void> {
+  async leaveTeam(teamId: string): Promise<void> {
     await api.post(`/users/teams/${teamId}/leave/`);
   },
 
   /**
    * Invite a user to a team (admin/owner only)
    */
-  async inviteToTeam(teamId: number, username: string): Promise<void> {
+  async inviteToTeam(teamId: string, username: string): Promise<void> {
     await api.post(`/users/teams/${teamId}/invite/`, { username });
   },
   
   /**
    * Update a team member role
    */
-  async updateMemberRole(teamId: number, memberId: number, role: string): Promise<void> {
+  async updateMemberRole(teamId: string, memberId: number, role: string): Promise<void> {
     await api.post(`/users/teams/${teamId}/update_member/`, { member_id: memberId, role });
   },
 
   /**
    * Remove a member from the team (admin/owner only)
    */
-  async removeMember(teamId: number, memberId: number): Promise<void> {
+  async removeMember(teamId: string, memberId: number): Promise<void> {
     await api.post(`/users/teams/${teamId}/remove_member/`, { member_id: memberId });
   },
 
   /**
    * Get pending join requests for a team
    */
-  async getJoinRequests(teamId: number) {
+  async getJoinRequests(teamId: string) {
     const response = await api.get(`/users/teams/${teamId}/requests/`);
     return response.data;
   },
@@ -152,7 +152,7 @@ export const teamService = {
   /**
    * Approve a join request (owner/admin only)
    */
-  async approveJoinRequest(teamId: number, requestId: number) {
+  async approveJoinRequest(teamId: string, requestId: number) {
     const response = await api.post(`/users/teams/${teamId}/approve/`, { request_id: requestId });
     return response.data;
   },
@@ -160,7 +160,7 @@ export const teamService = {
   /**
    * Reject a join request (owner/admin only)
    */
-  async rejectJoinRequest(teamId: number, requestId: number) {
+  async rejectJoinRequest(teamId: string, requestId: number) {
     const response = await api.post(`/users/teams/${teamId}/reject/`, { request_id: requestId });
     return response.data;
   },
@@ -168,7 +168,7 @@ export const teamService = {
   /**
    * Update team info (description/avatar) - multipart
    */
-  async updateTeam(teamId: number, data: FormData) {
+  async updateTeam(teamId: string, data: FormData) {
     const response = await api.patch(`/users/teams/${teamId}/edit/`, data, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });

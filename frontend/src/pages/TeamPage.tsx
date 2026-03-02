@@ -32,7 +32,7 @@ export default function TeamPage() {
   const fetchTeam = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await teamService.getTeam(Number(id));
+      const data = await teamService.getTeam(id as string);
       setTeam(data);
       setEditDescription(data.description || '');
     } catch (err) {
