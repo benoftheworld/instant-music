@@ -17,11 +17,6 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Bandeau alpha (version de développement) */}
-      <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-center text-xs font-bold py-1 tracking-widest uppercase select-none">
-        🚧 Version Alpha — En cours de développement
-      </div>
-
       {/* Avertissement maintenance pour les staff */}
       {maintenance && isStaff && (
         <div className="bg-primary-700 text-white text-xs font-semibold text-center py-1.5 px-4">
