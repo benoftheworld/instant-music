@@ -308,7 +308,7 @@ export interface TeamMember {
 }
 
 export interface Team {
-  id: number;
+  id: string;
   name: string;
   description: string;
   avatar: string | null;
