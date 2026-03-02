@@ -7,7 +7,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django.contrib import messages
 
-from .models import SiteConfiguration
+from .models import LegalPage, SiteConfiguration
 
 
 @admin.register(SiteConfiguration)
@@ -123,3 +123,30 @@ class SiteConfigurationAdmin(admin.ModelAdmin):
                 "✅ Configuration sauvegardée. Le site est en ligne.",
                 level=messages.SUCCESS,
             )
+
+
+@admin.register(LegalPage)
+class LegalPageAdmin(admin.ModelAdmin):
+    """Admin pour les pages légales (politique de confidentialité, mentions légales)."""
+
+    list_display = ("page_type", "title", "updated_at")
+    readonly_fields = ("updated_at",)
+    fieldsets = (
+        (
+            None,
+            {"fields": ("page_type", "title")},
+        ),
+        (
+            _("Contenu"),
+            {
+                "fields": ("content",),
+                "description": _(
+                    "Texte libre. Séparer les paragraphes par une ligne vide."
+                ),
+            },
+        ),
+        (
+            _("Métadonnées"),
+            {"fields": ("updated_at",), "classes": ("collapse",)},
+        ),
+    )

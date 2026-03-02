@@ -1,7 +1,11 @@
 """ViewSet for User model."""
 
+import json
+
 from django.contrib.auth import update_session_auth_hash
 from django.db import transaction
+from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -109,3 +113,59 @@ class UserViewSet(viewsets.ModelViewSet):
 
         serializer = UserMinimalSerializer(users, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def export_data(self, request):
+        """Export toutes les données personnelles de l'utilisateur (RGPD art. 20)."""
+        user = request.user
+        data = {
+            "exported_at": timezone.now().isoformat(),
+            "profile": {
+                "username": user.username,
+                "email": user.email,
+                "created_at": user.created_at.isoformat(),
+                "total_games_played": user.total_games_played,
+                "total_wins": user.total_wins,
+                "total_points": user.total_points,
+            },
+            "game_participations": [
+                {
+                    "room_code": gp.game.room_code,
+                    "mode": gp.game.mode,
+                    "score": gp.score,
+                    "rank": gp.rank,
+                    "played_at": (
+                        gp.game.started_at.isoformat() if gp.game.started_at else None
+                    ),
+                }
+                for gp in user.game_participations.select_related("game").order_by(
+                    "-joined_at"
+                )
+            ],
+            "friends": [
+                {
+                    "username": f.to_user.username,
+                    "since": f.updated_at.isoformat(),
+                }
+                for f in user.friendships_sent.filter(
+                    status="accepted"
+                ).select_related("to_user")
+            ]
+            + [
+                {
+                    "username": f.from_user.username,
+                    "since": f.updated_at.isoformat(),
+                }
+                for f in user.friendships_received.filter(
+                    status="accepted"
+                ).select_related("from_user")
+            ],
+        }
+        response = HttpResponse(
+            json.dumps(data, ensure_ascii=False, indent=2),
+            content_type="application/json",
+        )
+        response["Content-Disposition"] = (
+            'attachment; filename="mes-donnees-instantmusic.json"'
+        )
+        return response

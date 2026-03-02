@@ -12,7 +12,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .models import SiteConfiguration
+from .models import LegalPage, SiteConfiguration
 
 
 @never_cache
@@ -47,5 +47,27 @@ def site_status(request):
                 "color": cfg.banner_color,
                 "dismissible": cfg.banner_dismissible,
             },
+        }
+    )
+
+
+@never_cache
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def legal_page(request, page_type: str):
+    """
+    Return the content of a legal page (privacy policy or legal notices).
+    No authentication required — accessible to all visitors.
+    """
+    try:
+        page = LegalPage.objects.get(page_type=page_type)
+    except LegalPage.DoesNotExist:
+        return Response({"detail": "Page introuvable."}, status=404)
+    return Response(
+        {
+            "page_type": page.page_type,
+            "title": page.title,
+            "content": page.content,
+            "updated_at": page.updated_at,
         }
     )

@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import Navbar from './Navbar';
 import SiteBanner from './SiteBanner';
 import MaintenancePage from './MaintenancePage';
@@ -38,8 +38,17 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <footer className="bg-gray-800 text-white py-4 text-center">
-        <p>&copy; 2026 InstantMusic. Tous droits réservés.</p>
+      <footer className="bg-gray-800 text-white py-5 text-center">
+        <p className="text-sm">&copy; 2026 InstantMusic. Tous droits réservés.</p>
+        <div className="flex justify-center gap-4 mt-2 text-xs text-gray-400">
+          <Link to="/privacy" className="hover:text-white transition">
+            Politique de confidentialité
+          </Link>
+          <span>·</span>
+          <Link to="/legal" className="hover:text-white transition">
+            Mentions légales
+          </Link>
+        </div>
       </footer>
     </div>
   );

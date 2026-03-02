@@ -105,3 +105,36 @@ class SiteConfiguration(models.Model):
         """Return the singleton instance, creating it with defaults if needed."""
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class LegalPage(models.Model):
+    """
+    Editable legal pages (privacy policy, legal notices).
+    Each page_type can only exist once (unique constraint).
+    """
+
+    class PageType(models.TextChoices):
+        PRIVACY = "privacy", _("Politique de confidentialité")
+        LEGAL = "legal", _("Mentions légales")
+
+    page_type = models.CharField(
+        _("type de page"),
+        max_length=20,
+        choices=PageType.choices,
+        unique=True,
+    )
+    title = models.CharField(_("titre"), max_length=200)
+    content = models.TextField(
+        _("contenu"),
+        help_text=_(
+            "Texte libre. Séparer les paragraphes par une ligne vide."
+        ),
+    )
+    updated_at = models.DateTimeField(_("mis à jour le"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("Page légale")
+        verbose_name_plural = _("Pages légales")
+
+    def __str__(self) -> str:
+        return self.get_page_type_display()

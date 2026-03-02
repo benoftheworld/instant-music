@@ -167,6 +167,22 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
+  const handleExportData = async () => {
+    try {
+      const response = await api.get('/users/export_data/', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'mes-donnees-instantmusic.json');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export data error:', error);
+    }
+  };
+
   const getAchievementIcon = (conditionType: string): string => {
     switch (conditionType) {
       case 'games_played': return '🎮';
@@ -489,6 +505,26 @@ export default function ProfilePage() {
               </div>
             </form>
           </div>
+        </div>
+
+        {/* My Data Section */}
+        <div className="card">
+          <h2 className="text-2xl font-bold mb-4 flex items-center text-gray-800">
+            <svg className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Mes données
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Téléchargez une copie de toutes vos données personnelles au format JSON
+            (RGPD — droit à la portabilité, art. 20).
+          </p>
+          <button
+            onClick={handleExportData}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm"
+          >
+            Télécharger mes données (JSON)
+          </button>
         </div>
 
         {/* Delete Account Section */}

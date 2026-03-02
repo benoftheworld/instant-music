@@ -5,6 +5,8 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import PrivacyPage from './pages/legal/PrivacyPage';
+import LegalNoticePage from './pages/legal/LegalNoticePage';
 import ProfilePage from './pages/ProfilePage';
 import FriendsPage from './pages/FriendsPage';
 import TeamsPage from './pages/TeamsPage';
@@ -28,6 +30,8 @@ function App() {
         <Route path="register" element={<RegisterPage />} />
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
         <Route path="reset-password/:uid/:token" element={<ResetPasswordPage />} />
+        <Route path="privacy" element={<PrivacyPage />} />
+        <Route path="legal" element={<LegalNoticePage />} />
         <Route path="leaderboard" element={<LeaderboardPage />} />
 
         {/* Protected routes */}
