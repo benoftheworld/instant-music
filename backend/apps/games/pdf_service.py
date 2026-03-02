@@ -393,13 +393,6 @@ def generate_results_pdf(
         rk_table.setStyle(TableStyle(rk_cmds))
         elements.append(rk_table)
         elements.append(Spacer(1, 3))
-        elements.append(Paragraph(
-            "<font color='#B45309'>🥇 Jaune</font>"
-            "  <font color='#6B7280'>🥈 Gris</font>"
-            "  <font color='#92400E'>🥉 Orange</font>"
-            "  = top 3 de la partie",
-            S["grey"],
-        ))
         elements.append(Spacer(1, 12))
 
     # ════════════════════════════════════════════════════════════════════════
@@ -471,7 +464,7 @@ def generate_results_pdf(
 
                     icon      = "✓" if is_ok else "✗"
                     ans_text  = f"{icon} {a.get('answer', '')}"
-                    time_str  = f"{a.get('response_time', 0):.1f}s" + (" ⚡" if is_fastest else "")
+                    time_str  = f"{a.get('response_time', 0):.1f}s"
                     streak_s  = f"x{streak_n}" if streak_n > 1 else "-"
 
                     txt_sty = S["ok"] if is_ok else S["ko"]
