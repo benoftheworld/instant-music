@@ -304,8 +304,8 @@ def generate_results_pdf(
     ))
 
     formula = (
-        f"points_base = max({SCORE_MIN_CORRECT}, {SCORE_BASE_POINTS} - int(response_time * {SCORE_TIME_PENALTY_PER_SEC}))<br/>"
-        f"points_finaux = max({SCORE_MIN_FINAL}, int(points_base * accuracy_factor)) + bonus_rang + bonus_série"
+        f"points_base = max({SCORE_MIN_CORRECT}, {SCORE_BASE_POINTS} - (response_time * {SCORE_TIME_PENALTY_PER_SEC}))<br/>"
+        f"points_finaux = max({SCORE_MIN_FINAL}, (points_base * accuracy_factor)) + bonus_rang + bonus_série"
     )
     # Example values
     example_resp_time = 7
@@ -315,12 +315,16 @@ def generate_results_pdf(
     # top-first bonus example
     first_bonus = RANK_BONUS.get(0, 0)
     final_with_bonus = final + first_bonus
+    win_streak = 3
 
     example_text = (
-        f"Voici un exemple de calcul pour une réponse donnée :<br/>"
-        f"Formule : <i>{formula}</i><br/><br/>"
-        f"Exemple : Temps de réponse = {example_resp_time}s, Précision = {example_accuracy*100:.0f}%<br/>"
-        f"points_finaux={final} (+ bonus rang {first_bonus} ⇒ {final_with_bonus}) <br/><br/>"
+        f"Voici un exemple de calcul pour une réponse donnée :<br/><br/>"
+        f"<i>{formula}</i><br/><br/>"
+        f"Supposons une réponse avec un temps de <b>{example_resp_time}s</b> et une précision de <b>{example_accuracy * 100:.0f}%</b>.<br/>"
+        f"Le score de base serait : <b>{raw} pts</b> (calculé comme max({SCORE_MIN_CORRECT}, {SCORE_BASE_POINTS} - ({example_resp_time} * {SCORE_TIME_PENALTY_PER_SEC})))<br/>"
+        f"Le score final serait : <b>{final} pts</b> (calculé comme max({SCORE_MIN_FINAL}, {raw} * {example_accuracy}))<br/>"
+        f"Si ce joueur est le plus rapide, il recevrait un bonus de rang de <b>{first_bonus} pts</b>, portant son total à <b>{final_with_bonus} pts</b>.<br/>"
+        f"De plus, s'il a une série de <b>{win_streak} réponses correctes</b>, il pourrait recevoir un bonus de série supplémentaire, augmentant encore son score final."
     )
     elements.append(Paragraph(example_text, styles["Normal"]))
 
