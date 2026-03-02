@@ -54,7 +54,9 @@ MEDAL_COLORS = {
 
 
 def _medal(rank: int) -> str:
-    return {1: "🥇", 2: "🥈", 3: "🥉"}.get(rank, f"{rank}.")
+    # Emoji glyphs are not reliably supported by the PDF fonts (black box shown).
+    # Use simple textual labels to ensure consistent rendering across platforms.
+    return {1: "1er", 2: "2e", 3: "3e"}.get(rank, f"{rank}.")
 
 
 def generate_results_pdf(
@@ -324,7 +326,7 @@ def generate_results_pdf(
         f"Le score de base serait : <b>{raw} pts</b> (calculé comme max({SCORE_MIN_CORRECT}, {SCORE_BASE_POINTS} - ({example_resp_time} * {SCORE_TIME_PENALTY_PER_SEC})))<br/>"
         f"Le score final serait : <b>{final} pts</b> (calculé comme max({SCORE_MIN_FINAL}, {raw} * {example_accuracy}))<br/>"
         f"Si ce joueur est le plus rapide, il recevrait un bonus de rang de <b>{first_bonus} pts</b>, portant son total à <b>{final_with_bonus} pts</b>.<br/>"
-        f"De plus, s'il a une série de <b>{win_streak} réponses correctes</b>, il pourrait recevoir un bonus de série supplémentaire, augmentant encore son score final."
+        f"De plus, s'il a une série de <b>{win_streak} réponses correctes</b>, il pourrait recevoir un bonus de série supplémentaire, augmentant encore son score final.<br/><br/>"
     )
     elements.append(Paragraph(example_text, styles["Normal"]))
 
