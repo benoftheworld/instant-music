@@ -50,8 +50,8 @@ class ShopService:
                 _("Cet article n'est pas disponible.")
             )
 
-        # Les produits physiques d'événement ne peuvent être achetés en boutique
-        if item.is_event_only:
+        # Les produits événement sans coût ne peuvent pas être achetés en boutique
+        if item.is_event_only and item.cost == 0:
             raise ItemNotAvailableError(
                 _(
                     "Ce produit physique est distribué gratuitement lors "

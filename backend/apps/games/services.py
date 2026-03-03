@@ -11,6 +11,7 @@ import unicodedata
 from typing import List, Dict, Optional, Tuple
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import F
 
 from .models import (
     Game,
@@ -1185,6 +1186,31 @@ class GameService:
             achievement_service.check_and_award(
                 player.user, game=game, round_data=round_data
             )
+
+        # 4. Attribuer les pièces de jeu à chaque participant.
+        for player in game.players.select_related("user"):
+            bonus_coins = 1  # 1 pièce de participation
+            if player.rank == 1 and game.mode != GameMode.KARAOKE:
+                bonus_coins += 10  # +10 pièces pour une victoire
+            player.user.__class__.objects.filter(pk=player.user_id).update(
+                coins_balance=F("coins_balance") + bonus_coins
+            )
+            logger.info(
+                "game_coins_awarded user=%s coins=%d (rank=%s)",
+                player.user.username,
+                bonus_coins,
+                player.rank,
+            )
+
+        # 5. Bonus créateur de partie : +5 pièces pour l'hôte.
+        game.host.__class__.objects.filter(pk=game.host_id).update(
+            coins_balance=F("coins_balance") + 5
+        )
+        logger.info(
+            "game_host_bonus_awarded host=%s game=%s",
+            game.host_id,
+            game.id,
+        )
 
         # Métriques Prometheus
         GAMES_FINISHED_TOTAL.labels(mode=game.mode).inc()
