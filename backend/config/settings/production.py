@@ -7,7 +7,12 @@ from .base import *
 DEBUG = False
 
 # Security settings
+# SECURE_SSL_REDIRECT doit rester False si Nginx gère déjà la redirection HTTP→HTTPS.
+# Mettre True UNIQUEMENT si Django est exposé directement sans reverse proxy.
 SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
+# Indique à Django que les requêtes sont HTTPS via le header X-Forwarded-Proto de Nginx.
+# Requis pour que SESSION_COOKIE_SECURE, CSRF_COOKIE_SECURE et HSTS fonctionnent correctement.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
