@@ -202,6 +202,8 @@ class GameConsumer(AsyncWebsocketConsumer):
                 await self.next_round(data)
             elif message_type == "finish_game":
                 await self.finish_game(data)
+            elif message_type == "activate_bonus":
+                await self.activate_bonus(data)
             else:
                 await self.send(
                     text_data=json.dumps(
@@ -423,6 +425,69 @@ class GameConsumer(AsyncWebsocketConsumer):
             {"type": "broadcast_next_round", "round_data": round_data},
         )
 
+    async def activate_bonus(self, data):
+        """Handle bonus activation from a player during a game."""
+        user = self.scope["user"]
+        bonus_type = data.get("bonus_type")
+
+        if not bonus_type:
+            await self.send(
+                text_data=json.dumps(
+                    {"type": "error", "message": "bonus_type requis."}
+                )
+            )
+            return
+
+        result = await self._do_activate_bonus(user, bonus_type)
+
+        if result.get("error"):
+            await self.send(
+                text_data=json.dumps({"type": "error", "message": result["error"]})
+            )
+            return
+
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "broadcast_bonus_activated",
+                "bonus": {
+                    "bonus_type": bonus_type,
+                    "username": user.username,
+                    "round_number": result.get("round_number"),
+                },
+            },
+        )
+
+    @database_sync_to_async
+    def _do_activate_bonus(self, user, bonus_type: str) -> dict:
+        """Synchronous DB calls for bonus activation."""
+        from .models import Game
+        from apps.shop.services import (
+            BonusAlreadyActiveError,
+            ItemNotAvailableError,
+            bonus_service,
+        )
+
+        try:
+            game = Game.objects.get(room_code=self.room_code)
+        except Game.DoesNotExist:
+            return {"error": "Partie introuvable."}
+
+        current_round = game.rounds.filter(
+            started_at__isnull=False, ended_at__isnull=True
+        ).first()
+        round_number = current_round.round_number if current_round else None
+
+        try:
+            game_bonus = bonus_service.activate_bonus(
+                user, game, bonus_type, round_number=round_number
+            )
+            return {"round_number": game_bonus.round_number}
+        except (ItemNotAvailableError, ValueError) as e:
+            return {"error": str(e)}
+        except BonusAlreadyActiveError as e:
+            return {"error": str(e)}
+
     async def finish_game(self, data):
         """Handle game finish."""
         if not await self._is_host():
@@ -534,5 +599,16 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.send(
             text_data=json.dumps(
                 {"type": "game_finished", "results": event["results"]}
+            )
+        )
+
+    async def broadcast_bonus_activated(self, event):
+        """Broadcast to all players that a bonus has been activated."""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "bonus_activated",
+                    "bonus": event["bonus"],
+                }
             )
         )

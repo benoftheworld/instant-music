@@ -74,6 +74,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     total_wins = models.IntegerField(_("victoires"), default=0)
     total_points = models.IntegerField(_("points totaux"), default=0)
 
+    # Boutique — pièces gagnées grâce aux achievements
+    coins_balance = models.IntegerField(
+        _("solde de pièces"),
+        default=0,
+        help_text=_(
+            "Pièces accumulées via les achievements, utilisables dans la boutique"
+        ),
+    )
+
     # OAuth
     google_id = models.CharField(
         _("Google ID"),

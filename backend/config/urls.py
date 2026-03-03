@@ -48,6 +48,7 @@ urlpatterns = [
     path("api/playlists/playlists/", include("apps.playlists.urls")),
     path("api/stats/", include("apps.stats.urls")),
     path("api/administration/", include("apps.administration.urls")),
+    path("api/shop/", include("apps.shop.urls")),
     # Prometheus metrics (scraped by Prometheus)
     path("metrics/", metrics_view),
 ]

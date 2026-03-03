@@ -19,6 +19,7 @@ import GamePlayPage from './pages/game/GamePlayPage';
 import GameResultsPage from './pages/game/GameResultsPage';
 import GameHistoryPage from './pages/GameHistoryPage';
 import LeaderboardPage from './pages/LeaderboardPage';
+import ShopPage from './pages/ShopPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AchievementToastManager from './components/layout/AchievementToastManager';
@@ -93,6 +94,7 @@ function App() {
           <Route path="game/lobby/:roomCode" element={<GameLobbyPage />} />
           <Route path="game/play/:roomCode" element={<GamePlayPage />} />
           <Route path="game/:roomCode/results" element={<GameResultsPage />} />
+          <Route path="shop" element={<ShopPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

@@ -91,6 +91,25 @@ class AchievementService:
                     achievement.name,
                     user.username,
                 )
+
+                # Créditer les pièces de la boutique
+                if achievement.points > 0:
+                    user.coins_balance = (
+                        user.__class__.objects.filter(pk=user.pk)
+                        .values_list("coins_balance", flat=True)
+                        .first()
+                        or 0
+                    ) + achievement.points
+                    user.__class__.objects.filter(pk=user.pk).update(
+                        coins_balance=user.coins_balance
+                    )
+                    logger.info(
+                        "Credited %d coins to user '%s' (achievement: %s)",
+                        achievement.points,
+                        user.username,
+                        achievement.name,
+                    )
+
                 _push_achievement_notification(user.id, achievement)
 
         return newly_awarded

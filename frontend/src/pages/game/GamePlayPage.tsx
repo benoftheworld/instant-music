@@ -16,6 +16,7 @@ import VolumeControl from '../../components/game/VolumeControl';
 import LiveScoreboard from '../../components/game/LiveScoreboard';
 import RoundLoadingScreen from '../../components/game/RoundLoadingScreen';
 import RoundResultsScreen from '../../components/game/RoundResultsScreen';
+import BonusActivator from '../../components/game/BonusActivator';
 
 interface Round {
   id: string;
@@ -573,6 +574,8 @@ export default function GamePlayPage() {
           </div>
         )}
       </div>
+      {/* Panneau d'activation des bonus — flottant en bas à droite */}
+      {roomCode && !isKaraoke && <BonusActivator roomCode={roomCode} />}
     </div>
   );
 }

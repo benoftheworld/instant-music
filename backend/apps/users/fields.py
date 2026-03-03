@@ -1,9 +1,13 @@
 """Champ Django pour stocker les emails chiffrés en base de données."""
 
+import logging
+
 from django import forms
 from django.db import models
 
 from .encryption import decrypt_email, encrypt_email
+
+logger = logging.getLogger(__name__)
 
 
 class EncryptedEmailField(models.TextField):
@@ -24,7 +28,17 @@ class EncryptedEmailField(models.TextField):
         try:
             return decrypt_email(value)
         except Exception:
-            # Valeur non chiffrée (migration en cours) — retourner telle quelle
+            # Deux causes possibles :
+            # 1. Email non encore chiffré (migration en cours) — retourner tel quel
+            # 2. EMAIL_ENCRYPTION_KEY différente de celle utilisée à l'écriture
+            #    → vérifier que la clé dans .env correspond à celle du déploiement
+            if value.startswith("gAAAAA"):
+                # Token Fernet valide mais mauvaise clé → problème de configuration
+                logger.error(
+                    "Impossible de déchiffrer un email (token Fernet détecté). "
+                    "Vérifiez que EMAIL_ENCRYPTION_KEY est identique à la clé "
+                    "utilisée lors de l'écriture en base de données."
+                )
             return value
 
     def get_prep_value(self, value):

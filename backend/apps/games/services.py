@@ -1074,6 +1074,7 @@ class GameService:
         return max(SCORE_MIN_FINAL, int(raw * accuracy_factor))
 
     @transaction.atomic
+    @transaction.atomic
     def submit_answer(
         self,
         player: GamePlayer,
@@ -1107,6 +1108,21 @@ class GameService:
             points += streak_bonus
         else:
             player.consecutive_correct = 0
+
+        # Bonus de boutique — double_points / max_points
+        applied_bonuses: list[str] = []
+        try:
+            from apps.shop.services import bonus_service
+
+            points, applied_bonuses = bonus_service.apply_score_bonuses(
+                player=player,
+                round_number=round_obj.round_number,
+                base_points=points,
+                is_correct=is_correct,
+                game=round_obj.game,
+            )
+        except Exception:  # noqa: BLE001
+            pass  # Ne jamais bloquer une réponse à cause du système de bonus
 
         game_answer = GameAnswer.objects.create(
             round=round_obj,

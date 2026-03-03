@@ -11,6 +11,7 @@ export interface User {
   total_games_played: number;
   total_wins: number;
   total_points: number;
+  coins_balance: number;
   win_rate: number;
   created_at: string;
   updated_at: string;
@@ -355,6 +356,56 @@ export interface UserAchievement {
   id: number;
   achievement: Achievement;
   unlocked_at: string;
+}
+
+// ── Shop types ─────────────────────────────────────────────────────────────
+
+export type BonusType =
+  | 'double_points'
+  | 'max_points'
+  | 'time_bonus'
+  | 'fifty_fifty'
+  | 'steal'
+  | 'shield';
+
+export type ItemType = 'bonus' | 'physical';
+
+export interface ShopItem {
+  id: string;
+  name: string;
+  description: string;
+  icon?: string;
+  item_type: ItemType;
+  bonus_type?: BonusType | null;
+  cost: number;
+  is_event_only: boolean;
+  stock?: number | null;
+  is_available: boolean;
+  is_in_stock: boolean;
+  sort_order: number;
+}
+
+export interface UserInventoryEntry {
+  id: string;
+  item: ShopItem;
+  quantity: number;
+  purchased_at: string;
+}
+
+export interface ShopSummary {
+  total_coins_available: number;
+  user_balance: number;
+  items_count: number;
+}
+
+export interface GameBonus {
+  id: string;
+  bonus_type: BonusType;
+  round_number?: number | null;
+  activated_at: string;
+  is_used: boolean;
+  used_at?: string | null;
+  username: string;
 }
 
 // Stats types

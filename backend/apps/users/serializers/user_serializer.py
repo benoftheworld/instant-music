@@ -21,6 +21,7 @@ class UserSerializer(serializers.ModelSerializer):
             "total_games_played",
             "total_wins",
             "total_points",
+            "coins_balance",
             "win_rate",
             "created_at",
             "updated_at",
@@ -31,6 +32,7 @@ class UserSerializer(serializers.ModelSerializer):
             "total_games_played",
             "total_wins",
             "total_points",
+            "coins_balance",
             "created_at",
             "updated_at",
         ]
