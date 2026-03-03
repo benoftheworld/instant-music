@@ -1145,6 +1145,8 @@ class GameService:
         players = game.players.order_by("-score")
         total_rounds = game.rounds.count()
 
+        # 1. Attribuer les rangs et précalculer round_data par joueur
+        player_round_data: list[tuple] = []
         for rank, player in enumerate(players, start=1):
             player.rank = rank
             player.save()
@@ -1155,14 +1157,18 @@ class GameService:
                 is_correct=True,
             ).count()
             perfect_game = total_rounds > 0 and correct_answers == total_rounds
+            player_round_data.append((player, {"perfect_game": perfect_game}))
 
-            round_data = {"perfect_game": perfect_game}
+        # 2. Sauvegarder la partie : déclenche le signal qui met à jour
+        #    total_games_played / total_wins / total_points sur chaque User.
+        game.save()
+
+        # 3. Vérifier les achievements APRÈS la mise à jour des stats utilisateur.
+        for player, round_data in player_round_data:
+            player.user.refresh_from_db()
             achievement_service.check_and_award(
                 player.user, game=game, round_data=round_data
             )
-
-        # Save last so the signal fires after ranks are set
-        game.save()
 
         # Métriques Prometheus
         GAMES_FINISHED_TOTAL.labels(mode=game.mode).inc()
