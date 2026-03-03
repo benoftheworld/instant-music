@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { soundEffects } from '../../services/soundEffects';
-import { getGlobalMusicVolume } from './VolumeControl';
+import { getEffectiveMusicVolume } from './VolumeControl';
 
 /* ───────────────────── Types ───────────────────── */
 interface Round {
@@ -96,7 +96,7 @@ export function useAudioPlayer(
 
     const audio = new Audio();
     audio.preload = 'auto';
-    audio.volume = getGlobalMusicVolume();
+    audio.volume = getEffectiveMusicVolume();
     audio.src = previewUrl;
     audioRef.current = audio;
 
@@ -157,7 +157,7 @@ export function useAudioPlayer(
     if (stoppedByTimerRef.current) return;
     setPlayerError(null);
     if (audioRef.current) {
-      audioRef.current.volume = getGlobalMusicVolume();
+      audioRef.current.volume = getEffectiveMusicVolume();
       const seekTime = getSeekTime();
       if (seekTime > 0 && seekTime < 30) {
         try { audioRef.current.currentTime = seekTime; } catch (_) { /* */ }
@@ -171,7 +171,7 @@ export function useAudioPlayer(
     if (!previewUrl) { setPlayerError('Aucun aperçu audio disponible'); return; }
     const audio = new Audio();
     audio.preload = 'auto';
-    audio.volume = getGlobalMusicVolume();
+    audio.volume = getEffectiveMusicVolume();
     audio.src = previewUrl;
     audioRef.current = audio;
     const seekTime = getSeekTime();
@@ -190,7 +190,7 @@ export function useAudioPlayer(
   // Live volume sync: update currently-playing audio when slider changes
   useEffect(() => {
     const onVolumeChange = () => {
-      if (audioRef.current) audioRef.current.volume = getGlobalMusicVolume();
+      if (audioRef.current) audioRef.current.volume = getEffectiveMusicVolume();
     };
     window.addEventListener('music-volume-change', onVolumeChange);
     return () => window.removeEventListener('music-volume-change', onVolumeChange);
@@ -234,7 +234,7 @@ export function useAudioPlayerOnResults(
 
     const audio = new Audio();
     audio.preload = 'auto';
-    audio.volume = getGlobalMusicVolume();
+    audio.volume = getEffectiveMusicVolume();
     audio.src = previewUrl;
     audioRef.current = audio;
 
@@ -284,7 +284,7 @@ export function useAudioPlayerOnResults(
   const handlePlay = () => {
     setPlayerError(null);
     if (audioRef.current) {
-      audioRef.current.volume = getGlobalMusicVolume();
+      audioRef.current.volume = getEffectiveMusicVolume();
       audioRef.current.play()
         .then(() => { setIsPlaying(true); setNeedsPlay(false); })
         .catch(() => setPlayerError('Impossible de lancer la lecture'));
@@ -294,7 +294,7 @@ export function useAudioPlayerOnResults(
     if (!previewUrl) { setPlayerError('Aucun aperçu audio disponible'); return; }
     const audio = new Audio();
     audio.preload = 'auto';
-    audio.volume = getGlobalMusicVolume();
+    audio.volume = getEffectiveMusicVolume();
     audio.src = previewUrl;
     audioRef.current = audio;
     audio.addEventListener('canplaythrough', () => {
@@ -309,7 +309,7 @@ export function useAudioPlayerOnResults(
   // Live volume sync: update audio element when slider changes
   useEffect(() => {
     const onVolumeChange = () => {
-      if (audioRef.current) audioRef.current.volume = getGlobalMusicVolume();
+      if (audioRef.current) audioRef.current.volume = getEffectiveMusicVolume();
     };
     window.addEventListener('music-volume-change', onVolumeChange);
     return () => window.removeEventListener('music-volume-change', onVolumeChange);
@@ -335,7 +335,7 @@ export function AudioPlayerUI({
   hideManualPlay?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg min-h-[120px]">
+    <div className="flex flex-col items-center justify-center p-3 md:p-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg min-h-[80px] md:min-h-[120px]">
       {playerError ? (
         <div className="text-white text-center">
           <div className="text-4xl mb-2">⚠️</div>
@@ -402,19 +402,19 @@ export function OptionsGrid({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div className="grid grid-cols-2 gap-2 md:gap-4 mb-4 md:mb-6">
       {options.map((option, index) => (
         <button
           key={index}
           onClick={() => { if (!hasAnswered && !showResults) { soundEffects.click(); onOptionClick(option); } }}
-          className={`p-4 rounded-lg text-left transition-all duration-200 ${getStyle(option)}`}
+          className={`p-3 md:p-4 rounded-lg text-left transition-all duration-200 ${getStyle(option)}`}
           disabled={hasAnswered || showResults}
         >
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 font-bold">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 md:w-8 md:h-8 shrink-0 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm md:text-base">
               {String.fromCharCode(65 + index)}
             </div>
-            <span className="text-lg font-medium">{option}</span>
+            <span className="text-sm md:text-lg font-medium leading-tight">{option}</span>
           </div>
         </button>
       ))}

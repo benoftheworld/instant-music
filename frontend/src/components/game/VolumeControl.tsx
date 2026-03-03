@@ -14,6 +14,7 @@ export function initVolumeSettings() {
     const muted = localStorage.getItem(STORAGE_KEY_MUTED);
     if (muted !== null) {
       soundEffects.setEnabled(muted !== 'true');
+      _musicMuted = muted === 'true';
     }
     const vol = localStorage.getItem(STORAGE_KEY_VOLUME);
     if (vol !== null) {
@@ -30,13 +31,26 @@ export function initVolumeSettings() {
 
 /* ───────────────────── Global music volume ───────────────────── */
 let _musicVolume = 1.0;
+let _musicMuted = false;
 
+/** Volume du slider (valeur brute, indépendante du mute). */
 export function getGlobalMusicVolume(): number {
   return _musicVolume;
 }
 
 export function setGlobalMusicVolume(v: number) {
   _musicVolume = Math.max(0, Math.min(1, v));
+}
+
+/** Volume effectif appliqué aux éléments audio (0 si muted). */
+export function getEffectiveMusicVolume(): number {
+  return _musicMuted ? 0 : _musicVolume;
+}
+
+/** Met à jour l'état mute musique et notifie les éléments audio existants. */
+export function setGlobalMusicMuted(m: boolean) {
+  _musicMuted = m;
+  window.dispatchEvent(new CustomEvent('music-volume-change'));
 }
 
 /* ───────────────────── VolumeControl component ───────────────────── */
@@ -75,6 +89,7 @@ export default function VolumeControl({ variant = 'floating' }: VolumeControlPro
     const next = !muted;
     setMuted(next);
     soundEffects.setEnabled(!next);
+    setGlobalMusicMuted(next);
     persist(next, effectsVolume, musicVolume);
   };
 

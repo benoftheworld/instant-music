@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getGlobalMusicVolume } from './VolumeControl';
+import { getEffectiveMusicVolume } from './VolumeControl';
 import { getMediaUrl } from '@/services/api';
 
 interface Round {
@@ -69,7 +69,7 @@ function useResultsAudio(previewUrl?: string) {
 
     const audio = new Audio();
     audio.preload = 'auto';
-    audio.volume = getGlobalMusicVolume();
+    audio.volume = getEffectiveMusicVolume();
     audio.src = previewUrl;
     audioRef.current = audio;
 
@@ -110,7 +110,7 @@ function useResultsAudio(previewUrl?: string) {
   // Live volume sync
   useEffect(() => {
     const onVolumeChange = () => {
-      if (audioRef.current) audioRef.current.volume = getGlobalMusicVolume();
+      if (audioRef.current) audioRef.current.volume = getEffectiveMusicVolume();
     };
     window.addEventListener('music-volume-change', onVolumeChange);
     return () => window.removeEventListener('music-volume-change', onVolumeChange);

@@ -37,20 +37,20 @@ const IntroQuestion = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-xl p-8" onClick={handleCardClick}>
+    <div className="bg-white rounded-lg shadow-xl p-4 md:p-8" onClick={handleCardClick}>
       {/* Header with lightning bolt */}
-      <div className="mb-6 text-center">
-        <div className="inline-block bg-gradient-to-r from-yellow-400 to-red-500 text-white px-4 py-1 rounded-full text-sm font-bold mb-3 shadow">
+      <div className="mb-3 md:mb-6 text-center">
+        <div className="inline-block bg-gradient-to-r from-yellow-400 to-red-500 text-white px-4 py-1 rounded-full text-sm font-bold mb-2 md:mb-3 shadow">
           ⚡ {audioDuration} secondes d&apos;écoute
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+        <h2 className="text-lg md:text-2xl font-bold text-gray-800 mb-1 md:mb-2">
           {round.question_text || 'Reconnaissez ce morceau !'}
         </h2>
       </div>
 
       {!showResults && (
-        <div className="mb-6">
-          <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg min-h-[120px]">
+        <div className="mb-3 md:mb-6">
+          <div className="flex flex-col items-center justify-center p-3 md:p-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg min-h-[80px] md:min-h-[120px]">
             {playerError ? (
               <div className="text-white text-center">
                 <div className="text-4xl mb-2">⚠️</div>

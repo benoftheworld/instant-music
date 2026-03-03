@@ -566,8 +566,8 @@ export default function GamePlayPage() {
               {renderQuestionComponent()}
             </div>
 
-            {/* Live scoreboard */}
-            <div className="lg:col-span-1 overflow-y-auto min-h-0">
+            {/* Live scoreboard — hidden on mobile to free space for MCQ options */}
+            <div className="hidden lg:block lg:col-span-1 overflow-y-auto min-h-0">
               <LiveScoreboard players={game?.players || []} />
             </div>
           </div>
