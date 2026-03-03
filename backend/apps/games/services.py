@@ -3,12 +3,16 @@ Services for game logic.
 Uses Deezer API for music content (30-second MP3 previews).
 """
 
+import hashlib
 import json
 import random
 import logging
 import re
 import unicodedata
 from typing import List, Dict, Optional, Tuple
+
+import requests
+from django.core.cache import cache
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import F
@@ -161,6 +165,27 @@ SCORE_STREAK_MAX_LEVEL: int = 5  # plafond : série 6+ = +50 pts max
 KARAOKE_MAX_DURATION: int = 300  # seconds
 KARAOKE_FALLBACK_DURATION: int = 180  # 3 min fallback
 
+# MusicBrainz (used for génération mode to resolve original release year)
+MUSICBRAINZ_API_BASE = "https://musicbrainz.org/ws/2"
+MUSICBRAINZ_USER_AGENT = "InstantMusic/1.0 (https://github.com/benoftheworld/instant-music)"
+MUSICBRAINZ_API_TIMEOUT: int = 5  # seconds
+CACHE_TTL_MUSICBRAINZ: int = 86400  # 24 h
+
+# Keywords that strongly suggest a remastered / re-release version
+_REMASTER_RE = re.compile(
+    r"\b("
+    r"remaster(ed|is[eé]e?)?"
+    r"|re-?issue"
+    r"|deluxe"
+    r"|super\s*deluxe"
+    r"|anniversary"
+    r"|expanded"
+    r"|special\s*(edition|version)"
+    r"|\d{4}\s*re(master|issue)"
+    r")\b",
+    re.IGNORECASE,
+)
+
 
 def calculate_streak_bonus(streak: int) -> int:
     """Bonus additionnel par palier de série (plafonné à SCORE_STREAK_MAX_LEVEL)."""
@@ -201,6 +226,62 @@ class QuestionGeneratorService:
 
     def __init__(self):
         self.deezer = deezer_service
+
+    # ─── Helpers : année originale (MusicBrainz) ─────────────────────
+
+    @staticmethod
+    def _is_remastered(album_title: str) -> bool:
+        """Return True if the album title strongly suggests a remaster/re-release."""
+        return bool(_REMASTER_RE.search(album_title or ""))
+
+    @staticmethod
+    def _get_musicbrainz_year(artist: str, title: str) -> Optional[int]:
+        """
+        Query MusicBrainz for the earliest known release year of a recording.
+
+        Uses the free MusicBrainz search API (no auth required).
+        Results are cached for 24 h to avoid hammering the service.
+        Returns the year as int, or None if the lookup fails.
+        """
+        cache_key = "mb_year_" + hashlib.md5(f"{artist}|{title}".encode()).hexdigest()
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            # Escape special Lucene characters in the query strings
+            def _esc(s: str) -> str:
+                return re.sub(r'([+\-&|!(){}\[\]^"~*?:\\/])', r"\\\1", s)
+
+            query = f'recording:"{_esc(title)}" AND artist:"{_esc(artist)}"'
+            resp = requests.get(
+                f"{MUSICBRAINZ_API_BASE}/recording/",
+                params={"query": query, "fmt": "json", "limit": 5},
+                headers={"User-Agent": MUSICBRAINZ_USER_AGENT},
+                timeout=MUSICBRAINZ_API_TIMEOUT,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("MusicBrainz lookup failed for '%s – %s': %s", artist, title, exc)
+            cache.set(cache_key, None, CACHE_TTL_MUSICBRAINZ)
+            return None
+
+        years: list[int] = []
+        for rec in data.get("recordings", []):
+            frd = rec.get("first-release-date", "")
+            if frd and len(frd) >= 4:
+                try:
+                    y = int(frd[:4])
+                    if 1950 <= y <= 2030:
+                        years.append(y)
+                except ValueError:
+                    pass
+
+        result: Optional[int] = min(years) if years else None
+        cache.set(cache_key, result, CACHE_TTL_MUSICBRAINZ)
+        logger.debug("MusicBrainz year for '%s – %s': %s", artist, title, result)
+        return result
 
     # ─── Public entry point ──────────────────────────────────────────
 
@@ -448,6 +529,33 @@ class QuestionGeneratorService:
 
         if year < 1950 or year > 2030:
             return None
+
+        # ── Correction remaster ──────────────────────────────────────
+        # Si l'album semble être une version remasterisée/rééditée, on tente
+        # de récupérer l'année de sortie originale via MusicBrainz.
+        artist_name = ", ".join(track["artists"])
+        album_title = details.get("album", "") or track.get("album", "")
+        if self._is_remastered(album_title):
+            logger.debug(
+                "Album '%s' détecté comme remaster — requête MusicBrainz pour '%s – %s'",
+                album_title,
+                artist_name,
+                track["name"],
+            )
+            EXTERNAL_API_REQUESTS_TOTAL.labels(
+                service="musicbrainz", endpoint="recording_search"
+            ).inc()
+            mb_year = self._get_musicbrainz_year(artist_name, track["name"])
+            if mb_year and mb_year != year:
+                logger.info(
+                    "Année corrigée via MusicBrainz pour '%s – %s': %d → %d",
+                    artist_name,
+                    track["name"],
+                    year,
+                    mb_year,
+                )
+                year = mb_year
+                release_date = str(mb_year)
 
         # Generate MCQ options (4 plausible years)
         options = [str(year)]

@@ -92,7 +92,7 @@ function ShopItemCard({
         <div className="flex items-start justify-between gap-2">
           <div>
             <span className="inline-block bg-green-700 text-green-200 text-xs font-bold px-2 py-0.5 rounded-full mb-2">
-              🎁 Produit physique — Événement
+              🎁 Produit physique
             </span>
             <h3 className="font-bold text-white text-lg">{item.name}</h3>
           </div>
@@ -127,7 +127,7 @@ function ShopItemCard({
             </div>
           ) : (
             <span className="inline-flex items-center gap-1.5 bg-green-800/60 text-green-200 text-sm font-semibold px-3 py-1.5 rounded-full">
-              <span>✓</span> Gratuit lors d'une soirée événement
+              <span>✓</span> Gratuit
             </span>
           )}
         </div>
@@ -279,7 +279,7 @@ export default function ShopPage() {
           </h1>
           <p className="text-gray-600 text-sm">
             Dépensez vos pièces pour acheter des bonus à activer en partie, ou
-            découvrez les produits physiques offerts lors de nos soirées événement.
+            découvrez les produits physiques disponibles.
           </p>
         </div>
 
@@ -330,7 +330,7 @@ export default function ShopPage() {
             ⚡ Bonus de jeu ({bonusItems.length})
           </button>
           <button className={tabClass('physical')} onClick={() => setActiveTab('physical')}>
-            🎁 Produits événement ({physicalItems.length})
+            🎁 Produits physiques ({physicalItems.length})
           </button>
           <button className={tabClass('inventory')} onClick={() => setActiveTab('inventory')}>
             🎒 Mon inventaire ({inventory.filter((e) => e.quantity > 0).length})
@@ -374,8 +374,7 @@ export default function ShopPage() {
                 <div className="bg-green-900/20 border border-green-700 rounded-xl px-5 py-4 mb-6 text-sm">
                   <strong>ℹ️ Comment obtenir ces produits ?</strong>
                   <br />
-                  Ces produits sont disponibles lors de nos soirées événement.
-                  Certains sont <strong>gratuits</strong>, d'autres nécessitent
+                  Ces produits sont des articles physiques. Certains sont <strong>gratuits</strong>, d'autres nécessitent
                   un <strong>coût en pièces</strong> — gagnées grâce à vos succès et performances en jeu.
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -391,7 +390,7 @@ export default function ShopPage() {
                   ))}
                   {physicalItems.length === 0 && (
                     <p className="col-span-3 text-gray-500 text-center py-10">
-                      Aucun produit événement pour l'instant.
+                      Aucun produit disponible pour l'instant.
                     </p>
                   )}
                 </div>
@@ -442,9 +441,11 @@ export default function ShopPage() {
                             <p className="text-gray-400 text-sm">
                               {entry.item.description}
                             </p>
-                            <p className="text-xs text-gray-500">
-                              Activable en partie via le panneau bonus ⚡
-                            </p>
+                            {entry.item.item_type === 'bonus' && (
+                              <p className="text-xs text-gray-500">
+                                Activable en partie via le panneau bonus ⚡
+                              </p>
+                            )}
                           </div>
                         );
                       })}
