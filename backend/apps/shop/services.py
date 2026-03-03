@@ -266,7 +266,7 @@ class BonusService:
             elif game_bonus.bonus_type == BonusType.MAX_POINTS:
                 from apps.games.services import SCORE_BASE_POINTS
 
-                final_points = max(final_points, SCORE_BASE_POINTS * 2)
+                final_points = max(final_points, SCORE_BASE_POINTS)
                 active_bonus_types.append(BonusType.MAX_POINTS)
                 self.consume_bonus(game_bonus)
 
@@ -370,6 +370,49 @@ class BonusService:
         )
 
         return stolen
+
+    def apply_time_bonus(
+        self, player, round_obj
+    ) -> int:
+        """
+        Applique le bonus 'temps bonus' :
+        Ajoute TIME_BONUS_SECONDS à la durée du round en cours.
+        Retourne la nouvelle durée totale du round (0 si bonus absent).
+        """
+        from apps.games.models import GamePlayer
+
+        try:
+            game_player = GamePlayer.objects.get(
+                game=round_obj.game, user=player
+            )
+        except GamePlayer.DoesNotExist:
+            return 0
+
+        bonus_qs = GameBonus.objects.filter(
+            player=game_player,
+            round_number=round_obj.round_number,
+            bonus_type=BonusType.TIME_BONUS,
+            is_used=False,
+        )
+        if not bonus_qs.exists():
+            return 0
+
+        round_obj.duration += self.TIME_BONUS_SECONDS
+        round_obj.save(update_fields=["duration"])
+
+        for b in bonus_qs:
+            self.consume_bonus(b)
+
+        logger.info(
+            "time_bonus_applied",
+            extra={
+                "user_id": str(player.id),
+                "new_duration": round_obj.duration,
+                "round_number": round_obj.round_number,
+            },
+        )
+
+        return round_obj.duration
 
 
 # Imports tardifs pour éviter les dépendances circulaires

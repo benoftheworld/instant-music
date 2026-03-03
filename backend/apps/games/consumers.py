@@ -604,11 +604,12 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def broadcast_bonus_activated(self, event):
         """Broadcast to all players that a bonus has been activated."""
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "bonus_activated",
-                    "bonus": event["bonus"],
-                }
-            )
-        )
+        payload: dict = {
+            "type": "bonus_activated",
+            "bonus": event["bonus"],
+        }
+        if "new_duration" in event:
+            payload["new_duration"] = event["new_duration"]
+        if "updated_players" in event:
+            payload["updated_players"] = event["updated_players"]
+        await self.send(text_data=json.dumps(payload))

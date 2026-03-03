@@ -20,7 +20,7 @@ const BONUS_META: Record<
     emoji: '⭐',
     label: 'Points Maximum',
     color: 'from-purple-500 to-pink-500',
-    desc: 'Obtenez le score maximum peu importe votre temps de réponse',
+    desc: 'Obtenez 100 points (score maximum de base) peu importe votre temps de réponse',
   },
   time_bonus: {
     emoji: '⏱️',
@@ -371,7 +371,7 @@ export default function ShopPage() {
             {/* ── Produits physiques ── */}
             {activeTab === 'physical' && (
               <div>
-                <div className="bg-green-900/20 border border-green-700 rounded-xl px-5 py-4 mb-6 text-sm text-green-300">
+                <div className="bg-green-900/20 border border-green-700 rounded-xl px-5 py-4 mb-6 text-sm">
                   <strong>ℹ️ Comment obtenir ces produits ?</strong>
                   <br />
                   Ces produits sont disponibles lors de nos soirées événement.

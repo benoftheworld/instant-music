@@ -49,6 +49,7 @@ export default function GamePlayPage() {
   const [roundResults, setRoundResults] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [myPointsEarned, setMyPointsEarned] = useState<number>(0);
+  const [excludedOptions, setExcludedOptions] = useState<string[]>([]);
   const isAdvancingRef = useRef(false);
   // Ref pour le timeout de passage au round suivant — permet de l'annuler si
   // round_ended est reçu deux fois (race condition) ou si le composant se démonte.
@@ -79,6 +80,7 @@ export default function GamePlayPage() {
         setHasAnswered(false);
         setSelectedAnswer(null);
         setShowResults(false);
+        setExcludedOptions([]);
         setRoundPhase('loading'); // Start with loading phase
         loadingStartTimeRef.current = Date.now(); // Record when loading starts
         loadingRoundIdRef.current = response.current_round.id;
@@ -213,6 +215,7 @@ export default function GamePlayPage() {
           setHasAnswered(false);
           setSelectedAnswer(null);
           setShowResults(false);
+          setExcludedOptions([]);
           setRoundPhase('loading'); // Show loading screen first
           loadingStartTimeRef.current = Date.now(); // Record when loading starts
           loadingRoundIdRef.current = data.round_data.id;
@@ -296,6 +299,7 @@ export default function GamePlayPage() {
           setShowResults(false);
           setRoundResults(null);
           setMyPointsEarned(0);
+          setExcludedOptions([]);
           setRoundPhase('loading'); // Show loading screen for new round
           loadingStartTimeRef.current = Date.now(); // Record when loading starts
           loadingRoundIdRef.current = data.round_data.id;
@@ -319,6 +323,30 @@ export default function GamePlayPage() {
           soundEffects.gameFinished();
           navigate(`/game/${roomCode}/results`);
           break;
+
+        case 'bonus_activated': {
+          // Bonus activated by a player
+          const bonus = data.bonus;
+          // time_bonus — synchroniser la durée du round pour tous les joueurs
+          if (bonus?.bonus_type === 'time_bonus' && data.new_duration) {
+            setCurrentRound((prev) =>
+              prev ? { ...prev, duration: data.new_duration } : prev
+            );
+          }
+          // steal — mettre à jour les scores affichés
+          if (data.updated_players) {
+            setGame((prev: any) => {
+              if (!prev) return prev;
+              const updatedMap: Record<string, any> = {};
+              for (const p of data.updated_players) updatedMap[p.id] = p;
+              const merged = prev.players.map((p: any) =>
+                updatedMap[p.id] ? { ...p, ...updatedMap[p.id] } : p
+              );
+              return { ...prev, players: merged };
+            });
+          }
+          break;
+        }
       }
     });
 
@@ -396,6 +424,7 @@ export default function GamePlayPage() {
       showResults,
       roundResults,
       seekOffsetMs, // Offset for the loading screen
+      excludedOptions,
     };
 
     // In text mode, we render the appropriate question component
@@ -575,7 +604,17 @@ export default function GamePlayPage() {
         )}
       </div>
       {/* Panneau d'activation des bonus — flottant en bas à droite */}
-      {roomCode && !isKaraoke && <BonusActivator roomCode={roomCode} />}
+      {roomCode && !isKaraoke && (
+        <BonusActivator
+          roomCode={roomCode}
+          onBonusActivated={(_bonusType, extra) => {
+            if (extra.excludedOptions && extra.excludedOptions.length > 0) {
+              setExcludedOptions(extra.excludedOptions);
+            }
+            // new_duration is handled via the bonus_activated WS event
+          }}
+        />
+      )}
     </div>
   );
 }

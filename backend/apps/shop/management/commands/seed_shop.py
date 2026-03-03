@@ -25,7 +25,7 @@ BONUS_ITEMS = [
     {
         "name": "Points Maximum",
         "description": (
-            "Obtenez le score maximum possible sur votre prochain round correct, "
+            "Obtenez 100 points (score maximum de base) sur votre prochain round correct, "
             "peu importe votre temps de réponse. Parfait pour les indécis !"
         ),
         "item_type": ItemType.BONUS,

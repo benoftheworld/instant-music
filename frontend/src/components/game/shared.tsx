@@ -33,6 +33,7 @@ interface Props {
   showResults: boolean;
   roundResults: RoundResults | null;
   seekOffsetMs?: number; // milliseconds to subtract from seek time (e.g. loading screen duration)
+  excludedOptions?: string[]; // options to hide for 50/50 bonus
 }
 
 /* ───────────────────── Shared audio hook ───────────────────── */
@@ -378,6 +379,7 @@ export function OptionsGrid({
   selectedAnswer,
   roundResults,
   onOptionClick,
+  excludedOptions = [],
 }: {
   options: string[];
   hasAnswered: boolean;
@@ -385,7 +387,12 @@ export function OptionsGrid({
   selectedAnswer: string | null;
   roundResults: RoundResults | null;
   onOptionClick: (option: string) => void;
+  excludedOptions?: string[];
 }) {
+  const visibleOptions = showResults
+    ? options
+    : options.filter((o) => !excludedOptions.includes(o));
+
   const getStyle = (option: string) => {
     if (!hasAnswered && !showResults)
       return 'bg-white hover:bg-blue-100 border-2 border-gray-300 hover:border-blue-500 cursor-pointer';
@@ -403,7 +410,7 @@ export function OptionsGrid({
 
   return (
     <div className="grid grid-cols-2 gap-2 md:gap-4 mb-4 md:mb-6">
-      {options.map((option, index) => (
+      {visibleOptions.map((option, index) => (
         <button
           key={index}
           onClick={() => { if (!hasAnswered && !showResults) { soundEffects.click(); onOptionClick(option); } }}

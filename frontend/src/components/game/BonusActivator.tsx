@@ -53,8 +53,12 @@ const BONUS_META: Record<
 
 interface Props {
   roomCode: string;
-  /** Callback optionnel quand un bonus est activé avec succès */
-  onBonusActivated?: (bonusType: BonusType) => void;
+  /** Callback quand un bonus est activé avec succès */
+  onBonusActivated?: (bonusType: BonusType, extra: {
+    excludedOptions?: string[];
+    newDuration?: number;
+    stolenPoints?: number;
+  }) => void;
 }
 
 export default function BonusActivator({ roomCode, onBonusActivated }: Props) {
@@ -97,9 +101,13 @@ export default function BonusActivator({ roomCode, onBonusActivated }: Props) {
     setNotification(null);
 
     try {
-      await shopService.activateBonus(bonusType, roomCode);
+      const result = await shopService.activateBonus(bonusType, roomCode);
       setNotification({ type: 'success', text: `${BONUS_META[bonusType].label} activé !` });
-      onBonusActivated?.(bonusType);
+      onBonusActivated?.(bonusType, {
+        excludedOptions: result.excluded_options,
+        newDuration: result.new_duration,
+        stolenPoints: result.stolen_points,
+      });
       // Recharger l'inventaire
       await loadInventory();
     } catch (err: unknown) {

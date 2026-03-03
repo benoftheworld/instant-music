@@ -49,8 +49,16 @@ export const shopService = {
   async activateBonus(
     bonusType: string,
     roomCode: string
-  ): Promise<GameBonus> {
-    const response = await api.post<GameBonus>('/shop/inventory/activate/', {
+  ): Promise<GameBonus & {
+    excluded_options?: string[];
+    new_duration?: number;
+    stolen_points?: number;
+  }> {
+    const response = await api.post<GameBonus & {
+      excluded_options?: string[];
+      new_duration?: number;
+      stolen_points?: number;
+    }>('/shop/inventory/activate/', {
       bonus_type: bonusType,
       room_code: roomCode,
     });

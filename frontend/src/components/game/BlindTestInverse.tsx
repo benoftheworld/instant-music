@@ -15,6 +15,7 @@ const BlindTestInverse = ({
   showResults,
   roundResults,
   seekOffsetMs = 0,
+  excludedOptions = [],
 }: Props) => {
   const audio = useAudioPlayer(round, showResults, undefined, seekOffsetMs);
 
@@ -45,6 +46,7 @@ const BlindTestInverse = ({
         selectedAnswer={selectedAnswer}
         roundResults={roundResults}
         onOptionClick={onAnswerSubmit}
+        excludedOptions={excludedOptions}
       />
 
       <ResultFooter

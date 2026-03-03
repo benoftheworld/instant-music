@@ -151,29 +151,79 @@ class InventoryViewSet(GenericViewSet):
                 {"detail": str(e)}, status=status.HTTP_409_CONFLICT
             )
 
+        # ── Effets immédiats selon le type de bonus ──────────────────────────
+        extra_response: dict = {}
+
+        from apps.games.models import GamePlayer
+
+        if bonus_type == "fifty_fifty" and current_round:
+            try:
+                player = GamePlayer.objects.get(game=game, user=request.user)
+                excluded = bonus_service.get_fifty_fifty_exclusions(
+                    player=player,
+                    round_number=round_number,
+                    options=current_round.options,
+                    correct_answer=current_round.correct_answer,
+                )
+                extra_response["excluded_options"] = excluded
+            except GamePlayer.DoesNotExist:
+                pass
+
+        elif bonus_type == "steal" and current_round:
+            try:
+                player = GamePlayer.objects.get(game=game, user=request.user)
+                stolen = bonus_service.apply_steal_bonus(
+                    player=player, game=game, round_number=round_number
+                )
+                extra_response["stolen_points"] = stolen
+                # Diffuser les scores mis à jour
+                updated_players = [
+                    {
+                        "id": str(p.id),
+                        "username": p.user.username,
+                        "score": p.score,
+                    }
+                    for p in game.players.select_related("user")
+                ]
+                extra_response["updated_players"] = updated_players
+            except GamePlayer.DoesNotExist:
+                pass
+
+        elif bonus_type == "time_bonus" and current_round:
+            new_duration = bonus_service.apply_time_bonus(
+                player=request.user, round_obj=current_round
+            )
+            if new_duration:
+                extra_response["new_duration"] = new_duration
+
         # Diffuser la notification via WebSocket
         from channels.layers import get_channel_layer
         from asgiref.sync import async_to_sync
-        import json
 
         channel_layer = get_channel_layer()
         if channel_layer:
+            ws_event: dict = {
+                "type": "broadcast_bonus_activated",
+                "bonus": {
+                    "bonus_type": bonus_type,
+                    "username": request.user.username,
+                    "round_number": round_number,
+                },
+            }
+            # Envoyer new_duration à tous pour synchroniser le timer
+            if "new_duration" in extra_response:
+                ws_event["new_duration"] = extra_response["new_duration"]
+            # Envoyer les scores mis à jour à tous (vol de points)
+            if "updated_players" in extra_response:
+                ws_event["updated_players"] = extra_response["updated_players"]
             async_to_sync(channel_layer.group_send)(
                 f"game_{room_code}",
-                {
-                    "type": "broadcast_bonus_activated",
-                    "bonus": {
-                        "bonus_type": bonus_type,
-                        "username": request.user.username,
-                        "round_number": round_number,
-                    },
-                },
+                ws_event,
             )
 
-        return Response(
-            GameBonusSerializer(game_bonus).data,
-            status=status.HTTP_201_CREATED,
-        )
+        response_data = GameBonusSerializer(game_bonus).data
+        response_data.update(extra_response)
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["get"], url_path="game/(?P<room_code>[^/.]+)")
     def game_bonuses(self, request, room_code=None):

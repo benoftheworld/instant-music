@@ -17,6 +17,7 @@ const IntroQuestion = ({
   showResults,
   roundResults,
   seekOffsetMs = 0,
+  excludedOptions = [],
 }: Props) => {
   const audioDuration = round.extra_data?.audio_duration || 5;
   const audio = useAudioPlayer(round, showResults, audioDuration, seekOffsetMs);
@@ -82,6 +83,7 @@ const IntroQuestion = ({
         selectedAnswer={selectedAnswer}
         roundResults={roundResults}
         onOptionClick={onAnswerSubmit}
+        excludedOptions={excludedOptions}
       />
 
       <ResultFooter
