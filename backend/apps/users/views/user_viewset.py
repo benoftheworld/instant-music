@@ -107,8 +107,10 @@ class UserViewSet(viewsets.ModelViewSet):
         if len(query) < 2:
             return Response([])
 
-        users = User.objects.filter(username__icontains=query).exclude(
-            id=request.user.id
+        users = (
+            User.objects.filter(username__icontains=query)
+            .exclude(id=request.user.id)
+            .exclude(is_superuser=True)
         )[:10]
 
         serializer = UserMinimalSerializer(users, many=True)

@@ -90,8 +90,10 @@ class LeaderboardView(APIView):
         offset = (page - 1) * page_size
 
         # Get users ordered by total_points with their team info
+        # Exclude superusers from leaderboard
         users_qs = (
             User.objects.filter(total_games_played__gt=0)
+            .exclude(is_superuser=True)
             .prefetch_related("team_memberships__team")
             .order_by("-total_points")
         )
@@ -151,8 +153,14 @@ class LeaderboardByModeView(APIView):
             return Response({"error": "Mode invalide."}, status=400)
 
         # Aggregate scores by user for this mode
+        # Get user IDs that are not superusers
+        non_superuser_ids = User.objects.filter(is_superuser=False).values_list(
+            "id", flat=True
+        )
         user_stats_qs = (
-            GamePlayer.objects.filter(game__mode=mode, game__status="finished")
+            GamePlayer.objects.filter(
+                game__mode=mode, game__status="finished", user_id__in=non_superuser_ids
+            )
             .values("user")
             .annotate(
                 total_points=Sum("score"),
@@ -282,12 +290,17 @@ class MyRankView(APIView):
     def get(self, request):
         user = request.user
 
-        # General rank
+        # General rank (exclude superusers)
         general_rank = (
-            User.objects.filter(total_points__gt=user.total_points).count() + 1
+            User.objects.filter(
+                total_points__gt=user.total_points, is_superuser=False
+            ).count()
+            + 1
         )
 
-        total_players = User.objects.filter(total_games_played__gt=0).count()
+        total_players = User.objects.filter(
+            total_games_played__gt=0, is_superuser=False
+        ).count()
 
         # Rank by mode
         mode_ranks = {}

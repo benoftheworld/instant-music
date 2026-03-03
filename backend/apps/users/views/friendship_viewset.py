@@ -20,7 +20,7 @@ class FriendshipViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
-        """List all friends (accepted friendships)."""
+        """List all friends (accepted friendships). Exclude superuser friends."""
         user = request.user
         friendships = Friendship.objects.filter(
             Q(from_user=user, status=FriendshipStatus.ACCEPTED)
@@ -30,6 +30,9 @@ class FriendshipViewSet(viewsets.ViewSet):
         friends = []
         for f in friendships:
             friend = f.to_user if f.from_user == user else f.from_user
+            # Exclude superuser friends from the list
+            if friend.is_superuser:
+                continue
             friends.append(
                 {
                     "friendship_id": f.id,
@@ -62,7 +65,7 @@ class FriendshipViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["post"])
     def send_request(self, request):
-        """Send a friend request."""
+        """Send a friend request. Cannot send to superusers."""
         serializer = FriendshipCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(
@@ -75,6 +78,12 @@ class FriendshipViewSet(viewsets.ViewSet):
         if to_user == request.user:
             return Response(
                 {"error": "Vous ne pouvez pas vous ajouter vous-même."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if to_user.is_superuser:
+            return Response(
+                {"error": "Impossible d'ajouter cet utilisateur."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
