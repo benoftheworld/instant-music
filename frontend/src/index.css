@@ -56,3 +56,13 @@
     @apply text-primary-500 hover:text-primary-700 hover:underline;
   }
 }
+
+/* Achievement toast progress bar */
+@keyframes achievement-shrink {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+.achievement-progress-bar {
+  animation: achievement-shrink var(--duration, 6000ms) linear forwards;
+}

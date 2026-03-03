@@ -9,7 +9,7 @@ from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
-from .models import Game, GamePlayer, GameRound, GameAnswer, KaraokeSong
+from .models import Game, GamePlayer, GameRound, GameAnswer, GameInvitation, KaraokeSong
 
 
 class GamePlayerInline(admin.TabularInline):
@@ -580,3 +580,14 @@ class KaraokeSongAdmin(admin.ModelAdmin):
         return f"{minutes}:{seconds:02d}"
 
     duration_display.short_description = _("Durée")
+
+
+@admin.register(GameInvitation)
+class GameInvitationAdmin(admin.ModelAdmin):
+    """Admin for GameInvitation model."""
+
+    list_display = ["id", "sender", "recipient", "game", "status", "created_at", "expires_at"]
+    list_filter = ["status"]
+    search_fields = ["sender__username", "recipient__username", "game__room_code"]
+    readonly_fields = ["id", "created_at"]
+    ordering = ["-created_at"]

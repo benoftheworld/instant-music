@@ -297,6 +297,22 @@ export interface Friend {
   since: string;
 }
 
+// Game Invitation types
+export type InvitationStatus = 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled';
+
+export interface GameInvitation {
+  id: string;
+  room_code: string;
+  game_mode: string;
+  game_name: string | null;
+  sender: { id: number; username: string };
+  recipient: { id: number; username: string };
+  status: InvitationStatus;
+  created_at: string;
+  expires_at: string;
+  is_expired: boolean;
+}
+
 // Team types
 export type TeamMemberRole = 'owner' | 'admin' | 'member';
 

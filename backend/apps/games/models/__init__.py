@@ -8,6 +8,7 @@ Usage:
 from .enums import AnswerMode, GameMode, GameStatus, GuessTarget
 from .game import Game
 from .game_answer import GameAnswer
+from .game_invitation import GameInvitation, InvitationStatus
 from .game_player import GamePlayer
 from .game_round import GameRound
 from .karaoke_song import KaraokeSong
@@ -19,6 +20,8 @@ __all__ = [
     "GuessTarget",
     "Game",
     "GameAnswer",
+    "GameInvitation",
+    "InvitationStatus",
     "GamePlayer",
     "GameRound",
     "KaraokeSong",

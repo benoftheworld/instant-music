@@ -7,6 +7,7 @@ from .create_game_serializer import CreateGameSerializer
 from .game_round_serializer import GameRoundSerializer
 from .game_answer_serializer import GameAnswerSerializer
 from .game_history_serializer import GameHistorySerializer
+from .game_invitation_serializer import GameInvitationSerializer
 from .leaderboard_serializer import LeaderboardSerializer
 
 __all__ = [
@@ -17,5 +18,7 @@ __all__ = [
     "GameRoundSerializer",
     "GameAnswerSerializer",
     "GameHistorySerializer",
+    "GameInvitationSerializer",
     "LeaderboardSerializer",
 ]
+

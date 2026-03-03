@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import HomePage from './pages/HomePage';
@@ -20,10 +21,56 @@ import GameHistoryPage from './pages/GameHistoryPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import AchievementToastManager from './components/layout/AchievementToastManager';
+import { useAuthStore } from './store/authStore';
+import { notificationWS } from './services/notificationWebSocket';
+import { useNotificationStore } from './store/notificationStore';
+import { invitationService } from './services/invitationService';
 
 function App() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const addInvitation = useNotificationStore((state) => state.addInvitation);
+  const setInvitations = useNotificationStore((state) => state.setInvitations);
+  const clearInvitations = useNotificationStore((state) => state.clearInvitations);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      notificationWS.disconnect();
+      clearInvitations();
+      return;
+    }
+
+    // Fetch existing pending invitations on login/reload
+    invitationService.getMyInvitations().then(setInvitations).catch(() => {});
+
+    // Open persistent WS for real-time notifications
+    notificationWS.connect();
+
+    const unsubInvite = notificationWS.on('game_invitation', (data) => {
+      if (data.invitation) {
+        addInvitation(data.invitation);
+        // Native browser notification (if permission granted)
+        if (Notification.permission === 'granted') {
+          new Notification(
+            `Invitation de ${data.invitation.sender.username}`,
+            {
+              body: `Rejoindre la partie ${data.invitation.room_code} ?`,
+              icon: '/images/logo.png',
+            }
+          );
+        }
+      }
+    });
+
+    return () => {
+      unsubInvite();
+    };
+  }, [isAuthenticated]);
+
   return (
-    <Routes>
+    <>
+      <AchievementToastManager />
+      <Routes>
       <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="login" element={<LoginPage />} />
@@ -51,6 +98,7 @@ function App() {
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
+    </>
   );
 }
 

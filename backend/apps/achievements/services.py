@@ -11,6 +11,38 @@ from .models import Achievement, UserAchievement
 logger = logging.getLogger(__name__)
 
 
+def _push_achievement_notification(user_id: int, achievement) -> None:
+    """Push a WebSocket notification to the user for a newly unlocked achievement."""
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        from django.conf import settings
+
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+
+        icon_url = None
+        if achievement.icon:
+            base_url = getattr(settings, "BACKEND_BASE_URL", "").rstrip("/")
+            icon_url = f"{base_url}{achievement.icon.url}"
+
+        async_to_sync(channel_layer.group_send)(
+            f"notifications_{user_id}",
+            {
+                "type": "notify.achievement_unlocked",
+                "achievement": {
+                    "id": str(achievement.id),
+                    "name": achievement.name,
+                    "description": achievement.description,
+                    "icon": icon_url,
+                    "points": achievement.points,
+                },
+            },
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to push achievement WS notification: %s", exc)
+
 # Achievement condition types
 CONDITION_GAMES_PLAYED = "games_played"
 CONDITION_WINS = "wins"
@@ -59,6 +91,7 @@ class AchievementService:
                     achievement.name,
                     user.username,
                 )
+                _push_achievement_notification(user.id, achievement)
 
         return newly_awarded
 

@@ -17,6 +17,68 @@ from apps.core.prometheus_metrics import (
 logger = logging.getLogger("apps.games.consumer")
 
 
+class NotificationConsumer(AsyncWebsocketConsumer):
+    """WebSocket consumer for user-specific notifications (invitations, etc.)."""
+
+    async def connect(self):
+        user = self.scope.get("user")
+        if not user or not user.is_authenticated:
+            await self.close()
+            return
+
+        self.user_id = user.id
+        self.group_name = f"notifications_{self.user_id}"
+
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
+
+        logger.info(
+            "notif_ws_connect",
+            extra={"event_type": "connect", "user_id": self.user_id},
+        )
+
+    async def disconnect(self, close_code):
+        if hasattr(self, "group_name"):
+            await self.channel_layer.group_discard(
+                self.group_name, self.channel_name
+            )
+
+    # ── Broadcast handlers ────────────────────────────────────────────────────
+
+    async def notify_game_invitation(self, event):
+        """Push a game invitation notification to the connected user."""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "game_invitation",
+                    "invitation": event["invitation"],
+                }
+            )
+        )
+
+    async def notify_invitation_cancelled(self, event):
+        """Notify the recipient that an invitation was cancelled."""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "invitation_cancelled",
+                    "invitation_id": event["invitation_id"],
+                }
+            )
+        )
+
+    async def notify_achievement_unlocked(self, event):
+        """Push an achievement-unlocked notification to the connected user."""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "achievement_unlocked",
+                    "achievement": event["achievement"],
+                }
+            )
+        )
+
+
 class GameConsumer(AsyncWebsocketConsumer):
     """WebSocket consumer for game rooms."""
 
