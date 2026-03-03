@@ -420,6 +420,27 @@ def get_synced_lyrics(
     return None, None
 
 
+def _extract_line_sequences(
+    line: str, n: int
+) -> List[Tuple[int, List[str]]]:
+    """Extract all valid n-word sequences from a lyrics line.
+
+    Returns list of (start_index, word_sequence) tuples where every word
+    in the sequence is "interesting" (not in BORING_WORDS and long enough).
+    """
+    words = line.split()
+    sequences: List[Tuple[int, List[str]]] = []
+    for start in range(0, len(words) - n + 1):
+        seq = words[start : start + n]
+        clean_seq = [re.sub(r"[^a-zA-ZÀ-ÿ']", "", w).lower() for w in seq]
+        if any(len(w) < 2 for w in clean_seq):
+            continue
+        if any(w in BORING_WORDS for w in clean_seq):
+            continue
+        sequences.append((start, seq))
+    return sequences
+
+
 def create_lyrics_question(
     lyrics: str,
     all_tracks_words: List[str] | None = None,
@@ -428,12 +449,17 @@ def create_lyrics_question(
     """
     Create a fill-in-the-blank lyrics question.
 
+    Wrong options are sourced **from other lines of the same lyrics** first,
+    guaranteeing language consistency and coherent phrasing.  Track-title
+    words are only used as a last resort.
+
     Args:
         lyrics: Full lyrics text
-        all_tracks_words: Extra words from other tracks to use as wrong options
+        all_tracks_words: Extra words from other tracks (last-resort distractors)
+        words_to_blank: Number of consecutive words to blank out
 
     Returns:
-        (lyrics_snippet, correct_word, options) or None
+        (lyrics_snippet, correct_phrase, options) or None
     """
     # Split into lines, filter out empty / very short lines
     lines = [
@@ -442,91 +468,78 @@ def create_lyrics_question(
         if line.strip() and len(line.strip()) > 15
     ]
 
-    # We'll try to blank a contiguous sequence of words of length `words_to_blank`.
-    for line in lines[:15]:
+    if not lines:
+        return None
+
+    # Shuffle candidate lines so we don't always pick the first one
+    candidate_indices = list(range(len(lines)))
+    random.shuffle(candidate_indices)
+
+    for chosen_idx in candidate_indices[:20]:
+        line = lines[chosen_idx]
         words = line.split()
         if len(words) < (2 + words_to_blank):
             continue
 
-        # Build candidate sequences of length words_to_blank where words are interesting
-        sequences = []
-        for start in range(0, len(words) - words_to_blank + 1):
-            seq = words[start : start + words_to_blank]
-            clean_seq = [re.sub(r"[^a-zA-ZÀ-ÿ']", "", w).lower() for w in seq]
-            if any(len(w) < 1 for w in clean_seq):
-                continue
-            if any(w in BORING_WORDS for w in clean_seq):
-                continue
-            sequences.append((start, seq))
-
+        sequences = _extract_line_sequences(line, words_to_blank)
         if not sequences:
             continue
 
         start, original_seq = random.choice(sequences)
-        # Build correct phrase
+        # Build correct phrase (strip trailing punctuation, keep internal)
         clean_words = [re.sub(r"[^a-zA-ZÀ-ÿ' -]", "", w) for w in original_seq]
         correct_phrase = " ".join(clean_words)
+        if not correct_phrase.strip():
+            continue
 
-        # Build snippet with a single placeholder for the whole sequence
+        # Build snippet with a single placeholder for the blanked sequence
         display_words = words.copy()
         display_words[start : start + words_to_blank] = ["_____"]
         snippet = " ".join(display_words)
 
-        # Generate wrong options (phrases of same length)
+        # ── Generate wrong options from OTHER lines of the same lyrics ─
+        # This guarantees the same language and coherent phrases.
         wrong_phrases: List[str] = []
+        seen_lower = {correct_phrase.lower()}
 
-        # Extract candidate n-word phrases from lyrics
-        all_lyric_words = re.findall(r"[a-zA-ZÀ-ÿ' -]{1,}", lyrics)
-        lyric_phrases = []
-        for i in range(0, len(all_lyric_words) - words_to_blank + 1):
-            seq = all_lyric_words[i : i + words_to_blank]
-            cleaned = [re.sub(r"[^a-zA-ZÀ-ÿ']", "", w).lower() for w in seq]
-            if any(w in BORING_WORDS or len(w) < 1 for w in cleaned):
-                continue
-            phrase = " ".join(
-                [
-                    w if idx == 0 and w[0].isupper() else w.lower()
-                    for idx, w in enumerate(seq)
-                ]
-            )
-            lyric_phrases.append(phrase)
-
-        random.shuffle(lyric_phrases)
-        for p in lyric_phrases:
-            if p.lower() != correct_phrase.lower():
-                wrong_phrases.append(p)
-            if len(wrong_phrases) >= 6:
+        other_lines = [l for i, l in enumerate(lines) if i != chosen_idx]
+        random.shuffle(other_lines)
+        for other_line in other_lines:
+            for _, seq in _extract_line_sequences(other_line, words_to_blank):
+                phrase = " ".join(
+                    re.sub(r"[^a-zA-ZÀ-ÿ' -]", "", w) for w in seq
+                )
+                low = phrase.lower()
+                if low not in seen_lower and phrase.strip():
+                    seen_lower.add(low)
+                    wrong_phrases.append(phrase)
+            if len(wrong_phrases) >= 8:
                 break
 
-        # Add phrases built from other tracks' words if available
-        if all_tracks_words:
-            other_candidates = []
-            # build simple phrases by sampling consecutive words from extra list
-            for i in range(0, len(all_tracks_words) - words_to_blank + 1):
-                seq = all_tracks_words[i : i + words_to_blank]
-                cleaned = [
-                    re.sub(r"[^a-zA-ZÀ-ÿ']", "", w).lower() for w in seq
-                ]
-                if any(w in BORING_WORDS or len(w) < 1 for w in cleaned):
-                    continue
-                other_candidates.append(" ".join(seq))
-            random.shuffle(other_candidates)
-            for p in other_candidates:
+        # ── Last-resort fallback: individual track title words ─────────
+        # Only used when the lyrics lack enough distinct phrases.
+        # We never combine words from different titles to avoid gibberish.
+        if len(wrong_phrases) < 3 and all_tracks_words and words_to_blank == 1:
+            random.shuffle(all_tracks_words)
+            for w in all_tracks_words:
+                cleaned = re.sub(r"[^a-zA-ZÀ-ÿ']", "", w).lower()
                 if (
-                    p.lower() != correct_phrase.lower()
-                    and p not in wrong_phrases
+                    len(cleaned) >= 3
+                    and cleaned not in BORING_WORDS
+                    and cleaned not in seen_lower
                 ):
-                    wrong_phrases.append(p)
-                if len(wrong_phrases) >= 10:
+                    seen_lower.add(cleaned)
+                    wrong_phrases.append(w)
+                if len(wrong_phrases) >= 6:
                     break
 
         # Deduplicate and pick 3 wrong options
-        seen = {correct_phrase.lower()}
-        unique_wrong = []
+        unique_wrong: List[str] = []
+        final_seen = {correct_phrase.lower()}
         for w in wrong_phrases:
             low = w.lower()
-            if low not in seen:
-                seen.add(low)
+            if low not in final_seen:
+                final_seen.add(low)
                 unique_wrong.append(w)
             if len(unique_wrong) >= 3:
                 break
