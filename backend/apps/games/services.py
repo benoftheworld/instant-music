@@ -171,21 +171,6 @@ MUSICBRAINZ_USER_AGENT = "InstantMusic/1.0 (https://github.com/benoftheworld/ins
 MUSICBRAINZ_API_TIMEOUT: int = 5  # seconds
 CACHE_TTL_MUSICBRAINZ: int = 86400  # 24 h
 
-# Keywords that strongly suggest a remastered / re-release version
-_REMASTER_RE = re.compile(
-    r"\b("
-    r"remaster(ed|is[eé]e?)?"
-    r"|re-?issue"
-    r"|deluxe"
-    r"|super\s*deluxe"
-    r"|anniversary"
-    r"|expanded"
-    r"|special\s*(edition|version)"
-    r"|\d{4}\s*re(master|issue)"
-    r")\b",
-    re.IGNORECASE,
-)
-
 
 def calculate_streak_bonus(streak: int) -> int:
     """Bonus additionnel par palier de série (plafonné à SCORE_STREAK_MAX_LEVEL)."""
@@ -228,11 +213,6 @@ class QuestionGeneratorService:
         self.deezer = deezer_service
 
     # ─── Helpers : année originale (MusicBrainz) ─────────────────────
-
-    @staticmethod
-    def _is_remastered(album_title: str) -> bool:
-        """Return True if the album title strongly suggests a remaster/re-release."""
-        return bool(_REMASTER_RE.search(album_title or ""))
 
     @staticmethod
     def _get_musicbrainz_year(artist: str, title: str) -> Optional[int]:
@@ -530,32 +510,25 @@ class QuestionGeneratorService:
         if year < 1950 or year > 2030:
             return None
 
-        # ── Correction remaster ──────────────────────────────────────
-        # Si l'album semble être une version remasterisée/rééditée, on tente
-        # de récupérer l'année de sortie originale via MusicBrainz.
+        # ── Recherche systématique de l'année originale (MusicBrainz) ─
+        # Deezer renvoie souvent la date de l'édition en catalogue (remaster,
+        # deluxe, réédition…) sans mot-clé identifiable.  On interroge donc
+        # MusicBrainz pour chaque titre et on retient l'année la plus ancienne.
         artist_name = ", ".join(track["artists"])
-        album_title = details.get("album", "") or track.get("album", "")
-        if self._is_remastered(album_title):
-            logger.debug(
-                "Album '%s' détecté comme remaster — requête MusicBrainz pour '%s – %s'",
-                album_title,
+        EXTERNAL_API_REQUESTS_TOTAL.labels(
+            service="musicbrainz", endpoint="recording_search"
+        ).inc()
+        mb_year = self._get_musicbrainz_year(artist_name, track["name"])
+        if mb_year and mb_year < year:
+            logger.info(
+                "Année corrigée via MusicBrainz pour '%s – %s': %d → %d",
                 artist_name,
                 track["name"],
+                year,
+                mb_year,
             )
-            EXTERNAL_API_REQUESTS_TOTAL.labels(
-                service="musicbrainz", endpoint="recording_search"
-            ).inc()
-            mb_year = self._get_musicbrainz_year(artist_name, track["name"])
-            if mb_year and mb_year != year:
-                logger.info(
-                    "Année corrigée via MusicBrainz pour '%s – %s': %d → %d",
-                    artist_name,
-                    track["name"],
-                    year,
-                    mb_year,
-                )
-                year = mb_year
-                release_date = str(mb_year)
+            year = mb_year
+            release_date = str(mb_year)
 
         # Generate MCQ options (4 plausible years)
         options = [str(year)]
