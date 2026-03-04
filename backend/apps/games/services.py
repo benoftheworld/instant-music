@@ -168,7 +168,7 @@ KARAOKE_FALLBACK_DURATION: int = 180  # 3 min fallback
 # MusicBrainz (used for génération mode to resolve original release year)
 MUSICBRAINZ_API_BASE = "https://musicbrainz.org/ws/2"
 MUSICBRAINZ_USER_AGENT = "InstantMusic/1.0 (https://github.com/benoftheworld/instant-music)"
-MUSICBRAINZ_API_TIMEOUT: int = 5  # seconds
+MUSICBRAINZ_API_TIMEOUT: int = 8  # seconds (100 results can be large)
 CACHE_TTL_MUSICBRAINZ: int = 86400  # 24 h
 
 
@@ -236,7 +236,7 @@ class QuestionGeneratorService:
             query = f'recording:"{_esc(title)}" AND artist:"{_esc(artist)}"'
             resp = requests.get(
                 f"{MUSICBRAINZ_API_BASE}/recording/",
-                params={"query": query, "fmt": "json", "limit": 5},
+                params={"query": query, "fmt": "json", "limit": 100},
                 headers={"User-Agent": MUSICBRAINZ_USER_AGENT},
                 timeout=MUSICBRAINZ_API_TIMEOUT,
             )
@@ -247,13 +247,17 @@ class QuestionGeneratorService:
             cache.set(cache_key, None, CACHE_TTL_MUSICBRAINZ)
             return None
 
+        # Only consider recordings with a high relevance score (≥ 85) to
+        # avoid unrelated tracks from polluting the earliest-year detection.
         years: list[int] = []
         for rec in data.get("recordings", []):
+            if rec.get("score", 0) < 85:
+                continue
             frd = rec.get("first-release-date", "")
             if frd and len(frd) >= 4:
                 try:
                     y = int(frd[:4])
-                    if 1950 <= y <= 2030:
+                    if 1900 <= y <= 2030:
                         years.append(y)
                 except ValueError:
                     pass
@@ -507,7 +511,7 @@ class QuestionGeneratorService:
         except (ValueError, IndexError):
             return None
 
-        if year < 1950 or year > 2030:
+        if year < 1900 or year > 2030:
             return None
 
         # ── Recherche systématique de l'année originale (MusicBrainz) ─
@@ -557,7 +561,7 @@ class QuestionGeneratorService:
                 ]
             )
             wrong_year = year + offset
-            if str(wrong_year) not in options and 1950 <= wrong_year <= 2030:
+            if str(wrong_year) not in options and 1900 <= wrong_year <= 2030:
                 options.append(str(wrong_year))
             attempts += 1
         random.shuffle(options)
