@@ -1,24 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { soundEffects } from '../../services/soundEffects';
 import { getEffectiveMusicVolume } from './VolumeControl';
+import type { GameRound } from '@/types';
 
 /* ───────────────────── Types ───────────────────── */
-interface Round {
-  id: string;
-  round_number: number;
-  track_id: string;
-  track_name: string;
-  artist_name: string;
-  preview_url?: string;
-  options: string[];
-  question_type: string;
-  question_text: string;
-  extra_data: Record<string, any>;
-  duration: number;
-  started_at: string;
-  ended_at: string | null;
-  correct_answer?: string;
-}
 
 interface RoundResults {
   correct_answer: string;
@@ -26,7 +11,7 @@ interface RoundResults {
 }
 
 interface Props {
-  round: Round;
+  round: GameRound;
   onAnswerSubmit: (answer: string) => void;
   hasAnswered: boolean;
   selectedAnswer: string | null;
@@ -38,7 +23,7 @@ interface Props {
 
 /* ───────────────────── Shared audio hook ───────────────────── */
 export function useAudioPlayer(
-  round: Round,
+  round: GameRound,
   showResults: boolean,
   maxAudioDuration?: number,
   seekOffsetMs: number = 0,
@@ -202,7 +187,7 @@ export function useAudioPlayer(
 
 /* ───────────────────── Audio hook for Lyrics mode (plays only on results) ───────────────────── */
 export function useAudioPlayerOnResults(
-  round: Round,
+  round: GameRound,
   showResults: boolean,
 ) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -469,7 +454,7 @@ export function ResultFooter({
 }
 
 /* ───────────────────── Track info (results phase) ───────────────────── */
-export function TrackReveal({ round }: { round: Round }) {
+export function TrackReveal({ round }: { round: GameRound }) {
   return (
     <div className="mb-6 rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-purple-600 to-blue-600 p-6">
       <div className="text-white text-center">
@@ -481,4 +466,4 @@ export function TrackReveal({ round }: { round: Round }) {
   );
 }
 
-export type { Round, RoundResults, Props };
+export type { GameRound as Round, RoundResults, Props };

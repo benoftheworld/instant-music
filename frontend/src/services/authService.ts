@@ -1,4 +1,5 @@
 import { api } from './api';
+import { tokenService } from './tokenService';
 import type { AuthResponse, LoginCredentials, RegisterData, User } from '@/types';
 
 export const authService = {
@@ -47,7 +48,7 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
-    const refreshToken = localStorage.getItem('refresh_token');
+    const refreshToken = tokenService.getRefreshToken();
     if (refreshToken) {
       try {
         await api.post('/auth/logout/', { refresh: refreshToken });
@@ -55,7 +56,6 @@ export const authService = {
         // Ignorer les erreurs réseau — la déconnexion locale reste effective
       }
     }
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    tokenService.clearTokens();
   },
 };

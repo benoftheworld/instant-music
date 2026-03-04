@@ -1,15 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { gameService } from '../../services/gameService';
-import type { Game } from '../../types';
-
-const MODE_LABELS: Record<string, { label: string; icon: string }> = {
-  classique: { label: 'Classique', icon: '🎵' },
-  rapide: { label: 'Rapide', icon: '⚡' },
-  generation: { label: 'Génération', icon: '📅' },
-  paroles: { label: 'Paroles', icon: '📝' },
-  karaoke: { label: 'Karaoké', icon: '🎤' },
-};
+import { GAME_MODE_CONFIG } from '@/constants/gameModes';
+import type { Game, GameMode } from '../../types';
 
 export default function JoinGamePage() {
   const navigate = useNavigate();
@@ -198,7 +191,7 @@ export default function JoinGamePage() {
             {/* Games List */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {publicGames.map((game) => {
-                const mode = MODE_LABELS[game.mode] || { label: game.mode, icon: '🎵' };
+                const mode = GAME_MODE_CONFIG[game.mode as GameMode] || { label: game.mode, icon: '🎵' };
                 const isFull = game.player_count >= game.max_players;
                 return (
                   <button

@@ -115,18 +115,9 @@ class TeamViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["get"])
     def requests(self, request, pk=None):
         """List pending join requests for a team (owner/admin only)."""
-        team, membership = self._get_team_and_membership(request, pk)
+        team, membership = self._require_team_admin(request, pk)
         if isinstance(team, Response):
-            return team  # error response
-
-        if membership.role not in [
-            TeamMemberRole.OWNER,
-            TeamMemberRole.ADMIN,
-        ]:
-            return Response(
-                {"error": "Permission refusée."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+            return team
 
         pending = TeamJoinRequest.objects.filter(
             team=team, status=TeamJoinRequestStatus.PENDING
@@ -145,18 +136,9 @@ class TeamViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        team, membership = self._get_team_and_membership(request, pk)
+        team, membership = self._require_team_admin(request, pk)
         if isinstance(team, Response):
             return team
-
-        if membership.role not in [
-            TeamMemberRole.OWNER,
-            TeamMemberRole.ADMIN,
-        ]:
-            return Response(
-                {"error": "Permission refusée."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         try:
             join_request = TeamJoinRequest.objects.get(
@@ -191,18 +173,9 @@ class TeamViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        team, membership = self._get_team_and_membership(request, pk)
+        team, membership = self._require_team_admin(request, pk)
         if isinstance(team, Response):
             return team
-
-        if membership.role not in [
-            TeamMemberRole.OWNER,
-            TeamMemberRole.ADMIN,
-        ]:
-            return Response(
-                {"error": "Permission refusée."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         try:
             join_request = TeamJoinRequest.objects.get(
@@ -257,18 +230,9 @@ class TeamViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["patch"])
     def edit(self, request, pk=None):
         """Edit team description and avatar (owner/admin only)."""
-        team, membership = self._get_team_and_membership(request, pk)
+        team, membership = self._require_team_admin(request, pk)
         if isinstance(team, Response):
             return team
-
-        if membership.role not in [
-            TeamMemberRole.OWNER,
-            TeamMemberRole.ADMIN,
-        ]:
-            return Response(
-                {"error": "Permission refusée."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         description = request.data.get("description")
         if description is not None:
@@ -283,25 +247,9 @@ class TeamViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def invite(self, request, pk=None):
         """Invite a user to the team (admin/owner only)."""
-        try:
-            team = Team.objects.get(id=pk)
-            membership = TeamMember.objects.get(
-                team=team, user=request.user
-            )
-        except (Team.DoesNotExist, TeamMember.DoesNotExist):
-            return Response(
-                {"error": "Équipe introuvable."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        if membership.role not in [
-            TeamMemberRole.OWNER,
-            TeamMemberRole.ADMIN,
-        ]:
-            return Response(
-                {"error": "Permission refusée."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+        team, membership = self._require_team_admin(request, pk)
+        if isinstance(team, Response):
+            return team
 
         username = request.data.get("username")
         if not username:
@@ -345,18 +293,9 @@ class TeamViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        team, membership = self._get_team_and_membership(request, pk)
+        team, membership = self._require_team_admin(request, pk)
         if isinstance(team, Response):
             return team
-
-        if membership.role not in [
-            TeamMemberRole.OWNER,
-            TeamMemberRole.ADMIN,
-        ]:
-            return Response(
-                {"error": "Permission refusée."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         try:
             member = TeamMember.objects.get(id=member_id, team=team)
@@ -407,18 +346,9 @@ class TeamViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        team, membership = self._get_team_and_membership(request, pk)
+        team, membership = self._require_team_admin(request, pk)
         if isinstance(team, Response):
             return team
-
-        if membership.role not in [
-            TeamMemberRole.OWNER,
-            TeamMemberRole.ADMIN,
-        ]:
-            return Response(
-                {"error": "Permission refusée."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         try:
             member = TeamMember.objects.get(id=member_id, team=team)
@@ -465,3 +395,22 @@ class TeamViewSet(viewsets.ModelViewSet):
                 ),
                 None,
             )
+
+    def _require_team_admin(self, request, pk):
+        """Return (team, membership) if user is OWNER or ADMIN, else a Response.
+
+        Factorise le pattern répété dans toutes les actions admin d'équipe.
+        """
+        team, membership = self._get_team_and_membership(request, pk)
+        if isinstance(team, Response):
+            return team, None
+
+        if membership.role not in [TeamMemberRole.OWNER, TeamMemberRole.ADMIN]:
+            return (
+                Response(
+                    {"error": "Permission refusée."},
+                    status=status.HTTP_403_FORBIDDEN,
+                ),
+                None,
+            )
+        return team, membership

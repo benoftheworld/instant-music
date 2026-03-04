@@ -2,51 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/authService';
 import { shopService } from '@/services/shopService';
+import { BONUS_META } from '@/constants/bonuses';
 import type { ShopItem, ShopSummary, UserInventoryEntry } from '@/types';
-
-// ── Icônes des bonus ──────────────────────────────────────────────────────────
-
-const BONUS_META: Record<
-  string,
-  { emoji: string; label: string; color: string; desc: string }
-> = {
-  double_points: {
-    emoji: '✕2',
-    label: 'Points Doublés',
-    color: 'from-yellow-500 to-orange-500',
-    desc: 'Double vos points sur le prochain round correct',
-  },
-  max_points: {
-    emoji: '⭐',
-    label: 'Points Maximum',
-    color: 'from-purple-500 to-pink-500',
-    desc: 'Obtenez 100 points (score maximum de base) peu importe votre temps de réponse',
-  },
-  time_bonus: {
-    emoji: '⏱️',
-    label: 'Temps Bonus',
-    color: 'from-blue-500 to-cyan-500',
-    desc: '+15 secondes sur le timer du round en cours',
-  },
-  fifty_fifty: {
-    emoji: '½',
-    label: '50/50',
-    color: 'from-green-500 to-teal-500',
-    desc: 'Retire 2 mauvaises réponses de vos choix (mode QCM uniquement)',
-  },
-  steal: {
-    emoji: '🥷',
-    label: 'Vol de Points',
-    color: 'from-red-500 to-rose-600',
-    desc: 'Vole 100 points au joueur en tête',
-  },
-  shield: {
-    emoji: '🛡️',
-    label: 'Bouclier',
-    color: 'from-gray-400 to-slate-600',
-    desc: 'Protège vos points contre un vol',
-  },
-};
 
 function CoinIcon({ className = 'w-5 h-5' }: { className?: string }) {
   return (

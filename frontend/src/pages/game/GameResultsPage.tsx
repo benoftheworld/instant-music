@@ -2,14 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { gameService } from '../../services/gameService';
 import { getMediaUrl } from '../../services/api';
-
-interface Player {
-  id: string;
-  username: string;
-  score: number;
-  rank: number;
-  avatar?: string;
-}
+import type { GamePlayer } from '@/types';
 
 interface RoundAnswer {
   username: string;
@@ -43,7 +36,7 @@ interface GameResult {
     guess_target_display: string;
     num_rounds: number;
   };
-  rankings: Player[];
+  rankings: GamePlayer[];
   rounds: RoundDetail[];
 }
 
@@ -66,7 +59,7 @@ function Avatar({ username, avatar, size = 'md' }: { username: string; avatar?: 
   );
 }
 
-function RoundRow({ round, players }: { round: RoundDetail; players: Player[] }) {
+function RoundRow({ round, players }: { round: RoundDetail; players: GamePlayer[] }) {
   const [expanded, setExpanded] = useState(false);
 
   // Sort answers by points earned desc for ranking

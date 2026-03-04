@@ -42,13 +42,20 @@ class JwtWebSocketMiddleware(BaseMiddleware):
             if user is None:
                 raise TokenError("user_not_found")
             scope["user"] = user
-        except (InvalidToken, TokenError, Exception) as exc:
+        except (InvalidToken, TokenError) as exc:
             logger.warning(
                 "ws_auth_rejected",
                 extra={
                     "reason": str(exc),
                     "path": scope.get("path"),
                 },
+            )
+            await send({"type": "websocket.close", "code": 4003})
+            return
+        except Exception as exc:
+            logger.exception(
+                "ws_auth_unexpected_error",
+                extra={"path": scope.get("path")},
             )
             await send({"type": "websocket.close", "code": 4003})
             return

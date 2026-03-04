@@ -12,7 +12,9 @@ from apps.games.models import GamePlayer, GameAnswer, Game, GameMode
 from apps.achievements.models import Achievement, UserAchievement
 from apps.users.models import User, Team, TeamMember
 from apps.core.throttles import LeaderboardThrottle
+from apps.core.pagination import parse_pagination_params, paginated_response
 from .serializers import UserDetailedStatsSerializer
+from .services import get_global_leaderboard, _build_leaderboard_entry
 
 
 class UserDetailedStatsView(APIView):
@@ -77,56 +79,9 @@ class LeaderboardView(APIView):
     throttle_classes = [LeaderboardThrottle]
 
     def get(self, request):
-        # Pagination params
-        page = max(int(request.query_params.get("page", 1)), 1)
-        page_size = min(
-            int(
-                request.query_params.get(
-                    "page_size", request.query_params.get("limit", 50)
-                )
-            ),
-            100,
-        )
-        offset = (page - 1) * page_size
-
-        # Get users ordered by total_points with their team info
-        # Exclude superusers from leaderboard
-        users_qs = (
-            User.objects.filter(total_games_played__gt=0)
-            .exclude(is_superuser=True)
-            .prefetch_related("team_memberships__team")
-            .order_by("-total_points")
-        )
-        total_count = users_qs.count()
-        users = users_qs[offset : offset + page_size]
-
-        leaderboard = []
-        for idx, user in enumerate(users, offset + 1):
-            # Get user's primary team (first one)
-            team_membership = user.team_memberships.first()
-            team_name = team_membership.team.name if team_membership else None
-
-            leaderboard.append(
-                {
-                    "rank": idx,
-                    "user_id": user.id,
-                    "username": user.username,
-                    "avatar": user.avatar.url if user.avatar else None,
-                    "total_points": user.total_points,
-                    "total_games": user.total_games_played,
-                    "total_wins": user.total_wins,
-                    "win_rate": round(user.win_rate, 1),
-                    "team_name": team_name,
-                }
-            )
-        return Response(
-            {
-                "count": total_count,
-                "page": page,
-                "page_size": page_size,
-                "results": leaderboard,
-            }
-        )
+        page, page_size, offset = parse_pagination_params(request)
+        leaderboard, total_count = get_global_leaderboard(offset, page_size)
+        return Response(paginated_response(leaderboard, total_count, page, page_size))
 
 
 class LeaderboardByModeView(APIView):
@@ -135,17 +90,7 @@ class LeaderboardByModeView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, mode):
-        # Pagination params
-        page = max(int(request.query_params.get("page", 1)), 1)
-        page_size = min(
-            int(
-                request.query_params.get(
-                    "page_size", request.query_params.get("limit", 50)
-                )
-            ),
-            100,
-        )
-        offset = (page - 1) * page_size
+        page, page_size, offset = parse_pagination_params(request)
 
         # Validate mode
         valid_modes = [choice[0] for choice in GameMode.choices]
@@ -153,7 +98,6 @@ class LeaderboardByModeView(APIView):
             return Response({"error": "Mode invalide."}, status=400)
 
         # Aggregate scores by user for this mode
-        # Get user IDs that are not superusers
         non_superuser_ids = User.objects.filter(is_superuser=False).values_list(
             "id", flat=True
         )
@@ -187,37 +131,25 @@ class LeaderboardByModeView(APIView):
             user = users.get(stat["user"])
             if not user:
                 continue
-            # Get user's team
-            team_membership = user.team_memberships.first()
-            team_name = team_membership.team.name if team_membership else None
-
             win_rate = (
                 (stat["total_wins"] / stat["total_games"] * 100)
                 if stat["total_games"] > 0
                 else 0
             )
             leaderboard.append(
-                {
-                    "rank": idx,
-                    "user_id": stat["user"],
-                    "username": user.username,
-                    "avatar": user.avatar.url if user.avatar else None,
-                    "total_points": stat["total_points"],
-                    "total_games": stat["total_games"],
-                    "total_wins": stat["total_wins"],
-                    "win_rate": round(win_rate, 1),
-                    "team_name": team_name,
-                }
+                _build_leaderboard_entry(
+                    idx,
+                    user,
+                    extra={
+                        "total_points": stat["total_points"],
+                        "total_games": stat["total_games"],
+                        "total_wins": stat["total_wins"],
+                        "win_rate": round(win_rate, 1),
+                    },
+                )
             )
 
-        return Response(
-            {
-                "count": total_count,
-                "page": page,
-                "page_size": page_size,
-                "results": leaderboard,
-            }
-        )
+        return Response(paginated_response(leaderboard, total_count, page, page_size))
 
 
 class TeamLeaderboardView(APIView):
@@ -226,17 +158,7 @@ class TeamLeaderboardView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        # Pagination params
-        page = max(int(request.query_params.get("page", 1)), 1)
-        page_size = min(
-            int(
-                request.query_params.get(
-                    "page_size", request.query_params.get("limit", 50)
-                )
-            ),
-            100,
-        )
-        offset = (page - 1) * page_size
+        page, page_size, offset = parse_pagination_params(request)
 
         # Aggregate member stats per team (sum of members' stats)
         teams_qs = Team.objects.annotate(
@@ -272,14 +194,7 @@ class TeamLeaderboardView(APIView):
                 }
             )
 
-        return Response(
-            {
-                "count": total_count,
-                "page": page,
-                "page_size": page_size,
-                "results": leaderboard,
-            }
-        )
+        return Response(paginated_response(leaderboard, total_count, page, page_size))
 
 
 class MyRankView(APIView):

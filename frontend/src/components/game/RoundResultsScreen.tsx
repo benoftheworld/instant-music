@@ -1,29 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { getEffectiveMusicVolume } from './VolumeControl';
 import { getMediaUrl } from '@/services/api';
-
-interface Round {
-  id: string;
-  round_number: number;
-  track_id: string;
-  track_name: string;
-  artist_name: string;
-  preview_url?: string;
-  options: string[];
-  question_type: string;
-  question_text: string;
-  extra_data: Record<string, any>;
-  duration: number;
-  started_at: string;
-  ended_at: string | null;
-}
-
-interface Player {
-  id: string;
-  username: string;
-  score: number;
-  avatar?: string;
-}
+import { formatAnswer } from '@/utils/formatAnswer';
+import { useAudioPlayerOnResults } from './shared';
+import type { GameRound, GamePlayer } from '@/types';
 
 /** Per-player score data for the current round (from backend round_ended event) */
 interface PlayerRoundScore {
@@ -35,8 +13,8 @@ interface PlayerRoundScore {
 }
 
 interface RoundResultsScreenProps {
-  round: Round;
-  players: Player[];
+  round: GameRound;
+  players: GamePlayer[];
   correctAnswer: string;
   myPointsEarned: number;
   /** The answer the current player submitted (null if no answer) */
@@ -44,79 +22,6 @@ interface RoundResultsScreenProps {
   /** Per-player round scores keyed by username */
   playerScores?: Record<string, PlayerRoundScore>;
   onContinue?: () => void;
-}
-
-/**
- * Hook to auto-play the track preview on the results screen.
- */
-function useResultsAudio(previewUrl?: string) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [needsPlay, setNeedsPlay] = useState(false);
-
-  useEffect(() => {
-    setIsPlaying(false);
-    setNeedsPlay(false);
-
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.removeAttribute('src');
-      audioRef.current.load();
-      audioRef.current = null;
-    }
-
-    if (!previewUrl) return;
-
-    const audio = new Audio();
-    audio.preload = 'auto';
-    audio.volume = getEffectiveMusicVolume();
-    audio.src = previewUrl;
-    audioRef.current = audio;
-
-    const onCanPlay = () => {
-      audio.play()
-        .then(() => { setIsPlaying(true); setNeedsPlay(false); })
-        .catch(() => setNeedsPlay(true));
-    };
-    const onEnded = () => setIsPlaying(false);
-
-    audio.addEventListener('canplaythrough', onCanPlay, { once: true });
-    audio.addEventListener('ended', onEnded);
-
-    const fallback = setTimeout(() => {
-      if (!audioRef.current) return;
-      setNeedsPlay(true);
-    }, 3000);
-
-    return () => {
-      clearTimeout(fallback);
-      audio.removeEventListener('canplaythrough', onCanPlay);
-      audio.removeEventListener('ended', onEnded);
-      audio.pause();
-      audio.removeAttribute('src');
-      audio.load();
-      audioRef.current = null;
-    };
-  }, [previewUrl]);
-
-  const handlePlay = () => {
-    if (audioRef.current) {
-      audioRef.current.play()
-        .then(() => { setIsPlaying(true); setNeedsPlay(false); })
-        .catch(() => {});
-    }
-  };
-
-  // Live volume sync
-  useEffect(() => {
-    const onVolumeChange = () => {
-      if (audioRef.current) audioRef.current.volume = getEffectiveMusicVolume();
-    };
-    window.addEventListener('music-volume-change', onVolumeChange);
-    return () => window.removeEventListener('music-volume-change', onVolumeChange);
-  }, []);
-
-  return { isPlaying, needsPlay, handlePlay };
 }
 
 export default function RoundResultsScreen({
@@ -128,7 +33,7 @@ export default function RoundResultsScreen({
   playerScores,
   onContinue,
 }: RoundResultsScreenProps) {
-  const audio = useResultsAudio(round.preview_url);
+  const audio = useAudioPlayerOnResults(round, true);
 
   // Sort players by score and take top 5
   const topPlayers = [...players]
@@ -138,20 +43,6 @@ export default function RoundResultsScreen({
   // Extract year from extra_data if available
   const year = round.extra_data?.year || round.extra_data?.release_date?.substring(0, 4) || null;
   const albumImage = round.extra_data?.album_image;
-
-  /** Format a player answer that may be JSON (legacy) or plain text for display. */
-  const formatAnswer = (answer: string): string => {
-    try {
-      const parsed = JSON.parse(answer);
-      if (parsed && typeof parsed === 'object') {
-        const parts: string[] = [];
-        if (parsed.artist) parts.push(parsed.artist);
-        if (parsed.title) parts.push(parsed.title);
-        if (parts.length) return parts.join(' - ');
-      }
-    } catch { /* not JSON, use as-is */ }
-    return answer;
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 flex items-center justify-center">

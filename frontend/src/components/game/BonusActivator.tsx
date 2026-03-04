@@ -7,49 +7,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { shopService } from '@/services/shopService';
+import { BONUS_META } from '@/constants/bonuses';
 import type { BonusType, UserInventoryEntry } from '@/types';
-
-const BONUS_META: Record<
-  BonusType,
-  { emoji: string; label: string; color: string; tooltip: string }
-> = {
-  double_points: {
-    emoji: '✕2',
-    label: 'Points ×2',
-    color: 'bg-gradient-to-br from-yellow-500 to-orange-500',
-    tooltip: 'Double vos points sur ce round',
-  },
-  max_points: {
-    emoji: '⭐',
-    label: 'Max pts',
-    color: 'bg-gradient-to-br from-purple-500 to-pink-500',
-    tooltip: 'Score maximum quel que soit votre temps de réponse',
-  },
-  time_bonus: {
-    emoji: '⏱️',
-    label: '+15 s',
-    color: 'bg-gradient-to-br from-blue-500 to-cyan-500',
-    tooltip: '+15 secondes sur le timer du round',
-  },
-  fifty_fifty: {
-    emoji: '½',
-    label: '50/50',
-    color: 'bg-gradient-to-br from-green-500 to-teal-500',
-    tooltip: 'Retire 2 mauvaises réponses (QCM)',
-  },
-  steal: {
-    emoji: '🥷',
-    label: 'Vol',
-    color: 'bg-gradient-to-br from-red-500 to-rose-600',
-    tooltip: 'Vole 100 pts au joueur en tête',
-  },
-  shield: {
-    emoji: '🛡️',
-    label: 'Bouclier',
-    color: 'bg-gradient-to-br from-gray-400 to-slate-600',
-    tooltip: 'Protège contre le prochain vol',
-  },
-};
 
 interface Props {
   roomCode: string;
@@ -162,13 +121,13 @@ export default function BonusActivator({ roomCode, onBonusActivated }: Props) {
               return (
                 <button
                   key={bonusType}
-                  title={meta.tooltip}
+                  title={meta.description}
                   disabled={isActivating}
                   onClick={() => handleActivate(bonusType as BonusType)}
-                  className={`relative flex flex-col items-center gap-1 w-16 py-2 px-1 rounded-xl text-white text-xs font-bold shadow transition-all hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-wait ${meta.color}`}
+                  className={`relative flex flex-col items-center gap-1 w-16 py-2 px-1 rounded-xl text-white text-xs font-bold shadow transition-all hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-wait ${meta.gradientClass}`}
                 >
                   <span className="text-xl leading-none">{isActivating ? '…' : meta.emoji}</span>
-                  <span className="text-[10px] leading-none text-center">{meta.label}</span>
+                  <span className="text-[10px] leading-none text-center">{meta.shortLabel}</span>
                   {/* Badge quantité */}
                   <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-dark text-[10px] font-black rounded-full w-4 h-4 flex items-center justify-center shadow">
                     {count}

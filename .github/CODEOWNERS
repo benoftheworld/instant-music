@@ -1,0 +1,13 @@
+# Propriétaires par défaut — revue requise sur toute PR
+* @benoftheworld
+
+# Backend Django
+/backend/ @benoftheworld
+
+# Frontend React
+/frontend/ @benoftheworld
+
+# Infrastructure & DevOps
+/_devops/ @benoftheworld
+/.github/ @benoftheworld
+/Makefile @benoftheworld

@@ -95,7 +95,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Permissions / status
     is_active = models.BooleanField(_("active"), default=True)
     is_staff = models.BooleanField(_("staff status"), default=False)
-
+    # RGPD — consentement
+    privacy_policy_accepted_at = models.DateTimeField(
+        _(\"politique de confidentialité acceptée le\"),
+        null=True,
+        blank=True,
+        help_text=_(\"Date d'acceptation de la politique de confidentialité.\"),
+    )
     # Timestamps
     created_at = models.DateTimeField(_("créé le"), auto_now_add=True)
     updated_at = models.DateTimeField(_("modifié le"), auto_now=True)

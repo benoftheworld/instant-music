@@ -5,6 +5,8 @@
 
 const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://127.0.0.1:8000';
 
+import { tokenService } from './tokenService';
+
 type NotifCallback = (data: any) => void;
 
 class NotificationWebSocketService {
@@ -20,7 +22,7 @@ class NotificationWebSocketService {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
 
     this.intentionalDisconnect = false;
-    const accessToken = localStorage.getItem('access_token');
+    const accessToken = tokenService.getAccessToken();
     if (!accessToken) return;
 
     const url = `${WS_BASE_URL}/ws/notifications/?token=${accessToken}`;

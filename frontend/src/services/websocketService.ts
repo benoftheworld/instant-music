@@ -4,6 +4,7 @@
  * Django Channels uses native WebSocket protocol, NOT Socket.IO.
  */
 import type { WebSocketMessage } from '@/types';
+import { tokenService } from './tokenService';
 
 const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://127.0.0.1:8000';
 
@@ -38,7 +39,7 @@ export class WebSocketService {
     this.intentionalDisconnect = false;
     const currentConnectId = ++this.connectId;
 
-    const accessToken = localStorage.getItem('access_token');
+    const accessToken = tokenService.getAccessToken();
     const tokenParam = accessToken ? `?token=${accessToken}` : '';
     const url = `${WS_BASE_URL}/ws/game/${roomCode}/${tokenParam}`;
     console.log('Connecting to WebSocket:', url);

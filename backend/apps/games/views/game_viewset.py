@@ -8,8 +8,7 @@ import string
 
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Prefetch
-from rest_framework import status, viewsets
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -27,6 +26,7 @@ from ..serializers import (
     GameSerializer,
 )
 from ..services import game_service
+from ..game_results_service import build_rankings, build_rounds_detail
 from ..broadcast_service import (
     broadcast_game_finish,
     broadcast_game_update,
@@ -37,6 +37,7 @@ from ..broadcast_service import (
     broadcast_round_start,
 )
 from apps.core.throttles import GameCreateThrottle, GameJoinThrottle
+from apps.core.pagination import parse_pagination_params, paginated_response
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +135,7 @@ class GameViewSet(viewsets.ModelViewSet):
         try:
             broadcast_game_update(room_code, game_data)
         except Exception:
-            pass  # non-fatal if channel layer is unavailable
+            logger.warning("Failed to broadcast game update for %s", room_code)
         return Response(game_data)
 
     @action(detail=True, methods=["post"])
@@ -298,10 +299,10 @@ class GameViewSet(viewsets.ModelViewSet):
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
-        except Exception as e:
-            logger.error("Unexpected error starting game %s: %s", room_code, e)
+        except Exception:
+            logger.exception("Unexpected error starting game %s", room_code)
             return Response(
-                {"error": f"Erreur inattendue: {str(e)}"},
+                {"error": "Une erreur inattendue est survenue. Veuillez réessayer."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -504,60 +505,10 @@ class GameViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Précharger rounds + answers en 2 requêtes au lieu de 1 par round
-        rounds = (
-            GameRound.objects.filter(game=game)
-            .prefetch_related(
-                Prefetch(
-                    "answers",
-                    queryset=GameAnswer.objects.select_related(
-                        "player__user"
-                    ).order_by("-points_earned"),
-                )
-            )
-            .order_by("round_number")
-        )
+        # Précharger rounds + answers via le service partagé
+        rounds_detail, _ = build_rounds_detail(game)
 
         players = game.players.select_related("user").order_by("-score")
-
-        # Recompute per-player consecutive_correct per round (séries de victoires)
-        rounds_detail = []
-        player_streaks: dict = {}
-        for r in rounds:
-            answers = []
-            # iterate answers in deterministic order (answered_at)
-            for ans in r.answers.all().order_by("answered_at"):
-                username = ans.player.user.username
-                curr = player_streaks.get(username, 0)
-                if ans.is_correct:
-                    curr += 1
-                else:
-                    curr = 0
-                player_streaks[username] = curr
-
-                answers.append(
-                    {
-                        "username": username,
-                        "answer": ans.answer,
-                        "is_correct": ans.is_correct,
-                        "points_earned": ans.points_earned,
-                        "response_time": round(ans.response_time, 1),
-                        # expose both the streak length and the stored bonus
-                        "consecutive_correct": curr,
-                        "streak_bonus": ans.streak_bonus,
-                    }
-                )
-
-            rounds_detail.append(
-                {
-                    "round_number": r.round_number,
-                    "track_name": r.track_name,
-                    "artist_name": r.artist_name,
-                    "correct_answer": r.correct_answer,
-                    "track_id": r.track_id,
-                    "answers": answers,
-                }
-            )
 
         game_data = GameSerializer(game).data
         # Add user-friendly display fields (used by frontend)
@@ -590,65 +541,8 @@ class GameViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        players = (
-            game.players.order_by("-score")
-            .select_related("user")
-            .prefetch_related("user__team_memberships__team")
-        )
-        rankings = []
-        for p in players:
-            team_name = None
-            try:
-                tm = p.user.team_memberships.first()
-                if tm and tm.team:
-                    team_name = tm.team.name
-            except Exception:
-                team_name = None
-
-            rankings.append(
-                {
-                    "username": p.user.username,
-                    "score": p.score,
-                    "rank": p.rank,
-                    "team_name": team_name,
-                }
-            )
-
-        # Recompute per-player consecutive_correct per round for PDF export
-        rounds_detail = []
-        player_streaks: dict = {}
-        for r in game.rounds.order_by("round_number"):
-            answers = []
-            for ans in r.answers.select_related("player__user").order_by("answered_at"):
-                username = ans.player.user.username
-                curr = player_streaks.get(username, 0)
-                if ans.is_correct:
-                    curr += 1
-                else:
-                    curr = 0
-                player_streaks[username] = curr
-
-                answers.append(
-                    {
-                        "username": username,
-                        "answer": ans.answer,
-                        "is_correct": ans.is_correct,
-                        "points_earned": ans.points_earned,
-                        "response_time": round(ans.response_time, 1),
-                        "consecutive_correct": curr,
-                        "streak_bonus": ans.streak_bonus,
-                    }
-                )
-
-            rounds_detail.append(
-                {
-                    "round_number": r.round_number,
-                    "track_name": r.track_name,
-                    "artist_name": r.artist_name,
-                    "correct_answer": r.correct_answer,
-                    "answers": answers,
-                }
-            )
+        rankings = build_rankings(game)
+        rounds_detail, _ = build_rounds_detail(game)
 
         game_data = {
             "room_code": game.room_code,
@@ -675,8 +569,10 @@ class GameViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def available(self, request):
-        """Get list of available games to join."""
-        games = Game.objects.filter(status="waiting", is_online=True)
+        """Get list of available games to join (public games only)."""
+        games = Game.objects.filter(
+            status="waiting", is_online=True, is_public=True
+        )
         serializer = GameSerializer(games, many=True)
         return Response(serializer.data)
 
@@ -704,29 +600,14 @@ class GameViewSet(viewsets.ModelViewSet):
         serializer = GameSerializer(games, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=["get"], permission_classes=[])
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[permissions.AllowAny],
+    )
     def history(self, request):
         """Get game history (finished games)."""
-        # Pagination params
-        page = max(int(request.query_params.get("page", 1)), 1)
-        page_size_param = request.query_params.get("page_size", None)
-        # keep backward-compatible 'limit' param if provided
-        limit = request.query_params.get("limit", None)
-
-        if page_size_param is not None:
-            try:
-                page_size = min(int(page_size_param), 100)
-            except ValueError:
-                page_size = 50
-        elif limit is not None:
-            try:
-                page_size = min(int(limit), 100)
-            except ValueError:
-                page_size = 50
-        else:
-            page_size = 50
-
-        offset = (page - 1) * page_size
+        page, page_size, offset = parse_pagination_params(request)
 
         games_qs = (
             Game.objects.filter(status="finished")
@@ -748,25 +629,24 @@ class GameViewSet(viewsets.ModelViewSet):
         serializer = GameHistorySerializer(
             games, many=True, context={"request": request}
         )
-        return Response(
-            {
-                "count": total_count,
-                "page": page,
-                "page_size": page_size,
-                "results": serializer.data,
-            }
-        )
+        return Response(paginated_response(serializer.data, total_count, page, page_size))
 
-    @action(detail=False, methods=["get"], permission_classes=[])
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[permissions.AllowAny],
+    )
     def leaderboard(self, request):
         """Get global leaderboard of top players.
 
-        Delegates to :class:`apps.stats.views.LeaderboardView` to avoid
-        duplicated logic and N+1 queries.
+        Delegates to :func:`apps.stats.services.get_global_leaderboard` for
+        shared logic without the view-calling-view anti-pattern.
         """
-        from apps.stats.views import LeaderboardView
+        from apps.stats.services import get_global_leaderboard
 
-        return LeaderboardView.as_view()(request._request)
+        page, page_size, offset = parse_pagination_params(request)
+        data, total_count = get_global_leaderboard(offset, page_size)
+        return Response(paginated_response(data, total_count, page, page_size))
 
     # ── Invitation actions ────────────────────────────────────────────────────
 

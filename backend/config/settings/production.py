@@ -2,9 +2,24 @@
 Production settings for InstantMusic project.
 """
 
-from .base import *
+from django.core.exceptions import ImproperlyConfigured
+
+from .base import *  # noqa: F401, F403
 
 DEBUG = False
+
+# ── Sécurité : vérification des clés au démarrage ────────────────────
+_INSECURE_DEFAULTS = {
+    "SECRET_KEY": "django-insecure-change-this-in-production",
+    "EMAIL_ENCRYPTION_KEY": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "EMAIL_HASH_KEY": "change-this-hash-key-in-production",
+}
+for _var_name, _insecure_value in _INSECURE_DEFAULTS.items():
+    if globals().get(_var_name) == _insecure_value:
+        raise ImproperlyConfigured(
+            f"{_var_name} utilise encore sa valeur par défaut non sécurisée. "
+            f"Définissez {_var_name} dans votre fichier .env.prod."
+        )
 
 # Security settings
 # SECURE_SSL_REDIRECT doit rester False si Nginx gère déjà la redirection HTTP→HTTPS.

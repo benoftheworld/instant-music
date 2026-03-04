@@ -6,15 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '@/store/notificationStore';
 import { invitationService } from '@/services/invitationService';
+import { getModeLabel } from '@/constants/gameModes';
 import type { GameInvitation } from '@/types';
-
-const MODE_LABELS: Record<string, string> = {
-  classique: 'Classique',
-  rapide: 'Rapide',
-  generation: 'Génération',
-  paroles: 'Paroles',
-  karaoke: 'Karaoké',
-};
 
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -113,7 +106,7 @@ export default function NotificationBell() {
                     </span>{' '}
                     vous invite à une partie{' '}
                     <span className="font-semibold">
-                      {MODE_LABELS[inv.game_mode] ?? inv.game_mode}
+                      {getModeLabel(inv.game_mode)}
                     </span>
                     {inv.game_name ? ` « ${inv.game_name} »` : ''}
                   </p>

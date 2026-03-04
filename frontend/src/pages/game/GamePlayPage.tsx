@@ -17,23 +17,8 @@ import LiveScoreboard from '../../components/game/LiveScoreboard';
 import RoundLoadingScreen from '../../components/game/RoundLoadingScreen';
 import RoundResultsScreen from '../../components/game/RoundResultsScreen';
 import BonusActivator from '../../components/game/BonusActivator';
-
-interface Round {
-  id: string;
-  round_number: number;
-  track_id: string;
-  track_name: string;
-  artist_name: string;
-  preview_url?: string;
-  options: string[];
-  question_type: string;
-  question_text: string;
-  extra_data: Record<string, any>;
-  duration: number;
-  started_at: string;
-  ended_at: string | null;
-  correct_answer?: string;
-}
+import type { GameRound } from '@/types';
+import { mergeUpdatedPlayers } from '@/utils/mergeUpdatedPlayers';
 
 export default function GamePlayPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -41,7 +26,7 @@ export default function GamePlayPage() {
   const user = useAuthStore((state) => state.user);
 
   const [game, setGame] = useState<any>(null);
-  const [currentRound, setCurrentRound] = useState<Round | null>(null);
+  const [currentRound, setCurrentRound] = useState<GameRound | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -251,12 +236,7 @@ export default function GamePlayPage() {
           if (data.results?.updated_players) {
             setGame((prev: any) => {
               if (!prev) return prev;
-              const updatedMap: Record<string, any> = {};
-              for (const p of data.results.updated_players) updatedMap[p.id] = p;
-              const merged = prev.players.map((p: any) =>
-                updatedMap[p.id] ? { ...p, ...updatedMap[p.id], avatar: updatedMap[p.id].avatar ?? p.avatar } : p
-              );
-              return { ...prev, players: merged };
+              return { ...prev, players: mergeUpdatedPlayers(prev.players, data.results.updated_players) };
             });
           }
 
@@ -308,12 +288,7 @@ export default function GamePlayPage() {
           if (data.updated_players) {
             setGame((prev: any) => {
               if (!prev) return prev;
-              const updatedMap: Record<string, any> = {};
-              for (const p of data.updated_players) updatedMap[p.id] = p;
-              const merged = prev.players.map((p: any) =>
-                updatedMap[p.id] ? { ...p, ...updatedMap[p.id], avatar: updatedMap[p.id].avatar ?? p.avatar } : p
-              );
-              return { ...prev, players: merged };
+              return { ...prev, players: mergeUpdatedPlayers(prev.players, data.updated_players) };
             });
           }
           break;
@@ -337,12 +312,7 @@ export default function GamePlayPage() {
           if (data.updated_players) {
             setGame((prev: any) => {
               if (!prev) return prev;
-              const updatedMap: Record<string, any> = {};
-              for (const p of data.updated_players) updatedMap[p.id] = p;
-              const merged = prev.players.map((p: any) =>
-                updatedMap[p.id] ? { ...p, ...updatedMap[p.id] } : p
-              );
-              return { ...prev, players: merged };
+              return { ...prev, players: mergeUpdatedPlayers(prev.players, data.updated_players) };
             });
           }
           break;

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { tokenService } from '@/services/tokenService';
 import type { User, AuthTokens } from '@/types';
 
 interface AuthState {
@@ -19,8 +20,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       setAuth: (user, tokens) => {
-        localStorage.setItem('access_token', tokens.access);
-        localStorage.setItem('refresh_token', tokens.refresh);
+        tokenService.setTokens(tokens.access, tokens.refresh);
         set({ user, tokens, isAuthenticated: true });
       },
 
@@ -29,8 +29,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        tokenService.clearTokens();
         set({ user: null, tokens: null, isAuthenticated: false });
       },
     }),

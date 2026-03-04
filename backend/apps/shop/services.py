@@ -6,6 +6,7 @@ BonusService — activation et consommation des bonus en partie
 """
 
 import logging
+import random
 from typing import Optional
 
 from django.db import transaction
@@ -289,8 +290,6 @@ class BonusService:
             return []
 
         wrong = [o for o in options if o != correct_answer]
-        import random
-
         excluded = random.sample(wrong, min(2, len(wrong)))
 
         for b in bonus_qs:

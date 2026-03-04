@@ -26,6 +26,9 @@ COMPOSE_MON    := _devops/docker/docker-compose.monitoring.yml
 COMPOSE_MON_PROD := _devops/docker/docker-compose.monitoring-prod.yml
 COMPOSE_SSL_INIT := _devops/docker/docker-compose.ssl-init.yml
 
+# Domaine de production (override via `make <target> DOMAIN=mondomaine.fr`)
+DOMAIN         ?= benoftheworld.fr
+
 # Récupère le fichier .env.prod si présent
 ENV_FILE       := $(wildcard _devops/docker/.env.prod)
 COMPOSE_EXTRA  := $(if $(ENV_FILE),--env-file $(ENV_FILE),)
@@ -86,10 +89,10 @@ monitoring-up-prod: ## Lancer le monitoring en production (derrière nginx, pas 
 	  { echo ""; echo "  ERREUR: fichier .htpasswd manquant."; echo "  Exécuter : make monitoring-htpasswd"; echo ""; exit 1; }
 	@docker compose -f $(COMPOSE_MON_PROD) up -d
 	@echo ""
-	@echo "Monitoring disponible sur https://benoftheworld.fr"
-	@echo "  Grafana    -> https://benoftheworld.fr/grafana/"
-	@echo "  Prometheus -> https://benoftheworld.fr/prometheus/"
-	@echo "  Kibana     -> https://benoftheworld.fr/kibana/"
+	@echo "Monitoring disponible sur https://$(DOMAIN)"
+	@echo "  Grafana    -> https://$(DOMAIN)/grafana/"
+	@echo "  Prometheus -> https://$(DOMAIN)/prometheus/"
+	@echo "  Kibana     -> https://$(DOMAIN)/kibana/"
 	@echo ""
 	@echo "Connexion protégée par HTTP Basic Auth (utilisateur défini dans .htpasswd)"
 
@@ -113,7 +116,7 @@ monitoring-kibana-import: ## Importer index patterns + dashboards dans Kibana (p
 	  -H "kbn-xsrf: true" \
 	  --form "file=@/tmp/kibana-saved-objects.ndjson"
 	@echo ""
-	@echo "Import terminé. Dashboard disponible sur https://benoftheworld.fr/kibana/"
+	@echo "Import terminé. Dashboard disponible sur https://$(DOMAIN)/kibana/"
 	@echo ""
 
 .PHONY: monitoring-htpasswd
@@ -193,7 +196,7 @@ dev-makemigrations: ## Créer de nouvelles migrations (dev)
 # ─── Linters & Qualité du code ───────────────────────────────────────────────
 
 .PHONY: lint
-lint: lint-python lint-yaml ## Lancer tous les linters
+lint: lint-python lint-frontend lint-yaml ## Lancer tous les linters
 
 .PHONY: lint-python
 lint-python: ## Ruff check + bandit sur le backend
@@ -208,6 +211,11 @@ lint-python: ## Ruff check + bandit sur le backend
 .PHONY: lint-yaml
 lint-yaml: ## Yamllint sur tous les fichiers YAML
 	@yamllint -c _devops/linter/.yamllint.yml .
+
+.PHONY: lint-frontend
+lint-frontend: ## ESLint sur le frontend
+	@cd frontend && npm run lint
+	@echo "Frontend lint OK"
 
 .PHONY: format
 format: ## Formatage automatique du backend avec ruff

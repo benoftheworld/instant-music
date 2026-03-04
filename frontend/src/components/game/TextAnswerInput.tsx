@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { formatAnswer } from '@/utils/formatAnswer';
 
 interface TextAnswerInputProps {
   onSubmit: (answer: string) => void;
@@ -52,16 +53,7 @@ export default function TextAnswerInput({
   /** Format the displayed answer — handles legacy JSON & plain text. */
   const getDisplayAnswer = () => {
     if (!selectedAnswer) return null;
-    try {
-      const parsed = JSON.parse(selectedAnswer);
-      if (parsed && typeof parsed === 'object') {
-        const parts: string[] = [];
-        if (parsed.artist) parts.push(parsed.artist);
-        if (parsed.title) parts.push(parsed.title);
-        if (parts.length) return parts.join(' - ');
-      }
-    } catch { /* plain text */ }
-    return selectedAnswer;
+    return formatAnswer(selectedAnswer);
   };
 
   const dualPlaceholder = 'Artiste - Titre (dans n\'importe quel ordre)';

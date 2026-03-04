@@ -76,14 +76,14 @@ export interface Game {
 }
 
 export interface GamePlayer {
-  id: number;
-  user: number;
+  id: number | string;
+  user?: number;
   username: string;
   avatar?: string;
   score: number;
-  rank?: number;
-  is_connected: boolean;
-  joined_at: string;
+  rank?: number | null;
+  is_connected?: boolean;
+  joined_at?: string;
   consecutive_correct?: number;
 }
 
@@ -127,8 +127,8 @@ export interface KaraokeTrack {
 }
 
 export interface GameRound {
-  id: number;
-  game: string;
+  id: number | string;
+  game?: string;
   round_number: number;
   track_id: string;
   track_name: string;
@@ -140,7 +140,8 @@ export interface GameRound {
   extra_data: Record<string, any>;
   duration: number;
   started_at: string;
-  ended_at?: string;
+  ended_at?: string | null;
+  correct_answer?: string;
 }
 
 export interface GameAnswer {

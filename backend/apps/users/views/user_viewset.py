@@ -16,12 +16,16 @@ from rest_framework_simplejwt.token_blacklist.models import (
 )
 
 from ..models import User
+from ..models.team_member import TeamMember
 from ..serializers import (
     ChangePasswordSerializer,
     UserMinimalSerializer,
     UserProfileUpdateSerializer,
     UserSerializer,
 )
+from apps.achievements.models import UserAchievement
+from apps.games.models import GameAnswer
+from apps.shop.models import UserInventory
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -129,6 +133,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 "total_games_played": user.total_games_played,
                 "total_wins": user.total_wins,
                 "total_points": user.total_points,
+                "coins": getattr(user, "coins", None),
             },
             "game_participations": [
                 {
@@ -143,6 +148,50 @@ class UserViewSet(viewsets.ModelViewSet):
                 for gp in user.game_participations.select_related("game").order_by(
                     "-joined_at"
                 )
+            ],
+            "game_answers": [
+                {
+                    "room_code": ans.round.game.room_code,
+                    "round_number": ans.round.round_number,
+                    "answer": ans.answer,
+                    "is_correct": ans.is_correct,
+                    "points_earned": ans.points_earned,
+                    "response_time": ans.response_time,
+                    "answered_at": (
+                        ans.answered_at.isoformat() if ans.answered_at else None
+                    ),
+                }
+                for ans in GameAnswer.objects.filter(
+                    player__user=user
+                ).select_related("round__game").order_by("-answered_at")[:500]
+            ],
+            "achievements": [
+                {
+                    "name": ua.achievement.name,
+                    "description": ua.achievement.description,
+                    "unlocked_at": ua.unlocked_at.isoformat(),
+                }
+                for ua in UserAchievement.objects.filter(
+                    user=user
+                ).select_related("achievement")
+            ],
+            "teams": [
+                {
+                    "team_name": tm.team.name,
+                    "role": tm.role,
+                    "joined_at": tm.joined_at.isoformat() if hasattr(tm, "joined_at") else None,
+                }
+                for tm in TeamMember.objects.filter(
+                    user=user
+                ).select_related("team")
+            ],
+            "inventory": [
+                {
+                    "item_name": inv.item.name if hasattr(inv, "item") else str(inv),
+                    "quantity": getattr(inv, "quantity", None),
+                    "acquired_at": inv.acquired_at.isoformat() if hasattr(inv, "acquired_at") else None,
+                }
+                for inv in UserInventory.objects.filter(user=user)
             ],
             "friends": [
                 {

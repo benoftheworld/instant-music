@@ -1,17 +1,8 @@
 import { getMediaUrl } from '@/services/api';
-
-interface Player {
-  id: string;
-  username: string;
-  score: number;
-  rank: number | null;
-  avatar?: string;
-  is_connected?: boolean;
-  consecutive_correct?: number;
-}
+import type { GamePlayer } from '@/types';
 
 interface LiveScoreboardProps {
-  players: Player[];
+  players: GamePlayer[];
 }
 
 const LiveScoreboard = ({ players }: LiveScoreboardProps) => {

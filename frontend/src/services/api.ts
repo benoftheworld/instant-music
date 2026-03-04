@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { useAuthStore } from '@/store/authStore';
+import { tokenService } from './tokenService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -17,7 +18,7 @@ class ApiService {
     // Request interceptor to add auth token
     this.api.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('access_token');
+        const token = tokenService.getAccessToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -36,14 +37,14 @@ class ApiService {
           originalRequest._retry = true;
 
           try {
-            const refreshToken = localStorage.getItem('refresh_token');
+            const refreshToken = tokenService.getRefreshToken();
             if (refreshToken) {
               const response = await axios.post(`${API_URL}/api/auth/token/refresh/`, {
                 refresh: refreshToken,
               });
 
               const { access } = response.data;
-              localStorage.setItem('access_token', access);
+              tokenService.setAccessToken(access);
 
               originalRequest.headers.Authorization = `Bearer ${access}`;
               return this.api(originalRequest);

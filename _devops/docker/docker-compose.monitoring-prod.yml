@@ -114,7 +114,7 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
       # Subpath pour l'accès via nginx /prometheus/
-      - '--web.external-url=https://benoftheworld.fr/prometheus/'
+      - '--web.external-url=https://${DOMAIN:-benoftheworld.fr}/prometheus/'
       - '--web.route-prefix=/'
     expose:
       - '9090'
@@ -131,7 +131,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin # Changer en production !
       - GF_USERS_ALLOW_SIGN_UP=false
       # Subpath pour l'accès via nginx /grafana/
-      - GF_SERVER_ROOT_URL=https://benoftheworld.fr/grafana/
+      - GF_SERVER_ROOT_URL=https://${DOMAIN:-benoftheworld.fr}/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
     volumes:
       - grafana_data:/var/lib/grafana

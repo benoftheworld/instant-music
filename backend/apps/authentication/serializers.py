@@ -4,6 +4,7 @@ Serializers for authentication.
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.utils import timezone
 from rest_framework import serializers
 
 from apps.users.encryption import hash_email
@@ -20,10 +21,23 @@ class RegisterSerializer(serializers.ModelSerializer):
         validators=[validate_password],
     )
     password2 = serializers.CharField(write_only=True, required=True)
+    accept_privacy_policy = serializers.BooleanField(
+        write_only=True,
+        required=True,
+        help_text="L'utilisateur doit accepter la politique de confidentialité.",
+    )
 
     class Meta:
         model = User
-        fields = ["username", "email", "password", "password2"]
+        fields = ["username", "email", "password", "password2", "accept_privacy_policy"]
+
+    def validate_accept_privacy_policy(self, value):
+        """Vérifie que l'utilisateur a accepté la politique de confidentialité."""
+        if not value:
+            raise serializers.ValidationError(
+                "Vous devez accepter la politique de confidentialité pour créer un compte."
+            )
+        return value
 
     def validate_email(self, value):
         """Vérifie l'unicité de l'email via son hash HMAC (email stocké chiffré)."""
@@ -44,7 +58,10 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Create new user."""
         validated_data.pop("password2")
+        validated_data.pop("accept_privacy_policy")
         user = User.objects.create_user(**validated_data)
+        user.privacy_policy_accepted_at = timezone.now()
+        user.save(update_fields=["privacy_policy_accepted_at"])
         return user
 
 
