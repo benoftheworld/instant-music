@@ -1,5 +1,11 @@
 import { api } from './api';
-import type { UserDetailedStats, MyRank, GameMode } from '@/types';
+import type {
+  UserDetailedStats,
+  MyRank,
+  GameMode,
+  LeaderboardEntry,
+  TeamLeaderboardEntry,
+} from '@/types';
 
 /** Réponse paginée du leaderboard. */
 export interface LeaderboardResponse {
@@ -9,13 +15,12 @@ export interface LeaderboardResponse {
   page_size: number;
 }
 
-export interface LeaderboardEntry {
-  rank: number;
-  username: string;
-  avatar?: string;
-  score: number;
-  games_played: number;
-  [key: string]: unknown;
+/** Réponse paginée du leaderboard équipes. */
+export interface TeamLeaderboardResponse {
+  results: TeamLeaderboardEntry[];
+  count: number;
+  page: number;
+  page_size: number;
 }
 
 export const statsService = {
@@ -42,8 +47,8 @@ export const statsService = {
   },
 
   /** Get team leaderboard */
-  async getTeamLeaderboard(page = 1, page_size = 50): Promise<LeaderboardResponse> {
-    const response = await api.get<LeaderboardResponse>('/stats/leaderboard/teams/', {
+  async getTeamLeaderboard(page = 1, page_size = 50): Promise<TeamLeaderboardResponse> {
+    const response = await api.get<TeamLeaderboardResponse>('/stats/leaderboard/teams/', {
       params: { page, page_size },
     });
     return response.data;
