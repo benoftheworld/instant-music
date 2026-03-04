@@ -6,6 +6,7 @@ No API key required.
 import logging
 import random
 import hashlib
+import re
 from typing import Dict, List, Optional
 
 import requests
@@ -18,6 +19,59 @@ logger = logging.getLogger(__name__)
 API_TIMEOUT: int = 10          # seconds for Deezer API requests
 CACHE_TTL_SEARCH: int = 1800   # 30 min for search results
 CACHE_TTL_DETAIL: int = 3600   # 1 hour for playlist / track details
+
+# ─── Title cleaning ──────────────────────────────────────────────────
+
+# Matches parenthesised / bracketed / dash-separated version suffixes that
+# do NOT belong to the original song title, e.g.:
+#   "Bohemian Rhapsody (Remastered 2011)"
+#   "Hymne à l'amour - 2020 Remaster"
+#   "Ma Benz [Remasterisée]"
+#   "Song Title (Deluxe Edition)"
+#   "Song Title (Special Edition)"
+#   "Song Title (Anniversary Edition)"
+_TITLE_SUFFIX_RE = re.compile(
+    r"\s*(?:"
+    # parenthesised / bracketed suffix — keyword can appear before or after a year
+    # e.g. (Remastered 2011)  (2011 Remaster)  [Remasterisée]  (Deluxe Edition)
+    r"[\(\[]"
+    r"[^\)\]]*"    # any text before the keyword (handles "2011 Remaster…")
+    r"(?:remaster[a-zA-Z\u00c0-\u00ff]*|re-?issue|deluxe|super\s*deluxe|anniversary|expanded|special(?:\s*(?:edition|version))?)"
+    r"[^\)\]]*"    # any text after the keyword
+    r"[\)\]]"
+    r"|"
+    # bare dash-separated suffix: « - Remastered » « - 2020 Remaster » « - Deluxe »
+    r"-\s*(?:\d{4}\s*)?(?:remaster[a-zA-Z\u00c0-\u00ff]*|re-?issue|deluxe|anniversary).*"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def clean_track_title(title: str) -> str:
+    """
+    Strip remaster / re-edition suffixes from a track title.
+
+    Handles parenthesised, bracketed and dash-separated forms — including
+    cases where the year precedes or follows the keyword, and French variants.
+
+    Examples (stripped → cleaned):
+      "Bohemian Rhapsody (Remastered 2011)"   → "Bohemian Rhapsody"
+      "Hymne à l'amour (Remastered)"          → "Hymne à l'amour"
+      "Hymne à l'amour - 2020 Remaster"       → "Hymne à l'amour"
+      "Hotel California (2013 Remaster)"      → "Hotel California"
+      "Ma Benz [Remasterisée]"                → "Ma Benz"
+      "Thriller (Deluxe Edition)"             → "Thriller"
+      "Song - Remastered"                     → "Song"
+
+    Examples (unchanged):
+      "Emmenez-moi"      → "Emmenez-moi"
+      "Starman (Live)"   → "Starman (Live)"
+      "99 Problems"      → "99 Problems"
+    """
+    cleaned = _TITLE_SUFFIX_RE.sub("", title).strip()
+    # Remove any trailing lonely dash/hyphen left after the substitution
+    cleaned = re.sub(r"\s*-\s*$", "", cleaned).strip()
+    return cleaned or title  # safety: never return an empty string
 
 
 class DeezerAPIError(Exception):
@@ -277,7 +331,7 @@ class DeezerService:
 
         return {
             "track_id": str(item.get("id", "")),
-            "name": item.get("title", item.get("title_short", "")),
+            "name": clean_track_title(item.get("title", item.get("title_short", ""))),
             "artists": [artist.get("name", "Unknown")],
             "album": album.get("title", ""),
             "album_image": album.get("cover_medium", album.get("cover", "")),
