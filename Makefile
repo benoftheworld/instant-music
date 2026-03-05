@@ -87,7 +87,7 @@ monitoring-up: ## Lancer la stack de monitoring (ELK + Prometheus + Grafana) —
 monitoring-up-prod: ## Lancer le monitoring en production (derrière nginx, pas de ports exposés)
 	@test -f _devops/nginx/monitoring/.htpasswd || \
 	  { echo ""; echo "  ERREUR: fichier .htpasswd manquant."; echo "  Exécuter : make monitoring-htpasswd"; echo ""; exit 1; }
-	@docker compose -f $(COMPOSE_MON_PROD) up -d
+	@docker compose -f $(COMPOSE_MON_PROD) $(COMPOSE_EXTRA) up -d
 	@echo ""
 	@echo "Monitoring disponible sur https://$(DOMAIN)"
 	@echo "  Grafana    -> https://$(DOMAIN)/grafana/"
@@ -102,16 +102,16 @@ monitoring-down: ## Arrêter la stack de monitoring (dev)
 
 .PHONY: monitoring-down-prod
 monitoring-down-prod: ## Arrêter la stack de monitoring (production)
-	@docker compose -f $(COMPOSE_MON_PROD) down
+	@docker compose -f $(COMPOSE_MON_PROD) $(COMPOSE_EXTRA) down
 
 .PHONY: monitoring-kibana-import
 monitoring-kibana-import: ## Importer index patterns + dashboards dans Kibana (prod)
 	@echo ""
 	@echo "Import des saved objects Kibana..."
-	@docker compose -f $(COMPOSE_MON_PROD) cp \
+	@docker compose -f $(COMPOSE_MON_PROD) $(COMPOSE_EXTRA) cp \
 	  _devops/monitoring/kibana/saved-objects.ndjson \
 	  kibana:/tmp/kibana-saved-objects.ndjson
-	@docker compose -f $(COMPOSE_MON_PROD) exec kibana \
+	@docker compose -f $(COMPOSE_MON_PROD) $(COMPOSE_EXTRA) exec kibana \
 	  curl -f -X POST "http://localhost:5601/kibana/api/saved_objects/_import?overwrite=true" \
 	  -H "kbn-xsrf: true" \
 	  --form "file=@/tmp/kibana-saved-objects.ndjson"
