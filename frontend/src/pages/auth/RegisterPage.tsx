@@ -8,6 +8,7 @@ export default function RegisterPage() {
     email: '',
     password: '',
     password2: '',
+    accept_privacy_policy: false,
   });
   const registerMutation = useRegister();
 
@@ -17,9 +18,10 @@ export default function RegisterPage() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: value,
     });
   };
 
@@ -83,6 +85,24 @@ export default function RegisterPage() {
               className="input"
               required
             />
+          </div>
+
+          <div className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              id="accept_privacy_policy"
+              name="accept_privacy_policy"
+              checked={formData.accept_privacy_policy}
+              onChange={handleChange}
+              className="mt-1"
+              required
+            />
+            <label htmlFor="accept_privacy_policy" className="text-sm text-gray-600">
+              J'accepte la{' '}
+              <a href="/politique-de-confidentialite" className="text-primary-600 hover:underline" target="_blank" rel="noopener noreferrer">
+                politique de confidentialité
+              </a>
+            </label>
           </div>
 
           {registerMutation.isError && (

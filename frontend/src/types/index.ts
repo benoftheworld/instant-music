@@ -37,6 +37,7 @@ export interface RegisterData {
   email: string;
   password: string;
   password2: string;
+  accept_privacy_policy: boolean;
 }
 
 export type GameMode = 'classique' | 'rapide' | 'generation' | 'paroles' | 'karaoke';
