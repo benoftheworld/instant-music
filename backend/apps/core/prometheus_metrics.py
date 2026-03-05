@@ -1,5 +1,4 @@
-"""
-Métriques Prometheus applicatives pour InstantMusic.
+"""Métriques Prometheus applicatives pour InstantMusic.
 
 Ce module centralise toutes les métriques custom exposées sur /metrics/.
 Les métriques sont organisées en catégories :

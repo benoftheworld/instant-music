@@ -1,5 +1,4 @@
-"""
-App configuration for administration.
+"""App configuration for administration.
 """
 
 from django.apps import AppConfig

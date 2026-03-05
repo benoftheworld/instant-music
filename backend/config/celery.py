@@ -1,5 +1,4 @@
-"""
-Celery configuration for InstantMusic project.
+"""Celery configuration for InstantMusic project.
 """
 
 import os

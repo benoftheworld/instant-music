@@ -23,8 +23,7 @@ def decrypt_email(token: str) -> str:
 
 
 def hash_email(email: str) -> str:
-    """
-    Calcule un HMAC-SHA256 de l'email (normalisé en minuscules).
+    """Calcule un HMAC-SHA256 de l'email (normalisé en minuscules).
 
     Ce hash est utilisé pour les lookups ORM (WHERE email_hash = ?)
     sans nécessiter de déchiffrement. Sans la clé EMAIL_HASH_KEY,

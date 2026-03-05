@@ -1,5 +1,4 @@
-"""
-Base Django settings for InstantMusic project.
+"""Base Django settings for InstantMusic project.
 """
 
 import os

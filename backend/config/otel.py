@@ -1,5 +1,4 @@
-"""
-Configuration OpenTelemetry — activée par OTEL_ENABLED=true.
+"""Configuration OpenTelemetry — activée par OTEL_ENABLED=true.
 
 Le module initialise le tracing distribué :
 - TracerProvider avec OTLPSpanExporter (vers Jaeger/Tempo)

@@ -16,6 +16,7 @@ def build_rounds_detail(game: Game) -> tuple[list[dict], dict[str, int]]:
 
     Returns:
         tuple: (rounds_detail, player_streaks)
+
     """
     rounds = (
         GameRound.objects.filter(game=game)

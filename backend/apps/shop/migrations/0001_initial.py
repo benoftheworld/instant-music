@@ -1,5 +1,4 @@
-"""
-Migration initiale de l'application boutique.
+"""Migration initiale de l'application boutique.
 """
 
 import uuid

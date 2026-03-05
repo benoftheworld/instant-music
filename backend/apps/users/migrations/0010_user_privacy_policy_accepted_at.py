@@ -1,5 +1,4 @@
-"""
-Migration : ajout du champ privacy_policy_accepted_at au modèle User.
+"""Migration : ajout du champ privacy_policy_accepted_at au modèle User.
 """
 
 import django.utils.translation

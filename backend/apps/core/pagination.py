@@ -28,6 +28,7 @@ def parse_pagination_params(
 
     Returns:
         tuple: (page, page_size, offset)
+
     """
     page = max(int(request.query_params.get("page", 1)), 1)
 

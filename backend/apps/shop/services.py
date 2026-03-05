@@ -1,5 +1,4 @@
-"""
-Services métier de la boutique.
+"""Services métier de la boutique.
 
 ShopService  — gestion des achats et de l'inventaire
 BonusService — activation et consommation des bonus en partie
@@ -34,8 +33,7 @@ class ShopService:
 
     @transaction.atomic
     def purchase(self, user, item_id: str, quantity: int = 1) -> UserInventory:
-        """
-        Acheter un article de la boutique.
+        """Acheter un article de la boutique.
 
         Déduit les pièces du solde de l'utilisateur et incrémente l'inventaire.
         """
@@ -121,8 +119,7 @@ class ShopService:
         )
 
     def get_total_coins_available(self) -> int:
-        """
-        Retourne le total de pièces qu'un joueur peut obtenir en débloquant
+        """Retourne le total de pièces qu'un joueur peut obtenir en débloquant
         tous les achievements existants.
         Utilisé pour afficher le total max dans la boutique.
         """
@@ -151,8 +148,7 @@ class BonusService:
         bonus_type: str,
         round_number: int | None = None,
     ) -> GameBonus:
-        """
-        Activer un bonus en partie.
+        """Activer un bonus en partie.
 
         Consomme 1 exemplaire dans l'inventaire du joueur et crée un
         enregistrement GameBonus.
@@ -248,8 +244,7 @@ class BonusService:
         is_correct: bool,
         game,
     ) -> tuple[int, list[str]]:
-        """
-        Appliquer les bonus de score actifs pour un joueur sur un round.
+        """Appliquer les bonus de score actifs pour un joueur sur un round.
 
         Retourne (points_finaux, liste_des_bonus_appliqués).
         """
@@ -292,8 +287,7 @@ class BonusService:
         options: list[str],
         correct_answer: str,
     ) -> list[str]:
-        """
-        Retourne les 2 mauvaises réponses à masquer pour le 50/50.
+        """Retourne les 2 mauvaises réponses à masquer pour le 50/50.
         Consomme le bonus si présent.
         """
         bonus_qs = GameBonus.objects.filter(
@@ -314,8 +308,7 @@ class BonusService:
         return excluded
 
     def apply_steal_bonus(self, player, game, round_number: int) -> int:
-        """
-        Applique le bonus 'vol de points' :
+        """Applique le bonus 'vol de points' :
         Vole STEAL_POINTS au joueur en tête (si bouclier absent).
         Retourne les points volés (0 si personne à voler ou bouclier actif).
         """
@@ -385,8 +378,7 @@ class BonusService:
         return stolen  # type: ignore[no-any-return]
 
     def apply_time_bonus(self, player, round_obj) -> int:
-        """
-        Applique le bonus 'temps bonus' :
+        """Applique le bonus 'temps bonus' :
         Ajoute TIME_BONUS_SECONDS à la durée du round en cours.
         Retourne la nouvelle durée totale du round (0 si bonus absent).
         """

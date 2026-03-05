@@ -1,5 +1,4 @@
-"""
-PDF generation service for game results.
+"""PDF generation service for game results.
 Uses ReportLab to produce a polished multi-page results document.
 
 Layout:
@@ -149,7 +148,6 @@ def generate_results_pdf(
     rounds: list[dict[str, Any]],
 ) -> bytes:
     """Return a polished PDF (bytes) containing the full game results."""
-
     room_code = game_data.get("room_code", "?")
     game_name = game_data.get("name") or ""
     mode_display = game_data.get("mode_display", game_data.get("mode", "?"))

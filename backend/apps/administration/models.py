@@ -1,5 +1,4 @@
-"""
-Models for site-wide administration settings.
+"""Models for site-wide administration settings.
 
 SiteConfiguration is a singleton — at most one row lives in the table.
 Access it via SiteConfiguration.get_solo().
@@ -11,8 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 class SiteConfiguration(models.Model):
-    """
-    Singleton model holding site-wide configuration.
+    """Singleton model holding site-wide configuration.
 
     Only ONE row is allowed (pk=1 enforced in save/clean).
     Use ``SiteConfiguration.get_solo()`` to retrieve (or create) it.
@@ -106,8 +104,7 @@ class SiteConfiguration(models.Model):
 
 
 class LegalPage(models.Model):
-    """
-    Editable legal pages (privacy policy, legal notices).
+    """Editable legal pages (privacy policy, legal notices).
     Each page_type can only exist once (unique constraint).
     """
 

@@ -1,5 +1,4 @@
-"""
-Views for stats.
+"""Views for stats.
 """
 
 from django.db.models import Avg, Count, Max, Q, Sum

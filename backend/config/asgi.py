@@ -1,5 +1,4 @@
-"""
-ASGI config for InstantMusic project.
+"""ASGI config for InstantMusic project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 

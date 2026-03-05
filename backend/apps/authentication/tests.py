@@ -1,5 +1,4 @@
-"""
-Tests complets pour l'application authentication.
+"""Tests complets pour l'application authentication.
 
 Couvre : inscription, connexion, déconnexion, réinitialisation de mot de passe,
 rafraîchissement de token, bonus quotidien.

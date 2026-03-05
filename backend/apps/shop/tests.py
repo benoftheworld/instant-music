@@ -1,5 +1,4 @@
-"""
-Tests de l'application boutique.
+"""Tests de l'application boutique.
 """
 
 import pytest

@@ -1,5 +1,4 @@
-"""
-Service de génération de questions à partir de playlists Deezer.
+"""Service de génération de questions à partir de playlists Deezer.
 """
 
 import hashlib
@@ -52,8 +51,7 @@ class QuestionGeneratorService:
 
     @staticmethod
     def _get_musicbrainz_year(artist: str, title: str) -> int | None:
-        """
-        Query MusicBrainz for the earliest known release year of a recording.
+        """Query MusicBrainz for the earliest known release year of a recording.
 
         Uses the free MusicBrainz search API (no auth required).
         Results are cached for 24 h to avoid hammering the service.
@@ -120,8 +118,7 @@ class QuestionGeneratorService:
         lyrics_words_count: int = 3,
         guess_target: str = "title",
     ) -> list[dict]:
-        """
-        Generate quiz questions from a Deezer playlist.
+        """Generate quiz questions from a Deezer playlist.
 
         Args:
             playlist_id: Deezer playlist ID
@@ -134,6 +131,7 @@ class QuestionGeneratorService:
 
         Returns:
             List of question dictionaries
+
         """
         tracks = self._fetch_tracks(playlist_id, limit=50)
 

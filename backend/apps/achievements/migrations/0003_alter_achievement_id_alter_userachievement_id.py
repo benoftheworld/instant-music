@@ -8,8 +8,9 @@
 #   - FK cross-app : userachievement.user_id → users_user.id
 #     (contrainte supprimée par users/0005, colonne convertie ici)
 
-from django.db import migrations, models
 import uuid
+
+from django.db import migrations, models
 
 
 class Migration(migrations.Migration):

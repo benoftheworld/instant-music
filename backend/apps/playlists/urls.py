@@ -1,5 +1,4 @@
-"""
-URL Configuration for playlists app.
+"""URL Configuration for playlists app.
 """
 
 from django.urls import include, path

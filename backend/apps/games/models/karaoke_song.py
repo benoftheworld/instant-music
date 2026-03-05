@@ -1,5 +1,4 @@
-"""
-KaraokeSong model — catalogue of songs available for Karaoke mode.
+"""KaraokeSong model — catalogue of songs available for Karaoke mode.
 """
 
 import uuid
@@ -9,8 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 class KaraokeSong(models.Model):
-    """
-    Catalogue of songs available for Karaoke mode.
+    """Catalogue of songs available for Karaoke mode.
     Filled manually by admins. Associates a YouTube video with
     a LRCLib.net lyrics entry so synchronised lyrics are always
     resolved from the correct source.

@@ -1,5 +1,4 @@
-"""
-GameRound model — round in a game.
+"""GameRound model — round in a game.
 """
 
 import uuid

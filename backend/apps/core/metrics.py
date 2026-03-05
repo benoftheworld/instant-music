@@ -1,5 +1,4 @@
-"""
-Prometheus metrics endpoint for Django.
+"""Prometheus metrics endpoint for Django.
 """
 
 import os

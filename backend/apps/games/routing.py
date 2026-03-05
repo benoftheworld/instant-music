@@ -1,5 +1,4 @@
-"""
-WebSocket routing for games.
+"""WebSocket routing for games.
 """
 
 from django.urls import re_path

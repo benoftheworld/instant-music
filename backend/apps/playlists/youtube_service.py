@@ -1,5 +1,4 @@
-"""
-YouTube Data API v3 service for searching playlists and videos.
+"""YouTube Data API v3 service for searching playlists and videos.
 Music streaming service integration for InstantMusic.
 """
 
@@ -35,8 +34,7 @@ class YouTubeAPIError(Exception):
 
 
 class YouTubeService:
-    """
-    Service to interact with YouTube Data API v3.
+    """Service to interact with YouTube Data API v3.
 
     Uses API key authentication (no OAuth needed).
     Provides playlist search, video search, and playlist item listing.
@@ -48,8 +46,7 @@ class YouTubeService:
         self.api_key = getattr(settings, "YOUTUBE_API_KEY", "")
 
     def _make_request(self, endpoint: str, params: dict) -> dict:
-        """
-        Make a request to the YouTube Data API.
+        """Make a request to the YouTube Data API.
 
         Args:
             endpoint: API endpoint (e.g., 'search', 'playlists', 'playlistItems')
@@ -60,6 +57,7 @@ class YouTubeService:
 
         Raises:
             YouTubeAPIError: If the request fails
+
         """
         if not self.api_key:
             raise YouTubeAPIError(
@@ -86,8 +84,7 @@ class YouTubeService:
             raise YouTubeAPIError(f"YouTube API request failed: {e}")
 
     def search_playlists(self, query: str, limit: int = 20) -> list[dict]:
-        """
-        Search for music playlists on YouTube.
+        """Search for music playlists on YouTube.
 
         Args:
             query: Search query
@@ -95,6 +92,7 @@ class YouTubeService:
 
         Returns:
             List of playlist dicts
+
         """
         cache_key = f"yt_search_pl_{query}_{limit}"
         cached = cache.get(cache_key)
@@ -142,14 +140,14 @@ class YouTubeService:
         return playlists
 
     def get_playlist(self, playlist_id: str) -> dict | None:
-        """
-        Get playlist details by ID.
+        """Get playlist details by ID.
 
         Args:
             playlist_id: YouTube playlist ID
 
         Returns:
             Playlist dict or None
+
         """
         cache_key = f"yt_playlist_{playlist_id}"
         cached = cache.get(cache_key)
@@ -194,8 +192,7 @@ class YouTubeService:
         return result
 
     def get_playlist_tracks(self, playlist_id: str, limit: int = 50) -> list[dict]:
-        """
-        Get videos from a YouTube playlist.
+        """Get videos from a YouTube playlist.
 
         Args:
             playlist_id: YouTube playlist ID
@@ -203,6 +200,7 @@ class YouTubeService:
 
         Returns:
             List of track dicts
+
         """
         cache_key = f"yt_pl_tracks_{playlist_id}_{limit}"
         cached = cache.get(cache_key)
@@ -300,8 +298,7 @@ class YouTubeService:
         return tracks[:limit]
 
     def search_music_videos(self, query: str, limit: int = 50) -> list[dict]:
-        """
-        Search for music videos on YouTube.
+        """Search for music videos on YouTube.
         Useful as a fallback when playlist access fails.
 
         Args:
@@ -310,6 +307,7 @@ class YouTubeService:
 
         Returns:
             List of track dicts
+
         """
         cache_key = f"yt_search_vid_{query}_{limit}"
         cached = cache.get(cache_key)
@@ -373,14 +371,14 @@ class YouTubeService:
         return tracks
 
     def _get_video_details(self, video_ids: list[str]) -> dict[str, dict]:
-        """
-        Get video details (duration, etc.) for multiple videos.
+        """Get video details (duration, etc.) for multiple videos.
 
         Args:
             video_ids: List of YouTube video IDs
 
         Returns:
             Dict mapping video_id to details
+
         """
         details = {}
 
@@ -413,8 +411,7 @@ class YouTubeService:
 
     @staticmethod
     def _parse_iso_duration(duration: str) -> int:
-        """
-        Parse ISO 8601 duration to milliseconds.
+        """Parse ISO 8601 duration to milliseconds.
         Example: 'PT4M13S' -> 253000
         """
         match = _ISO_DURATION_RE.match(duration)
@@ -429,8 +426,7 @@ class YouTubeService:
 
     @staticmethod
     def _parse_video_title(title: str) -> tuple:
-        """
-        Parse a YouTube music video title into artist and track name.
+        """Parse a YouTube music video title into artist and track name.
 
         Common formats:
         - "Artist - Track Name"
@@ -440,6 +436,7 @@ class YouTubeService:
 
         Returns:
             Tuple of (artist, track_name)
+
         """
 
         def _strip(s: str) -> str:

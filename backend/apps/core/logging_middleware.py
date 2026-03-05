@@ -1,5 +1,4 @@
-"""
-Middleware de logging structuré pour les requêtes HTTP.
+"""Middleware de logging structuré pour les requêtes HTTP.
 
 Enregistre chaque requête avec request_id, user_id, method, path,
 status_code et duration_ms au format JSON.

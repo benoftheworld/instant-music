@@ -1,5 +1,4 @@
-"""
-Configuration de l'admin Django pour la boutique.
+"""Configuration de l'admin Django pour la boutique.
 """
 
 from django.contrib import admin

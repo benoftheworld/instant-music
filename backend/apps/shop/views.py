@@ -1,5 +1,4 @@
-"""
-Vues de la boutique.
+"""Vues de la boutique.
 """
 
 import logging
@@ -33,8 +32,7 @@ logger = logging.getLogger("apps.shop.views")
 
 
 class ShopViewSet(ReadOnlyModelViewSet):
-    """
-    Boutique virtuelle — liste et détail des articles disponibles.
+    """Boutique virtuelle — liste et détail des articles disponibles.
 
     GET  /api/shop/items/          — catalogue complet
     GET  /api/shop/items/{id}/     — détail d'un article
@@ -48,8 +46,7 @@ class ShopViewSet(ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"])
     def summary(self, request):
-        """
-        Retourne un résumé de la boutique :
+        """Retourne un résumé de la boutique :
         - total_coins_available : total de pièces déblocables (tous achievements)
         - user_balance          : solde actuel de l'utilisateur
         - items_count           : nombre d'articles disponibles
@@ -90,8 +87,7 @@ class ShopViewSet(ReadOnlyModelViewSet):
 
 
 class InventoryViewSet(GenericViewSet):
-    """
-    Inventaire de l'utilisateur connecté.
+    """Inventaire de l'utilisateur connecté.
 
     GET  /api/shop/inventory/            — liste des articles possédés
     POST /api/shop/inventory/activate/   — activer un bonus en partie

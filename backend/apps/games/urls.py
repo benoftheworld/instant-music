@@ -1,5 +1,4 @@
-"""
-URL configuration for games app.
+"""URL configuration for games app.
 """
 
 from django.urls import include, path

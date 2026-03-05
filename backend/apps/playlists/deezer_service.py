@@ -1,5 +1,4 @@
-"""
-Deezer API service for searching playlists and tracks.
+"""Deezer API service for searching playlists and tracks.
 Replaces YouTube as the music source — uses free 30-second MP3 previews.
 No API key required.
 """
@@ -48,8 +47,7 @@ _TITLE_SUFFIX_RE = re.compile(
 
 
 def clean_track_title(title: str) -> str:
-    """
-    Strip remaster / re-edition suffixes from a track title.
+    """Strip remaster / re-edition suffixes from a track title.
 
     Handles parenthesised, bracketed and dash-separated forms — including
     cases where the year precedes or follows the keyword, and French variants.
@@ -81,8 +79,7 @@ class DeezerAPIError(Exception):
 
 
 class DeezerService:
-    """
-    Service to interact with the Deezer public API.
+    """Service to interact with the Deezer public API.
 
     Provides playlist search, track search, and playlist track listing.
     All tracks include a direct 30-second MP3 preview URL.
@@ -91,8 +88,7 @@ class DeezerService:
     BASE_URL = "https://api.deezer.com"
 
     def _make_request(self, endpoint: str, params: dict | None = None) -> dict:
-        """
-        Make a GET request to the Deezer API.
+        """Make a GET request to the Deezer API.
 
         Args:
             endpoint: API path (e.g., '/search/playlist')
@@ -103,6 +99,7 @@ class DeezerService:
 
         Raises:
             DeezerAPIError: If the request fails
+
         """
         url = f"{self.BASE_URL}{endpoint}"
 
@@ -127,8 +124,7 @@ class DeezerService:
     # ── Playlist operations ──────────────────────────────────────────
 
     def search_playlists(self, query: str, limit: int = 20) -> list[dict]:
-        """
-        Search for playlists on Deezer.
+        """Search for playlists on Deezer.
 
         Args:
             query: Search query
@@ -138,6 +134,7 @@ class DeezerService:
             List of playlist dicts with keys:
             youtube_id (kept for compat, actually deezer id), name, description,
             image_url, total_tracks, owner, external_url
+
         """
         cache_key = f"dz_search_pl_{hashlib.md5(query.encode()).hexdigest()}_{limit}"
         cached = cache.get(cache_key)
@@ -164,11 +161,11 @@ class DeezerService:
         return playlists
 
     def get_playlist(self, playlist_id: str) -> dict | None:
-        """
-        Get a single playlist by Deezer ID.
+        """Get a single playlist by Deezer ID.
 
         Returns:
             Playlist dict or None
+
         """
         cache_key = f"dz_pl_{playlist_id}"
         cached = cache.get(cache_key)
@@ -194,8 +191,7 @@ class DeezerService:
         return playlist
 
     def get_playlist_tracks(self, playlist_id: str, limit: int = 50) -> list[dict]:
-        """
-        Get tracks from a Deezer playlist.
+        """Get tracks from a Deezer playlist.
         Filters out tracks without a preview URL.
 
         Args:
@@ -204,6 +200,7 @@ class DeezerService:
 
         Returns:
             List of track dicts
+
         """
         cache_key = f"dz_pl_tracks_{playlist_id}_{limit}"
         cached = cache.get(cache_key)
@@ -249,8 +246,7 @@ class DeezerService:
         return tracks
 
     def search_tracks(self, query: str, limit: int = 20) -> list[dict]:
-        """
-        Search for tracks on Deezer.
+        """Search for tracks on Deezer.
 
         Args:
             query: Search query (e.g., 'Dua Lipa Levitating')
@@ -258,6 +254,7 @@ class DeezerService:
 
         Returns:
             List of track dicts (only those with preview URLs)
+
         """
         cache_key = f"dz_search_tr_{hashlib.md5(query.encode()).hexdigest()}_{limit}"
         cached = cache.get(cache_key)
@@ -278,18 +275,17 @@ class DeezerService:
         return tracks
 
     def search_music_videos(self, query: str, limit: int = 50) -> list[dict]:
-        """
-        Alias for search_tracks — interface compat with YouTubeService.
+        """Alias for search_tracks — interface compat with YouTubeService.
         """
         return self.search_tracks(query, limit)
 
     def get_track_details(self, track_id: str) -> dict | None:
-        """
-        Get detailed info for a single track, including release_date.
+        """Get detailed info for a single track, including release_date.
 
         Returns:
             Dict with 'release_date' (str YYYY-MM-DD) and parsed track data,
             or None on error.
+
         """
         cache_key = f"dz_track_{track_id}"
         cached = cache.get(cache_key)
@@ -312,8 +308,7 @@ class DeezerService:
     # ── Helpers ──────────────────────────────────────────────────────
 
     def _parse_track(self, item: dict) -> dict | None:
-        """
-        Parse a Deezer track item into our normalised format.
+        """Parse a Deezer track item into our normalised format.
         Returns None if the track has no preview URL.
 
         Keys:

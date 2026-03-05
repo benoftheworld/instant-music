@@ -1,5 +1,4 @@
-"""
-URL configuration for apps/administration.
+"""URL configuration for apps/administration.
 """
 
 from django.urls import path

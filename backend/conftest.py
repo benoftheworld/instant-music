@@ -1,5 +1,4 @@
-"""
-Fixtures partagées pour les tests backend.
+"""Fixtures partagées pour les tests backend.
 """
 
 import pytest

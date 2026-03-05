@@ -1,5 +1,4 @@
-"""
-Views for achievements.
+"""Views for achievements.
 """
 
 from rest_framework import generics, permissions

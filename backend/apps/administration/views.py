@@ -1,5 +1,4 @@
-"""
-API views for administration (public-facing parts).
+"""API views for administration (public-facing parts).
 
 GET /api/administration/status/
   Returns maintenance status + active banner info.
@@ -18,8 +17,7 @@ from .models import LegalPage, SiteConfiguration
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def site_status(request):
-    """
-    Return current maintenance & banner state.
+    """Return current maintenance & banner state.
 
     Response shape:
     {
@@ -54,8 +52,7 @@ def site_status(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def legal_page(request, page_type: str):
-    """
-    Return the content of a legal page (privacy policy or legal notices).
+    """Return the content of a legal page (privacy policy or legal notices).
     No authentication required — accessible to all visitors.
     """
     try:

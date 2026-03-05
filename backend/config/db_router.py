@@ -1,5 +1,4 @@
-"""
-Routeur de base de données pour la réplication lecture/écriture.
+"""Routeur de base de données pour la réplication lecture/écriture.
 
 Toutes les écritures vont sur la base « default » (primary).
 Les lectures sont routées vers « replica » si configurée, sinon « default ».

@@ -1,5 +1,4 @@
-"""
-Tâches Celery de maintenance RGPD.
+"""Tâches Celery de maintenance RGPD.
 
 Nettoyage périodique des données expirées pour respecter la rétention minimale.
 """

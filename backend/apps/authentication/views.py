@@ -1,5 +1,4 @@
-"""
-Views for authentication.
+"""Views for authentication.
 """
 
 import logging
@@ -142,8 +141,7 @@ def login(request):
 @permission_classes([AllowAny])
 @throttle_classes([PasswordResetThrottle])
 def password_reset_request(request):
-    """
-    Demande de réinitialisation de mot de passe.
+    """Demande de réinitialisation de mot de passe.
 
     Envoie un email avec un lien de réinitialisation si l'adresse existe.
     Retourne toujours 200 pour éviter l'énumération d'adresses email.
@@ -202,8 +200,7 @@ def password_reset_request(request):
 @permission_classes([AllowAny])
 @throttle_classes([PasswordResetThrottle])
 def password_reset_confirm(request):
-    """
-    Confirmation de la réinitialisation du mot de passe.
+    """Confirmation de la réinitialisation du mot de passe.
 
     Valide le token reçu par email et met à jour le mot de passe.
     """

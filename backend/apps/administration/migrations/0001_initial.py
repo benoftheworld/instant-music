@@ -1,5 +1,4 @@
-"""
-Initial migration for apps.administration.
+"""Initial migration for apps.administration.
 """
 
 from django.db import migrations, models

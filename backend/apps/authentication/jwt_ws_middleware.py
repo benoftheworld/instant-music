@@ -1,5 +1,4 @@
-"""
-Middleware ASGI pour valider un token JWT sur les connexions WebSocket.
+"""Middleware ASGI pour valider un token JWT sur les connexions WebSocket.
 
 Le token est extrait depuis le query param ?token=<jwt>.
 Si invalide ou absent, la connexion est refusée avec le code 4003 (policy violation).

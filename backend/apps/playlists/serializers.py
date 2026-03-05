@@ -1,5 +1,4 @@
-"""
-Serializers for playlists app.
+"""Serializers for playlists app.
 """
 
 from rest_framework import serializers

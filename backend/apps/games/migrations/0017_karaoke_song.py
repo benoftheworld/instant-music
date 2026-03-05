@@ -1,5 +1,4 @@
-"""
-Migration: add KaraokeSong catalogue model and karaoke_song FK on Game.
+"""Migration: add KaraokeSong catalogue model and karaoke_song FK on Game.
 Also renames the help_text on the legacy karaoke_track JSON field.
 """
 

@@ -1,5 +1,4 @@
-"""
-Admin configuration for games.
+"""Admin configuration for games.
 """
 
 from django.contrib import admin, messages
@@ -550,8 +549,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
     _ADMIN_LRCLIB_TIMEOUT: int = 8  # seconds — shorter than game path (12s)
 
     def _lrclib_admin_search(self, q: str):
-        """
-        Perform a direct /api/search call to lrclib.net for admin use.
+        """Perform a direct /api/search call to lrclib.net for admin use.
 
         Bypasses the circuit breaker (admin explicitly wants to probe) and
         uses the same SSL workaround as lyrics_service._lrclib_fetch but
@@ -560,6 +558,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
         Returns:
             list of result dicts, or None on error.
             A string error message if a known failure occurs.
+
         """
         import json
         import ssl
@@ -598,8 +597,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
             return f"Erreur inattendue : {exc}"
 
     def lrclib_search_view(self, request, object_id):
-        """
-        Custom admin view to search lrclib.net candidates for a KaraokeSong.
+        """Custom admin view to search lrclib.net candidates for a KaraokeSong.
 
         GET  — display search form pre-filled with artist+title; show results
                when query params are present.

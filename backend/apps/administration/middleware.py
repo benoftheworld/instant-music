@@ -1,5 +1,4 @@
-"""
-Maintenance middleware — blocks all non-admin/non-health requests when
+"""Maintenance middleware — blocks all non-admin/non-health requests when
 maintenance mode is enabled in SiteConfiguration.
 
 Excluded paths (always pass through):
@@ -36,8 +35,7 @@ _EXCLUDED_PREFIXES = (
 
 
 class MaintenanceMiddleware(MiddlewareMixin):
-    """
-    Returns HTTP 503 with a JSON body when maintenance_mode is True,
+    """Returns HTTP 503 with a JSON body when maintenance_mode is True,
     except for whitelisted paths.
 
     The configuration is read from the DB on every request but cached in

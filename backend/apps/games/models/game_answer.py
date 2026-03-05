@@ -1,5 +1,4 @@
-"""
-GameAnswer model — player's answer in a round.
+"""GameAnswer model — player's answer in a round.
 """
 
 import uuid

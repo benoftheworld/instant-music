@@ -34,6 +34,7 @@ def get_global_leaderboard(offset: int, page_size: int) -> tuple[list[dict], int
 
     Returns:
         tuple: (leaderboard_data, total_count)
+
     """
     users_qs = (
         User.objects.filter(total_games_played__gt=0)

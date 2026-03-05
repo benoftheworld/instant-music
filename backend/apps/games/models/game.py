@@ -1,5 +1,4 @@
-"""
-Game model — represents a game session.
+"""Game model — represents a game session.
 """
 
 import uuid

@@ -1,5 +1,4 @@
-"""
-WSGI config for InstantMusic project.
+"""WSGI config for InstantMusic project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

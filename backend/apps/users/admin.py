@@ -1,5 +1,4 @@
-"""
-Admin configuration for User models.
+"""Admin configuration for User models.
 """
 
 from django.contrib import admin

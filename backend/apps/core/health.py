@@ -1,5 +1,4 @@
-"""
-Health check views for monitoring.
+"""Health check views for monitoring.
 """
 
 from django.core.cache import cache
@@ -8,8 +7,7 @@ from django.http import JsonResponse
 
 
 def health_check(request):
-    """
-    Basic health check endpoint.
+    """Basic health check endpoint.
     Returns 200 if service is healthy.
     """
     health_status = {"status": "healthy", "database": "unknown", "cache": "unknown"}
@@ -39,16 +37,14 @@ def health_check(request):
 
 
 def readiness_check(request):
-    """
-    Readiness check for load balancers.
+    """Readiness check for load balancers.
     Returns 200 when ready to accept traffic.
     """
     return JsonResponse({"status": "ready"})
 
 
 def liveness_check(request):
-    """
-    Liveness check for container orchestrators.
+    """Liveness check for container orchestrators.
     Returns 200 if application is running.
     """
     return JsonResponse({"status": "alive"})

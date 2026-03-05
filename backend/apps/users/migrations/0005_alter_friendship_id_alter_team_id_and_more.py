@@ -15,8 +15,9 @@
 #   4. Convertir les colonnes FK (même app + cross-app)
 #   5. Recréer les contraintes FK
 
-from django.db import migrations, models
 import uuid
+
+from django.db import migrations, models
 
 
 class Migration(migrations.Migration):

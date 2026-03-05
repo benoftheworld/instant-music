@@ -1,5 +1,4 @@
-"""
-Tests complets pour l'application games.
+"""Tests complets pour l'application games.
 
 Couvre : creation, join/leave, permissions hôte, start, answer,
 end round, next round, public games, history.

@@ -8,8 +8,7 @@ from ..serializers import KaraokeSongSerializer
 
 
 class KaraokeSongViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    Read-only viewset exposing the KaraokeSong catalogue to authenticated players.
+    """Read-only viewset exposing the KaraokeSong catalogue to authenticated players.
     Admins manage entries via Django admin.
     """
 

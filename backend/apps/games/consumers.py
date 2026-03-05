@@ -1,5 +1,4 @@
-"""
-WebSocket consumers for games.
+"""WebSocket consumers for games.
 """
 
 import json

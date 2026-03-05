@@ -1,5 +1,4 @@
-"""
-Management command to retroactively check and award achievements for all users.
+"""Management command to retroactively check and award achievements for all users.
 """
 
 from django.core.management.base import BaseCommand

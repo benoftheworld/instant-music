@@ -1,5 +1,4 @@
-"""
-Commande de synchronisation du solde de pièces (coins_balance).
+"""Commande de synchronisation du solde de pièces (coins_balance).
 
 Recalcule le solde de chaque utilisateur à partir :
   - des achievements déjà débloqués (points de chaque UserAchievement)

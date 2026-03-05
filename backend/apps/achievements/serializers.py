@@ -1,5 +1,4 @@
-"""
-Serializers for achievements.
+"""Serializers for achievements.
 """
 
 from rest_framework import serializers

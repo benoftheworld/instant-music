@@ -1,5 +1,4 @@
-"""
-Broadcast service for sending real-time game updates via Django Channels.
+"""Broadcast service for sending real-time game updates via Django Channels.
 
 Centralises WebSocket broadcast logic previously duplicated across
 GameViewSet actions (answer, end_current_round, next_round, start).

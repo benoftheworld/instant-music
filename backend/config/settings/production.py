@@ -1,5 +1,4 @@
-"""
-Production settings for InstantMusic project.
+"""Production settings for InstantMusic project.
 """
 
 from django.core.exceptions import ImproperlyConfigured

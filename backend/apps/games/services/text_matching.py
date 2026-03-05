@@ -1,5 +1,4 @@
-"""
-Utilitaires de comparaison de texte pour le mode réponse libre.
+"""Utilitaires de comparaison de texte pour le mode réponse libre.
 
 Fonctions utilisées par GameService.check_answer() et les tests.
 """

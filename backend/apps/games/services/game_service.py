@@ -1,5 +1,4 @@
-"""
-Service principal de gestion du flux de jeu (démarrage, rounds, scoring, fin).
+"""Service principal de gestion du flux de jeu (démarrage, rounds, scoring, fin).
 """
 
 import json
@@ -321,8 +320,7 @@ class GameService:
         correct_answer: str,
         extra_data: dict | None = None,
     ) -> tuple[bool, float]:
-        """
-        Check answer and return (is_correct, accuracy_factor).
+        """Check answer and return (is_correct, accuracy_factor).
 
         Génération mode: exact=1.0, ±2=0.75, ±5=0.4, else=0.0
         Classique/Rapide text mode: try matching artist+title for double points.
@@ -367,8 +365,7 @@ class GameService:
     def _check_classique_text_answer(
         self, answer: str, correct_answer: str, extra_data: dict | None
     ) -> tuple[bool, float]:
-        """
-        Check text answer for Classique/Rapide modes.
+        """Check text answer for Classique/Rapide modes.
 
         Accepts:
           - Free text like "artist - title", "title - artist", or just one.

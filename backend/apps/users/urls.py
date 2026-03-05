@@ -1,5 +1,4 @@
-"""
-URL configuration for users app.
+"""URL configuration for users app.
 """
 
 from django.urls import include, path

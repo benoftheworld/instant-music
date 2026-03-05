@@ -1,5 +1,4 @@
-"""
-Signals for the games app.
+"""Signals for the games app.
 
 Recalculates denormalized user stats from the source of truth
 (GamePlayer records) instead of error-prone manual increments.

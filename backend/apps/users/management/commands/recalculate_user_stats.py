@@ -1,5 +1,4 @@
-"""
-Django management command to recalculate user statistics from finished games.
+"""Django management command to recalculate user statistics from finished games.
 Usage: python manage.py recalculate_user_stats
 """
 

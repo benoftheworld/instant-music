@@ -1,5 +1,4 @@
-"""
-Admin for achievements.
+"""Admin for achievements.
 """
 
 from django.contrib import admin

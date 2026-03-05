@@ -1,5 +1,4 @@
-"""
-Models for achievements.
+"""Models for achievements.
 """
 
 import uuid

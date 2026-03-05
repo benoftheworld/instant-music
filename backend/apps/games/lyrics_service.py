@@ -1,5 +1,4 @@
-"""
-Lyrics service — fetches song lyrics from LRCLib and lyrics.ovh (free, no key).
+"""Lyrics service — fetches song lyrics from LRCLib and lyrics.ovh (free, no key).
 Used by the 'paroles' game mode (fill-in-the-blank) and 'karaoke' mode (synced lyrics).
 """
 
@@ -238,8 +237,7 @@ def _lrclib_request(artist_clean: str, title_clean: str) -> dict | None:
 
 
 def get_synced_lyrics_by_lrclib_id(lrclib_id: int) -> list[dict] | None:
-    """
-    Fetch synced lyrics directly from lrclib.net using a known numeric ID.
+    """Fetch synced lyrics directly from lrclib.net using a known numeric ID.
 
     This is faster and more reliable than a name-based search because it
     bypasses disambiguation and always resolves the exact entry chosen by
@@ -247,6 +245,7 @@ def get_synced_lyrics_by_lrclib_id(lrclib_id: int) -> list[dict] | None:
 
     Returns:
         List of {"time_ms": int, "text": str} or None if unavailable.
+
     """
     cache_key = f"lrclib_id_{lrclib_id}"
     cached = cache.get(cache_key)
@@ -277,11 +276,11 @@ def _clean_artist_title(artist: str, title: str) -> tuple[str, str]:
 
 
 def get_lyrics(artist: str, title: str) -> str | None:
-    """
-    Fetch plain lyrics (Redis cache → LRCLib → lyrics.ovh fallback).
+    """Fetch plain lyrics (Redis cache → LRCLib → lyrics.ovh fallback).
 
     Returns:
         Lyrics text or None
+
     """
     cache_key = (
         f"lyrics_{hashlib.md5(f'{artist}|{title}'.lower().encode()).hexdigest()}"
@@ -337,8 +336,7 @@ _UNKNOWN_ARTIST_MARKERS = {"artiste inconnu", "unknown artist", "unknown", ""}
 def get_synced_lyrics(
     artist: str, title: str
 ) -> tuple[list[dict] | None, int | None]:
-    """
-    Fetch synced (timestamped) lyrics.
+    """Fetch synced (timestamped) lyrics.
 
     Resolution order:
       0. Redis cache (fastest)
@@ -352,6 +350,7 @@ def get_synced_lyrics(
         Tuple of (List of {"time_ms": int, "text": str}, found_lrclib_id) or (None, None).
         ``found_lrclib_id`` is the numeric ID on lrclib.net for the matched entry;
         callers can persist it to avoid future search-based lookups.
+
     """
     key = f"synced_{hashlib.md5(f'{artist}|{title}'.lower().encode()).hexdigest()}"
     cached = cache.get(key)
@@ -436,8 +435,7 @@ def create_lyrics_question(
     all_tracks_words: list[str] | None = None,
     words_to_blank: int = 1,
 ) -> tuple[str, str, list[str]] | None:
-    """
-    Create a fill-in-the-blank lyrics question.
+    """Create a fill-in-the-blank lyrics question.
 
     Wrong options are sourced **from other lines of the same lyrics** first,
     guaranteeing language consistency and coherent phrasing.  Track-title
@@ -450,6 +448,7 @@ def create_lyrics_question(
 
     Returns:
         (lyrics_snippet, correct_phrase, options) or None
+
     """
     # Split into lines, filter out empty / very short lines
     lines = [

@@ -1,5 +1,4 @@
-"""
-Django admin configuration for apps/administration.
+"""Django admin configuration for apps/administration.
 """
 
 from django.contrib import admin, messages
@@ -11,8 +10,7 @@ from .models import LegalPage, SiteConfiguration
 
 @admin.register(SiteConfiguration)
 class SiteConfigurationAdmin(admin.ModelAdmin):
-    """
-    Admin pour la configuration globale du site.
+    """Admin pour la configuration globale du site.
     Singleton — une seule ligne possible.
     """
 

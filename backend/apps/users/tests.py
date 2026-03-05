@@ -1,5 +1,4 @@
-"""
-Tests complets pour l'application users.
+"""Tests complets pour l'application users.
 
 Couvre : modèle utilisateur, profil (me), changement de mot de passe,
 suppression de compte (RGPD), export de données (RGPD), recherche,

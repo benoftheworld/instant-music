@@ -1,5 +1,4 @@
-"""
-Add new game modes (blind_test_inverse, guess_year, intro, lyrics)
+"""Add new game modes (blind_test_inverse, guess_year, intro, lyrics)
 and new fields on GameRound (question_type, question_text, extra_data).
 Remove old unused modes (quiz_fastest, karaoke).
 """

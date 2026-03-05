@@ -12,8 +12,9 @@
 #   - FKs games→users : gameplayer.user_id, game.host_id
 #     (les contraintes avaient été supprimées par users/0005, colonnes converties ici)
 
-from django.db import migrations, models
 import uuid
+
+from django.db import migrations, models
 
 
 class Migration(migrations.Migration):

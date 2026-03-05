@@ -1,5 +1,4 @@
-"""
-Modèles de la boutique.
+"""Modèles de la boutique.
 
 ShopItem        — Article disponible dans la boutique (bonus ou produit physique)
 UserInventory   — Inventaire de l'utilisateur (articles achetés)

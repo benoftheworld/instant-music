@@ -1,5 +1,4 @@
-"""
-Development settings for InstantMusic project.
+"""Development settings for InstantMusic project.
 """
 
 from .base import *  # noqa: F401, F403

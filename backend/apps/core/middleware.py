@@ -1,5 +1,4 @@
-"""
-Middleware Prometheus pour tracer les métriques HTTP.
+"""Middleware Prometheus pour tracer les métriques HTTP.
 
 Intercepte chaque requête pour mesurer :
 - Le nombre total de requêtes par méthode/endpoint/code de réponse

@@ -1,5 +1,4 @@
-"""
-Management command to seed default achievements.
+"""Management command to seed default achievements.
 """
 
 from django.core.management.base import BaseCommand

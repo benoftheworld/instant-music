@@ -1,5 +1,4 @@
-"""
-Migration : ajout du champ coins_balance au modèle User.
+"""Migration : ajout du champ coins_balance au modèle User.
 """
 
 from django.db import migrations, models

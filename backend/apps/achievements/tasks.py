@@ -1,5 +1,4 @@
-"""
-Tâches Celery pour le système d'achievements.
+"""Tâches Celery pour le système d'achievements.
 """
 
 import logging

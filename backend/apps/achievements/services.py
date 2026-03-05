@@ -1,5 +1,4 @@
-"""
-Service for checking and awarding achievements to users.
+"""Service for checking and awarding achievements to users.
 """
 
 import logging
@@ -85,8 +84,7 @@ class AchievementService:
         game: Any = None,
         round_data: dict[str, Any] | None = None,
     ) -> list["Achievement"]:
-        """
-        Check all achievements for a user and award any newly earned ones.
+        """Check all achievements for a user and award any newly earned ones.
 
         Args:
             user: The user to check achievements for
@@ -95,6 +93,7 @@ class AchievementService:
 
         Returns:
             List of newly awarded Achievement objects
+
         """
         achievements = Achievement.objects.all()
         already_unlocked = set(

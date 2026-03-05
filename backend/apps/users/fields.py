@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class EncryptedEmailField(models.TextField):
-    """
-    Champ qui chiffre automatiquement l'email à l'écriture (Fernet/AES)
+    """Champ qui chiffre automatiquement l'email à l'écriture (Fernet/AES)
     et le déchiffre à la lecture.
 
     En base de données : token chiffré opaque (ex: gAAAAA...)

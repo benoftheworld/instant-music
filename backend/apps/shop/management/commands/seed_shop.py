@@ -1,5 +1,4 @@
-"""
-Commande de gestion pour pré-remplir la boutique avec les articles par défaut.
+"""Commande de gestion pour pré-remplir la boutique avec les articles par défaut.
 
 Usage: python manage.py seed_shop [--force]
 """

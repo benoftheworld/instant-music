@@ -1,5 +1,4 @@
-"""
-Serializers for authentication.
+"""Serializers for authentication.
 """
 
 from django.contrib.auth import get_user_model

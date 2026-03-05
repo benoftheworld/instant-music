@@ -1,5 +1,4 @@
-"""
-Views for playlists app (Deezer + YouTube search helpers).
+"""Views for playlists app (Deezer + YouTube search helpers).
 """
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema

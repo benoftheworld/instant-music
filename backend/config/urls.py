@@ -1,5 +1,4 @@
-"""
-URL configuration for InstantMusic project.
+"""URL configuration for InstantMusic project.
 """
 
 import os
