@@ -99,7 +99,7 @@ export default function RegisterPage() {
             />
             <label htmlFor="accept_privacy_policy" className="text-sm text-gray-600">
               J'accepte la{' '}
-              <a href="/politique-de-confidentialite" className="text-primary-600 hover:underline" target="_blank" rel="noopener noreferrer">
+              <a href="/privacy" className="text-primary-600 hover:underline" target="_blank" rel="noopener noreferrer">
                 politique de confidentialité
               </a>
             </label>
