@@ -99,7 +99,9 @@ services:
       - ELASTICSEARCH_USERNAME=kibana_system
       - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD:?KIBANA_PASSWORD must be set in .env.prod}
       - SERVER_BASEPATH=/kibana
-      - SERVER_REWRITEBASEPATH=true
+      - SERVER_REWRITEBASEPATH=false
+      - KIBANA_HTTPSONLY=false
+      - KIBANA_DEFAULTAPPID=discover
     expose:
       - '5601'
     depends_on:
