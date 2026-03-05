@@ -202,7 +202,7 @@ export default function GameResultsPage() {
       if (!roomCode) return;
       try {
         const data = await gameService.getResults(roomCode);
-        setResults(data);
+        setResults(data as unknown as GameResult);
       } catch (error) {
         console.error('Failed to load results:', error);
       } finally {

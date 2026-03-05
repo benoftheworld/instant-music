@@ -3,10 +3,9 @@ import { useAuthStore } from '@/store/authStore';
 import { tokenService } from '@/services/tokenService';
 
 const mockUser = {
-  id: 'user-uuid-1',
+  id: 1,
   username: 'testuser',
   email: 'test@example.com',
-  avatar: null,
   is_staff: false,
   total_games_played: 5,
   total_wins: 2,
@@ -58,7 +57,7 @@ describe('authStore', () => {
   it('updateUser met a jour le user sans toucher aux tokens', () => {
     useAuthStore.getState().setAuth(mockUser, mockTokens);
 
-    const updatedUser = { ...mockUser, username: 'newname' };
+    const updatedUser = { ...mockUser, id: 1, username: 'newname' };
     useAuthStore.getState().updateUser(updatedUser);
 
     const state = useAuthStore.getState();
