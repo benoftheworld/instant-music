@@ -64,6 +64,31 @@ function IconChevron({ open }: { open: boolean }) {
   );
 }
 
+// Helper to build the admin URL from environment variables.
+// Priority: `VITE_ADMIN_URL` (absolute or root-relative) → build absolute URL using `VITE_API_URL` origin → fallback '/admin/'.
+function getAdminHref(): string {
+  const raw = (import.meta.env as any).VITE_ADMIN_URL || 'admin/';
+  let href = String(raw);
+
+  try {
+    // If it's not an absolute URL, make it absolute against the API origin
+    if (!href.startsWith('http')) {
+      if (!href.startsWith('/')) href = `/${href}`;
+      const api = (import.meta.env as any).VITE_API_URL || 'http://localhost:8000';
+      try {
+        const origin = new URL(api).origin; // removes any path like /api
+        href = `${origin}${href}`;
+      } catch (_e) {
+        // if API value is not parseable, fallback to root-relative
+      }
+    }
+  } catch (_e) {
+    // ignore and return raw
+  }
+
+  return href;
+}
+
 // ── Dropdown Administration (desktop) ────────────────────────────────────────
 
 function AdminDropdown() {
