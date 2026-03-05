@@ -45,16 +45,48 @@ services:
     volumes:
       - ../monitoring/logstash/pipeline:/usr/share/logstash/pipeline:ro
       - ../monitoring/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ../monitoring/logstash/pipeline/logstash-prod.conf:/usr/share/logstash/pipeline/logstash.conf:ro
     expose:
       - '5044'
       - '5000'
       - '9600'
     environment:
       - LS_JAVA_OPTS=-Xms256m -Xmx256m
+      - LOGSTASH_ES_PASSWORD=${LOGSTASH_PASSWORD}
+    depends_on:
+      elasticsearch-setup:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Init : configure les mots de passe des utilisateurs built-in ───────────
+  elasticsearch-setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: instantmusic_es_setup
     depends_on:
       elasticsearch:
         condition: service_healthy
-    restart: unless-stopped
+    restart: 'no'
+    entrypoint: ['bash', '-c']
+    command:
+      - |
+        echo 'Configuration des utilisateurs built-in…'
+        # kibana_system — utilisé par Kibana pour communiquer avec ES
+        curl -s -X POST -u "elastic:$${ELASTIC_PASSWORD}" \
+          -H 'Content-Type: application/json' \
+          "http://elasticsearch:9200/_security/user/kibana_system/_password" \
+          -d '{"password": "'"$${KIBANA_PASSWORD}"'"}'
+        # logstash_system — utilisé par Logstash pour écrire dans ES
+        curl -s -X POST -u "elastic:$${ELASTIC_PASSWORD}" \
+          -H 'Content-Type: application/json' \
+          "http://elasticsearch:9200/_security/user/logstash_system/_password" \
+          -d '{"password": "'"$${LOGSTASH_PASSWORD}"'"}'
+        echo 'Utilisateurs configurés.'
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - KIBANA_PASSWORD=${KIBANA_PASSWORD}
+      - LOGSTASH_PASSWORD=${LOGSTASH_PASSWORD}
     networks:
       - app-network
 
@@ -64,15 +96,15 @@ services:
     container_name: instantmusic_kibana_prod
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - ELASTICSEARCH_USERNAME=elastic
-      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD:?ELASTIC_PASSWORD must be set in .env.prod}
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD:?KIBANA_PASSWORD must be set in .env.prod}
       - SERVER_BASEPATH=/kibana
       - SERVER_REWRITEBASEPATH=true
     expose:
       - '5601'
     depends_on:
-      elasticsearch:
-        condition: service_healthy
+      elasticsearch-setup:
+        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - app-network
