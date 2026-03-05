@@ -1,28 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api, getMediaUrl } from '@/services/api';
 import type { LeaderboardEntry } from '@/types';
 import { Link } from 'react-router-dom';
 
 export default function TopPlayers() {
-  const [players, setPlayers] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchTopPlayers();
-  }, []);
-
-  const fetchTopPlayers = async () => {
-    try {
+  const { data: players = [], isLoading: loading } = useQuery<LeaderboardEntry[]>({
+    queryKey: ['topPlayers'],
+    queryFn: async () => {
       const response = await api.get('/games/leaderboard/', { params: { limit: 5 } });
       const data = response.data;
-      const results = Array.isArray(data) ? data : data.results ?? [];
-      setPlayers(results);
-    } catch (err) {
-      console.error('Failed to fetch leaderboard:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return Array.isArray(data) ? data : data.results ?? [];
+    },
+    staleTime: 60_000,
+  });
 
   const getRankColor = (index: number) => {
     switch (index) {

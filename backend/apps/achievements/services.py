@@ -3,6 +3,7 @@ Service for checking and awarding achievements to users.
 """
 
 import logging
+from typing import Any
 
 from django.db import transaction
 
@@ -11,7 +12,9 @@ from .models import Achievement, UserAchievement
 logger = logging.getLogger(__name__)
 
 
-def _push_achievement_notification(user_id: int, achievement) -> None:
+def _push_achievement_notification(
+    user_id: int, achievement: "Achievement"
+) -> None:
     """Push a WebSocket notification to the user for a newly unlocked achievement."""
     try:
         from asgiref.sync import async_to_sync
@@ -42,6 +45,7 @@ def _push_achievement_notification(user_id: int, achievement) -> None:
         )
     except Exception as exc:  # noqa: BLE001
         logger.warning("Failed to push achievement WS notification: %s", exc)
+
 
 # Achievement condition types — existants
 CONDITION_GAMES_PLAYED = "games_played"
@@ -77,7 +81,12 @@ class AchievementService:
     """Service to check and award achievements."""
 
     @transaction.atomic
-    def check_and_award(self, user, game=None, round_data=None):
+    def check_and_award(
+        self,
+        user: Any,
+        game: Any = None,
+        round_data: dict[str, Any] | None = None,
+    ) -> list["Achievement"]:
         """
         Check all achievements for a user and award any newly earned ones.
 
@@ -136,20 +145,26 @@ class AchievementService:
 
         return newly_awarded
 
-    def _check_condition(self, user, achievement, game=None, round_data=None):
+    def _check_condition(
+        self,
+        user: Any,
+        achievement: Achievement,
+        game: Any = None,
+        round_data: dict[str, Any] | None = None,
+    ) -> bool:
         """Check if a user meets the condition for an achievement."""
         ctype = achievement.condition_type
         cvalue = achievement.condition_value
         cextra = achievement.condition_extra
 
         if ctype == CONDITION_GAMES_PLAYED:
-            return user.total_games_played >= cvalue
+            return user.total_games_played >= cvalue  # type: ignore[no-any-return]
 
         elif ctype == CONDITION_WINS:
-            return user.total_wins >= cvalue
+            return user.total_wins >= cvalue  # type: ignore[no-any-return]
 
         elif ctype == CONDITION_POINTS:
-            return user.total_points >= cvalue
+            return user.total_points >= cvalue  # type: ignore[no-any-return]
 
         elif ctype == CONDITION_PERFECT_ROUND:
             # Perfect round: all answers correct in a single game
@@ -178,7 +193,7 @@ class AchievementService:
             count = GameAnswer.objects.filter(
                 player__user=user, is_correct=True, response_time__lt=threshold
             ).count()
-            return count >= cvalue
+            return count >= cvalue  # type: ignore[no-any-return]
 
         elif ctype == CONDITION_ALL_FAST_ROUND:
             # Partie parfaite avec toutes les réponses sous N secondes
@@ -186,7 +201,7 @@ class AchievementService:
                 return False
             max_rt = round_data.get("max_response_time", 999.0)
             threshold = float(cextra) if cextra else 2.0
-            return max_rt < threshold
+            return max_rt < threshold  # type: ignore[no-any-return]
 
         elif ctype == CONDITION_ACCURACY:
             # Précision globale >= cvalue% sur au moins cextra parties
@@ -201,17 +216,19 @@ class AchievementService:
             correct = GameAnswer.objects.filter(
                 player__user=user, is_correct=True
             ).count()
-            return (correct / total * 100) >= cvalue
+            return (correct / total * 100) >= cvalue  # type: ignore[no-any-return]
 
         elif ctype == CONDITION_GLOBAL_STREAK:
             # Streak max de bonnes réponses consécutives dans une même partie
             if round_data:
-                return round_data.get("max_streak", 0) >= cvalue
+                return round_data.get("max_streak", 0) >= cvalue  # type: ignore[no-any-return]
             # Fallback : cherche dans tout l'historique
             from apps.games.models import GameAnswer, GamePlayer
 
             player_ids = list(
-                GamePlayer.objects.filter(user=user).values_list("id", flat=True)
+                GamePlayer.objects.filter(user=user).values_list(
+                    "id", flat=True
+                )
             )
             for pid in player_ids:
                 answers = list(
@@ -232,14 +249,14 @@ class AchievementService:
         elif ctype == CONDITION_SINGLE_GAME_SCORE:
             from apps.games.models import GamePlayer
 
-            return GamePlayer.objects.filter(
+            return GamePlayer.objects.filter(  # type: ignore[no-any-return]
                 user=user, score__gte=cvalue
             ).exists()
 
         elif ctype == CONDITION_GAMES_BY_MODE:
             from apps.games.models import GamePlayer
 
-            return (
+            return (  # type: ignore[no-any-return]
                 GamePlayer.objects.filter(
                     user=user, game__mode=cextra, game__status="finished"
                 ).count()
@@ -249,7 +266,7 @@ class AchievementService:
         elif ctype == CONDITION_WINS_BY_MODE:
             from apps.games.models import GamePlayer
 
-            return (
+            return (  # type: ignore[no-any-return]
                 GamePlayer.objects.filter(
                     user=user, game__mode=cextra, rank=1
                 ).count()
@@ -265,7 +282,7 @@ class AchievementService:
                 .distinct()
                 .count()
             )
-            return played_modes >= cvalue
+            return played_modes >= cvalue  # type: ignore[no-any-return]
 
         elif ctype == CONDITION_FRIENDS_COUNT:
             from django.db.models import Q
@@ -275,30 +292,36 @@ class AchievementService:
             count = Friendship.objects.filter(
                 Q(from_user=user) | Q(to_user=user), status="accepted"
             ).count()
-            return count >= cvalue
+            return count >= cvalue  # type: ignore[no-any-return]
 
         elif ctype == CONDITION_GAMES_HOSTED:
             from apps.games.models import Game
 
-            return Game.objects.filter(host=user, status="finished").count() >= cvalue
+            return (  # type: ignore[no-any-return]
+                Game.objects.filter(host=user, status="finished").count()
+                >= cvalue
+            )
 
         elif ctype == CONDITION_INVITATIONS_SENT:
             from apps.games.models import GameInvitation
 
-            return GameInvitation.objects.filter(sender=user).count() >= cvalue
+            return GameInvitation.objects.filter(sender=user).count() >= cvalue  # type: ignore[no-any-return]
 
         elif ctype == CONDITION_ITEMS_PURCHASED:
             from apps.shop.models import UserInventory
 
             distinct_items = (
-                UserInventory.objects.filter(user=user).values("item").distinct().count()
+                UserInventory.objects.filter(user=user)
+                .values("item")
+                .distinct()
+                .count()
             )
-            return distinct_items >= cvalue
+            return distinct_items >= cvalue  # type: ignore[no-any-return]
 
         elif ctype == CONDITION_BONUS_USED:
             from apps.shop.models import GameBonus
 
-            return (
+            return (  # type: ignore[no-any-return]
                 GameBonus.objects.filter(
                     player__user=user, bonus_type=cextra, is_used=True
                 ).count()
@@ -318,12 +341,12 @@ class AchievementService:
 
         elif ctype == CONDITION_IN_GAME_STREAK:
             if round_data:
-                return round_data.get("max_streak", 0) >= cvalue
+                return round_data.get("max_streak", 0) >= cvalue  # type: ignore[no-any-return]
             return False
 
         elif ctype == CONDITION_DOMINANT_WIN:
             if round_data:
-                return round_data.get("dominant_win", False)
+                return round_data.get("dominant_win", False)  # type: ignore[no-any-return]
             return False
 
         else:

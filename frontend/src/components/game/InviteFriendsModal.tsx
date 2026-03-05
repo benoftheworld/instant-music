@@ -2,7 +2,7 @@
  * InviteFriendsModal — modal permettant à l'hôte d'inviter ses amis.
  * Affiche la liste d'amis et permet d'envoyer une invitation par partie.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { friendshipService } from '@/services/socialService';
 import { invitationService } from '@/services/invitationService';
 import type { Friend } from '@/types';
@@ -20,6 +20,39 @@ export default function InviteFriendsModal({ roomCode, onClose }: Props) {
   const [inviteStates, setInviteStates] = useState<Record<number, InviteState>>({});
   const [inviteErrors, setInviteErrors] = useState<Record<number, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Focus trap + ESC handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Focus le champ de recherche à l'ouverture
+    const searchInput = dialogRef.current?.querySelector('input');
+    searchInput?.focus();
+
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   useEffect(() => {
     friendshipService
@@ -57,10 +90,16 @@ export default function InviteFriendsModal({ roomCode, onClose }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-dark border border-primary-500 rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="invite-modal-title"
+        className="bg-dark border border-primary-500 rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-primary-700">
-          <h2 className="text-lg font-bold text-cream-100">Inviter des amis</h2>
+          <h2 id="invite-modal-title" className="text-lg font-bold text-cream-100">Inviter des amis</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-cream-100 transition-colors"

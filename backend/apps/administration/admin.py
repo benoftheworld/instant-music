@@ -99,7 +99,7 @@ class SiteConfigurationAdmin(admin.ModelAdmin):
             )
         return format_html("&nbsp;".join(parts))
 
-    status_overview.short_description = _("État")
+    status_overview.short_description = _("État")  # type: ignore[attr-defined]
 
     def has_add_permission(self, request) -> bool:
         """Only allow creation if the singleton doesn't exist yet."""

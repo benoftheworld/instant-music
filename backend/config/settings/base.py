@@ -45,6 +45,8 @@ THIRD_PARTY_APPS = [
     "django_celery_beat",
     "corsheaders",
     "drf_spectacular",
+    "auditlog",
+    "storages",
 ]
 
 LOCAL_APPS = [
@@ -161,6 +163,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # Maintenance mode — runs after auth so admin is always accessible
     "apps.administration.middleware.MaintenanceMiddleware",
+    # Audit log — enregistre les modifications de modèles avec l'utilisateur auteur
+    "auditlog.middleware.AuditlogMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -244,8 +248,13 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_THROTTLE_CLASSES": [],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
     "DEFAULT_THROTTLE_RATES": {
+        "anon": "60/min",
+        "user": "120/min",
         "register": "5/min",
         "login": "10/min",
         "token_refresh": "20/min",
@@ -376,3 +385,9 @@ LOGGING = {
         },
     },
 }
+
+# ── OpenTelemetry (optionnel) ────────────────────────────────────────
+# Activé par OTEL_ENABLED=true dans l'environnement.
+from config.otel import setup_otel
+
+setup_otel()

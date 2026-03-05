@@ -1,9 +1,15 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useReducer, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { gameService } from '../../services/gameService';
 import { soundEffects } from '../../services/soundEffects';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAuthStore } from '../../store/authStore';
+import {
+  gamePlayReducer,
+  initialGamePlayState,
+} from '../../hooks/useGamePlayReducer';
+import { useGameTimer } from '../../hooks/useGameTimer';
+import { useGameWebSocket } from '../../hooks/useGameWebSocket';
 import QuizQuestion from '../../components/game/QuizQuestion';
 // BlindTestInverse removed - modes consolidated into classique/rapide/generation/paroles
 import YearQuestion from '../../components/game/YearQuestion';
@@ -17,24 +23,29 @@ import LiveScoreboard from '../../components/game/LiveScoreboard';
 import RoundLoadingScreen from '../../components/game/RoundLoadingScreen';
 import RoundResultsScreen from '../../components/game/RoundResultsScreen';
 import BonusActivator from '../../components/game/BonusActivator';
-import type { GameRound } from '@/types';
-import { mergeUpdatedPlayers } from '@/utils/mergeUpdatedPlayers';
 
 export default function GamePlayPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
 
-  const [game, setGame] = useState<any>(null);
-  const [currentRound, setCurrentRound] = useState<GameRound | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState<number>(0);
-  const [hasAnswered, setHasAnswered] = useState(false);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [showResults, setShowResults] = useState(false);
-  const [roundResults, setRoundResults] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [myPointsEarned, setMyPointsEarned] = useState<number>(0);
-  const [excludedOptions, setExcludedOptions] = useState<string[]>([]);
+  // ── State (single reducer instead of 11 useState) ──────────────────────
+  const [state, dispatch] = useReducer(gamePlayReducer, initialGamePlayState);
+  const {
+    game,
+    currentRound,
+    timeRemaining,
+    hasAnswered,
+    selectedAnswer,
+    showResults,
+    roundResults,
+    loading,
+    myPointsEarned,
+    excludedOptions,
+    roundPhase,
+  } = state;
+
+  // ── Refs (imperative / timing concerns) ────────────────────────────────
   const isAdvancingRef = useRef(false);
   // Ref pour le timeout de passage au round suivant — permet de l'annuler si
   // round_ended est reçu deux fois (race condition) ou si le composant se démonte.
@@ -44,15 +55,11 @@ export default function GamePlayPage() {
   // drift, Math.floor rounding, and loading-screen offset mismatches.
   const roundPlayingStartTimeRef = useRef<number>(0);
 
-  // New state for round phases: 'loading' | 'playing' | 'results'
-  const [roundPhase, setRoundPhase] = useState<'loading' | 'playing' | 'results'>('loading');
-  const loadingStartTimeRef = useRef<number>(0);
-  const loadingRoundIdRef = useRef<string | null>(null);
-
-  // WebSocket connection
+  // ── WebSocket connection ───────────────────────────────────────────────
   const { sendMessage, onMessage } = useWebSocket(roomCode || '');
 
-  // Load current round
+  // ── Data loading ───────────────────────────────────────────────────────
+
   const loadCurrentRound = useCallback(async () => {
     if (!roomCode) return;
 
@@ -60,34 +67,24 @@ export default function GamePlayPage() {
       const response = await gameService.getCurrentRound(roomCode);
 
       if (response.current_round) {
-        setCurrentRound(response.current_round);
-        setTimeRemaining(response.current_round.duration);
-        setHasAnswered(false);
-        setSelectedAnswer(null);
-        setShowResults(false);
-        setExcludedOptions([]);
-        setRoundPhase('loading'); // Start with loading phase
-        loadingStartTimeRef.current = Date.now(); // Record when loading starts
-        loadingRoundIdRef.current = response.current_round.id;
-        roundPlayingStartTimeRef.current = 0; // Will be set when playing phase starts
+        dispatch({ type: 'START_ROUND', round: response.current_round });
+        roundPlayingStartTimeRef.current = 0;
       } else if (response.message === 'Partie terminée') {
-        // Game is finished
         navigate(`/game/${roomCode}/results`);
       }
     } catch (error) {
       console.error('Failed to load round:', error);
     } finally {
-      setLoading(false);
+      dispatch({ type: 'LOADING_DONE' });
     }
   }, [roomCode, navigate]);
 
-  // Load game data
   const loadGame = useCallback(async () => {
     if (!roomCode) return;
 
     try {
       const gameData = await gameService.getGame(roomCode);
-      setGame(gameData);
+      dispatch({ type: 'SET_GAME', game: gameData });
 
       if (gameData.status === 'finished') {
         navigate(`/game/${roomCode}/results`);
@@ -115,213 +112,31 @@ export default function GamePlayPage() {
     }
   }, [roomCode]);
 
-  // Timer countdown - calculate based on client-side elapsed time
-  useEffect(() => {
-    if (!currentRound || showResults || roundPhase !== 'playing') return;
+  // ── Extracted hooks ────────────────────────────────────────────────────
 
-    const calculateTimeRemaining = () => {
-      // Use client-side elapsed time from the moment the playing phase started.
-      // This is immune to server-client clock drift (common with Docker/WSL2 after suspend/resume).
-      // roundPlayingStartTimeRef.current is set to Date.now() in handleLoadingComplete().
-      if (roundPlayingStartTimeRef.current > 0) {
-        const elapsed = Math.floor((Date.now() - roundPlayingStartTimeRef.current) / 1000);
-        return Math.max(0, currentRound.duration - elapsed);
-      }
-      // Fallback: should not happen in normal flow (playing phase requires handleLoadingComplete to have run)
-      return currentRound.duration;
-    };
+  useGameTimer({
+    currentRound,
+    showResults,
+    roundPhase,
+    game,
+    roomCode,
+    user,
+    roundPlayingStartTimeRef,
+    dispatch,
+  });
 
-    // Update immediately
-    const remaining = calculateTimeRemaining();
-    setTimeRemaining(remaining);
-    let lastSecond = remaining;
-
-    const timerTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    // Update every 100ms for smooth countdown
-    const interval = setInterval(() => {
-      const newRemaining = calculateTimeRemaining();
-      setTimeRemaining(newRemaining);
-
-      // Sound effects for countdown (disabled in karaoke — no timer UX)
-      if (game?.mode !== 'karaoke' && newRemaining !== lastSecond && newRemaining > 0) {
-        if (newRemaining <= 3) {
-          soundEffects.timerWarning();
-        } else if (newRemaining <= 5) {
-          soundEffects.timerTick();
-        }
-        lastSecond = newRemaining;
-      }
-
-      if (newRemaining <= 0) {
-        clearInterval(interval);
-
-        // In karaoke mode the round is driven by the YouTube video end event,
-        // not the timer — skip the automatic termination here.
-        if (game?.mode === 'karaoke') return;
-
-        soundEffects.timeUp();
-
-        // Host terminates the round immediately to send results to all players
-        if (user && game && game.host === user.id) {
-          // End the round (triggers round_ended broadcast with results)
-          gameService.endCurrentRound(roomCode!)
-            .then(() => {
-              console.log('Round ended by timer');
-            })
-            .catch(err => {
-              console.error('Failed to end round:', err);
-              // Fallback: show local results if backend call fails
-              setShowResults(true);
-              setRoundPhase('results');
-            });
-        }
-        // Non-hosts: wait for round_ended message from WebSocket
-      }
-    }, 100);
-
-    return () => {
-      clearInterval(interval);
-      if (timerTimeout) clearTimeout(timerTimeout);
-    };
-  }, [currentRound, showResults, roundPhase, game, roomCode, user, advanceToNextRound]);
-
-  // Handle WebSocket messages
-  useEffect(() => {
-    const unsubscribe = onMessage('message', (data: any) => {
-      console.log('WebSocket message:', data);
-
-      switch (data.type) {
-        case 'round_started':
-          // New round started
-          soundEffects.roundLoading();
-          setCurrentRound(data.round_data);
-          setTimeRemaining(data.round_data.duration);
-          setHasAnswered(false);
-          setSelectedAnswer(null);
-          setShowResults(false);
-          setExcludedOptions([]);
-          setRoundPhase('loading'); // Show loading screen first
-          loadingStartTimeRef.current = Date.now(); // Record when loading starts
-          loadingRoundIdRef.current = data.round_data.id;
-          roundPlayingStartTimeRef.current = 0; // Will be set when playing phase starts
-          break;
-
-        case 'player_answered':
-          // Another player answered
-          console.log('Player answered:', data.player);
-          break;
-
-        case 'round_ended': {
-          // Round finished, show results
-          const myScoreData = data.results?.player_scores?.[user?.username || ''];
-          const wasCorrect = myScoreData?.is_correct;
-          const isKaraokeMode = game?.mode === 'karaoke';
-
-          // Play appropriate sound (skip for karaoke — no answer to judge)
-          if (!isKaraokeMode) {
-            if (wasCorrect) {
-              soundEffects.correctAnswer();
-            } else {
-              soundEffects.wrongAnswer();
-            }
-          }
-
-          setShowResults(true);
-          setRoundResults({
-            ...data.results,
-            points_earned: myScoreData?.points_earned ?? myPointsEarned,
-          });
-          // Update players with fresh scores from backend, preserving existing fields (e.g. avatar)
-          if (data.results?.updated_players) {
-            setGame((prev: any) => {
-              if (!prev) return prev;
-              return { ...prev, players: mergeUpdatedPlayers(prev.players, data.results.updated_players) };
-            });
-          }
-
-          if (isKaraokeMode) {
-            // Karaoke: skip inter-round screen, go directly to final results
-            // Host advances immediately; others wait for game_finished WS message
-            if (user && game && game.host === user.id) {
-              advanceToNextRound();
-            }
-          } else {
-            setRoundPhase('results'); // Show results screen
-            // Host advances to next round after result display time
-            const resultDisplayTime = (game?.score_display_duration || 10) * 1000;
-            if (user && game && game.host === user.id) {
-              // Annuler tout timeout précédent avant d'en reprogrammer un —
-              // évite le double appel si round_ended est reçu deux fois.
-              if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
-              advanceTimeoutRef.current = setTimeout(() => {
-                advanceTimeoutRef.current = null;
-                advanceToNextRound();
-              }, resultDisplayTime);
-            }
-          }
-          break;
-        }
-
-        case 'next_round':
-          // Move to next round automatically
-          soundEffects.roundLoading();
-          // Annuler le timeout en attente : le round suivant est déjà lancé.
-          if (advanceTimeoutRef.current) {
-            clearTimeout(advanceTimeoutRef.current);
-            advanceTimeoutRef.current = null;
-          }
-          isAdvancingRef.current = false;
-          setCurrentRound(data.round_data);
-          setTimeRemaining(data.round_data.duration);
-          setHasAnswered(false);
-          setSelectedAnswer(null);
-          setShowResults(false);
-          setRoundResults(null);
-          setMyPointsEarned(0);
-          setExcludedOptions([]);
-          setRoundPhase('loading'); // Show loading screen for new round
-          loadingStartTimeRef.current = Date.now(); // Record when loading starts
-          loadingRoundIdRef.current = data.round_data.id;
-          roundPlayingStartTimeRef.current = 0; // Will be set when playing phase starts
-          // Update players with fresh scores (functional update to avoid stale closure), preserving avatar
-          if (data.updated_players) {
-            setGame((prev: any) => {
-              if (!prev) return prev;
-              return { ...prev, players: mergeUpdatedPlayers(prev.players, data.updated_players) };
-            });
-          }
-          break;
-
-        case 'game_finished':
-          // Game over
-          soundEffects.gameFinished();
-          navigate(`/game/${roomCode}/results`);
-          break;
-
-        case 'bonus_activated': {
-          // Bonus activated by a player
-          const bonus = data.bonus;
-          // time_bonus — synchroniser la durée du round pour tous les joueurs
-          if (bonus?.bonus_type === 'time_bonus' && data.new_duration) {
-            setCurrentRound((prev) =>
-              prev ? { ...prev, duration: data.new_duration } : prev
-            );
-          }
-          // steal — mettre à jour les scores affichés
-          if (data.updated_players) {
-            setGame((prev: any) => {
-              if (!prev) return prev;
-              return { ...prev, players: mergeUpdatedPlayers(prev.players, data.updated_players) };
-            });
-          }
-          break;
-        }
-      }
-    });
-
-    return unsubscribe;
-  }, [onMessage, loadCurrentRound, navigate, roomCode, user, game, advanceToNextRound, myPointsEarned]);
+  useGameWebSocket({
+    onMessage,
+    dispatch,
+    game,
+    user,
+    roomCode,
+    navigate,
+    advanceToNextRound,
+    advanceTimeoutRef,
+    isAdvancingRef,
+    roundPlayingStartTimeRef,
+  });
 
   // Annuler le timeout de passage au round suivant si le composant se démonte
   // (navigation, fermeture de la page) avant qu'il se déclenche.
@@ -340,15 +155,15 @@ export default function GamePlayPage() {
     loadCurrentRound();
   }, [loadGame, loadCurrentRound]);
 
-  // Handle answer submission
+  // ── Handlers ───────────────────────────────────────────────────────────
+
   const handleAnswerSubmit = async (answer: string) => {
     if (!roomCode || !currentRound || hasAnswered) return;
     // Karaoke mode has no answers to submit
     if (game?.mode === 'karaoke') return;
 
     soundEffects.answerSubmitted();
-    setSelectedAnswer(answer);
-    setHasAnswered(true);
+    dispatch({ type: 'SUBMIT_ANSWER', answer });
 
     // Measure directly from when the playing phase started — avoids any drift
     // caused by Math.floor in the visual timer or loading-screen offset skew.
@@ -364,7 +179,7 @@ export default function GamePlayPage() {
       });
 
       // Store the player's own points for immediate display
-      setMyPointsEarned(answerResult.points_earned || 0);
+      dispatch({ type: 'SET_POINTS_EARNED', points: answerResult.points_earned || 0 });
 
       // Notify other players via WebSocket
       sendMessage({
@@ -376,6 +191,13 @@ export default function GamePlayPage() {
     } catch (error) {
       console.error('Failed to submit answer:', error);
     }
+  };
+
+  // Callback when loading screen completes
+  const handleLoadingComplete = () => {
+    soundEffects.countdownGo();
+    roundPlayingStartTimeRef.current = Date.now(); // ← start the response-time clock
+    dispatch({ type: 'ENTER_PLAYING' });
   };
 
   // ─── Render the correct question component based on game mode ───
@@ -463,12 +285,7 @@ export default function GamePlayPage() {
     }
   };
 
-  // Callback when loading screen completes
-  const handleLoadingComplete = () => {
-    soundEffects.countdownGo();
-    roundPlayingStartTimeRef.current = Date.now(); // ← start the response-time clock
-    setRoundPhase('playing');
-  };
+  // ── Render ─────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -516,6 +333,14 @@ export default function GamePlayPage() {
 
   return (
     <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
+      {/* Live region pour annoncer les transitions de jeu aux lecteurs d'écran */}
+      <div aria-live="polite" className="sr-only">
+        {roundPhase === 'playing' && currentRound &&
+          `Manche ${currentRound.round_number} — ${getModeLabel()} — ${timeRemaining} secondes`}
+        {roundPhase === 'results' && roundResults &&
+          `Résultats : la bonne réponse était ${roundResults.correct_answer}`}
+      </div>
+
       <div className={`flex-1 flex flex-col min-h-0 container mx-auto ${isKaraoke ? 'max-w-7xl' : 'max-w-6xl'}`}>
         {/* Header with room code and round number */}
         <div className="flex justify-between items-center mb-3">
@@ -540,10 +365,19 @@ export default function GamePlayPage() {
           {!isKaraoke && (
             <div className="flex items-center gap-3">
               <VolumeControl variant="floating" />
-              <div className={`text-6xl font-bold ${
-                timeRemaining <= 5 ? 'text-red-400 animate-pulse' : 'text-white'
-              }`}>
+              <div
+                className={`text-6xl font-bold ${
+                  timeRemaining <= 5 ? 'text-red-400 animate-pulse' : 'text-white'
+                }`}
+                role="timer"
+                aria-label={`${timeRemaining} secondes restantes`}
+              >
                 {timeRemaining}s
+              </div>
+              {/* Annonces screen reader aux seuils critiques */}
+              <div aria-live="assertive" className="sr-only">
+                {timeRemaining === 10 && '10 secondes restantes'}
+                {timeRemaining === 5 && '5 secondes restantes'}
               </div>
             </div>
           )}
@@ -579,7 +413,7 @@ export default function GamePlayPage() {
           roomCode={roomCode}
           onBonusActivated={(_bonusType, extra) => {
             if (extra.excludedOptions && extra.excludedOptions.length > 0) {
-              setExcludedOptions(extra.excludedOptions);
+              dispatch({ type: 'SET_EXCLUDED_OPTIONS', options: extra.excludedOptions });
             }
             // new_duration is handled via the bonus_activated WS event
           }}

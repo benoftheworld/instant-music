@@ -88,6 +88,7 @@ services:
     image: prom/prometheus:v2.51.0
     volumes:
       - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -112,6 +113,18 @@ services:
       - '3001:3000'
     depends_on:
       - prometheus
+
+  # ── Jaeger (tracing distribué) ──────────────────────────────────────
+  # UI: http://localhost:16686   OTLP gRPC: :4317   OTLP HTTP: :4318
+  jaeger:
+    image: jaegertracing/all-in-one:1.55
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - '16686:16686'
+      - '4317:4317'
+      - '4318:4318'
+    restart: unless-stopped
 
 volumes:
   elasticsearch_data:

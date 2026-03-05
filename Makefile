@@ -251,6 +251,11 @@ test-coverage: ## Couverture de code (backend + frontend)
 backup: ## Sauvegarder la base de données de production
 	@./_devops/script/backup.sh
 
+.PHONY: backup-cron-install
+backup-cron-install: ## Installer un cron de backup quotidien (02h00)
+	@(crontab -l 2>/dev/null | grep -v 'backup.sh'; echo "0 2 * * * cd $(CURDIR) && ./_devops/script/backup.sh >> $(CURDIR)/backups/cron.log 2>&1") | crontab -
+	@echo "Cron de backup quotidien installe (02h00). Verifiez avec : crontab -l"
+
 .PHONY: prod-shell
 prod-shell: ## Shell interactif dans le container backend (prod)
 	@$(DC_PROD) exec backend bash

@@ -34,7 +34,7 @@ class Achievement(models.Model):
         verbose_name_plural = _("succès")
 
     def __str__(self) -> str:
-        return self.name
+        return self.name  # type: ignore[no-any-return]
 
 
 class UserAchievement(models.Model):
@@ -58,3 +58,10 @@ class UserAchievement(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user.username} - {self.achievement.name}"
+
+
+# Audit log — traçabilité des modifications admin
+from auditlog.registry import auditlog
+
+auditlog.register(Achievement)
+auditlog.register(UserAchievement)

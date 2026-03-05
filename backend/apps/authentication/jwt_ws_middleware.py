@@ -37,7 +37,7 @@ class JwtWebSocketMiddleware(BaseMiddleware):
             return
 
         try:
-            token = AccessToken(token_str)
+            token = AccessToken(token_str)  # type: ignore[arg-type]
             user = await self._get_user(token["user_id"])
             if user is None:
                 raise TokenError("user_not_found")

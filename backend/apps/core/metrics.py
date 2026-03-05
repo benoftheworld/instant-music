@@ -1,6 +1,7 @@
 """
 Prometheus metrics endpoint for Django.
 """
+
 from django.http import HttpResponse
 
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
@@ -10,8 +11,8 @@ try:
     # In case of Gunicorn with multiple workers (multiprocess mode)
     from prometheus_client import CollectorRegistry, multiprocess
 except Exception:
-    multiprocess = None
-    CollectorRegistry = None
+    multiprocess = None  # type: ignore[assignment]
+    CollectorRegistry = None  # type: ignore[assignment,misc]
 
 
 def metrics(request):

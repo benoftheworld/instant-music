@@ -82,3 +82,35 @@ EMAIL_PORT = env.int("EMAIL_PORT", default=587)
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+
+# ── CDN / S3 storage (optionnel) ────────────────────────────────────
+# Activé si AWS_STORAGE_BUCKET_NAME est défini.
+# Sans cette variable, Django sert les fichiers statiques/media via Nginx.
+_s3_bucket = env("AWS_STORAGE_BUCKET_NAME", default="")
+if _s3_bucket:
+    STORAGES = {
+        "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"},
+        "staticfiles": {
+            "BACKEND": "storages.backends.s3boto3.S3StaticStorage"
+        },
+    }
+    AWS_STORAGE_BUCKET_NAME = _s3_bucket
+    AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="eu-west-3")
+    AWS_S3_CUSTOM_DOMAIN = env("AWS_S3_CUSTOM_DOMAIN", default="")
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
+
+# ── Read replica PostgreSQL (optionnel) ──────────────────────────────
+# Activé si DB_REPLICA_HOST est défini.
+_replica_host = env("DB_REPLICA_HOST", default="")
+if _replica_host:
+    DATABASES["replica"] = {  # noqa: F405
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": env("POSTGRES_DB", default="instantmusic"),
+        "USER": env("POSTGRES_USER", default="postgres"),
+        "PASSWORD": env("POSTGRES_PASSWORD", default="postgres"),
+        "HOST": _replica_host,
+        "PORT": env("DB_REPLICA_PORT", default="5432"),
+        "OPTIONS": {"options": "-c default_transaction_read_only=on"},
+    }
+    DATABASE_ROUTERS = ["config.db_router.ReadReplicaRouter"]

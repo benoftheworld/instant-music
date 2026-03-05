@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 permissions:
   contents: read
@@ -70,7 +70,6 @@ jobs:
           pip install -r backend/requirements/development.txt
       - name: mypy
         run: cd backend && mypy . --config-file pyproject.toml
-    continue-on-error: true
 
   lint-docker:
     name: Lint Dockerfiles (hadolint)

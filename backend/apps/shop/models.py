@@ -97,7 +97,7 @@ class ShopItem(models.Model):
         """Vérifie si l'article est disponible en stock."""
         if self.stock is None:
             return True
-        return self.stock > 0
+        return self.stock > 0  # type: ignore[no-any-return]
 
 
 class UserInventory(models.Model):
@@ -172,3 +172,11 @@ class GameBonus(models.Model):
             f"{self.player.user.username} — {self.bonus_type} "
             f"(round {self.round_number})"
         )
+
+
+# Audit log — traçabilité des modifications admin
+from auditlog.registry import auditlog
+
+auditlog.register(ShopItem)
+auditlog.register(UserInventory)
+auditlog.register(GameBonus)

@@ -8,6 +8,7 @@ import string
 
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Count
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -302,7 +303,9 @@ class GameViewSet(viewsets.ModelViewSet):
         except Exception:
             logger.exception("Unexpected error starting game %s", room_code)
             return Response(
-                {"error": "Une erreur inattendue est survenue. Veuillez réessayer."},
+                {
+                    "error": "Une erreur inattendue est survenue. Veuillez réessayer."
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -585,6 +588,7 @@ class GameViewSet(viewsets.ModelViewSet):
             )
             .select_related("host")
             .prefetch_related("players")
+            .annotate(_player_count=Count("players"))
             .order_by("-created_at")
         )
         search = request.query_params.get("search", "").strip()
@@ -629,7 +633,9 @@ class GameViewSet(viewsets.ModelViewSet):
         serializer = GameHistorySerializer(
             games, many=True, context={"request": request}
         )
-        return Response(paginated_response(serializer.data, total_count, page, page_size))
+        return Response(
+            paginated_response(serializer.data, total_count, page, page_size)
+        )
 
     @action(
         detail=False,
@@ -815,7 +821,9 @@ class GameViewSet(viewsets.ModelViewSet):
 
         if created:
             game.refresh_from_db()
-            game_serializer = GameSerializer(game, context={"request": request})
+            game_serializer = GameSerializer(
+                game, context={"request": request}
+            )
             player_serializer = GamePlayerSerializer(
                 _player, context={"request": request}
             )
@@ -858,4 +866,3 @@ class GameViewSet(viewsets.ModelViewSet):
         invitation.status = InvitationStatus.DECLINED
         invitation.save(update_fields=["status"])
         return Response({"message": "Invitation refusée."})
-

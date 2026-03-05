@@ -16,6 +16,42 @@ from apps.core.prometheus_metrics import (
 
 logger = logging.getLogger("apps.games.consumer")
 
+# ── Schéma de validation des messages WebSocket entrants ─────────────────────
+# Chaque type de message définit ses champs obligatoires et optionnels.
+WS_MESSAGE_SCHEMAS: dict[str, dict] = {
+    "player_join": {"required": set(), "optional": {"player"}},
+    "player_answer": {
+        "required": set(),
+        "optional": {"player", "answer", "response_time"},
+    },
+    "start_game": {"required": set(), "optional": set()},
+    "start_round": {"required": set(), "optional": {"round_data"}},
+    "end_round": {"required": set(), "optional": {"results"}},
+    "next_round": {"required": set(), "optional": {"round_data"}},
+    "finish_game": {"required": set(), "optional": {"results"}},
+    "activate_bonus": {"required": {"bonus_type"}, "optional": set()},
+}
+
+# Taille maximale d'un message WebSocket (16 Ko)
+MAX_WS_MESSAGE_SIZE = 16 * 1024
+
+
+def validate_ws_message(data: dict) -> str | None:
+    """Valide un message WS entrant. Retourne un message d'erreur ou None."""
+    msg_type = data.get("type")
+    if not isinstance(msg_type, str):
+        return "Le champ 'type' est requis et doit être une chaîne."
+
+    schema = WS_MESSAGE_SCHEMAS.get(msg_type)
+    if schema is None:
+        return f"Type de message inconnu : {msg_type}"
+
+    missing = schema["required"] - set(data.keys())
+    if missing:
+        return f"Champs requis manquants : {', '.join(sorted(missing))}"
+
+    return None
+
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     """WebSocket consumer for user-specific notifications (invitations, etc.)."""
@@ -169,48 +205,17 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         """Receive message from WebSocket."""
+        # Limite de taille du message
+        if len(text_data) > MAX_WS_MESSAGE_SIZE:
+            await self.send(
+                text_data=json.dumps(
+                    {"type": "error", "message": "Message trop volumineux."}
+                )
+            )
+            return
+
         try:
             data = json.loads(text_data)
-            message_type = data.get("type")
-
-            # Métrique : message entrant
-            WS_MESSAGES_TOTAL.labels(
-                direction="inbound", message_type=message_type or "unknown"
-            ).inc()
-
-            logger.debug(
-                "ws_message",
-                extra={
-                    "event_type": message_type,
-                    "room_code": self.room_code,
-                    "user_id": self.scope["user"].id,
-                },
-            )
-
-            # Route message to appropriate handler
-            if message_type == "player_join":
-                await self.player_join(data)
-            elif message_type == "player_answer":
-                await self.player_answer(data)
-            elif message_type == "start_game":
-                await self.start_game(data)
-            elif message_type == "start_round":
-                await self.start_round(data)
-            elif message_type == "end_round":
-                await self.end_round(data)
-            elif message_type == "next_round":
-                await self.next_round(data)
-            elif message_type == "finish_game":
-                await self.finish_game(data)
-            elif message_type == "activate_bonus":
-                await self.activate_bonus(data)
-            else:
-                await self.send(
-                    text_data=json.dumps(
-                        {"type": "error", "message": "Unknown message type"}
-                    )
-                )
-
         except json.JSONDecodeError:
             logger.warning(
                 "ws_receive_error",
@@ -223,7 +228,67 @@ class GameConsumer(AsyncWebsocketConsumer):
             )
             await self.send(
                 text_data=json.dumps(
-                    {"type": "error", "message": "Invalid JSON"}
+                    {"type": "error", "message": "JSON invalide."}
+                )
+            )
+            return
+
+        # Validation du schéma du message
+        validation_error = validate_ws_message(data)
+        if validation_error:
+            await self.send(
+                text_data=json.dumps(
+                    {"type": "error", "message": validation_error}
+                )
+            )
+            return
+
+        message_type = data["type"]
+
+        # Métrique : message entrant
+        WS_MESSAGES_TOTAL.labels(
+            direction="inbound", message_type=message_type
+        ).inc()
+
+        logger.debug(
+            "ws_message",
+            extra={
+                "event_type": message_type,
+                "room_code": self.room_code,
+                "user_id": self.scope["user"].id,
+            },
+        )
+
+        # Route message to appropriate handler
+        handlers = {
+            "player_join": self.player_join,
+            "player_answer": self.player_answer,
+            "start_game": self.start_game,
+            "start_round": self.start_round,
+            "end_round": self.end_round,
+            "next_round": self.next_round,
+            "finish_game": self.finish_game,
+            "activate_bonus": self.activate_bonus,
+        }
+
+        handler = handlers.get(message_type)
+        try:
+            await handler(data)  # type: ignore[misc]
+        except Exception:
+            logger.exception(
+                "ws_handler_error",
+                extra={
+                    "event_type": message_type,
+                    "room_code": self.room_code,
+                    "user_id": self.scope["user"].id,
+                },
+            )
+            await self.send(
+                text_data=json.dumps(
+                    {
+                        "type": "error",
+                        "message": "Erreur interne du serveur.",
+                    }
                 )
             )
 
@@ -328,7 +393,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         """Vérifie si l'utilisateur connecté est l'hôte de la partie."""
         from .models import Game
 
-        return Game.objects.filter(
+        return Game.objects.filter(  # type: ignore[no-any-return]
             room_code=self.room_code, host=self.scope["user"]
         ).exists()
 
@@ -442,7 +507,9 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         if result.get("error"):
             await self.send(
-                text_data=json.dumps({"type": "error", "message": result["error"]})
+                text_data=json.dumps(
+                    {"type": "error", "message": result["error"]}
+                )
             )
             return
 

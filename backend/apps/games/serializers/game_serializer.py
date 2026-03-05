@@ -54,5 +54,16 @@ class GameSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "room_code", "created_at"]
 
     def get_player_count(self, obj):
-        """Get number of players in the game."""
+        """Get number of players in the game.
+
+        Utilise l'annotation `player_count` si disponible (via Count('players')
+        dans le queryset) pour éviter un N+1 query. Fallback sur len() si
+        les players sont prefetch_related, sinon .count().
+        """
+        # Annotation depuis le viewset (optimal)
+        if hasattr(obj, "_player_count"):
+            return obj._player_count
+        # prefetch_related déjà chargé (pas de query supplémentaire)
+        if "players" in getattr(obj, "_prefetched_objects_cache", {}):
+            return len(obj.players.all())
         return obj.players.count()

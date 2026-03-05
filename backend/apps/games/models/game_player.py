@@ -34,7 +34,9 @@ class GamePlayer(models.Model):
         default=0,
         help_text="Nombre de bonnes réponses consécutives dans la partie",
     )
-    is_connected = models.BooleanField(_("connecté"), default=True)
+    is_connected = models.BooleanField(
+        _("connecté"), default=True, db_index=True
+    )
     joined_at = models.DateTimeField(_("a rejoint le"), auto_now_add=True)
 
     class Meta:

@@ -1,29 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api, getMediaUrl } from '@/services/api';
 import { getModeIcon } from '@/constants/gameModes';
 import type { GameHistory } from '@/types';
 import { Link } from 'react-router-dom';
 
 export default function RecentGames() {
-  const [games, setGames] = useState<GameHistory[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchRecentGames();
-  }, []);
-
-  const fetchRecentGames = async () => {
-    try {
+  const { data: games = [], isLoading: loading } = useQuery<GameHistory[]>({
+    queryKey: ['recentGames'],
+    queryFn: async () => {
       const response = await api.get('/games/history/', { params: { page: 1, page_size: 5 } });
       const data = response.data;
-      const results = Array.isArray(data) ? data : data.results ?? [];
-      setGames(results);
-    } catch (err) {
-      console.error('Failed to fetch recent games:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return Array.isArray(data) ? data : data.results ?? [];
+    },
+    staleTime: 30_000,
+  });
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
@@ -38,7 +28,7 @@ export default function RecentGames() {
     if (diffMins < 60) return `Il y a ${diffMins} min`;
     if (diffHours < 24) return `Il y a ${diffHours}h`;
     if (diffDays < 7) return `Il y a ${diffDays}j`;
-    
+
     return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
   };
 
@@ -100,7 +90,7 @@ export default function RecentGames() {
           </div>
         </div>
       ))}
-      
+
       <div className="text-center pt-2">
         <Link to="/history" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
           Voir tout l'historique →

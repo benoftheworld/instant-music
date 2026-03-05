@@ -161,7 +161,7 @@ class InventoryViewSet(GenericViewSet):
                 player = GamePlayer.objects.get(game=game, user=request.user)
                 excluded = bonus_service.get_fifty_fifty_exclusions(
                     player=player,
-                    round_number=round_number,
+                    round_number=round_number,  # type: ignore[arg-type]
                     options=current_round.options,
                     correct_answer=current_round.correct_answer,
                 )
@@ -173,7 +173,7 @@ class InventoryViewSet(GenericViewSet):
             try:
                 player = GamePlayer.objects.get(game=game, user=request.user)
                 stolen = bonus_service.apply_steal_bonus(
-                    player=player, game=game, round_number=round_number
+                    player=player, game=game, round_number=round_number  # type: ignore[arg-type]
                 )
                 extra_response["stolen_points"] = stolen
                 # Diffuser les scores mis à jour
@@ -225,7 +225,9 @@ class InventoryViewSet(GenericViewSet):
         response_data.update(extra_response)
         return Response(response_data, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=["get"], url_path="game/(?P<room_code>[^/.]+)")
+    @action(
+        detail=False, methods=["get"], url_path="game/(?P<room_code>[^/.]+)"
+    )
     def game_bonuses(self, request, room_code=None):
         """Lister les bonus actifs du joueur pour une partie donnée."""
         from apps.games.models import Game, GamePlayer

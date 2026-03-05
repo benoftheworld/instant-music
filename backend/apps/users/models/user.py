@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.users.encryption import hash_email
 from apps.users.fields import EncryptedEmailField
+from apps.users.validators import validate_avatar
 
 
 class UserManager(BaseUserManager):
@@ -41,7 +42,7 @@ class UserManager(BaseUserManager):
 
     def get_by_email(self, email: str) -> "User":
         """Recherche un utilisateur par email en clair via le hash HMAC."""
-        return self.get(email_hash=hash_email(email))
+        return self.get(email_hash=hash_email(email))  # type: ignore[no-any-return]
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -66,7 +67,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         upload_to="avatars/",
         null=True,
         blank=True,
-        help_text=_("Photo de profil de l'utilisateur"),
+        validators=[validate_avatar],
+        help_text=_("Photo de profil (max 5 Mo, JPEG/PNG/WebP/GIF)"),
     )
 
     # Statistiques
@@ -86,7 +88,9 @@ class User(AbstractBaseUser, PermissionsMixin):
         _("dernière connexion quotidienne"),
         null=True,
         blank=True,
-        help_text=_("Date de la dernière connexion ayant donné le bonus quotidien."),
+        help_text=_(
+            "Date de la dernière connexion ayant donné le bonus quotidien."
+        ),
     )
 
     # OAuth
@@ -123,7 +127,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         ordering = ["-created_at"]
 
     def __str__(self) -> str:
-        return self.username
+        return self.username  # type: ignore[no-any-return]
 
     def save(self, *args, **kwargs):
         """Calcule automatiquement le hash de l'email avant chaque sauvegarde."""
@@ -138,4 +142,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     def win_rate(self) -> float:
         if self.total_games_played == 0:
             return 0.0
-        return (self.total_wins / self.total_games_played) * 100
+        return (self.total_wins / self.total_games_played) * 100  # type: ignore[no-any-return]
+
+
+# Audit log — traçabilité des modifications admin
+from auditlog.registry import auditlog
+
+auditlog.register(User, exclude_fields=["email", "email_hash", "password"])

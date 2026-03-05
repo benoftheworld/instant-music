@@ -21,14 +21,16 @@ services:
     container_name: instantmusic_elasticsearch_prod
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:?ELASTIC_PASSWORD must be set in .env.prod}
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     expose:
       - '9200'
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f http://localhost:9200/_cluster/health || exit 1']
+      test: ['CMD-SHELL', 'curl -f -u elastic:${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health || exit 1']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -62,6 +64,8 @@ services:
     container_name: instantmusic_kibana_prod
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD:?ELASTIC_PASSWORD must be set in .env.prod}
       - SERVER_BASEPATH=/kibana
       - SERVER_REWRITEBASEPATH=true
     expose:
@@ -106,6 +110,7 @@ services:
     container_name: instantmusic_prometheus_prod
     volumes:
       - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -127,8 +132,8 @@ services:
     image: grafana/grafana:10.4.1
     container_name: instantmusic_grafana_prod
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin # Changer en production !
+      - GF_SECURITY_ADMIN_USER=${GF_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:?GF_ADMIN_PASSWORD must be set in .env.prod}
       - GF_USERS_ALLOW_SIGN_UP=false
       # Subpath pour l'accès via nginx /grafana/
       - GF_SERVER_ROOT_URL=https://${DOMAIN:-benoftheworld.fr}/grafana/
@@ -140,6 +145,22 @@ services:
       - '3000'
     depends_on:
       - prometheus
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Jaeger (tracing distribué) ──────────────────────────────────────
+  # OTLP gRPC sur :4317, UI interne sur :16686 (accès via nginx /jaeger/)
+  jaeger:
+    image: jaegertracing/all-in-one:1.55
+    container_name: instantmusic_jaeger_prod
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - QUERY_BASE_PATH=/jaeger
+    expose:
+      - '16686'
+      - '4317'
+      - '4318'
     restart: unless-stopped
     networks:
       - app-network

@@ -49,4 +49,4 @@ class Team(models.Model):
         ordering = ["-total_points"]
 
     def __str__(self) -> str:
-        return self.name
+        return self.name  # type: ignore[no-any-return]

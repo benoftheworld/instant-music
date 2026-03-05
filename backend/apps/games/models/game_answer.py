@@ -28,7 +28,9 @@ class GameAnswer(models.Model):
         verbose_name=_("joueur"),
     )
     answer = models.CharField(_("réponse"), max_length=255)
-    is_correct = models.BooleanField(_("correct"), default=False)
+    is_correct = models.BooleanField(
+        _("correct"), default=False, db_index=True
+    )
     points_earned = models.IntegerField(_("points gagnés"), default=0)
     streak_bonus = models.IntegerField(_("bonus série"), default=0)
     response_time = models.FloatField(_("temps de réponse (secondes)"))

@@ -53,6 +53,7 @@ class Game(models.Model):
         max_length=20,
         choices=GameStatus.choices,
         default=GameStatus.WAITING,
+        db_index=True,
     )
     max_players = models.IntegerField(_("nombre max de joueurs"), default=8)
     num_rounds = models.IntegerField(_("nombre de rounds"), default=10)
@@ -63,6 +64,7 @@ class Game(models.Model):
     is_public = models.BooleanField(
         _("partie publique"),
         default=False,
+        db_index=True,
         help_text=_(
             "Si activé, la partie apparaît dans la liste des parties publiques"
         ),
@@ -139,3 +141,9 @@ class Game(models.Model):
 
     def __str__(self) -> str:
         return f"Game {self.room_code} - {self.get_mode_display()}"
+
+
+# Audit log — traçabilité des modifications admin
+from auditlog.registry import auditlog
+
+auditlog.register(Game)

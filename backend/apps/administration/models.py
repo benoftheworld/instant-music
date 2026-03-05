@@ -104,7 +104,7 @@ class SiteConfiguration(models.Model):
     def get_solo(cls) -> "SiteConfiguration":
         """Return the singleton instance, creating it with defaults if needed."""
         obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
+        return obj  # type: ignore[no-any-return]
 
 
 class LegalPage(models.Model):
@@ -137,4 +137,11 @@ class LegalPage(models.Model):
         verbose_name_plural = _("Pages légales")
 
     def __str__(self) -> str:
-        return self.get_page_type_display()
+        return self.get_page_type_display()  # type: ignore[no-any-return]
+
+
+# Audit log — traçabilité des modifications admin
+from auditlog.registry import auditlog
+
+auditlog.register(SiteConfiguration)
+auditlog.register(LegalPage)

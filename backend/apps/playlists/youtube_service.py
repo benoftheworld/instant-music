@@ -6,7 +6,7 @@ Music streaming service integration for InstantMusic.
 import logging
 import random
 import re
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import requests
 from django.conf import settings
@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 
 # ─── Constants ───────────────────────────────────────────────────────
 
-API_TIMEOUT: int = 10          # seconds for YouTube API requests
-CACHE_TTL_SEARCH: int = 1800   # 30 min for search results
-CACHE_TTL_DETAIL: int = 3600   # 1 hour for playlist / track details
+API_TIMEOUT: int = 10  # seconds for YouTube API requests
+CACHE_TTL_SEARCH: int = 1800  # 30 min for search results
+CACHE_TTL_DETAIL: int = 3600  # 1 hour for playlist / track details
 
 # Pre-compiled regex for stripping video-title suffixes (Official Video, etc.)
 _SUFFIX_RE = re.compile(
@@ -45,7 +45,7 @@ class YouTubeService:
 
     BASE_URL = "https://www.googleapis.com/youtube/v3"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.api_key = getattr(settings, "YOUTUBE_API_KEY", "")
 
     def _make_request(self, endpoint: str, params: dict) -> dict:
@@ -73,7 +73,7 @@ class YouTubeService:
         try:
             response = requests.get(url, params=params, timeout=API_TIMEOUT)
             response.raise_for_status()
-            return response.json()
+            return response.json()  # type: ignore[no-any-return]
         except requests.exceptions.HTTPError as e:
             error_body = ""
             try:
@@ -104,7 +104,7 @@ class YouTubeService:
         cache_key = f"yt_search_pl_{query}_{limit}"
         cached = cache.get(cache_key)
         if cached:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         params = {
             "part": "snippet",
@@ -159,7 +159,7 @@ class YouTubeService:
         cache_key = f"yt_playlist_{playlist_id}"
         cached = cache.get(cache_key)
         if cached:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         params = {
             "part": "snippet,contentDetails",
@@ -214,9 +214,9 @@ class YouTubeService:
         cache_key = f"yt_pl_tracks_{playlist_id}_{limit}"
         cached = cache.get(cache_key)
         if cached:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
-        all_items = []
+        all_items: list[dict[str, Any]] = []
         next_page_token = None
 
         while len(all_items) < limit:
@@ -321,7 +321,7 @@ class YouTubeService:
         cache_key = f"yt_search_vid_{query}_{limit}"
         cached = cache.get(cache_key)
         if cached:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         params = {
             "part": "snippet",
@@ -448,6 +448,7 @@ class YouTubeService:
         Returns:
             Tuple of (artist, track_name)
         """
+
         def _strip(s: str) -> str:
             return _SUFFIX_RE.sub("", s).strip()
 

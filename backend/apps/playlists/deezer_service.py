@@ -3,11 +3,12 @@ Deezer API service for searching playlists and tracks.
 Replaces YouTube as the music source — uses free 30-second MP3 previews.
 No API key required.
 """
+
 import logging
 import random
 import hashlib
 import re
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import requests
 from django.core.cache import cache
@@ -16,9 +17,9 @@ logger = logging.getLogger(__name__)
 
 # ─── Constants ───────────────────────────────────────────────────────
 
-API_TIMEOUT: int = 10          # seconds for Deezer API requests
-CACHE_TTL_SEARCH: int = 1800   # 30 min for search results
-CACHE_TTL_DETAIL: int = 3600   # 1 hour for playlist / track details
+API_TIMEOUT: int = 10  # seconds for Deezer API requests
+CACHE_TTL_SEARCH: int = 1800  # 30 min for search results
+CACHE_TTL_DETAIL: int = 3600  # 1 hour for playlist / track details
 
 # ─── Title cleaning ──────────────────────────────────────────────────
 
@@ -35,9 +36,9 @@ _TITLE_SUFFIX_RE = re.compile(
     # parenthesised / bracketed suffix — keyword can appear before or after a year
     # e.g. (Remastered 2011)  (2011 Remaster)  [Remasterisée]  (Deluxe Edition)
     r"[\(\[]"
-    r"[^\)\]]*"    # any text before the keyword (handles "2011 Remaster…")
+    r"[^\)\]]*"  # any text before the keyword (handles "2011 Remaster…")
     r"(?:remaster[a-zA-Z\u00c0-\u00ff]*|re-?issue|deluxe|super\s*deluxe|anniversary|expanded|special(?:\s*(?:edition|version))?)"
-    r"[^\)\]]*"    # any text after the keyword
+    r"[^\)\]]*"  # any text after the keyword
     r"[\)\]]"
     r"|"
     # bare dash-separated suffix: « - Remastered » « - 2020 Remaster » « - Deluxe »
@@ -76,6 +77,7 @@ def clean_track_title(title: str) -> str:
 
 class DeezerAPIError(Exception):
     """Custom exception for Deezer API errors."""
+
     pass
 
 
@@ -89,7 +91,9 @@ class DeezerService:
 
     BASE_URL = "https://api.deezer.com"
 
-    def _make_request(self, endpoint: str, params: Optional[dict] = None) -> dict:
+    def _make_request(
+        self, endpoint: str, params: Optional[dict] = None
+    ) -> dict:
         """
         Make a GET request to the Deezer API.
 
@@ -106,16 +110,20 @@ class DeezerService:
         url = f"{self.BASE_URL}{endpoint}"
 
         try:
-            response = requests.get(url, params=params or {}, timeout=API_TIMEOUT)
+            response = requests.get(
+                url, params=params or {}, timeout=API_TIMEOUT
+            )
             response.raise_for_status()
             data = response.json()
 
             # Deezer returns errors in the JSON body
             if "error" in data:
-                error_msg = data["error"].get("message", "Unknown Deezer error")
+                error_msg = data["error"].get(
+                    "message", "Unknown Deezer error"
+                )
                 raise DeezerAPIError(f"Deezer API error: {error_msg}")
 
-            return data
+            return data  # type: ignore[no-any-return]
         except requests.exceptions.HTTPError as e:
             logger.error("Deezer API HTTP error on %s: %s", endpoint, e)
             raise DeezerAPIError(f"Deezer API HTTP error: {e}")
@@ -138,24 +146,32 @@ class DeezerService:
             youtube_id (kept for compat, actually deezer id), name, description,
             image_url, total_tracks, owner, external_url
         """
-        cache_key = f"dz_search_pl_{hashlib.md5(query.encode()).hexdigest()}_{limit}"
+        cache_key = (
+            f"dz_search_pl_{hashlib.md5(query.encode()).hexdigest()}_{limit}"
+        )
         cached = cache.get(cache_key)
         if cached:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
-        data = self._make_request("/search/playlist", {"q": query, "limit": limit})
+        data = self._make_request(
+            "/search/playlist", {"q": query, "limit": limit}
+        )
 
         playlists = []
         for item in data.get("data", []):
-            playlists.append({
-                "playlist_id": str(item["id"]),
-                "name": item.get("title", ""),
-                "description": "",
-                "image_url": item.get("picture_medium", item.get("picture", "")),
-                "total_tracks": item.get("nb_tracks", 0),
-                "owner": item.get("user", {}).get("name", "Deezer"),
-                "external_url": item.get("link", ""),
-            })
+            playlists.append(
+                {
+                    "playlist_id": str(item["id"]),
+                    "name": item.get("title", ""),
+                    "description": "",
+                    "image_url": item.get(
+                        "picture_medium", item.get("picture", "")
+                    ),
+                    "total_tracks": item.get("nb_tracks", 0),
+                    "owner": item.get("user", {}).get("name", "Deezer"),
+                    "external_url": item.get("link", ""),
+                }
+            )
 
         cache.set(cache_key, playlists, CACHE_TTL_DETAIL)
         return playlists
@@ -170,7 +186,7 @@ class DeezerService:
         cache_key = f"dz_pl_{playlist_id}"
         cached = cache.get(cache_key)
         if cached:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         try:
             data = self._make_request(f"/playlist/{playlist_id}")
@@ -190,7 +206,9 @@ class DeezerService:
         cache.set(cache_key, playlist, CACHE_TTL_DETAIL)
         return playlist
 
-    def get_playlist_tracks(self, playlist_id: str, limit: int = 50) -> List[Dict]:
+    def get_playlist_tracks(
+        self, playlist_id: str, limit: int = 50
+    ) -> List[Dict]:
         """
         Get tracks from a Deezer playlist.
         Filters out tracks without a preview URL.
@@ -205,9 +223,9 @@ class DeezerService:
         cache_key = f"dz_pl_tracks_{playlist_id}_{limit}"
         cached = cache.get(cache_key)
         if cached:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
-        tracks = []
+        tracks: list[dict[str, Any]] = []
         # Deezer paginates tracks, fetch in batches
         index = 0
         batch_size = 100  # Deezer max per request
@@ -256,10 +274,12 @@ class DeezerService:
         Returns:
             List of track dicts (only those with preview URLs)
         """
-        cache_key = f"dz_search_tr_{hashlib.md5(query.encode()).hexdigest()}_{limit}"
+        cache_key = (
+            f"dz_search_tr_{hashlib.md5(query.encode()).hexdigest()}_{limit}"
+        )
         cached = cache.get(cache_key)
         if cached:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         data = self._make_request("/search", {"q": query, "limit": limit})
 
@@ -291,7 +311,7 @@ class DeezerService:
         cache_key = f"dz_track_{track_id}"
         cached = cache.get(cache_key)
         if cached:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         try:
             data = self._make_request(f"/track/{track_id}")
@@ -331,7 +351,9 @@ class DeezerService:
 
         return {
             "track_id": str(item.get("id", "")),
-            "name": clean_track_title(item.get("title", item.get("title_short", ""))),
+            "name": clean_track_title(
+                item.get("title", item.get("title_short", ""))
+            ),
             "artists": [artist.get("name", "Unknown")],
             "album": album.get("title", ""),
             "album_image": album.get("cover_medium", album.get("cover", "")),

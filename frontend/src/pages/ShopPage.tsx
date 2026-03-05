@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/authService';
 import { shopService } from '@/services/shopService';
@@ -145,75 +146,62 @@ function ShopItemCard({
 
 export default function ShopPage() {
   const { user, updateUser } = useAuthStore();
-  const [items, setItems] = useState<ShopItem[]>([]);
-  const [summary, setSummary] = useState<ShopSummary | null>(null);
-  const [inventory, setInventory] = useState<UserInventoryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [purchasing, setPurchasing] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
     text: string;
   } | null>(null);
   const [activeTab, setActiveTab] = useState<'bonus' | 'physical' | 'inventory'>('bonus');
 
+  const { data: items = [], isLoading: itemsLoading } = useQuery<ShopItem[]>({
+    queryKey: ['shop', 'items'],
+    queryFn: () => shopService.getItems(),
+  });
+
+  const { data: summary = null } = useQuery<ShopSummary | null>({
+    queryKey: ['shop', 'summary'],
+    queryFn: () => shopService.getSummary(),
+  });
+
+  const { data: inventory = [], isLoading: inventoryLoading } = useQuery<UserInventoryEntry[]>({
+    queryKey: ['shop', 'inventory'],
+    queryFn: () => shopService.getInventory(),
+  });
+
+  const loading = itemsLoading || inventoryLoading;
+
   const inventoryMap = inventory.reduce<Record<string, number>>((acc, entry) => {
     acc[entry.item.id] = entry.quantity;
     return acc;
   }, {});
 
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [itemsData, summaryData, inventoryData] = await Promise.all([
-        shopService.getItems(),
-        shopService.getSummary(),
-        shopService.getInventory(),
-      ]);
-      setItems(itemsData);
-      setSummary(summaryData);
-      setInventory(inventoryData);
-    } catch {
-      setNotification({ type: 'error', text: 'Erreur lors du chargement de la boutique.' });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const handlePurchase = async (item: ShopItem) => {
-    if (!user) return;
-    setPurchasing(item.id);
-    setNotification(null);
-
-    try {
-      await shopService.purchase(item.id, 1);
-
+  const purchaseMutation = useMutation({
+    mutationFn: (item: ShopItem) => shopService.purchase(item.id, 1),
+    onMutate: () => setNotification(null),
+    onSuccess: async (_data, item) => {
       // Rafraîchir l'utilisateur et les données de boutique
-      const [freshUser, freshSummary, freshInventory] = await Promise.all([
-        authService.getCurrentUser(),
-        shopService.getSummary(),
-        shopService.getInventory(),
-      ]);
+      const freshUser = await authService.getCurrentUser();
       updateUser(freshUser);
-      setSummary(freshSummary);
-      setInventory(freshInventory);
+      await queryClient.invalidateQueries({ queryKey: ['shop'] });
 
       setNotification({
         type: 'success',
         text: `"${item.name}" ajouté à votre inventaire !`,
       });
-    } catch (err: unknown) {
+    },
+    onError: (err: unknown) => {
       const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data
           ?.detail ?? "Impossible d'effectuer cet achat.";
       setNotification({ type: 'error', text: detail });
-    } finally {
-      setPurchasing(null);
-    }
+    },
+  });
+
+  const handlePurchase = (item: ShopItem) => {
+    if (!user) return;
+    purchaseMutation.mutate(item);
   };
+  const purchasing = purchaseMutation.isPending ? (purchaseMutation.variables?.id ?? null) : null;
 
   const bonusItems = items.filter((i) => i.item_type === 'bonus');
   const physicalItems = items.filter((i) => i.item_type === 'physical');

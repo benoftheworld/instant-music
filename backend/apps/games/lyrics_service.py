@@ -64,7 +64,7 @@ def _lrclib_ssl_context() -> ssl.SSLContext:
     return ctx
 
 
-def _lrclib_fetch(url: str, params: Optional[dict] = None):
+def _lrclib_fetch(url: str, params: Optional[dict] = None) -> Optional[dict]:
     """GET a lrclib.net endpoint via urllib.request; return parsed JSON or None.
 
     Uses urllib.request directly to bypass urllib3's MemoryBIO SSL layer,
@@ -85,7 +85,7 @@ def _lrclib_fetch(url: str, params: Optional[dict] = None):
             req, context=_lrclib_ssl_context(), timeout=_LRCLIB_READ_TIMEOUT
         ) as resp:
             if resp.status == 200:
-                return json.loads(resp.read().decode("utf-8"))
+                return json.loads(resp.read().decode("utf-8"))  # type: ignore[no-any-return]
     except ssl.SSLError as exc:
         # Transient TLS issue — do NOT open circuit breaker
         logger.warning("LRCLib SSL error for %s: %s", url, exc)
@@ -301,7 +301,7 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
         lyrics = data.get("plainLyrics", "")
         if lyrics and len(lyrics) >= 50:
             cache.set(cache_key, lyrics, CACHE_TTL_LYRICS)
-            return lyrics
+            return lyrics  # type: ignore[no-any-return]
 
     # ── 2. lyrics.ovh fallback ────────────────────────────────────────
     url = (
@@ -314,7 +314,7 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
             lyrics = resp.json().get("lyrics", "")
             if lyrics and len(lyrics) >= 50:
                 cache.set(cache_key, lyrics, CACHE_TTL_LYRICS)
-                return lyrics
+                return lyrics  # type: ignore[no-any-return]
     except Exception as e:
         logger.warning("lyrics.ovh failed for %s - %s: %s", artist, title, e)
 
@@ -420,9 +420,7 @@ def get_synced_lyrics(
     return None, None
 
 
-def _extract_line_sequences(
-    line: str, n: int
-) -> List[Tuple[int, List[str]]]:
+def _extract_line_sequences(line: str, n: int) -> List[Tuple[int, List[str]]]:
     """Extract all valid n-word sequences from a lyrics line.
 
     Returns list of (start_index, word_sequence) tuples where every word

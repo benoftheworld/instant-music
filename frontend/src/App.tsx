@@ -1,32 +1,43 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
+import ErrorBoundary from './components/layout/ErrorBoundary';
 import HomePage from './pages/HomePage';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
-import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-import PrivacyPage from './pages/legal/PrivacyPage';
-import LegalNoticePage from './pages/legal/LegalNoticePage';
-import ProfilePage from './pages/ProfilePage';
-import FriendsPage from './pages/FriendsPage';
-import TeamsPage from './pages/TeamsPage';
-import TeamPage from './pages/TeamPage';
-import CreateGamePage from './pages/game/CreateGamePage';
-import JoinGamePage from './pages/game/JoinGamePage';
-import GameLobbyPage from './pages/game/GameLobbyPage';
-import GamePlayPage from './pages/game/GamePlayPage';
-import GameResultsPage from './pages/game/GameResultsPage';
-import GameHistoryPage from './pages/GameHistoryPage';
-import LeaderboardPage from './pages/LeaderboardPage';
-import ShopPage from './pages/ShopPage';
-import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AchievementToastManager from './components/layout/AchievementToastManager';
 import { useAuthStore } from './store/authStore';
 import { notificationWS } from './services/notificationWebSocket';
 import { useNotificationStore } from './store/notificationStore';
 import { invitationService } from './services/invitationService';
+
+// ── Lazy-loaded pages (code splitting) ───────────────────────────────────
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'));
+const PrivacyPage = lazy(() => import('./pages/legal/PrivacyPage'));
+const LegalNoticePage = lazy(() => import('./pages/legal/LegalNoticePage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const FriendsPage = lazy(() => import('./pages/FriendsPage'));
+const TeamsPage = lazy(() => import('./pages/TeamsPage'));
+const TeamPage = lazy(() => import('./pages/TeamPage'));
+const CreateGamePage = lazy(() => import('./pages/game/CreateGamePage'));
+const JoinGamePage = lazy(() => import('./pages/game/JoinGamePage'));
+const GameLobbyPage = lazy(() => import('./pages/game/GameLobbyPage'));
+const GamePlayPage = lazy(() => import('./pages/game/GamePlayPage'));
+const GameResultsPage = lazy(() => import('./pages/game/GameResultsPage'));
+const GameHistoryPage = lazy(() => import('./pages/GameHistoryPage'));
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
+const ShopPage = lazy(() => import('./pages/ShopPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+    </div>
+  );
+}
 
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -69,8 +80,9 @@ function App() {
   }, [isAuthenticated]);
 
   return (
-    <>
+    <ErrorBoundary>
       <AchievementToastManager />
+      <Suspense fallback={<PageLoader />}>
       <Routes>
       <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
@@ -100,7 +112,8 @@ function App() {
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
-    </>
+    </Suspense>
+    </ErrorBoundary>
   );
 }
 

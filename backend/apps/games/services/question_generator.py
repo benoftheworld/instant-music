@@ -59,10 +59,12 @@ class QuestionGeneratorService:
         Results are cached for 24 h to avoid hammering the service.
         Returns the year as int, or None if the lookup fails.
         """
-        cache_key = "mb_year_" + hashlib.md5(f"{artist}|{title}".encode()).hexdigest()
+        cache_key = (
+            "mb_year_" + hashlib.md5(f"{artist}|{title}".encode()).hexdigest()
+        )
         cached = cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         try:
             # Escape special Lucene characters in the query strings
@@ -72,14 +74,19 @@ class QuestionGeneratorService:
             query = f'recording:"{_esc(title)}" AND artist:"{_esc(artist)}"'
             resp = requests.get(
                 f"{MUSICBRAINZ_API_BASE}/recording/",
-                params={"query": query, "fmt": "json", "limit": 100},
+                params={"query": query, "fmt": "json", "limit": 100},  # type: ignore[arg-type]
                 headers={"User-Agent": MUSICBRAINZ_USER_AGENT},
                 timeout=MUSICBRAINZ_API_TIMEOUT,
             )
             resp.raise_for_status()
             data = resp.json()
         except Exception as exc:  # noqa: BLE001
-            logger.warning("MusicBrainz lookup failed for '%s – %s': %s", artist, title, exc)
+            logger.warning(
+                "MusicBrainz lookup failed for '%s – %s': %s",
+                artist,
+                title,
+                exc,
+            )
             cache.set(cache_key, None, CACHE_TTL_MUSICBRAINZ)
             return None
 
@@ -100,7 +107,9 @@ class QuestionGeneratorService:
 
         result: Optional[int] = min(years) if years else None
         cache.set(cache_key, result, CACHE_TTL_MUSICBRAINZ)
-        logger.debug("MusicBrainz year for '%s – %s': %s", artist, title, result)
+        logger.debug(
+            "MusicBrainz year for '%s – %s': %s", artist, title, result
+        )
         return result
 
     # ─── Public entry point ──────────────────────────────────────────

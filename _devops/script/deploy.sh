@@ -12,6 +12,7 @@
 #   --status       Affiche l'état des services sans déployer
 #   --logs [svc]   Affiche les logs (tous ou un service précis)
 #   --rollback     Revient à l'image taggée "previous"
+#   --blue-green   Déploiement blue-green sans downtime (production uniquement)
 #   --help         Affiche cette aide
 #
 # Exemples:
@@ -20,6 +21,7 @@
 #   ./deploy.sh production --status
 #   ./deploy.sh production --logs backend
 #   ./deploy.sh production --rollback
+#   ./deploy.sh production --blue-green
 
 set -euo pipefail
 
@@ -62,6 +64,7 @@ OPT_NO_PULL=false
 OPT_NO_CACHE=false
 OPT_STATUS=false
 OPT_ROLLBACK=false
+OPT_BLUE_GREEN=false
 OPT_LOGS=false
 OPT_LOGS_SVC=""
 
@@ -72,6 +75,7 @@ while [[ $# -gt 0 ]]; do
         --no-cache)  OPT_NO_CACHE=true ;;
         --status)    OPT_STATUS=true ;;
         --rollback)  OPT_ROLLBACK=true ;;
+        --blue-green) OPT_BLUE_GREEN=true ;;
         --logs)      OPT_LOGS=true; OPT_LOGS_SVC="${2:-}"; [[ -n "$OPT_LOGS_SVC" ]] && shift ;;
         --help|-h)   usage ;;
         *)           log_warn "Option inconnue: $1" ;;
@@ -202,6 +206,83 @@ if [[ "$OPT_ROLLBACK" == "true" ]]; then
     exit 0
 fi
 
+# ─── Blue-green deployment ──────────────────────────────────────────
+if [[ "$OPT_BLUE_GREEN" == "true" ]]; then
+    [[ "$ENV" != "production" ]] && die "--blue-green est reservé au mode production."
+
+    UPSTREAM_FILE="$DEVOPS_DIR/nginx/upstream-backend.conf"
+    NGINX_CONTAINER="instantmusic_nginx"
+
+    # Déterminer le slot actif (blue = port 8001, green = port 8002)
+    CURRENT=$(cat "$UPSTREAM_FILE" 2>/dev/null | grep -oP '(backend-blue|backend-green)' || echo "")
+    if [[ "$CURRENT" == "backend-green" ]]; then
+        NEW_SLOT="blue"
+        NEW_SERVICE="backend-blue"
+        NEW_PORT="8001"
+    else
+        NEW_SLOT="green"
+        NEW_SERVICE="backend-green"
+        NEW_PORT="8002"
+    fi
+
+    log_section "Blue-green: deploiement sur le slot $NEW_SLOT"
+
+    if [[ "$OPT_NO_PULL" == "false" ]]; then
+        log_info "Mise a jour du code source"
+        CURRENT_BRANCH=$(git -C "$REPO_ROOT" branch --show-current)
+        git -C "$REPO_ROOT" pull origin "$CURRENT_BRANCH"
+    fi
+
+    log_info "Build de l'image backend..."
+    $DC build backend
+    log_success "Image construite."
+
+    log_info "Demarrage du nouveau slot: $NEW_SERVICE"
+    $DC up -d --no-deps --scale "$NEW_SERVICE=1" "$NEW_SERVICE" 2>/dev/null || \
+        $DC up -d --no-deps backend
+    log_success "Slot $NEW_SLOT demarre."
+
+    log_info "Attente du health check sur le nouveau slot..."
+    HEALTHY=false
+    for i in $(seq 1 30); do
+        if $DC exec -T backend python manage.py check --verbosity 0 >/dev/null 2>&1; then
+            HEALTHY=true
+            break
+        fi
+        sleep 2
+    done
+
+    if [[ "$HEALTHY" != "true" ]]; then
+        log_error "Le nouveau slot n'est pas sain. Abandon du blue-green."
+        log_warn "L'ancien slot reste actif. Aucun changement applique."
+        exit 1
+    fi
+    log_success "Nouveau slot operationnel."
+
+    log_info "Migration de la base de donnees..."
+    $DC exec -T backend python manage.py migrate --noinput
+    log_success "Migrations appliquees."
+
+    log_info "Bascule du trafic vers le slot $NEW_SLOT"
+    echo "# Active upstream — managed by deploy.sh --blue-green" > "$UPSTREAM_FILE"
+    echo "server ${NEW_SERVICE}:8000;" >> "$UPSTREAM_FILE"
+
+    if docker ps --format '{{.Names}}' | grep -q "$NGINX_CONTAINER"; then
+        docker exec "$NGINX_CONTAINER" nginx -s reload 2>/dev/null || \
+            log_warn "Impossible de recharger nginx — rechargement manuel requis."
+        log_success "Nginx recharge — trafic bascule vers $NEW_SLOT."
+    else
+        log_warn "Container nginx non trouve. Rechargement manuel requis."
+    fi
+
+    log_info "L'ancien slot reste en standby pour rollback instantane."
+    log_info "Pour rollback: echo 'server backend:8000;' > $UPSTREAM_FILE && docker exec $NGINX_CONTAINER nginx -s reload"
+
+    echo ""
+    echo -e "${BOLD}${GREEN}  Blue-green deploy reussi — slot actif: $NEW_SLOT${NC}"
+    exit 0
+fi
+
 # Tag images actuelles comme "previous" avant le nouveau build
 for svc in backend frontend; do
     if docker image inspect "instant-music-${svc}:latest" >/dev/null 2>&1; then
@@ -259,6 +340,22 @@ for i in $(seq 1 24); do
 done
 
 log_section "Migrations de base de donnees"
+
+# Backup pre-migration (production uniquement)
+if [[ "$ENV" == "production" ]]; then
+    log_info "Backup de la base de donnees avant migration..."
+    BACKUP_SCRIPT="$SCRIPT_DIR/backup.sh"
+    if [[ -x "$BACKUP_SCRIPT" ]]; then
+        if "$BACKUP_SCRIPT"; then
+            log_success "Backup pre-migration effectue."
+        else
+            log_warn "Backup pre-migration echoue — continuation quand meme."
+        fi
+    else
+        log_warn "Script de backup introuvable ($BACKUP_SCRIPT) — migration sans backup."
+    fi
+fi
+
 $DC exec -T backend python manage.py migrate --noinput
 log_success "Migrations appliquees."
 

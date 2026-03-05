@@ -22,10 +22,10 @@ from .serializers import GameRoundSerializer, GameSerializer
 logger = logging.getLogger(__name__)
 
 
-def _serialize_to_dict(serializer) -> dict:
+def _serialize_to_dict(serializer: Any) -> dict[str, Any]:
     """Render a DRF serializer to a plain JSON-safe dict."""
     raw = JSONRenderer().render(serializer.data)
-    return json.loads(raw)
+    return json.loads(raw)  # type: ignore[no-any-return]
 
 
 def _uuid_safe(obj: Any) -> Any:
@@ -147,7 +147,9 @@ def broadcast_round_end(
     """Broadcast round end with correct answer, per-player scores, and updated totals."""
     # Réinitialiser la série des joueurs qui n'ont pas répondu ce round
     answered_player_ids = set(
-        GameAnswer.objects.filter(round=round_obj).values_list("player_id", flat=True)
+        GameAnswer.objects.filter(round=round_obj).values_list(
+            "player_id", flat=True
+        )
     )
     for gp in game.players.all():
         if gp.id not in answered_player_ids and gp.consecutive_correct > 0:

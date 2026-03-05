@@ -34,9 +34,7 @@ class ShopService:
     """Service de gestion de la boutique et des achats."""
 
     @transaction.atomic
-    def purchase(
-        self, user, item_id: str, quantity: int = 1
-    ) -> UserInventory:
+    def purchase(self, user, item_id: str, quantity: int = 1) -> UserInventory:
         """
         Acheter un article de la boutique.
 
@@ -47,9 +45,7 @@ class ShopService:
                 id=item_id, is_available=True
             )
         except ShopItem.DoesNotExist:
-            raise ItemNotAvailableError(
-                _("Cet article n'est pas disponible.")
-            )
+            raise ItemNotAvailableError(_("Cet article n'est pas disponible."))
 
         # Les produits événement sans coût ne peuvent pas être achetés en boutique
         if item.is_event_only and item.cost == 0:
@@ -111,20 +107,21 @@ class ShopService:
 
         # Vérifier les achievements liés aux achats en boutique
         try:
-            from apps.achievements.services import achievement_service
+            from apps.achievements.tasks import check_achievements_async
 
-            user.refresh_from_db()
-            achievement_service.check_and_award(user)
+            check_achievements_async.delay(str(user.id))
         except Exception:  # noqa: BLE001
-            logger.warning("Achievement check failed after purchase for user %s", user.id)
+            logger.warning(
+                "Achievement check failed after purchase for user %s", user.id
+            )
 
-        return inventory
+        return inventory  # type: ignore[no-any-return]
 
     def get_user_inventory(self, user):
         """Récupérer l'inventaire complet d'un utilisateur."""
-        return UserInventory.objects.filter(user=user, quantity__gt=0).select_related(
-            "item"
-        )
+        return UserInventory.objects.filter(
+            user=user, quantity__gt=0
+        ).select_related("item")
 
     def get_total_coins_available(self) -> int:
         """
@@ -134,9 +131,10 @@ class ShopService:
         """
         from apps.achievements.models import Achievement
 
-        return Achievement.objects.aggregate(
-            total=models_Sum("points")
-        )["total"] or 0
+        return (
+            Achievement.objects.aggregate(total=models_Sum("points"))["total"]
+            or 0
+        )
 
 
 class BonusService:
@@ -223,14 +221,16 @@ class BonusService:
 
         # Vérifier les achievements liés à l'utilisation des bonus
         try:
-            from apps.achievements.services import achievement_service
+            from apps.achievements.tasks import check_achievements_async
 
-            user.refresh_from_db()
-            achievement_service.check_and_award(user)
+            check_achievements_async.delay(str(user.id))
         except Exception:  # noqa: BLE001
-            logger.warning("Achievement check failed after bonus activation for user %s", user.id)
+            logger.warning(
+                "Achievement check failed after bonus activation for user %s",
+                user.id,
+            )
 
-        return game_bonus
+        return game_bonus  # type: ignore[no-any-return]
 
     def get_active_bonuses_for_player(self, player, round_number: int):
         """Récupérer les bonus actifs pour un joueur à un round donné."""
@@ -289,10 +289,14 @@ class BonusService:
                 active_bonus_types.append(BonusType.MAX_POINTS)
                 self.consume_bonus(game_bonus)
 
-        return final_points, active_bonus_types
+        return final_points, active_bonus_types  # type: ignore[return-value]
 
     def get_fifty_fifty_exclusions(
-        self, player, round_number: int, options: list[str], correct_answer: str
+        self,
+        player,
+        round_number: int,
+        options: list[str],
+        correct_answer: str,
     ) -> list[str]:
         """
         Retourne les 2 mauvaises réponses à masquer pour le 50/50.
@@ -315,9 +319,7 @@ class BonusService:
 
         return excluded
 
-    def apply_steal_bonus(
-        self, player, game, round_number: int
-    ) -> int:
+    def apply_steal_bonus(self, player, game, round_number: int) -> int:
         """
         Applique le bonus 'vol de points' :
         Vole STEAL_POINTS au joueur en tête (si bouclier absent).
@@ -386,11 +388,9 @@ class BonusService:
             },
         )
 
-        return stolen
+        return stolen  # type: ignore[no-any-return]
 
-    def apply_time_bonus(
-        self, player, round_obj
-    ) -> int:
+    def apply_time_bonus(self, player, round_obj) -> int:
         """
         Applique le bonus 'temps bonus' :
         Ajoute TIME_BONUS_SECONDS à la durée du round en cours.
@@ -429,7 +429,7 @@ class BonusService:
             },
         )
 
-        return round_obj.duration
+        return round_obj.duration  # type: ignore[no-any-return]
 
 
 # Imports tardifs pour éviter les dépendances circulaires

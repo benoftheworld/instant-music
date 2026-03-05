@@ -2,6 +2,8 @@
 URL configuration for InstantMusic project.
 """
 
+import os
+
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
@@ -18,9 +20,14 @@ from apps.core.health import (
 )
 from apps.core.metrics import metrics as metrics_view
 
+# Path admin configurable via variable d'environnement (sécurité par obscurité).
+# En production, définir ADMIN_URL à une valeur non prévisible.
+# Ex : ADMIN_URL=manage-7f3a9c2b/
+ADMIN_URL = os.environ.get("ADMIN_URL", "admin/")
+
 urlpatterns = [
     # Admin
-    path("admin/", admin.site.urls),
+    path(ADMIN_URL, admin.site.urls),
     # Health checks
     path("api/health/", health_check, name="health"),
     path("api/ready/", readiness_check, name="readiness"),

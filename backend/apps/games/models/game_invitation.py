@@ -75,4 +75,4 @@ class GameInvitation(models.Model):
 
     @property
     def is_expired(self) -> bool:
-        return timezone.now() > self.expires_at
+        return timezone.now() > self.expires_at  # type: ignore[no-any-return]

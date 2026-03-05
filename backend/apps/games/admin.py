@@ -9,7 +9,14 @@ from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
-from .models import Game, GamePlayer, GameRound, GameAnswer, GameInvitation, KaraokeSong
+from .models import (
+    Game,
+    GamePlayer,
+    GameRound,
+    GameAnswer,
+    GameInvitation,
+    KaraokeSong,
+)
 
 
 class GamePlayerInline(admin.TabularInline):
@@ -201,7 +208,6 @@ class GameAdmin(admin.ModelAdmin):
         )
 
 
-
 class GameAnswerInline(admin.TabularInline):
     model = GameAnswer
     extra = 0
@@ -242,7 +248,13 @@ class GamePlayerAdmin(admin.ModelAdmin):
     search_fields = ["user__username", "game__room_code", "id"]
     list_per_page = 30
     raw_id_fields = ["user", "game"]
-    readonly_fields = ["id", "score", "rank", "consecutive_correct", "joined_at"]
+    readonly_fields = [
+        "id",
+        "score",
+        "rank",
+        "consecutive_correct",
+        "joined_at",
+    ]
 
     fieldsets = (
         (
@@ -650,13 +662,13 @@ class KaraokeSongAdmin(admin.ModelAdmin):
             q_string = query_free or f"{query_artist} {query_title}".strip()
             if not q_string:
                 error = "Veuillez saisir au moins un terme de recherche."
-                results = []
+                results: list[str] = []  # type: ignore[no-redef]
             else:
                 raw = self._lrclib_admin_search(q_string)
                 if isinstance(raw, str):
                     # _lrclib_admin_search returned an error message
                     error = raw
-                    results = []
+                    results = []  # type: ignore[var-annotated]
                 elif isinstance(raw, list):
                     results = []
                     for item in raw:
@@ -718,7 +730,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
             '<em style="color:#999;">Sauvegardez d\'abord le morceau pour activer la recherche.</em>'
         )
 
-    lrclib_search_button.short_description = _("Outil LRCLib")
+    lrclib_search_button.short_description = _("Outil LRCLib")  # type: ignore[attr-defined]
 
     @admin.display(description=_("UUID"))
     def uuid_short(self, obj):

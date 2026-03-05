@@ -20,7 +20,7 @@ from ..models import (
     AnswerMode,
     KaraokeSong,
 )
-from apps.achievements.services import achievement_service
+from apps.achievements.tasks import check_achievements_async
 from apps.core.prometheus_metrics import (
     GAMES_CREATED_TOTAL,
     GAMES_ACTIVE,
@@ -162,7 +162,7 @@ class GameService:
                 "video_duration_ms", 0
             )
             if vid_dur_ms > 0:
-                return min(vid_dur_ms // 1000 + 5, KARAOKE_MAX_DURATION)
+                return min(vid_dur_ms // 1000 + 5, KARAOKE_MAX_DURATION)  # type: ignore[no-any-return]
             return KARAOKE_FALLBACK_DURATION
         return default_duration
 
@@ -177,7 +177,7 @@ class GameService:
         extra_data["guess_target"] = game.guess_target
         extra_data["artist_name"] = question["artist_name"]
         extra_data["track_name"] = question["track_name"]
-        return extra_data
+        return extra_data  # type: ignore[no-any-return]
 
     @staticmethod
     def _resolve_options(
@@ -186,7 +186,7 @@ class GameService:
         """Return MCQ options or an empty list for text/karaoke modes."""
         if is_karaoke or is_text_mode:
             return []
-        return question["options"]
+        return question["options"]  # type: ignore[no-any-return]
 
     def _start_karaoke_game(self, game: Game) -> Tuple[Game, List[GameRound]]:
         """Start a karaoke game from the pre-selected YouTube track."""
@@ -299,14 +299,14 @@ class GameService:
         return game, [round_obj]
 
     def get_current_round(self, game: Game) -> Optional[GameRound]:
-        return (
+        return (  # type: ignore[no-any-return]
             game.rounds.filter(started_at__isnull=False, ended_at__isnull=True)
             .order_by("round_number")
             .first()
         )
 
     def get_next_round(self, game: Game) -> Optional[GameRound]:
-        return (
+        return (  # type: ignore[no-any-return]
             game.rounds.filter(started_at__isnull=True)
             .order_by("round_number")
             .first()
@@ -414,7 +414,9 @@ class GameService:
         if not parts:
             for sep in (" - ", " / ", " | "):
                 if sep in answer:
-                    parts = [p.strip() for p in answer.split(sep, 1) if p.strip()]
+                    parts = [
+                        p.strip() for p in answer.split(sep, 1) if p.strip()
+                    ]
                     break
             if not parts:
                 parts = [answer.strip()] if answer.strip() else []
@@ -429,12 +431,16 @@ class GameService:
 
         for part in parts:
             if not artist_ok and round_artist:
-                matched, _ = fuzzy_match(part, round_artist, threshold=threshold)
+                matched, _ = fuzzy_match(
+                    part, round_artist, threshold=threshold
+                )
                 if matched:
                     artist_ok = True
                     continue
             if not title_ok and round_title:
-                matched, _ = fuzzy_match(part, round_title, threshold=threshold)
+                matched, _ = fuzzy_match(
+                    part, round_title, threshold=threshold
+                )
                 if matched:
                     title_ok = True
                     continue
@@ -443,9 +449,13 @@ class GameService:
         if not artist_ok and not title_ok and len(parts) == 1:
             part = parts[0]
             if round_title:
-                title_ok, _ = fuzzy_match(part, round_title, threshold=threshold)
+                title_ok, _ = fuzzy_match(
+                    part, round_title, threshold=threshold
+                )
             if not title_ok and round_artist:
-                artist_ok, _ = fuzzy_match(part, round_artist, threshold=threshold)
+                artist_ok, _ = fuzzy_match(
+                    part, round_artist, threshold=threshold
+                )
 
         if artist_ok and title_ok:
             return True, 2.0
@@ -453,7 +463,9 @@ class GameService:
             return True, 1.0
         else:
             # Last-resort: fuzzy against the full correct_answer string
-            is_match, similarity = fuzzy_match(answer, correct_answer, threshold=0.55)
+            is_match, similarity = fuzzy_match(
+                answer, correct_answer, threshold=0.55
+            )
             return is_match, similarity if is_match else 0.0
 
     def calculate_score(
@@ -520,7 +532,10 @@ class GameService:
                 game=round_obj.game,
             )
         except Exception:  # noqa: BLE001
-            logger.exception("Erreur lors de l'application des bonus pour le joueur %s", player.id)
+            logger.exception(
+                "Erreur lors de l'application des bonus pour le joueur %s",
+                player.id,
+            )
 
         game_answer = GameAnswer.objects.create(
             round=round_obj,
@@ -543,7 +558,7 @@ class GameService:
         if points > 0:
             SCORES_EARNED.labels(game_mode=game_mode).observe(points)
 
-        return game_answer
+        return game_answer  # type: ignore[no-any-return]
 
     @transaction.atomic
     def finish_game(self, game: Game) -> Game:
@@ -621,9 +636,10 @@ class GameService:
 
         # 3. Vérifier les achievements APRÈS la mise à jour des stats utilisateur.
         for player, round_data in player_round_data:
-            player.user.refresh_from_db()
-            achievement_service.check_and_award(
-                player.user, game=game, round_data=round_data
+            check_achievements_async.delay(
+                str(player.user_id),
+                game_id=str(game.id),
+                round_data=round_data,
             )
 
         # 4. Attribuer les pièces de jeu à chaque participant.
