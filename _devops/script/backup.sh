@@ -50,7 +50,7 @@ echo "  Base    : $POSTGRES_DB"
 echo "  Utilisateur : $POSTGRES_USER"
 
 # ── Dump de la base de données ───────────────────────────────────────────────
-if ! docker compose -f "$COMPOSE_FILE" exec -T db pg_dump \
+if ! docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T db pg_dump \
     -U "$POSTGRES_USER" \
     -d "$POSTGRES_DB" \
     --no-owner \
