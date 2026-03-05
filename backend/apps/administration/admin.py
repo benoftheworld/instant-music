@@ -130,10 +130,11 @@ class LegalPageAdmin(admin.ModelAdmin):
     """Admin pour les pages légales (politique de confidentialité, mentions légales)."""
 
     list_display = ("page_type", "title", "updated_at")
+    list_filter = ("page_type",)
     readonly_fields = ("updated_at",)
     fieldsets = (
         (
-            None,
+            _("Page"),
             {"fields": ("page_type", "title")},
         ),
         (
@@ -147,6 +148,6 @@ class LegalPageAdmin(admin.ModelAdmin):
         ),
         (
             _("Métadonnées"),
-            {"fields": ("updated_at",), "classes": ("collapse",)},
+            {"fields": ("updated_at",)},
         ),
     )

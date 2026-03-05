@@ -14,9 +14,12 @@ class UserAdmin(BaseUserAdmin):
     """Admin interface for User model without first/last name."""
 
     list_display = [
+        "uuid_short",
         "username",
         "email",
+        "is_active",
         "is_staff",
+        "coins_display",
         "total_games_played",
         "total_wins",
         "points_display",
@@ -24,15 +27,23 @@ class UserAdmin(BaseUserAdmin):
         "created_at",
     ]
     list_filter = ["is_staff", "is_superuser", "is_active", "created_at"]
-    search_fields = ["username", "email"]
+    search_fields = ["username", "email", "id"]
     ordering = ["-created_at"]
     list_per_page = 25
     date_hierarchy = "created_at"
 
     fieldsets = (
         (
-            _("Compte"),
-            {"fields": ("username", "email", "password")},
+            _("Identifiant"),
+            {
+                "fields": ("id", "username", "email", "email_hash", "password"),
+            },
+        ),
+        (
+            _("Profil"),
+            {
+                "fields": ("avatar", "google_id", "coins_balance"),
+            },
         ),
         (
             _("Permissions"),
@@ -44,14 +55,33 @@ class UserAdmin(BaseUserAdmin):
                     "groups",
                     "user_permissions",
                 ),
+                "classes": ("collapse",),
             },
         ),
-        (_("Profil"), {"fields": ("avatar", "google_id")}),
         (
             _("Statistiques"),
-            {"fields": ("total_games_played", "total_wins", "total_points")},
+            {
+                "fields": (
+                    "total_games_played",
+                    "total_wins",
+                    "total_points",
+                ),
+                "description": _(
+                    "Statistiques calculées automatiquement à chaque fin de partie."
+                ),
+            },
         ),
-        (_("Dates"), {"fields": ("last_login", "created_at", "updated_at")}),
+        (
+            _("RGPD"),
+            {
+                "fields": ("privacy_policy_accepted_at",),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            _("Dates"),
+            {"fields": ("last_login", "created_at", "updated_at")},
+        ),
     )
 
     add_fieldsets = (
@@ -64,7 +94,34 @@ class UserAdmin(BaseUserAdmin):
         ),
     )
 
-    readonly_fields = ["created_at", "updated_at", "last_login"]
+    readonly_fields = [
+        "id",
+        "email_hash",
+        "total_games_played",
+        "total_wins",
+        "total_points",
+        "privacy_policy_accepted_at",
+        "created_at",
+        "updated_at",
+        "last_login",
+    ]
+
+    @admin.display(description=_("UUID"))
+    def uuid_short(self, obj):
+        short = str(obj.id)[:8]
+        return format_html(
+            '<span title="{}" style="font-family:monospace;font-size:11px;'
+            'color:#6b7280;">{}</span>',
+            obj.id,
+            short,
+        )
+
+    @admin.display(description=_("Pièces"))
+    def coins_display(self, obj):
+        return format_html(
+            '<span style="color:#f59e0b;font-weight:bold;">🪙 {}</span>',
+            obj.coins_balance,
+        )
 
     @admin.display(description=_("Points"))
     def points_display(self, obj):
@@ -87,11 +144,45 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(Friendship)
 class FriendshipAdmin(admin.ModelAdmin):
-    list_display = ["from_user", "to_user", "status_badge", "created_at"]
+    list_display = [
+        "uuid_short",
+        "from_user",
+        "to_user",
+        "status_badge",
+        "created_at",
+        "updated_at",
+    ]
     list_filter = ["status", "created_at"]
-    search_fields = ["from_user__username", "to_user__username"]
+    search_fields = ["from_user__username", "to_user__username", "id"]
     list_per_page = 30
+    readonly_fields = ["id", "created_at", "updated_at"]
 
+    fieldsets = (
+        (
+            _("Identifiant"),
+            {"fields": ("id",)},
+        ),
+        (
+            _("Relation"),
+            {"fields": ("from_user", "to_user", "status")},
+        ),
+        (
+            _("Dates"),
+            {"fields": ("created_at", "updated_at")},
+        ),
+    )
+
+    @admin.display(description=_("UUID"))
+    def uuid_short(self, obj):
+        short = str(obj.id)[:8]
+        return format_html(
+            '<span title="{}" style="font-family:monospace;font-size:11px;'
+            'color:#6b7280;">{}</span>',
+            obj.id,
+            short,
+        )
+
+    @admin.display(description=_("Statut"))
     def status_badge(self, obj):
         colors = {
             "pending": "#3b82f6",
@@ -106,18 +197,20 @@ class FriendshipAdmin(admin.ModelAdmin):
             obj.get_status_display(),
         )
 
-    status_badge.short_description = _("Statut")
-
 
 class TeamMemberInline(admin.TabularInline):
     model = TeamMember
     extra = 0
-    readonly_fields = ["joined_at"]
+    readonly_fields = ["id", "user", "role", "joined_at"]
+    fields = ["id", "user", "role", "joined_at"]
+    can_delete = False
+    show_change_link = True
 
 
 @admin.register(Team)
 class TeamAdmin(admin.ModelAdmin):
     list_display = [
+        "uuid_short",
         "name",
         "owner",
         "member_count",
@@ -127,12 +220,23 @@ class TeamAdmin(admin.ModelAdmin):
         "created_at",
     ]
     list_filter = ["created_at"]
-    search_fields = ["name", "owner__username"]
+    search_fields = ["name", "owner__username", "id"]
     inlines = [TeamMemberInline]
     list_per_page = 25
-    readonly_fields = ["created_at", "updated_at"]
+    readonly_fields = [
+        "id",
+        "total_games",
+        "total_wins",
+        "total_points",
+        "created_at",
+        "updated_at",
+    ]
 
     fieldsets = (
+        (
+            _("Identifiant"),
+            {"fields": ("id",)},
+        ),
         (
             _("Informations générales"),
             {
@@ -143,6 +247,9 @@ class TeamAdmin(admin.ModelAdmin):
             _("Statistiques"),
             {
                 "fields": ("total_games", "total_wins", "total_points"),
+                "description": _(
+                    "Statistiques mises à jour automatiquement."
+                ),
             },
         ),
         (
@@ -153,25 +260,62 @@ class TeamAdmin(admin.ModelAdmin):
         ),
     )
 
+    @admin.display(description=_("UUID"))
+    def uuid_short(self, obj):
+        short = str(obj.id)[:8]
+        return format_html(
+            '<span title="{}" style="font-family:monospace;font-size:11px;'
+            'color:#6b7280;">{}</span>',
+            obj.id,
+            short,
+        )
+
+    @admin.display(description=_("Membres"))
     def member_count(self, obj):
         return obj.memberships.count()
-
-    member_count.short_description = _("Membres")
 
 
 @admin.register(TeamJoinRequest)
 class TeamJoinRequestAdmin(admin.ModelAdmin):
     list_display = [
+        "uuid_short",
         "user",
         "team",
         "status_badge",
         "created_at",
+        "updated_at",
     ]
     list_filter = ["status", "created_at"]
-    search_fields = ["user__username", "team__name"]
+    search_fields = ["user__username", "team__name", "id"]
     list_per_page = 30
-    readonly_fields = ["created_at", "updated_at"]
+    readonly_fields = ["id", "created_at", "updated_at"]
 
+    fieldsets = (
+        (
+            _("Identifiant"),
+            {"fields": ("id",)},
+        ),
+        (
+            _("Demande"),
+            {"fields": ("user", "team", "status")},
+        ),
+        (
+            _("Dates"),
+            {"fields": ("created_at", "updated_at")},
+        ),
+    )
+
+    @admin.display(description=_("UUID"))
+    def uuid_short(self, obj):
+        short = str(obj.id)[:8]
+        return format_html(
+            '<span title="{}" style="font-family:monospace;font-size:11px;'
+            'color:#6b7280;">{}</span>',
+            obj.id,
+            short,
+        )
+
+    @admin.display(description=_("Statut"))
     def status_badge(self, obj):
         colors = {
             "pending": "#3b82f6",
@@ -185,5 +329,3 @@ class TeamJoinRequestAdmin(admin.ModelAdmin):
             color,
             obj.get_status_display(),
         )
-
-    status_badge.short_description = _("Statut")

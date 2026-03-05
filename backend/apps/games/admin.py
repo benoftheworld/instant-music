@@ -15,8 +15,22 @@ from .models import Game, GamePlayer, GameRound, GameAnswer, GameInvitation, Kar
 class GamePlayerInline(admin.TabularInline):
     model = GamePlayer
     extra = 0
-    readonly_fields = ["user", "score", "rank", "is_connected", "joined_at"]
-    fields = ["user", "score", "rank", "is_connected", "joined_at"]
+    readonly_fields = [
+        "user",
+        "score",
+        "rank",
+        "consecutive_correct",
+        "is_connected",
+        "joined_at",
+    ]
+    fields = [
+        "user",
+        "score",
+        "rank",
+        "consecutive_correct",
+        "is_connected",
+        "joined_at",
+    ]
     can_delete = False
     show_change_link = True
 
@@ -29,6 +43,7 @@ class GameRoundInline(admin.TabularInline):
         "track_name",
         "artist_name",
         "question_type",
+        "correct_answer",
         "started_at",
         "ended_at",
     ]
@@ -37,6 +52,7 @@ class GameRoundInline(admin.TabularInline):
         "track_name",
         "artist_name",
         "question_type",
+        "correct_answer",
         "started_at",
         "ended_at",
     ]
@@ -49,25 +65,37 @@ class GameAdmin(admin.ModelAdmin):
     """Admin for Game model."""
 
     list_display = [
+        "uuid_short",
         "room_code",
         "name_display",
         "host",
         "mode_badge",
         "status_badge",
         "player_count",
+        "is_public",
         "created_at",
     ]
-    list_filter = ["status", "mode", "is_online", "created_at"]
-    search_fields = ["room_code", "name", "host__username"]
+    list_filter = ["status", "mode", "is_online", "is_public", "created_at"]
+    search_fields = ["room_code", "name", "host__username", "id"]
     list_per_page = 30
     raw_id_fields = ["host", "karaoke_song"]
-    readonly_fields = ["room_code", "created_at", "started_at", "finished_at"]
+    readonly_fields = [
+        "id",
+        "room_code",
+        "created_at",
+        "started_at",
+        "finished_at",
+    ]
     inlines = [GamePlayerInline, GameRoundInline]
 
     fieldsets = (
         (
+            _("Identifiant"),
+            {"fields": ("id", "room_code")},
+        ),
+        (
             _("Informations générales"),
-            {"fields": ("room_code", "name", "host", "status")},
+            {"fields": ("name", "host", "status")},
         ),
         (
             _("Configuration du jeu"),
@@ -79,13 +107,20 @@ class GameAdmin(admin.ModelAdmin):
                     "max_players",
                     "num_rounds",
                     "is_online",
+                    "is_public",
                 ),
             },
         ),
         (
             _("Playlist & Karaoké"),
             {
-                "fields": ("playlist_id", "karaoke_song", "karaoke_track"),
+                "fields": (
+                    "playlist_id",
+                    "playlist_name",
+                    "playlist_image_url",
+                    "karaoke_song",
+                    "karaoke_track",
+                ),
                 "classes": ("collapse",),
             },
         ),
@@ -98,6 +133,7 @@ class GameAdmin(admin.ModelAdmin):
                     "score_display_duration",
                     "lyrics_words_count",
                 ),
+                "classes": ("collapse",),
             },
         ),
         (
@@ -108,6 +144,17 @@ class GameAdmin(admin.ModelAdmin):
         ),
     )
 
+    @admin.display(description=_("UUID"))
+    def uuid_short(self, obj):
+        short = str(obj.id)[:8]
+        return format_html(
+            '<span title="{}" style="font-family:monospace;font-size:11px;'
+            'color:#6b7280;">{}</span>',
+            obj.id,
+            short,
+        )
+
+    @admin.display(description=_("Joueurs"))
     def player_count(self, obj):
         count = obj.players.count()
         return format_html(
@@ -116,13 +163,11 @@ class GameAdmin(admin.ModelAdmin):
             obj.max_players,
         )
 
-    player_count.short_description = _("Joueurs")
-
+    @admin.display(description=_("Nom"))
     def name_display(self, obj):
         return obj.name or "—"
 
-    name_display.short_description = _("Nom")
-
+    @admin.display(description=_("Mode"))
     def mode_badge(self, obj):
         colors = {
             "classique": "#6366f1",
@@ -139,8 +184,7 @@ class GameAdmin(admin.ModelAdmin):
             obj.get_mode_display(),
         )
 
-    mode_badge.short_description = _("Mode")
-
+    @admin.display(description=_("Statut"))
     def status_badge(self, obj):
         colors = {
             "waiting": "#3b82f6",
@@ -156,7 +200,6 @@ class GameAdmin(admin.ModelAdmin):
             obj.get_status_display(),
         )
 
-    status_badge.short_description = _("Statut")
 
 
 class GameAnswerInline(admin.TabularInline):
@@ -186,26 +229,65 @@ class GamePlayerAdmin(admin.ModelAdmin):
     """Admin for GamePlayer model."""
 
     list_display = [
+        "uuid_short",
         "user",
         "game_link",
         "score",
         "rank",
+        "consecutive_correct",
         "is_connected",
         "joined_at",
     ]
     list_filter = ["is_connected", "joined_at"]
-    search_fields = ["user__username", "game__room_code"]
+    search_fields = ["user__username", "game__room_code", "id"]
     list_per_page = 30
     raw_id_fields = ["user", "game"]
+    readonly_fields = ["id", "score", "rank", "consecutive_correct", "joined_at"]
 
-    def game_link(self, obj):
+    fieldsets = (
+        (
+            _("Identifiant"),
+            {"fields": ("id",)},
+        ),
+        (
+            _("Joueur & Partie"),
+            {"fields": ("user", "game")},
+        ),
+        (
+            _("Résultats"),
+            {
+                "fields": (
+                    "score",
+                    "rank",
+                    "consecutive_correct",
+                    "is_connected",
+                ),
+            },
+        ),
+        (
+            _("Dates"),
+            {"fields": ("joined_at",)},
+        ),
+    )
+
+    @admin.display(description=_("UUID"))
+    def uuid_short(self, obj):
+        short = str(obj.id)[:8]
         return format_html(
-            '<a href="/admin/games/game/{}/change/">{}</a>',
-            obj.game.pk,
-            obj.game.room_code,
+            '<span title="{}" style="font-family:monospace;font-size:11px;'
+            'color:#6b7280;">{}</span>',
+            obj.id,
+            short,
         )
 
-    game_link.short_description = _("Partie")
+    @admin.display(description=_("Partie"))
+    def game_link(self, obj):
+        url = reverse("admin:games_game_change", args=[obj.game.pk])
+        return format_html(
+            '<a href="{}">{}</a>',
+            url,
+            obj.game.room_code,
+        )
 
 
 @admin.register(GameRound)
@@ -213,6 +295,7 @@ class GameRoundAdmin(admin.ModelAdmin):
     """Admin for GameRound model."""
 
     list_display = [
+        "uuid_short",
         "game",
         "round_number",
         "track_name",
@@ -222,13 +305,32 @@ class GameRoundAdmin(admin.ModelAdmin):
         "started_at",
     ]
     list_filter = ["question_type", "started_at"]
-    search_fields = ["game__room_code", "track_name", "artist_name"]
+    search_fields = ["game__room_code", "track_name", "artist_name", "id"]
     list_per_page = 30
     raw_id_fields = ["game"]
-    readonly_fields = ["started_at", "ended_at"]
+    readonly_fields = [
+        "id",
+        "round_number",
+        "track_id",
+        "track_name",
+        "artist_name",
+        "correct_answer",
+        "options",
+        "preview_url",
+        "question_type",
+        "question_text",
+        "extra_data",
+        "duration",
+        "started_at",
+        "ended_at",
+    ]
     inlines = [GameAnswerInline]
 
     fieldsets = (
+        (
+            _("Identifiant"),
+            {"fields": ("id",)},
+        ),
         (
             _("Informations générales"),
             {
@@ -257,6 +359,7 @@ class GameRoundAdmin(admin.ModelAdmin):
             _("Paramètres"),
             {
                 "fields": ("duration", "extra_data"),
+                "classes": ("collapse",),
             },
         ),
         (
@@ -267,10 +370,19 @@ class GameRoundAdmin(admin.ModelAdmin):
         ),
     )
 
+    @admin.display(description=_("UUID"))
+    def uuid_short(self, obj):
+        short = str(obj.id)[:8]
+        return format_html(
+            '<span title="{}" style="font-family:monospace;font-size:11px;'
+            'color:#6b7280;">{}</span>',
+            obj.id,
+            short,
+        )
+
+    @admin.display(description=_("Réponses"))
     def answer_count(self, obj):
         return obj.answers.count()
-
-    answer_count.short_description = _("Réponses")
 
 
 @admin.register(GameAnswer)
@@ -278,19 +390,70 @@ class GameAnswerAdmin(admin.ModelAdmin):
     """Admin for GameAnswer model."""
 
     list_display = [
+        "uuid_short",
         "player",
         "round",
         "answer",
         "correct_badge",
         "points_earned",
+        "streak_bonus",
         "response_time_display",
         "answered_at",
     ]
     list_filter = ["is_correct", "answered_at"]
-    search_fields = ["player__user__username", "round__game__room_code"]
+    search_fields = ["player__user__username", "round__game__room_code", "id"]
     list_per_page = 50
     raw_id_fields = ["player", "round"]
+    readonly_fields = [
+        "id",
+        "player",
+        "round",
+        "answer",
+        "is_correct",
+        "points_earned",
+        "streak_bonus",
+        "response_time",
+        "answered_at",
+    ]
 
+    fieldsets = (
+        (
+            _("Identifiant"),
+            {"fields": ("id",)},
+        ),
+        (
+            _("Contexte"),
+            {"fields": ("player", "round")},
+        ),
+        (
+            _("Réponse"),
+            {
+                "fields": (
+                    "answer",
+                    "is_correct",
+                    "points_earned",
+                    "streak_bonus",
+                    "response_time",
+                ),
+            },
+        ),
+        (
+            _("Dates"),
+            {"fields": ("answered_at",)},
+        ),
+    )
+
+    @admin.display(description=_("UUID"))
+    def uuid_short(self, obj):
+        short = str(obj.id)[:8]
+        return format_html(
+            '<span title="{}" style="font-family:monospace;font-size:11px;'
+            'color:#6b7280;">{}</span>',
+            obj.id,
+            short,
+        )
+
+    @admin.display(description=_("Résultat"))
     def correct_badge(self, obj):
         if obj.is_correct:
             return format_html(
@@ -298,12 +461,9 @@ class GameAnswerAdmin(admin.ModelAdmin):
             )
         return format_html('<span style="color:#ef4444;">✗ Faux</span>')
 
-    correct_badge.short_description = _("Résultat")
-
+    @admin.display(description=_("Temps"))
     def response_time_display(self, obj):
         return f"{obj.response_time:.1f}s"
-
-    response_time_display.short_description = _("Temps")
 
 
 @admin.register(KaraokeSong)
@@ -560,6 +720,17 @@ class KaraokeSongAdmin(admin.ModelAdmin):
 
     lrclib_search_button.short_description = _("Outil LRCLib")
 
+    @admin.display(description=_("UUID"))
+    def uuid_short(self, obj):
+        short = str(obj.id)[:8]
+        return format_html(
+            '<span title="{}" style="font-family:monospace;font-size:11px;'
+            'color:#6b7280;">{}</span>',
+            obj.id,
+            short,
+        )
+
+    @admin.display(description=_("YouTube"))
     def youtube_link(self, obj):
         if obj.youtube_video_id:
             return format_html(
@@ -569,8 +740,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
             )
         return "—"
 
-    youtube_link.short_description = _("YouTube")
-
+    @admin.display(description=_("Durée"))
     def duration_display(self, obj):
         if not obj.duration_ms:
             return "—"
@@ -579,15 +749,85 @@ class KaraokeSongAdmin(admin.ModelAdmin):
         seconds = total_seconds % 60
         return f"{minutes}:{seconds:02d}"
 
-    duration_display.short_description = _("Durée")
-
 
 @admin.register(GameInvitation)
 class GameInvitationAdmin(admin.ModelAdmin):
     """Admin for GameInvitation model."""
 
-    list_display = ["id", "sender", "recipient", "game", "status", "created_at", "expires_at"]
-    list_filter = ["status"]
-    search_fields = ["sender__username", "recipient__username", "game__room_code"]
-    readonly_fields = ["id", "created_at"]
+    list_display = [
+        "uuid_short",
+        "sender",
+        "recipient",
+        "game_link",
+        "status_badge",
+        "created_at",
+        "expires_at",
+    ]
+    list_filter = ["status", "created_at"]
+    search_fields = [
+        "sender__username",
+        "recipient__username",
+        "game__room_code",
+        "id",
+    ]
+    readonly_fields = [
+        "id",
+        "sender",
+        "recipient",
+        "game",
+        "created_at",
+        "expires_at",
+    ]
     ordering = ["-created_at"]
+    list_per_page = 30
+
+    fieldsets = (
+        (
+            _("Identifiant"),
+            {"fields": ("id",)},
+        ),
+        (
+            _("Invitation"),
+            {"fields": ("sender", "recipient", "game", "status")},
+        ),
+        (
+            _("Dates"),
+            {"fields": ("created_at", "expires_at")},
+        ),
+    )
+
+    @admin.display(description=_("UUID"))
+    def uuid_short(self, obj):
+        short = str(obj.id)[:8]
+        return format_html(
+            '<span title="{}" style="font-family:monospace;font-size:11px;'
+            'color:#6b7280;">{}</span>',
+            obj.id,
+            short,
+        )
+
+    @admin.display(description=_("Partie"))
+    def game_link(self, obj):
+        url = reverse("admin:games_game_change", args=[obj.game.pk])
+        return format_html(
+            '<a href="{}">{}</a>',
+            url,
+            obj.game.room_code,
+        )
+
+    @admin.display(description=_("Statut"))
+    def status_badge(self, obj):
+        colors = {
+            "pending": "#3b82f6",
+            "accepted": "#10b981",
+            "declined": "#f59e0b",
+            "expired": "#6b7280",
+            "cancelled": "#ef4444",
+        }
+        color = colors.get(obj.status, "#6b7280")
+        return format_html(
+            '<span style="background:{}; color:#fff; padding:2px 8px; '
+            'border-radius:12px; font-size:11px;">{}</span>',
+            color,
+            obj.get_status_display(),
+        )
