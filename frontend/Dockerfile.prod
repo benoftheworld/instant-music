@@ -14,10 +14,12 @@ COPY . .
 # Build arguments for API URLs
 ARG VITE_API_URL
 ARG VITE_WS_URL
+ARG VITE_ADMIN_URL
 
 # Set environment variables for build
 ENV VITE_API_URL=${VITE_API_URL}
 ENV VITE_WS_URL=${VITE_WS_URL}
+ENV VITE_ADMIN_URL=${VITE_ADMIN_URL}
 
 # Build the app
 RUN npm run build
