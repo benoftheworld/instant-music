@@ -715,6 +715,15 @@ class GameViewSet(viewsets.ModelViewSet):
             recipient=recipient,
         )
 
+        # Vérifier l'achievement "L'inviteur"
+        try:
+            from apps.achievements.services import achievement_service
+
+            request.user.refresh_from_db()
+            achievement_service.check_and_award(request.user)
+        except Exception:  # noqa: BLE001
+            pass
+
         # Push WS notification to recipient
         invitation_data = GameInvitationSerializer(invitation).data
         try:

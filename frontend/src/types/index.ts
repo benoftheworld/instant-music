@@ -350,6 +350,7 @@ export interface Achievement {
   points: number;
   condition_type: string;
   condition_value: number;
+  condition_extra?: string | null;
   unlocked: boolean;
   unlocked_at: string | null;
 }

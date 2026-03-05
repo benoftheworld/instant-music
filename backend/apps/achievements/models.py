@@ -23,6 +23,9 @@ class Achievement(models.Model):
     # Conditions
     condition_type = models.CharField(_("type de condition"), max_length=50)
     condition_value = models.IntegerField(_("valeur de condition"))
+    condition_extra = models.CharField(
+        _("contexte de condition"), max_length=100, null=True, blank=True
+    )
 
     class Meta:
         """Meta options for the Achievement model."""

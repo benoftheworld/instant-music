@@ -107,6 +107,19 @@ def login(request):
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
 
+            # Bonus connexion quotidienne : +2 pièces par jour
+            import datetime
+
+            from django.db.models import F as _F
+
+            today = datetime.date.today()
+            if user.last_daily_login != today:
+                user.__class__.objects.filter(pk=user.pk).update(
+                    last_daily_login=today,
+                    coins_balance=_F("coins_balance") + 2,
+                )
+                user.refresh_from_db()
+
             return Response(
                 {
                     "user": UserSerializer(user).data,

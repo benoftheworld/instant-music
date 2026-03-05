@@ -82,6 +82,12 @@ class User(AbstractBaseUser, PermissionsMixin):
             "Pièces accumulées via les achievements, utilisables dans la boutique"
         ),
     )
+    last_daily_login = models.DateField(
+        _("dernière connexion quotidienne"),
+        null=True,
+        blank=True,
+        help_text=_("Date de la dernière connexion ayant donné le bonus quotidien."),
+    )
 
     # OAuth
     google_id = models.CharField(

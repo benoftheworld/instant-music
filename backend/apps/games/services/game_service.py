@@ -555,18 +555,65 @@ class GameService:
         total_rounds = game.rounds.count()
 
         # 1. Attribuer les rangs et précalculer round_data par joueur
+        import datetime
+
+        from django.db.models import Max
+
+        players_list = list(players)
         player_round_data: list[tuple] = []
-        for rank, player in enumerate(players, start=1):
+
+        # Score du 2ème joueur pour le calcul "dominant_win"
+        second_score = players_list[1].score if len(players_list) >= 2 else 0
+
+        for rank, player in enumerate(players_list, start=1):
             player.rank = rank
             player.save()
 
-            correct_answers = GameAnswer.objects.filter(
+            correct_qs = GameAnswer.objects.filter(
                 player=player,
                 round__game=game,
                 is_correct=True,
-            ).count()
+            )
+            correct_answers = correct_qs.count()
             perfect_game = total_rounds > 0 and correct_answers == total_rounds
-            player_round_data.append((player, {"perfect_game": perfect_game}))
+
+            # Streak max de bonnes réponses consécutives dans cette partie
+            all_correctness = list(
+                GameAnswer.objects.filter(player=player, round__game=game)
+                .order_by("round__round_number")
+                .values_list("is_correct", flat=True)
+            )
+            max_streak = cur = 0
+            for c in all_correctness:
+                if c:
+                    cur += 1
+                    if cur > max_streak:
+                        max_streak = cur
+                else:
+                    cur = 0
+
+            # Temps de réponse max sur les bonnes réponses (pour all_fast_round)
+            max_rt_result = correct_qs.aggregate(Max("response_time"))
+            max_response_time = max_rt_result["response_time__max"] or 0.0
+
+            # Victoire dominante : 1er avec au moins 2× le score du 2ème
+            dominant_win = (
+                rank == 1
+                and second_score > 0
+                and player.score >= 2 * second_score
+            )
+
+            player_round_data.append(
+                (
+                    player,
+                    {
+                        "perfect_game": perfect_game,
+                        "max_streak": max_streak,
+                        "max_response_time": max_response_time,
+                        "dominant_win": dominant_win,
+                    },
+                )
+            )
 
         # 2. Sauvegarder la partie : déclenche le signal qui met à jour
         #    total_games_played / total_wins / total_points sur chaque User.
@@ -580,10 +627,46 @@ class GameService:
             )
 
         # 4. Attribuer les pièces de jeu à chaque participant.
-        for player in game.players.select_related("user"):
+        import datetime
+
+        today = datetime.date.today()
+
+        for player, rd in player_round_data:
             bonus_coins = 1  # 1 pièce de participation
+
             if player.rank == 1 and game.mode != GameMode.KARAOKE:
-                bonus_coins += 10  # +10 pièces pour une victoire
+                bonus_coins += 10  # Victoire
+
+            if 1 < player.rank <= 3 and game.mode != GameMode.KARAOKE:
+                bonus_coins += 5  # Podium (2ème ou 3ème)
+
+            if rd.get("max_streak", 0) >= 5:
+                bonus_coins += 5  # Streak ≥ 5 bonnes réponses d'affilée
+
+            if game.num_rounds >= 15:
+                bonus_coins += 5  # Partie longue (≥ 15 rounds)
+
+            # Première partie du jour : bonus +3 pièces
+            current_last = (
+                player.user.__class__.objects.filter(pk=player.user_id)
+                .values_list("last_daily_login", flat=True)
+                .first()
+            )
+            if current_last != today:
+                bonus_coins += 3
+                player.user.__class__.objects.filter(pk=player.user_id).update(
+                    last_daily_login=today
+                )
+
+            # Réponses rapides (<5 s) : +2 pièces par réponse
+            fast_count = GameAnswer.objects.filter(
+                player=player,
+                round__game=game,
+                is_correct=True,
+                response_time__lt=5.0,
+            ).count()
+            bonus_coins += fast_count * 2
+
             player.user.__class__.objects.filter(pk=player.user_id).update(
                 coins_balance=F("coins_balance") + bonus_coins
             )

@@ -132,6 +132,17 @@ class FriendshipViewSet(viewsets.ViewSet):
 
         friendship.status = FriendshipStatus.ACCEPTED
         friendship.save()
+
+        # Vérifier l'achievement "Sociable" pour les deux utilisateurs
+        try:
+            from apps.achievements.services import achievement_service
+
+            for u in (friendship.from_user, friendship.to_user):
+                u.refresh_from_db()
+                achievement_service.check_and_award(u)
+        except Exception:  # noqa: BLE001
+            pass
+
         return Response(FriendshipSerializer(friendship).data)
 
     @action(detail=True, methods=["post"])

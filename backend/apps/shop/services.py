@@ -109,6 +109,15 @@ class ShopService:
             },
         )
 
+        # Vérifier les achievements liés aux achats en boutique
+        try:
+            from apps.achievements.services import achievement_service
+
+            user.refresh_from_db()
+            achievement_service.check_and_award(user)
+        except Exception:  # noqa: BLE001
+            logger.warning("Achievement check failed after purchase for user %s", user.id)
+
         return inventory
 
     def get_user_inventory(self, user):
@@ -211,6 +220,15 @@ class BonusService:
                 "round_number": round_number,
             },
         )
+
+        # Vérifier les achievements liés à l'utilisation des bonus
+        try:
+            from apps.achievements.services import achievement_service
+
+            user.refresh_from_db()
+            achievement_service.check_and_award(user)
+        except Exception:  # noqa: BLE001
+            logger.warning("Achievement check failed after bonus activation for user %s", user.id)
 
         return game_bonus
 
