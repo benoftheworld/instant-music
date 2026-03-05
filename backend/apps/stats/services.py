@@ -8,7 +8,7 @@ from __future__ import annotations
 from apps.users.models import User
 
 
-def _build_leaderboard_entry(idx: int, user: "User", extra: dict | None = None) -> dict:
+def _build_leaderboard_entry(idx: int, user: User, extra: dict | None = None) -> dict:
     """Construit une entrée de leaderboard pour un utilisateur."""
     team_membership = user.team_memberships.first()
     team_name = team_membership.team.name if team_membership else None

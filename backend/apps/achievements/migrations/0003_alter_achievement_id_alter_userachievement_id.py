@@ -13,7 +13,6 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("achievements", "0002_initial"),
         # users/0005 a déjà converti userachievement.user_id en uuid (cross-app).

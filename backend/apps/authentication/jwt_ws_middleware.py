@@ -52,7 +52,7 @@ class JwtWebSocketMiddleware(BaseMiddleware):
             )
             await send({"type": "websocket.close", "code": 4003})
             return
-        except Exception as exc:
+        except Exception:
             logger.exception(
                 "ws_auth_unexpected_error",
                 extra={"path": scope.get("path")},

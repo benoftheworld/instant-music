@@ -16,7 +16,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("users", "0005_alter_friendship_id_alter_team_id_and_more"),
     ]

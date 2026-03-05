@@ -10,7 +10,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -103,21 +102,15 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "sort_order",
-                    models.IntegerField(
-                        default=0, verbose_name="ordre d'affichage"
-                    ),
+                    models.IntegerField(default=0, verbose_name="ordre d'affichage"),
                 ),
                 (
                     "created_at",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="créé le"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="créé le"),
                 ),
                 (
                     "updated_at",
-                    models.DateTimeField(
-                        auto_now=True, verbose_name="mis à jour le"
-                    ),
+                    models.DateTimeField(auto_now=True, verbose_name="mis à jour le"),
                 ),
             ],
             options={
@@ -144,9 +137,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "purchased_at",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="acheté le"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="acheté le"),
                 ),
                 (
                     "item",
@@ -210,9 +201,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "activated_at",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="activé le"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="activé le"),
                 ),
                 (
                     "is_used",

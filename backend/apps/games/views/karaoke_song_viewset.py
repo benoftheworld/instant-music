@@ -18,6 +18,4 @@ class KaraokeSongViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
-        return KaraokeSong.objects.filter(is_active=True).order_by(
-            "artist", "title"
-        )
+        return KaraokeSong.objects.filter(is_active=True).order_by("artist", "title")

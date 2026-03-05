@@ -88,9 +88,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         _("dernière connexion quotidienne"),
         null=True,
         blank=True,
-        help_text=_(
-            "Date de la dernière connexion ayant donné le bonus quotidien."
-        ),
+        help_text=_("Date de la dernière connexion ayant donné le bonus quotidien."),
     )
 
     # OAuth

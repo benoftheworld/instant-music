@@ -23,8 +23,6 @@ def validate_avatar(file):
     content_type = getattr(file, "content_type", None)
     if content_type and content_type not in ALLOWED_AVATAR_TYPES:
         raise ValidationError(
-            _(
-                "Type de fichier non autorisé. Formats acceptés : JPEG, PNG, WebP, GIF."
-            ),
+            _("Type de fichier non autorisé. Formats acceptés : JPEG, PNG, WebP, GIF."),
             code="invalid_mime_type",
         )

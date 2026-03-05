@@ -50,9 +50,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
             data["score_display_duration"] = 0
         else:
             if not data.get("playlist_id"):
-                raise serializers.ValidationError(
-                    "Veuillez sélectionner une playlist."
-                )
+                raise serializers.ValidationError("Veuillez sélectionner une playlist.")
         return data
 
     def validate_round_duration(self, value):

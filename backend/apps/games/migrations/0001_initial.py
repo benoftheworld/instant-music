@@ -6,7 +6,6 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []
@@ -15,7 +14,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Game",
             fields=[
-                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
                 (
                     "room_code",
                     models.CharField(
@@ -52,15 +59,41 @@ class Migration(migrations.Migration):
                         verbose_name="statut",
                     ),
                 ),
-                ("max_players", models.IntegerField(default=8, verbose_name="nombre max de joueurs")),
+                (
+                    "max_players",
+                    models.IntegerField(
+                        default=8, verbose_name="nombre max de joueurs"
+                    ),
+                ),
                 (
                     "playlist_id",
-                    models.CharField(blank=True, max_length=255, null=True, verbose_name="ID playlist Spotify"),
+                    models.CharField(
+                        blank=True,
+                        max_length=255,
+                        null=True,
+                        verbose_name="ID playlist Spotify",
+                    ),
                 ),
-                ("is_online", models.BooleanField(default=True, verbose_name="en ligne")),
-                ("created_at", models.DateTimeField(auto_now_add=True, verbose_name="créé le")),
-                ("started_at", models.DateTimeField(blank=True, null=True, verbose_name="démarré le")),
-                ("finished_at", models.DateTimeField(blank=True, null=True, verbose_name="terminé le")),
+                (
+                    "is_online",
+                    models.BooleanField(default=True, verbose_name="en ligne"),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="créé le"),
+                ),
+                (
+                    "started_at",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="démarré le"
+                    ),
+                ),
+                (
+                    "finished_at",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="terminé le"
+                    ),
+                ),
             ],
             options={
                 "verbose_name": "partie",
@@ -71,12 +104,32 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="GameAnswer",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("answer", models.CharField(max_length=255, verbose_name="réponse")),
-                ("is_correct", models.BooleanField(default=False, verbose_name="correct")),
-                ("points_earned", models.IntegerField(default=0, verbose_name="points gagnés")),
-                ("response_time", models.FloatField(verbose_name="temps de réponse (secondes)")),
-                ("answered_at", models.DateTimeField(auto_now_add=True, verbose_name="répondu le")),
+                (
+                    "is_correct",
+                    models.BooleanField(default=False, verbose_name="correct"),
+                ),
+                (
+                    "points_earned",
+                    models.IntegerField(default=0, verbose_name="points gagnés"),
+                ),
+                (
+                    "response_time",
+                    models.FloatField(verbose_name="temps de réponse (secondes)"),
+                ),
+                (
+                    "answered_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="répondu le"),
+                ),
             ],
             options={
                 "verbose_name": "réponse",
@@ -86,16 +139,47 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="GameRound",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("round_number", models.IntegerField(verbose_name="numéro du round")),
-                ("track_id", models.CharField(max_length=255, verbose_name="ID du morceau")),
-                ("track_name", models.CharField(max_length=255, verbose_name="nom du morceau")),
-                ("artist_name", models.CharField(max_length=255, verbose_name="nom de l'artiste")),
-                ("correct_answer", models.CharField(max_length=255, verbose_name="bonne réponse")),
+                (
+                    "track_id",
+                    models.CharField(max_length=255, verbose_name="ID du morceau"),
+                ),
+                (
+                    "track_name",
+                    models.CharField(max_length=255, verbose_name="nom du morceau"),
+                ),
+                (
+                    "artist_name",
+                    models.CharField(max_length=255, verbose_name="nom de l'artiste"),
+                ),
+                (
+                    "correct_answer",
+                    models.CharField(max_length=255, verbose_name="bonne réponse"),
+                ),
                 ("options", models.JSONField(default=list, verbose_name="options")),
-                ("duration", models.IntegerField(default=30, verbose_name="durée (secondes)")),
-                ("started_at", models.DateTimeField(auto_now_add=True, verbose_name="démarré le")),
-                ("ended_at", models.DateTimeField(blank=True, null=True, verbose_name="terminé le")),
+                (
+                    "duration",
+                    models.IntegerField(default=30, verbose_name="durée (secondes)"),
+                ),
+                (
+                    "started_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="démarré le"),
+                ),
+                (
+                    "ended_at",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="terminé le"
+                    ),
+                ),
                 (
                     "game",
                     models.ForeignKey(
@@ -115,11 +199,32 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="GamePlayer",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("score", models.IntegerField(default=0, verbose_name="score")),
-                ("rank", models.IntegerField(blank=True, null=True, verbose_name="classement")),
-                ("is_connected", models.BooleanField(default=True, verbose_name="connecté")),
-                ("joined_at", models.DateTimeField(auto_now_add=True, verbose_name="a rejoint le")),
+                (
+                    "rank",
+                    models.IntegerField(
+                        blank=True, null=True, verbose_name="classement"
+                    ),
+                ),
+                (
+                    "is_connected",
+                    models.BooleanField(default=True, verbose_name="connecté"),
+                ),
+                (
+                    "joined_at",
+                    models.DateTimeField(
+                        auto_now_add=True, verbose_name="a rejoint le"
+                    ),
+                ),
                 (
                     "game",
                     models.ForeignKey(

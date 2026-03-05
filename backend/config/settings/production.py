@@ -90,9 +90,7 @@ _s3_bucket = env("AWS_STORAGE_BUCKET_NAME", default="")
 if _s3_bucket:
     STORAGES = {
         "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"},
-        "staticfiles": {
-            "BACKEND": "storages.backends.s3boto3.S3StaticStorage"
-        },
+        "staticfiles": {"BACKEND": "storages.backends.s3boto3.S3StaticStorage"},
     }
     AWS_STORAGE_BUCKET_NAME = _s3_bucket
     AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="eu-west-3")

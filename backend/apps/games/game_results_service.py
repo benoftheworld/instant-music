@@ -22,9 +22,9 @@ def build_rounds_detail(game: Game) -> tuple[list[dict], dict[str, int]]:
         .prefetch_related(
             Prefetch(
                 "answers",
-                queryset=GameAnswer.objects.select_related(
-                    "player__user"
-                ).order_by("-points_earned"),
+                queryset=GameAnswer.objects.select_related("player__user").order_by(
+                    "-points_earned"
+                ),
             )
         )
         .order_by("round_number")

@@ -7,15 +7,14 @@ Intercepte chaque requête pour mesurer :
 - Le nombre de requêtes en cours de traitement
 """
 
-import time
 import re
+import time
 
 from apps.core.prometheus_metrics import (
-    HTTP_REQUESTS_TOTAL,
     HTTP_REQUEST_DURATION_SECONDS,
     HTTP_REQUESTS_IN_PROGRESS,
+    HTTP_REQUESTS_TOTAL,
 )
-
 
 # Patterns pour normaliser les URLs (éviter la cardinalité infinie)
 URL_PATTERNS = [

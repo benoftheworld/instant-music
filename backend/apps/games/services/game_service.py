@@ -4,49 +4,48 @@ Service principal de gestion du flux de jeu (démarrage, rounds, scoring, fin).
 
 import json
 import logging
-from typing import Dict, List, Optional, Tuple
 
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
-from ..models import (
-    Game,
-    GamePlayer,
-    GameRound,
-    GameAnswer,
-    GameStatus,
-    GameMode,
-    AnswerMode,
-    KaraokeSong,
-)
 from apps.achievements.tasks import check_achievements_async
 from apps.core.prometheus_metrics import (
-    GAMES_CREATED_TOTAL,
-    GAMES_ACTIVE,
-    GAMES_FINISHED_TOTAL,
-    ANSWERS_TOTAL,
     ANSWER_RESPONSE_TIME,
+    ANSWERS_TOTAL,
+    GAMES_ACTIVE,
+    GAMES_CREATED_TOTAL,
+    GAMES_FINISHED_TOTAL,
     SCORES_EARNED,
-    EXTERNAL_API_REQUESTS_TOTAL,
 )
+
 from ..lyrics_service import (
     get_synced_lyrics,
     get_synced_lyrics_by_lrclib_id,
 )
+from ..models import (
+    AnswerMode,
+    Game,
+    GameAnswer,
+    GameMode,
+    GamePlayer,
+    GameRound,
+    GameStatus,
+    KaraokeSong,
+)
+from .question_generator import QuestionGeneratorService
 from .scoring import (
+    KARAOKE_FALLBACK_DURATION,
+    KARAOKE_MAX_DURATION,
     MODE_CONFIG,
+    RANK_BONUS,
     SCORE_BASE_POINTS,
-    SCORE_TIME_PENALTY_PER_SEC,
     SCORE_MIN_CORRECT,
     SCORE_MIN_FINAL,
-    RANK_BONUS,
-    KARAOKE_MAX_DURATION,
-    KARAOKE_FALLBACK_DURATION,
+    SCORE_TIME_PENALTY_PER_SEC,
     calculate_streak_bonus,
 )
 from .text_matching import fuzzy_match
-from .question_generator import QuestionGeneratorService
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +56,7 @@ class GameService:
     def __init__(self):
         self.question_generator = QuestionGeneratorService()
 
-    def start_game(self, game: Game) -> Tuple[Game, List[GameRound]]:
+    def start_game(self, game: Game) -> tuple[Game, list[GameRound]]:
         """Start a game and generate rounds from a Deezer playlist."""
         if game.status != GameStatus.WAITING:
             raise ValueError("Game is not in waiting status")
@@ -97,7 +96,7 @@ class GameService:
 
     # ── start_game helpers ───────────────────────────────────────────
 
-    def _generate_questions(self, game: Game) -> List[Dict]:
+    def _generate_questions(self, game: Game) -> list[dict]:
         """Fetch and tag questions for the given game."""
         num_rounds = game.num_rounds or 10
         mode = game.mode
@@ -118,16 +117,14 @@ class GameService:
 
         return questions
 
-    def _build_rounds(
-        self, game: Game, questions: List[Dict]
-    ) -> List[GameRound]:
+    def _build_rounds(self, game: Game, questions: list[dict]) -> list[GameRound]:
         """Create GameRound objects from questions inside an atomic block."""
         num_rounds = game.num_rounds or 10
         round_duration = game.round_duration or 30
         is_text_mode = game.answer_mode == AnswerMode.TEXT
         is_karaoke = game.mode == GameMode.KARAOKE
 
-        rounds: List[GameRound] = []
+        rounds: list[GameRound] = []
         for i, q in enumerate(questions[:num_rounds], start=1):
             round_duration_effective = self._effective_round_duration(
                 q, is_karaoke, round_duration
@@ -154,20 +151,18 @@ class GameService:
 
     @staticmethod
     def _effective_round_duration(
-        question: Dict, is_karaoke: bool, default_duration: int
+        question: dict, is_karaoke: bool, default_duration: int
     ) -> int:
         """Determine the round duration, respecting karaoke video length."""
         if is_karaoke:
-            vid_dur_ms = question.get("extra_data", {}).get(
-                "video_duration_ms", 0
-            )
+            vid_dur_ms = question.get("extra_data", {}).get("video_duration_ms", 0)
             if vid_dur_ms > 0:
                 return min(vid_dur_ms // 1000 + 5, KARAOKE_MAX_DURATION)  # type: ignore[no-any-return]
             return KARAOKE_FALLBACK_DURATION
         return default_duration
 
     @staticmethod
-    def _build_extra_data(question: Dict, game: Game) -> Dict:
+    def _build_extra_data(question: dict, game: Game) -> dict:
         """Assemble the extra_data dict stored on each GameRound."""
         extra_data = question.get("extra_data", {}).copy()
         if "album_image" not in extra_data and question.get("album_image"):
@@ -180,15 +175,13 @@ class GameService:
         return extra_data  # type: ignore[no-any-return]
 
     @staticmethod
-    def _resolve_options(
-        question: Dict, is_karaoke: bool, is_text_mode: bool
-    ) -> list:
+    def _resolve_options(question: dict, is_karaoke: bool, is_text_mode: bool) -> list:
         """Return MCQ options or an empty list for text/karaoke modes."""
         if is_karaoke or is_text_mode:
             return []
         return question["options"]  # type: ignore[no-any-return]
 
-    def _start_karaoke_game(self, game: Game) -> Tuple[Game, List[GameRound]]:
+    def _start_karaoke_game(self, game: Game) -> tuple[Game, list[GameRound]]:
         """Start a karaoke game from the pre-selected YouTube track."""
         kt = game.karaoke_track
         if not kt or not kt.get("youtube_video_id"):
@@ -215,9 +208,7 @@ class GameService:
                     track_name,
                 )
         if not synced:
-            synced, found_lrclib_id = get_synced_lyrics(
-                artist_name, track_name
-            )
+            synced, found_lrclib_id = get_synced_lyrics(artist_name, track_name)
         else:
             found_lrclib_id = None
         if not synced:
@@ -298,18 +289,16 @@ class GameService:
 
         return game, [round_obj]
 
-    def get_current_round(self, game: Game) -> Optional[GameRound]:
+    def get_current_round(self, game: Game) -> GameRound | None:
         return (  # type: ignore[no-any-return]
             game.rounds.filter(started_at__isnull=False, ended_at__isnull=True)
             .order_by("round_number")
             .first()
         )
 
-    def get_next_round(self, game: Game) -> Optional[GameRound]:
+    def get_next_round(self, game: Game) -> GameRound | None:
         return (  # type: ignore[no-any-return]
-            game.rounds.filter(started_at__isnull=True)
-            .order_by("round_number")
-            .first()
+            game.rounds.filter(started_at__isnull=True).order_by("round_number").first()
         )
 
     def start_round(self, round_obj: GameRound) -> GameRound:
@@ -331,7 +320,7 @@ class GameService:
         answer: str,
         correct_answer: str,
         extra_data: dict | None = None,
-    ) -> Tuple[bool, float]:
+    ) -> tuple[bool, float]:
         """
         Check answer and return (is_correct, accuracy_factor).
 
@@ -377,7 +366,7 @@ class GameService:
 
     def _check_classique_text_answer(
         self, answer: str, correct_answer: str, extra_data: dict | None
-    ) -> Tuple[bool, float]:
+    ) -> tuple[bool, float]:
         """
         Check text answer for Classique/Rapide modes.
 
@@ -414,9 +403,7 @@ class GameService:
         if not parts:
             for sep in (" - ", " / ", " | "):
                 if sep in answer:
-                    parts = [
-                        p.strip() for p in answer.split(sep, 1) if p.strip()
-                    ]
+                    parts = [p.strip() for p in answer.split(sep, 1) if p.strip()]
                     break
             if not parts:
                 parts = [answer.strip()] if answer.strip() else []
@@ -431,16 +418,12 @@ class GameService:
 
         for part in parts:
             if not artist_ok and round_artist:
-                matched, _ = fuzzy_match(
-                    part, round_artist, threshold=threshold
-                )
+                matched, _ = fuzzy_match(part, round_artist, threshold=threshold)
                 if matched:
                     artist_ok = True
                     continue
             if not title_ok and round_title:
-                matched, _ = fuzzy_match(
-                    part, round_title, threshold=threshold
-                )
+                matched, _ = fuzzy_match(part, round_title, threshold=threshold)
                 if matched:
                     title_ok = True
                     continue
@@ -449,13 +432,9 @@ class GameService:
         if not artist_ok and not title_ok and len(parts) == 1:
             part = parts[0]
             if round_title:
-                title_ok, _ = fuzzy_match(
-                    part, round_title, threshold=threshold
-                )
+                title_ok, _ = fuzzy_match(part, round_title, threshold=threshold)
             if not title_ok and round_artist:
-                artist_ok, _ = fuzzy_match(
-                    part, round_artist, threshold=threshold
-                )
+                artist_ok, _ = fuzzy_match(part, round_artist, threshold=threshold)
 
         if artist_ok and title_ok:
             return True, 2.0
@@ -463,9 +442,7 @@ class GameService:
             return True, 1.0
         else:
             # Last-resort: fuzzy against the full correct_answer string
-            is_match, similarity = fuzzy_match(
-                answer, correct_answer, threshold=0.55
-            )
+            is_match, similarity = fuzzy_match(answer, correct_answer, threshold=0.55)
             return is_match, similarity if is_match else 0.0
 
     def calculate_score(
@@ -479,8 +456,7 @@ class GameService:
             return 0
         raw = max(
             SCORE_MIN_CORRECT,
-            SCORE_BASE_POINTS
-            - int(response_time * SCORE_TIME_PENALTY_PER_SEC),
+            SCORE_BASE_POINTS - int(response_time * SCORE_TIME_PENALTY_PER_SEC),
         )
         return max(SCORE_MIN_FINAL, int(raw * accuracy_factor))
 
@@ -551,9 +527,7 @@ class GameService:
         player.save(update_fields=["score", "consecutive_correct"])
 
         # Métriques Prometheus
-        ANSWERS_TOTAL.labels(
-            is_correct=str(is_correct), game_mode=game_mode
-        ).inc()
+        ANSWERS_TOTAL.labels(is_correct=str(is_correct), game_mode=game_mode).inc()
         ANSWER_RESPONSE_TIME.labels(game_mode=game_mode).observe(response_time)
         if points > 0:
             SCORES_EARNED.labels(game_mode=game_mode).observe(points)
@@ -613,9 +587,7 @@ class GameService:
 
             # Victoire dominante : 1er avec au moins 2× le score du 2ème
             dominant_win = (
-                rank == 1
-                and second_score > 0
-                and player.score >= 2 * second_score
+                rank == 1 and second_score > 0 and player.score >= 2 * second_score
             )
 
             player_round_data.append(
@@ -643,7 +615,6 @@ class GameService:
             )
 
         # 4. Attribuer les pièces de jeu à chaque participant.
-        import datetime
 
         today = datetime.date.today()
 

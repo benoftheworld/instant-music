@@ -1,7 +1,6 @@
 """Migration: ajout du modèle GameInvitation."""
 
 import uuid
-from datetime import timedelta
 
 import django.db.models.deletion
 import django.utils.timezone
@@ -10,7 +9,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("games", "0022_add_streak_bonus_to_gameanswer"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -46,9 +44,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "created_at",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="créée le"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="créée le"),
                 ),
                 (
                     "expires_at",

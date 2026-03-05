@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.users.models import User
+
 from .game import Game
 
 
@@ -68,9 +69,7 @@ class GameInvitation(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.expires_at:
-            self.expires_at = timezone.now() + timedelta(
-                minutes=INVITATION_TTL_MINUTES
-            )
+            self.expires_at = timezone.now() + timedelta(minutes=INVITATION_TTL_MINUTES)
         super().save(*args, **kwargs)
 
     @property

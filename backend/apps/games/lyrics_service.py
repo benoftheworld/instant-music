@@ -3,19 +3,16 @@ Lyrics service — fetches song lyrics from LRCLib and lyrics.ovh (free, no key)
 Used by the 'paroles' game mode (fill-in-the-blank) and 'karaoke' mode (synced lyrics).
 """
 
+import hashlib
+import json
 import logging
 import random
 import re
-import hashlib
-from typing import Optional, Tuple, List, Dict
-
-import json
-import socket
 import ssl
 import urllib.error
 import urllib.request
-from urllib.parse import urlencode
 from urllib.parse import quote as url_quote
+from urllib.parse import urlencode
 
 import requests
 from django.core.cache import cache
@@ -64,7 +61,7 @@ def _lrclib_ssl_context() -> ssl.SSLContext:
     return ctx
 
 
-def _lrclib_fetch(url: str, params: Optional[dict] = None) -> Optional[dict]:
+def _lrclib_fetch(url: str, params: dict | None = None) -> dict | None:
     """GET a lrclib.net endpoint via urllib.request; return parsed JSON or None.
 
     Uses urllib.request directly to bypass urllib3's MemoryBIO SSL layer,
@@ -89,12 +86,10 @@ def _lrclib_fetch(url: str, params: Optional[dict] = None) -> Optional[dict]:
     except ssl.SSLError as exc:
         # Transient TLS issue — do NOT open circuit breaker
         logger.warning("LRCLib SSL error for %s: %s", url, exc)
-    except (socket.timeout, TimeoutError) as exc:
+    except TimeoutError as exc:
         logger.warning("LRCLib timeout for %s: %s", url, exc)
     except urllib.error.HTTPError as exc:
-        logger.warning(
-            "LRCLib HTTP error for %s: %s %s", url, exc.code, exc.reason
-        )
+        logger.warning("LRCLib HTTP error for %s: %s %s", url, exc.code, exc.reason)
     except urllib.error.URLError as exc:
         # Connection refused, DNS failure — server genuinely unreachable
         logger.warning("LRCLib connection error for %s: %s", url, exc)
@@ -204,14 +199,14 @@ BORING_WORDS = {
 _LRC_LINE_RE = re.compile(r"\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]\s*(.*)")
 
 
-def parse_lrc(lrc_text: str) -> List[Dict]:
+def parse_lrc(lrc_text: str) -> list[dict]:
     """Parse LRC-formatted synced lyrics into a list of timed lines.
 
     Each entry: {"time_ms": int, "text": str}
     Lines are sorted by time_ms ascending.
     Empty text lines are kept (they represent instrumental breaks).
     """
-    lines: List[Dict] = []
+    lines: list[dict] = []
     for raw_line in lrc_text.splitlines():
         m = _LRC_LINE_RE.match(raw_line.strip())
         if not m:
@@ -234,7 +229,7 @@ def parse_lrc(lrc_text: str) -> List[Dict]:
 # ─── Fetch helpers ───────────────────────────────────────────────────
 
 
-def _lrclib_request(artist_clean: str, title_clean: str) -> Optional[dict]:
+def _lrclib_request(artist_clean: str, title_clean: str) -> dict | None:
     """Call LRCLib /api/get and return the JSON response dict or None."""
     return _lrclib_fetch(
         "https://lrclib.net/api/get",
@@ -242,7 +237,7 @@ def _lrclib_request(artist_clean: str, title_clean: str) -> Optional[dict]:
     )
 
 
-def get_synced_lyrics_by_lrclib_id(lrclib_id: int) -> Optional[List[Dict]]:
+def get_synced_lyrics_by_lrclib_id(lrclib_id: int) -> list[dict] | None:
     """
     Fetch synced lyrics directly from lrclib.net using a known numeric ID.
 
@@ -274,21 +269,23 @@ def get_synced_lyrics_by_lrclib_id(lrclib_id: int) -> Optional[List[Dict]]:
     return None
 
 
-def _clean_artist_title(artist: str, title: str) -> Tuple[str, str]:
+def _clean_artist_title(artist: str, title: str) -> tuple[str, str]:
     """Strip parenthesised suffixes for cleaner API queries."""
     artist_clean = re.sub(r"\s*\(.*?\)\s*", "", artist).strip()
     title_clean = re.sub(r"\s*\(.*?\)\s*", "", title).strip()
     return artist_clean, title_clean
 
 
-def get_lyrics(artist: str, title: str) -> Optional[str]:
+def get_lyrics(artist: str, title: str) -> str | None:
     """
     Fetch plain lyrics (Redis cache → LRCLib → lyrics.ovh fallback).
 
     Returns:
         Lyrics text or None
     """
-    cache_key = f"lyrics_{hashlib.md5(f'{artist}|{title}'.lower().encode()).hexdigest()}"
+    cache_key = (
+        f"lyrics_{hashlib.md5(f'{artist}|{title}'.lower().encode()).hexdigest()}"
+    )
     cached = cache.get(cache_key)
     if cached is not None:
         return cached if cached != "__NONE__" else None
@@ -305,8 +302,7 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
 
     # ── 2. lyrics.ovh fallback ────────────────────────────────────────
     url = (
-        f"https://api.lyrics.ovh/v1/"
-        f"{url_quote(artist_clean)}/{url_quote(title_clean)}"
+        f"https://api.lyrics.ovh/v1/{url_quote(artist_clean)}/{url_quote(title_clean)}"
     )
     try:
         resp = requests.get(url, timeout=API_TIMEOUT)
@@ -322,11 +318,9 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
     return None
 
 
-def _lrclib_search(query: str) -> Optional[dict]:
+def _lrclib_search(query: str) -> dict | None:
     """Call LRCLib /api/search and return the best matching result or None."""
-    results = _lrclib_fetch(
-        "https://lrclib.net/api/search", params={"q": query}
-    )
+    results = _lrclib_fetch("https://lrclib.net/api/search", params={"q": query})
     if isinstance(results, list) and results:
         # Prefer results that have synced lyrics
         for item in results:
@@ -342,7 +336,7 @@ _UNKNOWN_ARTIST_MARKERS = {"artiste inconnu", "unknown artist", "unknown", ""}
 
 def get_synced_lyrics(
     artist: str, title: str
-) -> Tuple[Optional[List[Dict]], Optional[int]]:
+) -> tuple[list[dict] | None, int | None]:
     """
     Fetch synced (timestamped) lyrics.
 
@@ -371,11 +365,9 @@ def get_synced_lyrics(
 
     artist_clean, title_clean = _clean_artist_title(artist, title)
     artist_is_unknown = artist_clean.lower() in _UNKNOWN_ARTIST_MARKERS
-    query = (
-        title_clean if artist_is_unknown else f"{artist_clean} {title_clean}"
-    )
-    lines: Optional[List[Dict]] = None
-    found_lrclib_id: Optional[int] = None
+    query = title_clean if artist_is_unknown else f"{artist_clean} {title_clean}"
+    lines: list[dict] | None = None
+    found_lrclib_id: int | None = None
 
     # ── 1. Exact query (skip if artist is a known placeholder) ────────
     if not artist_is_unknown:
@@ -420,14 +412,14 @@ def get_synced_lyrics(
     return None, None
 
 
-def _extract_line_sequences(line: str, n: int) -> List[Tuple[int, List[str]]]:
+def _extract_line_sequences(line: str, n: int) -> list[tuple[int, list[str]]]:
     """Extract all valid n-word sequences from a lyrics line.
 
     Returns list of (start_index, word_sequence) tuples where every word
     in the sequence is "interesting" (not in BORING_WORDS and long enough).
     """
     words = line.split()
-    sequences: List[Tuple[int, List[str]]] = []
+    sequences: list[tuple[int, list[str]]] = []
     for start in range(0, len(words) - n + 1):
         seq = words[start : start + n]
         clean_seq = [re.sub(r"[^a-zA-ZÀ-ÿ']", "", w).lower() for w in seq]
@@ -441,9 +433,9 @@ def _extract_line_sequences(line: str, n: int) -> List[Tuple[int, List[str]]]:
 
 def create_lyrics_question(
     lyrics: str,
-    all_tracks_words: List[str] | None = None,
+    all_tracks_words: list[str] | None = None,
     words_to_blank: int = 1,
-) -> Optional[Tuple[str, str, List[str]]]:
+) -> tuple[str, str, list[str]] | None:
     """
     Create a fill-in-the-blank lyrics question.
 
@@ -497,16 +489,14 @@ def create_lyrics_question(
 
         # ── Generate wrong options from OTHER lines of the same lyrics ─
         # This guarantees the same language and coherent phrases.
-        wrong_phrases: List[str] = []
+        wrong_phrases: list[str] = []
         seen_lower = {correct_phrase.lower()}
 
         other_lines = [l for i, l in enumerate(lines) if i != chosen_idx]
         random.shuffle(other_lines)
         for other_line in other_lines:
             for _, seq in _extract_line_sequences(other_line, words_to_blank):
-                phrase = " ".join(
-                    re.sub(r"[^a-zA-ZÀ-ÿ' -]", "", w) for w in seq
-                )
+                phrase = " ".join(re.sub(r"[^a-zA-ZÀ-ÿ' -]", "", w) for w in seq)
                 low = phrase.lower()
                 if low not in seen_lower and phrase.strip():
                     seen_lower.add(low)
@@ -532,7 +522,7 @@ def create_lyrics_question(
                     break
 
         # Deduplicate and pick 3 wrong options
-        unique_wrong: List[str] = []
+        unique_wrong: list[str] = []
         final_seen = {correct_phrase.lower()}
         for w in wrong_phrases:
             low = w.lower()

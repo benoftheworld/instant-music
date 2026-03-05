@@ -2,7 +2,6 @@
 Serialiseurs de la boutique.
 """
 
-from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from .models import GameBonus, ShopItem, UserInventory
@@ -58,9 +57,7 @@ class ActivateBonusSerializer(serializers.Serializer):
 class GameBonusSerializer(serializers.ModelSerializer):
     """Sérialiseur d'un bonus actif en partie."""
 
-    username = serializers.CharField(
-        source="player.user.username", read_only=True
-    )
+    username = serializers.CharField(source="player.user.username", read_only=True)
 
     class Meta:
         model = GameBonus

@@ -42,9 +42,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate_email(self, value):
         """Vérifie l'unicité de l'email via son hash HMAC (email stocké chiffré)."""
         if User.objects.filter(email_hash=hash_email(value)).exists():
-            raise serializers.ValidationError(
-                "Un compte avec cet email existe déjà."
-            )
+            raise serializers.ValidationError("Un compte avec cet email existe déjà.")
         return value
 
     def validate(self, attrs):

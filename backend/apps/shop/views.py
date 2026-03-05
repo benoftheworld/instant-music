@@ -13,7 +13,7 @@ from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 
 from apps.achievements.models import Achievement
 
-from .models import GameBonus, ShopItem, UserInventory
+from .models import GameBonus, ShopItem
 from .serializers import (
     ActivateBonusSerializer,
     GameBonusSerializer,
@@ -42,9 +42,7 @@ class ShopViewSet(ReadOnlyModelViewSet):
     POST /api/shop/items/purchase/ — acheter un article
     """
 
-    queryset = ShopItem.objects.filter(is_available=True).order_by(
-        "sort_order", "name"
-    )
+    queryset = ShopItem.objects.filter(is_available=True).order_by("sort_order", "name")
     serializer_class = ShopItemSerializer
     permission_classes = [IsAuthenticated]
 
@@ -81,13 +79,9 @@ class ShopViewSet(ReadOnlyModelViewSet):
                 request.user, item_id=item_id, quantity=quantity
             )
         except ItemNotAvailableError as e:
-            return Response(
-                {"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except InsufficientCoinsError as e:
-            return Response(
-                {"detail": str(e)}, status=status.HTTP_402_PAYMENT_REQUIRED
-            )
+            return Response({"detail": str(e)}, status=status.HTTP_402_PAYMENT_REQUIRED)
 
         return Response(
             UserInventorySerializer(inventory).data,
@@ -143,13 +137,9 @@ class InventoryViewSet(GenericViewSet):
                 request.user, game, bonus_type, round_number=round_number
             )
         except (ItemNotAvailableError, ValueError) as e:
-            return Response(
-                {"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except BonusAlreadyActiveError as e:
-            return Response(
-                {"detail": str(e)}, status=status.HTTP_409_CONFLICT
-            )
+            return Response({"detail": str(e)}, status=status.HTTP_409_CONFLICT)
 
         # ── Effets immédiats selon le type de bonus ──────────────────────────
         extra_response: dict = {}
@@ -173,7 +163,9 @@ class InventoryViewSet(GenericViewSet):
             try:
                 player = GamePlayer.objects.get(game=game, user=request.user)
                 stolen = bonus_service.apply_steal_bonus(
-                    player=player, game=game, round_number=round_number  # type: ignore[arg-type]
+                    player=player,
+                    game=game,
+                    round_number=round_number,  # type: ignore[arg-type]
                 )
                 extra_response["stolen_points"] = stolen
                 # Diffuser les scores mis à jour
@@ -197,8 +189,8 @@ class InventoryViewSet(GenericViewSet):
                 extra_response["new_duration"] = new_duration
 
         # Diffuser la notification via WebSocket
-        from channels.layers import get_channel_layer
         from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
 
         channel_layer = get_channel_layer()
         if channel_layer:
@@ -225,9 +217,7 @@ class InventoryViewSet(GenericViewSet):
         response_data.update(extra_response)
         return Response(response_data, status=status.HTTP_201_CREATED)
 
-    @action(
-        detail=False, methods=["get"], url_path="game/(?P<room_code>[^/.]+)"
-    )
+    @action(detail=False, methods=["get"], url_path="game/(?P<room_code>[^/.]+)")
     def game_bonuses(self, request, room_code=None):
         """Lister les bonus actifs du joueur pour une partie donnée."""
         from apps.games.models import Game, GamePlayer

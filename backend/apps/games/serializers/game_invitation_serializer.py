@@ -2,8 +2,9 @@
 
 from rest_framework import serializers
 
-from ..models import GameInvitation
 from apps.users.models import User
+
+from ..models import GameInvitation
 
 
 class UserMiniSerializer(serializers.ModelSerializer):

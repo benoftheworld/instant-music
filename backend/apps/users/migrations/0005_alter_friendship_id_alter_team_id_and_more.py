@@ -20,7 +20,6 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("users", "0004_teamjoinrequest"),
     ]

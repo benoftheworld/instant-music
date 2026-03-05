@@ -8,7 +8,6 @@ from django.core.management.base import BaseCommand
 
 from apps.shop.models import BonusType, ItemType, ShopItem
 
-
 # ─── Catalogue par défaut ──────────────────────────────────────────────────────
 BONUS_ITEMS = [
     {
@@ -176,14 +175,10 @@ class Command(BaseCommand):
                 obj.sort_order = item_data["sort_order"]
                 obj.save()
                 updated_count += 1
-                self.stdout.write(
-                    self.style.WARNING(f"  ↻ Mis à jour : {obj.name}")
-                )
+                self.stdout.write(self.style.WARNING(f"  ↻ Mis à jour : {obj.name}"))
             elif created:
                 created_count += 1
-                self.stdout.write(
-                    self.style.SUCCESS(f"  ✓ Créé : {obj.name}")
-                )
+                self.stdout.write(self.style.SUCCESS(f"  ✓ Créé : {obj.name}"))
             else:
                 self.stdout.write(f"  — Déjà existant : {obj.name}")
 

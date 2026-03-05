@@ -6,7 +6,6 @@ Fonctions utilisées par GameService.check_answer() et les tests.
 
 import re
 import unicodedata
-from typing import Tuple
 
 
 def normalize_text(text: str) -> str:
@@ -14,9 +13,7 @@ def normalize_text(text: str) -> str:
     text = text.lower().strip()
     # Remove accents
     text = "".join(
-        c
-        for c in unicodedata.normalize("NFD", text)
-        if unicodedata.category(c) != "Mn"
+        c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn"
     )
     # Remove common prefixes/articles
     for prefix in ("the ", "le ", "la ", "les ", "l'", "un ", "une ", "des "):
@@ -55,7 +52,7 @@ def _levenshtein_similarity(g: str, c: str) -> float:
 
 def fuzzy_match(
     given: str, correct: str, threshold: float = 0.65
-) -> Tuple[bool, float]:
+) -> tuple[bool, float]:
     """Compare two strings with fuzzy matching for text answer mode.
 
     Returns (is_match, similarity_factor) where similarity_factor is 0.0-1.0.

@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("playlists", "0001_initial"),
     ]
@@ -13,17 +12,45 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Track",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("spotify_id", models.CharField(max_length=255, unique=True, verbose_name="Spotify ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "spotify_id",
+                    models.CharField(
+                        max_length=255, unique=True, verbose_name="Spotify ID"
+                    ),
+                ),
                 ("name", models.CharField(max_length=255, verbose_name="titre")),
                 ("artists", models.JSONField(default=list, verbose_name="artistes")),
                 ("album", models.CharField(max_length=255, verbose_name="album")),
-                ("album_image", models.URLField(blank=True, verbose_name="image album")),
+                (
+                    "album_image",
+                    models.URLField(blank=True, verbose_name="image album"),
+                ),
                 ("duration_ms", models.IntegerField(verbose_name="durée (ms)")),
-                ("preview_url", models.URLField(blank=True, null=True, verbose_name="aperçu audio")),
-                ("external_url", models.URLField(blank=True, verbose_name="lien Spotify")),
-                ("created_at", models.DateTimeField(auto_now_add=True, verbose_name="créé le")),
-                ("updated_at", models.DateTimeField(auto_now=True, verbose_name="mis à jour le")),
+                (
+                    "preview_url",
+                    models.URLField(blank=True, null=True, verbose_name="aperçu audio"),
+                ),
+                (
+                    "external_url",
+                    models.URLField(blank=True, verbose_name="lien Spotify"),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="créé le"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="mis à jour le"),
+                ),
             ],
             options={
                 "verbose_name": "morceau",
@@ -33,7 +60,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterModelOptions(
             name="playlist",
-            options={"ordering": ["-created_at"], "verbose_name": "playlist", "verbose_name_plural": "playlists"},
+            options={
+                "ordering": ["-created_at"],
+                "verbose_name": "playlist",
+                "verbose_name_plural": "playlists",
+            },
         ),
         migrations.AddField(
             model_name="playlist",
@@ -43,6 +74,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="playlist",
             name="owner",
-            field=models.CharField(blank=True, max_length=255, verbose_name="propriétaire"),
+            field=models.CharField(
+                blank=True, max_length=255, verbose_name="propriétaire"
+            ),
         ),
     ]

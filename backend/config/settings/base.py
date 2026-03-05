@@ -17,9 +17,7 @@ env = environ.Env(DEBUG=(bool, False))
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env(
-    "SECRET_KEY", default="django-insecure-change-this-in-production"
-)
+SECRET_KEY = env("SECRET_KEY", default="django-insecure-change-this-in-production")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG")
@@ -326,14 +324,10 @@ EMAIL_ENCRYPTION_KEY = env(
     default="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",  # À REMPLACER en production
 )
 # Pepper HMAC-SHA256 pour les lookups email (unicité + recherche sans déchiffrement)
-EMAIL_HASH_KEY = env(
-    "EMAIL_HASH_KEY", default="change-this-hash-key-in-production"
-)
+EMAIL_HASH_KEY = env("EMAIL_HASH_KEY", default="change-this-hash-key-in-production")
 
 # Expéditeur par défaut des emails transactionnels
-DEFAULT_FROM_EMAIL = env(
-    "DEFAULT_FROM_EMAIL", default="noreply@instant-music.fr"
-)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@instant-music.fr")
 
 # DRF Spectacular
 SPECTACULAR_SETTINGS = {

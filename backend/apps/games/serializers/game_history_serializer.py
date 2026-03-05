@@ -11,12 +11,8 @@ class GameHistorySerializer(serializers.ModelSerializer):
     winner = serializers.SerializerMethodField()
     winner_score = serializers.SerializerMethodField()
     player_count = serializers.SerializerMethodField()
-    mode_display = serializers.CharField(
-        source="get_mode_display", read_only=True
-    )
-    host_username = serializers.CharField(
-        source="host.username", read_only=True
-    )
+    mode_display = serializers.CharField(source="get_mode_display", read_only=True)
+    host_username = serializers.CharField(source="host.username", read_only=True)
     participants = serializers.SerializerMethodField()
     answer_mode_display = serializers.CharField(
         source="get_answer_mode_display", read_only=True
@@ -82,9 +78,7 @@ class GameHistorySerializer(serializers.ModelSerializer):
             {
                 "id": player.user.id,
                 "username": player.user.username,
-                "avatar": (
-                    player.user.avatar.url if player.user.avatar else None
-                ),
+                "avatar": (player.user.avatar.url if player.user.avatar else None),
                 "score": player.score,
                 "rank": idx + 1,
             }

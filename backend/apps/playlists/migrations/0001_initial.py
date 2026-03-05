@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []
@@ -13,14 +12,39 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Playlist",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("spotify_id", models.CharField(max_length=255, unique=True, verbose_name="Spotify ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "spotify_id",
+                    models.CharField(
+                        max_length=255, unique=True, verbose_name="Spotify ID"
+                    ),
+                ),
                 ("name", models.CharField(max_length=255, verbose_name="nom")),
-                ("description", models.TextField(blank=True, verbose_name="description")),
+                (
+                    "description",
+                    models.TextField(blank=True, verbose_name="description"),
+                ),
                 ("image_url", models.URLField(blank=True, verbose_name="URL image")),
-                ("total_tracks", models.IntegerField(default=0, verbose_name="nombre de morceaux")),
-                ("created_at", models.DateTimeField(auto_now_add=True, verbose_name="créé le")),
-                ("updated_at", models.DateTimeField(auto_now=True, verbose_name="mis à jour le")),
+                (
+                    "total_tracks",
+                    models.IntegerField(default=0, verbose_name="nombre de morceaux"),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="créé le"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="mis à jour le"),
+                ),
             ],
             options={
                 "verbose_name": "playlist",

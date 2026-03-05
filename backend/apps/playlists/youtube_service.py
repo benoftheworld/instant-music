@@ -4,9 +4,8 @@ Music streaming service integration for InstantMusic.
 """
 
 import logging
-import random
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import requests
 from django.conf import settings
@@ -77,20 +76,16 @@ class YouTubeService:
         except requests.exceptions.HTTPError as e:
             error_body = ""
             try:
-                error_body = (
-                    e.response.json().get("error", {}).get("message", "")
-                )
+                error_body = e.response.json().get("error", {}).get("message", "")
             except Exception:
                 error_body = str(e)
-            logger.error(
-                "YouTube API error on %s: %s - %s", endpoint, e, error_body
-            )
+            logger.error("YouTube API error on %s: %s - %s", endpoint, e, error_body)
             raise YouTubeAPIError(f"YouTube API error: {error_body or str(e)}")
         except requests.exceptions.RequestException as e:
             logger.error("YouTube API request failed: %s", e)
             raise YouTubeAPIError(f"YouTube API request failed: {e}")
 
-    def search_playlists(self, query: str, limit: int = 20) -> List[Dict]:
+    def search_playlists(self, query: str, limit: int = 20) -> list[dict]:
         """
         Search for music playlists on YouTube.
 
@@ -146,7 +141,7 @@ class YouTubeService:
         cache.set(cache_key, playlists, CACHE_TTL_SEARCH)
         return playlists
 
-    def get_playlist(self, playlist_id: str) -> Optional[Dict]:
+    def get_playlist(self, playlist_id: str) -> dict | None:
         """
         Get playlist details by ID.
 
@@ -198,9 +193,7 @@ class YouTubeService:
         cache.set(cache_key, result, CACHE_TTL_DETAIL)
         return result
 
-    def get_playlist_tracks(
-        self, playlist_id: str, limit: int = 50
-    ) -> List[Dict]:
+    def get_playlist_tracks(self, playlist_id: str, limit: int = 50) -> list[dict]:
         """
         Get videos from a YouTube playlist.
 
@@ -306,7 +299,7 @@ class YouTubeService:
         cache.set(cache_key, tracks, CACHE_TTL_DETAIL)
         return tracks[:limit]
 
-    def search_music_videos(self, query: str, limit: int = 50) -> List[Dict]:
+    def search_music_videos(self, query: str, limit: int = 50) -> list[dict]:
         """
         Search for music videos on YouTube.
         Useful as a fallback when playlist access fails.
@@ -379,7 +372,7 @@ class YouTubeService:
         cache.set(cache_key, tracks, CACHE_TTL_SEARCH)
         return tracks
 
-    def _get_video_details(self, video_ids: List[str]) -> Dict[str, Dict]:
+    def _get_video_details(self, video_ids: list[str]) -> dict[str, dict]:
         """
         Get video details (duration, etc.) for multiple videos.
 

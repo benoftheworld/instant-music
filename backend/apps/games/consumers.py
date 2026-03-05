@@ -9,8 +9,8 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 from apps.core.prometheus_metrics import (
-    WS_CONNECTIONS_TOTAL,
     WS_CONNECTIONS_ACTIVE,
+    WS_CONNECTIONS_TOTAL,
     WS_MESSAGES_TOTAL,
 )
 
@@ -75,9 +75,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         if hasattr(self, "group_name"):
-            await self.channel_layer.group_discard(
-                self.group_name, self.channel_name
-            )
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     # ── Broadcast handlers ────────────────────────────────────────────────────
 
@@ -126,9 +124,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         user = self.scope["user"]
 
         # Join room group
-        await self.channel_layer.group_add(
-            self.room_group_name, self.channel_name
-        )
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
         await self.accept()
 
@@ -173,9 +169,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         WS_CONNECTIONS_ACTIVE.dec()
 
         # Leave room group
-        await self.channel_layer.group_discard(
-            self.room_group_name, self.channel_name
-        )
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
         user = self.scope.get("user")
         if user and user.is_authenticated:
@@ -227,9 +221,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 },
             )
             await self.send(
-                text_data=json.dumps(
-                    {"type": "error", "message": "JSON invalide."}
-                )
+                text_data=json.dumps({"type": "error", "message": "JSON invalide."})
             )
             return
 
@@ -237,18 +229,14 @@ class GameConsumer(AsyncWebsocketConsumer):
         validation_error = validate_ws_message(data)
         if validation_error:
             await self.send(
-                text_data=json.dumps(
-                    {"type": "error", "message": validation_error}
-                )
+                text_data=json.dumps({"type": "error", "message": validation_error})
             )
             return
 
         message_type = data["type"]
 
         # Métrique : message entrant
-        WS_MESSAGES_TOTAL.labels(
-            direction="inbound", message_type=message_type
-        ).inc()
+        WS_MESSAGES_TOTAL.labels(direction="inbound", message_type=message_type).inc()
 
         logger.debug(
             "ws_message",
@@ -310,8 +298,9 @@ class GameConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_game_data(self):
         """Get game data with players."""
-        from .models import Game
         from django.conf import settings
+
+        from .models import Game
 
         try:
             game = Game.objects.get(room_code=self.room_code)
@@ -372,7 +361,7 @@ class GameConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def _set_player_connected(self, connected: bool):
         """Set the GamePlayer.is_connected flag for the current user in this room."""
-        from .models import GamePlayer, Game
+        from .models import Game, GamePlayer
 
         try:
             game = Game.objects.get(room_code=self.room_code)
@@ -497,9 +486,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         if not bonus_type:
             await self.send(
-                text_data=json.dumps(
-                    {"type": "error", "message": "bonus_type requis."}
-                )
+                text_data=json.dumps({"type": "error", "message": "bonus_type requis."})
             )
             return
 
@@ -507,9 +494,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         if result.get("error"):
             await self.send(
-                text_data=json.dumps(
-                    {"type": "error", "message": result["error"]}
-                )
+                text_data=json.dumps({"type": "error", "message": result["error"]})
             )
             return
 
@@ -528,12 +513,13 @@ class GameConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def _do_activate_bonus(self, user, bonus_type: str) -> dict:
         """Synchronous DB calls for bonus activation."""
-        from .models import Game
         from apps.shop.services import (
             BonusAlreadyActiveError,
             ItemNotAvailableError,
             bonus_service,
         )
+
+        from .models import Game
 
         try:
             game = Game.objects.get(room_code=self.room_code)
@@ -646,9 +632,7 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def broadcast_round_end(self, event):
         """Send round end with results to WebSocket."""
         await self.send(
-            text_data=json.dumps(
-                {"type": "round_ended", "results": event["results"]}
-            )
+            text_data=json.dumps({"type": "round_ended", "results": event["results"]})
         )
 
     async def broadcast_next_round(self, event):
@@ -664,9 +648,7 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def broadcast_game_finish(self, event):
         """Send game finish with final results to WebSocket."""
         await self.send(
-            text_data=json.dumps(
-                {"type": "game_finished", "results": event["results"]}
-            )
+            text_data=json.dumps({"type": "game_finished", "results": event["results"]})
         )
 
     async def broadcast_bonus_activated(self, event):

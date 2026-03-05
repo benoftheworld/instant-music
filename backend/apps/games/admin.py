@@ -2,19 +2,19 @@
 Admin configuration for games.
 """
 
-from django.contrib import admin
-from django.contrib import messages
+from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
+
 from .models import (
     Game,
-    GamePlayer,
-    GameRound,
     GameAnswer,
     GameInvitation,
+    GamePlayer,
+    GameRound,
     KaraokeSong,
 )
 
@@ -562,11 +562,11 @@ class KaraokeSongAdmin(admin.ModelAdmin):
             A string error message if a known failure occurs.
         """
         import json
-        import socket
         import ssl
         import urllib.error
         import urllib.request
         from urllib.parse import urlencode
+
         from apps.games.lyrics_service import _lrclib_ssl_context
 
         url = f"https://lrclib.net/api/search?{urlencode({'q': q})}"
@@ -585,7 +585,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
                 return f"HTTP {resp.status} reçu de lrclib.net."
         except ssl.SSLError as exc:
             return f"Erreur SSL avec lrclib.net : {exc}"
-        except (socket.timeout, TimeoutError):
+        except TimeoutError:
             return (
                 f"Délai dépassé ({self._ADMIN_LRCLIB_TIMEOUT}s) — "
                 "lrclib.net ne répond pas."
@@ -606,16 +606,13 @@ class KaraokeSongAdmin(admin.ModelAdmin):
         POST — save the selected lrclib_id and redirect back to the change page.
         """
         from django.core.cache import cache
+
         from apps.games.lyrics_service import _LRCLIB_DOWN_KEY
 
         song = self.get_object(request, object_id)
         if song is None:
-            self.message_user(
-                request, "Morceau introuvable.", level=messages.ERROR
-            )
-            return HttpResponseRedirect(
-                reverse("admin:games_karaokesong_changelist")
-            )
+            self.message_user(request, "Morceau introuvable.", level=messages.ERROR)
+            return HttpResponseRedirect(reverse("admin:games_karaokesong_changelist"))
 
         # POST — assign chosen ID or reset circuit breaker
         if request.method == "POST":
@@ -638,9 +635,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
                     level=messages.SUCCESS,
                 )
             else:
-                self.message_user(
-                    request, "ID invalide.", level=messages.ERROR
-                )
+                self.message_user(request, "ID invalide.", level=messages.ERROR)
             return HttpResponseRedirect(
                 reverse("admin:games_karaokesong_change", args=[object_id])
             )
@@ -655,9 +650,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
         circuit_open = bool(cache.get(_LRCLIB_DOWN_KEY))
 
         # Only search when at least one search param was explicitly submitted
-        search_submitted = any(
-            k in request.GET for k in ("artist", "title", "q")
-        )
+        search_submitted = any(k in request.GET for k in ("artist", "title", "q"))
         if search_submitted:
             q_string = query_free or f"{query_artist} {query_title}".strip()
             if not q_string:
@@ -715,9 +708,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
     def lrclib_search_button(self, obj):
         """Renders a button linking to the LRCLib search view."""
         if obj and obj.pk:
-            url = reverse(
-                "admin:games_karaokesong_lrclib_search", args=[obj.pk]
-            )
+            url = reverse("admin:games_karaokesong_lrclib_search", args=[obj.pk])
             return format_html(
                 '<a href="{}" class="button" style="'
                 "background:#417690;color:#fff;padding:6px 16px;"

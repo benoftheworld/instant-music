@@ -43,7 +43,6 @@ def noop_reverse(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("users", "0007_encrypt_email"),
     ]

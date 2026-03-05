@@ -58,9 +58,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "video_duration_ms",
-                    models.IntegerField(
-                        default=0, verbose_name="durée vidéo (ms)"
-                    ),
+                    models.IntegerField(default=0, verbose_name="durée vidéo (ms)"),
                 ),
                 (
                     "album_image",
@@ -90,15 +88,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "created_at",
-                    models.DateTimeField(
-                        auto_now_add=True, verbose_name="créé le"
-                    ),
+                    models.DateTimeField(auto_now_add=True, verbose_name="créé le"),
                 ),
                 (
                     "updated_at",
-                    models.DateTimeField(
-                        auto_now=True, verbose_name="mis à jour le"
-                    ),
+                    models.DateTimeField(auto_now=True, verbose_name="mis à jour le"),
                 ),
             ],
             options={

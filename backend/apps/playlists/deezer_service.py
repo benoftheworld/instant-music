@@ -4,11 +4,10 @@ Replaces YouTube as the music source — uses free 30-second MP3 previews.
 No API key required.
 """
 
-import logging
-import random
 import hashlib
+import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import requests
 from django.core.cache import cache
@@ -91,9 +90,7 @@ class DeezerService:
 
     BASE_URL = "https://api.deezer.com"
 
-    def _make_request(
-        self, endpoint: str, params: Optional[dict] = None
-    ) -> dict:
+    def _make_request(self, endpoint: str, params: dict | None = None) -> dict:
         """
         Make a GET request to the Deezer API.
 
@@ -110,17 +107,13 @@ class DeezerService:
         url = f"{self.BASE_URL}{endpoint}"
 
         try:
-            response = requests.get(
-                url, params=params or {}, timeout=API_TIMEOUT
-            )
+            response = requests.get(url, params=params or {}, timeout=API_TIMEOUT)
             response.raise_for_status()
             data = response.json()
 
             # Deezer returns errors in the JSON body
             if "error" in data:
-                error_msg = data["error"].get(
-                    "message", "Unknown Deezer error"
-                )
+                error_msg = data["error"].get("message", "Unknown Deezer error")
                 raise DeezerAPIError(f"Deezer API error: {error_msg}")
 
             return data  # type: ignore[no-any-return]
@@ -133,7 +126,7 @@ class DeezerService:
 
     # ── Playlist operations ──────────────────────────────────────────
 
-    def search_playlists(self, query: str, limit: int = 20) -> List[Dict]:
+    def search_playlists(self, query: str, limit: int = 20) -> list[dict]:
         """
         Search for playlists on Deezer.
 
@@ -146,16 +139,12 @@ class DeezerService:
             youtube_id (kept for compat, actually deezer id), name, description,
             image_url, total_tracks, owner, external_url
         """
-        cache_key = (
-            f"dz_search_pl_{hashlib.md5(query.encode()).hexdigest()}_{limit}"
-        )
+        cache_key = f"dz_search_pl_{hashlib.md5(query.encode()).hexdigest()}_{limit}"
         cached = cache.get(cache_key)
         if cached:
             return cached  # type: ignore[no-any-return]
 
-        data = self._make_request(
-            "/search/playlist", {"q": query, "limit": limit}
-        )
+        data = self._make_request("/search/playlist", {"q": query, "limit": limit})
 
         playlists = []
         for item in data.get("data", []):
@@ -164,9 +153,7 @@ class DeezerService:
                     "playlist_id": str(item["id"]),
                     "name": item.get("title", ""),
                     "description": "",
-                    "image_url": item.get(
-                        "picture_medium", item.get("picture", "")
-                    ),
+                    "image_url": item.get("picture_medium", item.get("picture", "")),
                     "total_tracks": item.get("nb_tracks", 0),
                     "owner": item.get("user", {}).get("name", "Deezer"),
                     "external_url": item.get("link", ""),
@@ -176,7 +163,7 @@ class DeezerService:
         cache.set(cache_key, playlists, CACHE_TTL_DETAIL)
         return playlists
 
-    def get_playlist(self, playlist_id: str) -> Optional[Dict]:
+    def get_playlist(self, playlist_id: str) -> dict | None:
         """
         Get a single playlist by Deezer ID.
 
@@ -206,9 +193,7 @@ class DeezerService:
         cache.set(cache_key, playlist, CACHE_TTL_DETAIL)
         return playlist
 
-    def get_playlist_tracks(
-        self, playlist_id: str, limit: int = 50
-    ) -> List[Dict]:
+    def get_playlist_tracks(self, playlist_id: str, limit: int = 50) -> list[dict]:
         """
         Get tracks from a Deezer playlist.
         Filters out tracks without a preview URL.
@@ -236,7 +221,7 @@ class DeezerService:
                     f"/playlist/{playlist_id}/tracks",
                     {"limit": batch_size, "index": index},
                 )
-            except DeezerAPIError as e:
+            except DeezerAPIError:
                 if not tracks:
                     raise
                 break
@@ -263,7 +248,7 @@ class DeezerService:
 
         return tracks
 
-    def search_tracks(self, query: str, limit: int = 20) -> List[Dict]:
+    def search_tracks(self, query: str, limit: int = 20) -> list[dict]:
         """
         Search for tracks on Deezer.
 
@@ -274,9 +259,7 @@ class DeezerService:
         Returns:
             List of track dicts (only those with preview URLs)
         """
-        cache_key = (
-            f"dz_search_tr_{hashlib.md5(query.encode()).hexdigest()}_{limit}"
-        )
+        cache_key = f"dz_search_tr_{hashlib.md5(query.encode()).hexdigest()}_{limit}"
         cached = cache.get(cache_key)
         if cached:
             return cached  # type: ignore[no-any-return]
@@ -294,13 +277,13 @@ class DeezerService:
 
         return tracks
 
-    def search_music_videos(self, query: str, limit: int = 50) -> List[Dict]:
+    def search_music_videos(self, query: str, limit: int = 50) -> list[dict]:
         """
         Alias for search_tracks — interface compat with YouTubeService.
         """
         return self.search_tracks(query, limit)
 
-    def get_track_details(self, track_id: str) -> Optional[Dict]:
+    def get_track_details(self, track_id: str) -> dict | None:
         """
         Get detailed info for a single track, including release_date.
 
@@ -328,7 +311,7 @@ class DeezerService:
 
     # ── Helpers ──────────────────────────────────────────────────────
 
-    def _parse_track(self, item: dict) -> Optional[Dict]:
+    def _parse_track(self, item: dict) -> dict | None:
         """
         Parse a Deezer track item into our normalised format.
         Returns None if the track has no preview URL.
@@ -351,9 +334,7 @@ class DeezerService:
 
         return {
             "track_id": str(item.get("id", "")),
-            "name": clean_track_title(
-                item.get("title", item.get("title_short", ""))
-            ),
+            "name": clean_track_title(item.get("title", item.get("title_short", ""))),
             "artists": [artist.get("name", "Unknown")],
             "album": album.get("title", ""),
             "album_image": album.get("cover_medium", album.get("cover", "")),

@@ -33,18 +33,14 @@ class TeamViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Return teams the user is a member of or all teams for browsing."""
         if self.action == "list":
-            return Team.objects.filter(
-                memberships__user=self.request.user
-            )
+            return Team.objects.filter(memberships__user=self.request.user)
         return Team.objects.all()
 
     def create(self, request):
         """Create a new team."""
         serializer = TeamCreateSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             team = Team.objects.create(
@@ -57,9 +53,7 @@ class TeamViewSet(viewsets.ModelViewSet):
                 role=TeamMemberRole.OWNER,
             )
 
-        return Response(
-            TeamSerializer(team).data, status=status.HTTP_201_CREATED
-        )
+        return Response(TeamSerializer(team).data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["get"])
     def browse(self, request):
@@ -83,9 +77,7 @@ class TeamViewSet(viewsets.ModelViewSet):
             context={"request": request, "team": team},
         )
         if not serializer.is_valid():
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         join_request, created = TeamJoinRequest.objects.get_or_create(
             team=team,
@@ -122,9 +114,7 @@ class TeamViewSet(viewsets.ModelViewSet):
         pending = TeamJoinRequest.objects.filter(
             team=team, status=TeamJoinRequestStatus.PENDING
         ).select_related("user")
-        return Response(
-            TeamJoinRequestSerializer(pending, many=True).data
-        )
+        return Response(TeamJoinRequestSerializer(pending, many=True).data)
 
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
@@ -198,9 +188,7 @@ class TeamViewSet(viewsets.ModelViewSet):
     def leave(self, request, pk=None):
         """Leave a team."""
         try:
-            membership = TeamMember.objects.get(
-                team_id=pk, user=request.user
-            )
+            membership = TeamMember.objects.get(team_id=pk, user=request.user)
         except TeamMember.DoesNotExist:
             return Response(
                 {"error": "Vous n'êtes pas membre de cette équipe."},
@@ -219,9 +207,7 @@ class TeamViewSet(viewsets.ModelViewSet):
             else:
                 Team.objects.filter(id=pk).delete()
                 return Response(
-                    {
-                        "message": "Équipe supprimée car vous étiez le seul membre."
-                    }
+                    {"message": "Équipe supprimée car vous étiez le seul membre."}
                 )
 
         membership.delete()
@@ -278,9 +264,7 @@ class TeamViewSet(viewsets.ModelViewSet):
             role=TeamMemberRole.MEMBER,
         )
 
-        return Response(
-            {"message": f"{username} a été ajouté à l'équipe."}
-        )
+        return Response({"message": f"{username} a été ajouté à l'équipe."})
 
     @action(detail=True, methods=["post"])
     def update_member(self, request, pk=None):
@@ -326,9 +310,9 @@ class TeamViewSet(viewsets.ModelViewSet):
 
         with transaction.atomic():
             if role == TeamMemberRole.OWNER:
-                TeamMember.objects.filter(
-                    team=team, role=TeamMemberRole.OWNER
-                ).update(role=TeamMemberRole.ADMIN)
+                TeamMember.objects.filter(team=team, role=TeamMemberRole.OWNER).update(
+                    role=TeamMemberRole.ADMIN
+                )
                 team.owner = member.user
                 team.save()
             member.role = role
@@ -360,9 +344,7 @@ class TeamViewSet(viewsets.ModelViewSet):
 
         if member.role == TeamMemberRole.OWNER:
             return Response(
-                {
-                    "error": "Impossible de supprimer le propriétaire via cette action."
-                },
+                {"error": "Impossible de supprimer le propriétaire via cette action."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -375,9 +357,7 @@ class TeamViewSet(viewsets.ModelViewSet):
         """Return (team, membership) or a Response on error."""
         try:
             team = Team.objects.get(id=pk)
-            membership = TeamMember.objects.get(
-                team=team, user=request.user
-            )
+            membership = TeamMember.objects.get(team=team, user=request.user)
             return team, membership
         except Team.DoesNotExist:
             return (

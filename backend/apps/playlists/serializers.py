@@ -1,6 +1,7 @@
 """
 Serializers for playlists app.
 """
+
 from rest_framework import serializers
 
 

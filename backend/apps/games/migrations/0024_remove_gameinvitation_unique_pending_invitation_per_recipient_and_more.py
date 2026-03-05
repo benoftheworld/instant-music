@@ -5,19 +5,18 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('games', '0023_gameinvitation'),
+        ("games", "0023_gameinvitation"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.RemoveConstraint(
-            model_name='gameinvitation',
-            name='unique_pending_invitation_per_recipient',
+            model_name="gameinvitation",
+            name="unique_pending_invitation_per_recipient",
         ),
         migrations.AlterUniqueTogether(
-            name='gameinvitation',
-            unique_together={('game', 'recipient')},
+            name="gameinvitation",
+            unique_together={("game", "recipient")},
         ),
     ]

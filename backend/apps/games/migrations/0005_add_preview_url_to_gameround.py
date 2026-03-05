@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("games", "0004_add_game_name_and_num_rounds"),
     ]
@@ -13,6 +12,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="gameround",
             name="preview_url",
-            field=models.URLField(blank=True, default="", max_length=500, verbose_name="URL preview audio"),
+            field=models.URLField(
+                blank=True, default="", max_length=500, verbose_name="URL preview audio"
+            ),
         ),
     ]

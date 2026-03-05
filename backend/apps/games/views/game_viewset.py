@@ -6,14 +6,27 @@ import logging
 import random
 import string
 
-from django.utils import timezone
 from django.db import transaction
 from django.db.models import Count
+from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.core.pagination import paginated_response, parse_pagination_params
+from apps.core.throttles import GameCreateThrottle, GameJoinThrottle
+
+from ..broadcast_service import (
+    broadcast_game_finish,
+    broadcast_game_update,
+    broadcast_next_round,
+    broadcast_player_join,
+    broadcast_player_leave,
+    broadcast_round_end,
+    broadcast_round_start,
+)
+from ..game_results_service import build_rankings, build_rounds_detail
 from ..models import Game, GameAnswer, GamePlayer, GameRound
 from ..models.enums import GameMode
 from ..models.game_invitation import GameInvitation, InvitationStatus
@@ -27,18 +40,6 @@ from ..serializers import (
     GameSerializer,
 )
 from ..services import game_service
-from ..game_results_service import build_rankings, build_rounds_detail
-from ..broadcast_service import (
-    broadcast_game_finish,
-    broadcast_game_update,
-    broadcast_next_round,
-    broadcast_player_join,
-    broadcast_player_leave,
-    broadcast_round_end,
-    broadcast_round_start,
-)
-from apps.core.throttles import GameCreateThrottle, GameJoinThrottle
-from apps.core.pagination import parse_pagination_params, paginated_response
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +47,7 @@ logger = logging.getLogger(__name__)
 def generate_room_code() -> str:
     """Generate a unique 6-character room code."""
     while True:
-        code = "".join(
-            random.choices(string.ascii_uppercase + string.digits, k=6)
-        )
+        code = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
         if not Game.objects.filter(room_code=code).exists():
             return code
 
@@ -112,13 +111,9 @@ class GameViewSet(viewsets.ModelViewSet):
         serializer = CreateGameSerializer(data=request.data)
 
         if serializer.is_valid():
-            game = serializer.save(
-                host=request.user, room_code=generate_room_code()
-            )
+            game = serializer.save(host=request.user, room_code=generate_room_code())
             GamePlayer.objects.create(game=game, user=request.user)
-            return Response(
-                GameSerializer(game).data, status=status.HTTP_201_CREATED
-            )
+            return Response(GameSerializer(game).data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -127,9 +122,7 @@ class GameViewSet(viewsets.ModelViewSet):
         game = self.get_object()
         serializer = GameSerializer(game, data=request.data, partial=True)
         if not serializer.is_valid():
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         serializer.save()
         game.refresh_from_db()
         game_data = GameSerializer(game, context={"request": request}).data
@@ -169,9 +162,7 @@ class GameViewSet(viewsets.ModelViewSet):
 
         game.refresh_from_db()
         game_serializer = GameSerializer(game, context={"request": request})
-        player_serializer = GamePlayerSerializer(
-            player, context={"request": request}
-        )
+        player_serializer = GamePlayerSerializer(player, context={"request": request})
 
         broadcast_player_join(
             room_code,
@@ -207,9 +198,7 @@ class GameViewSet(viewsets.ModelViewSet):
             game.save(update_fields=["status"])
             player.delete()
             game.refresh_from_db()
-            game_serializer = GameSerializer(
-                game, context={"request": request}
-            )
+            game_serializer = GameSerializer(game, context={"request": request})
             broadcast_player_leave(
                 room_code,
                 player_data={
@@ -253,9 +242,7 @@ class GameViewSet(viewsets.ModelViewSet):
                     "game": GameSerializer(game).data,
                     "rounds_created": existing_rounds.count(),
                     "first_round": (
-                        GameRoundSerializer(first_round).data
-                        if first_round
-                        else None
+                        GameRoundSerializer(first_round).data if first_round else None
                     ),
                 },
                 status=status.HTTP_200_OK,
@@ -297,15 +284,11 @@ class GameViewSet(viewsets.ModelViewSet):
             )
         except ValueError as e:
             logger.error("Failed to start game %s: %s", room_code, e)
-            return Response(
-                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception:
             logger.exception("Unexpected error starting game %s", room_code)
             return Response(
-                {
-                    "error": "Une erreur inattendue est survenue. Veuillez réessayer."
-                },
+                {"error": "Une erreur inattendue est survenue. Veuillez réessayer."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -314,9 +297,7 @@ class GameViewSet(viewsets.ModelViewSet):
         """Get the current round of the game."""
         game = self.get_object()
 
-        if not GamePlayer.objects.filter(
-            game=game, user=request.user
-        ).exists():
+        if not GamePlayer.objects.filter(game=game, user=request.user).exists():
             return Response(
                 {"error": "Vous n'êtes pas dans cette partie."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -333,9 +314,7 @@ class GameViewSet(viewsets.ModelViewSet):
                         "next_round": GameRoundSerializer(next_round).data,
                     }
                 )
-            return Response(
-                {"current_round": None, "message": "Partie terminée"}
-            )
+            return Response({"current_round": None, "message": "Partie terminée"})
 
         return Response({"current_round": GameRoundSerializer(round_obj).data})
 
@@ -411,9 +390,7 @@ class GameViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_201_CREATED,
             )
         except ValueError as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=["post"], url_path="end-round")
     def end_current_round(self, request, room_code=None):
@@ -500,9 +477,7 @@ class GameViewSet(viewsets.ModelViewSet):
         """Get final results and rankings with per-round breakdown."""
         game = self.get_object()
 
-        if not GamePlayer.objects.filter(
-            game=game, user=request.user
-        ).exists():
+        if not GamePlayer.objects.filter(game=game, user=request.user).exists():
             return Response(
                 {"error": "Vous n'êtes pas dans cette partie."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -536,9 +511,7 @@ class GameViewSet(viewsets.ModelViewSet):
 
         game = self.get_object()
 
-        if not GamePlayer.objects.filter(
-            game=game, user=request.user
-        ).exists():
+        if not GamePlayer.objects.filter(game=game, user=request.user).exists():
             return Response(
                 {"error": "Vous n'êtes pas dans cette partie."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -554,12 +527,8 @@ class GameViewSet(viewsets.ModelViewSet):
             "guess_target_display": game.get_guess_target_display(),
             "num_rounds": game.num_rounds,
             "name": game.name,
-            "started_at": (
-                game.started_at.isoformat() if game.started_at else None
-            ),
-            "finished_at": (
-                game.finished_at.isoformat() if game.finished_at else None
-            ),
+            "started_at": (game.started_at.isoformat() if game.started_at else None),
+            "finished_at": (game.finished_at.isoformat() if game.finished_at else None),
         }
 
         pdf_bytes = generate_results_pdf(game_data, rankings, rounds_detail)
@@ -573,9 +542,7 @@ class GameViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def available(self, request):
         """Get list of available games to join (public games only)."""
-        games = Game.objects.filter(
-            status="waiting", is_online=True, is_public=True
-        )
+        games = Game.objects.filter(status="waiting", is_online=True, is_public=True)
         serializer = GameSerializer(games, many=True)
         return Response(serializer.data)
 
@@ -583,9 +550,7 @@ class GameViewSet(viewsets.ModelViewSet):
     def public_games(self, request):
         """Get list of public games waiting for players."""
         games = (
-            Game.objects.filter(
-                status="waiting", is_public=True, is_online=True
-            )
+            Game.objects.filter(status="waiting", is_public=True, is_online=True)
             .select_related("host")
             .prefetch_related("players")
             .annotate(_player_count=Count("players"))
@@ -821,9 +786,7 @@ class GameViewSet(viewsets.ModelViewSet):
 
         if created:
             game.refresh_from_db()
-            game_serializer = GameSerializer(
-                game, context={"request": request}
-            )
+            game_serializer = GameSerializer(game, context={"request": request})
             player_serializer = GamePlayerSerializer(
                 _player, context={"request": request}
             )

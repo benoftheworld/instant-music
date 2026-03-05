@@ -12,9 +12,7 @@ from .models import Achievement, UserAchievement
 logger = logging.getLogger(__name__)
 
 
-def _push_achievement_notification(
-    user_id: int, achievement: "Achievement"
-) -> None:
+def _push_achievement_notification(user_id: int, achievement: "Achievement") -> None:
     """Push a WebSocket notification to the user for a newly unlocked achievement."""
     try:
         from asgiref.sync import async_to_sync
@@ -176,9 +174,9 @@ class AchievementService:
             # Check consecutive wins from recent games
             from apps.games.models import GamePlayer
 
-            recent_games = GamePlayer.objects.filter(user=user).order_by(
-                "-joined_at"
-            )[:cvalue]
+            recent_games = GamePlayer.objects.filter(user=user).order_by("-joined_at")[
+                :cvalue
+            ]
 
             if recent_games.count() < cvalue:
                 return False
@@ -226,9 +224,7 @@ class AchievementService:
             from apps.games.models import GameAnswer, GamePlayer
 
             player_ids = list(
-                GamePlayer.objects.filter(user=user).values_list(
-                    "id", flat=True
-                )
+                GamePlayer.objects.filter(user=user).values_list("id", flat=True)
             )
             for pid in player_ids:
                 answers = list(
@@ -267,9 +263,7 @@ class AchievementService:
             from apps.games.models import GamePlayer
 
             return (  # type: ignore[no-any-return]
-                GamePlayer.objects.filter(
-                    user=user, game__mode=cextra, rank=1
-                ).count()
+                GamePlayer.objects.filter(user=user, game__mode=cextra, rank=1).count()
                 >= cvalue
             )
 
@@ -298,8 +292,7 @@ class AchievementService:
             from apps.games.models import Game
 
             return (  # type: ignore[no-any-return]
-                Game.objects.filter(host=user, status="finished").count()
-                >= cvalue
+                Game.objects.filter(host=user, status="finished").count() >= cvalue
             )
 
         elif ctype == CONDITION_INVITATIONS_SENT:

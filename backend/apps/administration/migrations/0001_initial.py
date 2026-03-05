@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []
@@ -93,9 +92,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "updated_at",
-                    models.DateTimeField(
-                        auto_now=True, verbose_name="mis à jour le"
-                    ),
+                    models.DateTimeField(auto_now=True, verbose_name="mis à jour le"),
                 ),
             ],
             options={

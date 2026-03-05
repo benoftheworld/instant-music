@@ -14,7 +14,7 @@ from django.db.models import Sum
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from .models import Game, GameAnswer, GamePlayer, GameStatus
+from .models import Game, GamePlayer, GameStatus
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +34,8 @@ def update_player_stats_on_game_finish(
         )
 
         user.total_games_played = participations.count()
-        user.total_wins = participations.filter(rank=1).exclude(
-            game__mode="karaoke"
-        ).count()
-        user.total_points = (
-            participations.aggregate(s=Sum("score"))["s"] or 0
+        user.total_wins = (
+            participations.filter(rank=1).exclude(game__mode="karaoke").count()
         )
+        user.total_points = participations.aggregate(s=Sum("score"))["s"] or 0
         user.save(update_fields=["total_games_played", "total_wins", "total_points"])

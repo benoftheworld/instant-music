@@ -27,9 +27,7 @@ class Command(BaseCommand):
         for user in users:
             # Check if user ever had a perfect game
             perfect_game = False
-            game_players = GamePlayer.objects.filter(
-                user=user, rank__isnull=False
-            )
+            game_players = GamePlayer.objects.filter(user=user, rank__isnull=False)
             for gp in game_players:
                 game = gp.game
                 total_rounds = game.rounds.count()
@@ -44,9 +42,7 @@ class Command(BaseCommand):
                         break
 
             round_data = {"perfect_game": perfect_game}
-            awarded = achievement_service.check_and_award(
-                user, round_data=round_data
-            )
+            awarded = achievement_service.check_and_award(user, round_data=round_data)
 
             if awarded:
                 names = [a.name for a in awarded]
@@ -58,7 +54,5 @@ class Command(BaseCommand):
                 self.stdout.write(f"{user.username}: no new achievements")
 
         self.stdout.write(
-            self.style.SUCCESS(
-                f"\nTotal achievements awarded: {total_awarded}"
-            )
+            self.style.SUCCESS(f"\nTotal achievements awarded: {total_awarded}")
         )

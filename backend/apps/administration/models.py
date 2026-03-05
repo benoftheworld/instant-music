@@ -5,9 +5,9 @@ SiteConfiguration is a singleton — at most one row lives in the table.
 Access it via SiteConfiguration.get_solo().
 """
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ValidationError
 
 
 class SiteConfiguration(models.Model):
@@ -38,9 +38,7 @@ class SiteConfiguration(models.Model):
         _("message de maintenance"),
         default="Le site est temporairement indisponible pour maintenance. Merci de réessayer dans quelques instants.",
         blank=True,
-        help_text=_(
-            "Message affiché aux utilisateurs pendant la maintenance."
-        ),
+        help_text=_("Message affiché aux utilisateurs pendant la maintenance."),
     )
 
     # ── Bandeau d'information ──────────────────────────────────────────────
@@ -126,9 +124,7 @@ class LegalPage(models.Model):
     title = models.CharField(_("titre"), max_length=200)
     content = models.TextField(
         _("contenu"),
-        help_text=_(
-            "Texte libre. Séparer les paragraphes par une ligne vide."
-        ),
+        help_text=_("Texte libre. Séparer les paragraphes par une ligne vide."),
     )
     updated_at = models.DateTimeField(_("mis à jour le"), auto_now=True)
 

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def setup_otel():
     """Initialise OpenTelemetry si OTEL_ENABLED est activé."""
-    if not os.environ.get("OTEL_ENABLED", "").lower() in ("true", "1", "yes"):
+    if os.environ.get("OTEL_ENABLED", "").lower() not in ("true", "1", "yes"):
         return
 
     try:
@@ -38,15 +38,11 @@ def setup_otel():
         )
         return
 
-    endpoint = os.environ.get(
-        "OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger:4317"
-    )
+    endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger:4317")
 
     resource = Resource.create(
         {
-            "service.name": os.environ.get(
-                "OTEL_SERVICE_NAME", "instantmusic-backend"
-            ),
+            "service.name": os.environ.get("OTEL_SERVICE_NAME", "instantmusic-backend"),
             "service.version": os.environ.get("APP_VERSION", "dev"),
         }
     )
@@ -61,6 +57,4 @@ def setup_otel():
     CeleryInstrumentor().instrument()
     RequestsInstrumentor().instrument()
 
-    logger.info(
-        "OpenTelemetry tracing initialized — exporting to %s", endpoint
-    )
+    logger.info("OpenTelemetry tracing initialized — exporting to %s", endpoint)

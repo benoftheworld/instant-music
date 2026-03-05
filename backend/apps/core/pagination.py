@@ -19,7 +19,9 @@ class StandardResultsPagination(PageNumberPagination):
     max_page_size = 100
 
 
-def parse_pagination_params(request, default_page_size: int = 50) -> tuple[int, int, int]:
+def parse_pagination_params(
+    request, default_page_size: int = 50
+) -> tuple[int, int, int]:
     """Parse les paramètres de pagination depuis la requête.
 
     Supporte `page`, `page_size` et le legacy `limit` pour la rétrocompatibilité.

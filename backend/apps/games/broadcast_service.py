@@ -46,9 +46,7 @@ def _group_name(room_code: str) -> str:
 def _group_send(room_code: str, message: dict) -> None:
     """Envoie un message au group Channel en garantissant la sérialisabilité msgpack."""
     channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        _group_name(room_code), _uuid_safe(message)
-    )
+    async_to_sync(channel_layer.group_send)(_group_name(room_code), _uuid_safe(message))
 
 
 # ── Helpers internes ────────────────────────────────────────────────────
@@ -90,9 +88,7 @@ def _build_updated_players(game: Game) -> list[dict[str, Any]]:
 # ── Public broadcast helpers ────────────────────────────────────────────
 
 
-def broadcast_player_join(
-    room_code: str, player_data: dict, game_data: dict
-) -> None:
+def broadcast_player_join(room_code: str, player_data: dict, game_data: dict) -> None:
     """Notify all clients that a new player joined the room."""
     _group_send(
         room_code,
@@ -104,9 +100,7 @@ def broadcast_player_join(
     )
 
 
-def broadcast_player_leave(
-    room_code: str, player_data: dict, game_data: dict
-) -> None:
+def broadcast_player_leave(room_code: str, player_data: dict, game_data: dict) -> None:
     """Notify all clients that a player left the room."""
     _group_send(
         room_code,
@@ -141,15 +135,11 @@ def broadcast_round_start(room_code: str, round_obj: GameRound) -> None:
     )
 
 
-def broadcast_round_end(
-    room_code: str, round_obj: GameRound, game: Game
-) -> None:
+def broadcast_round_end(room_code: str, round_obj: GameRound, game: Game) -> None:
     """Broadcast round end with correct answer, per-player scores, and updated totals."""
     # Réinitialiser la série des joueurs qui n'ont pas répondu ce round
     answered_player_ids = set(
-        GameAnswer.objects.filter(round=round_obj).values_list(
-            "player_id", flat=True
-        )
+        GameAnswer.objects.filter(round=round_obj).values_list("player_id", flat=True)
     )
     for gp in game.players.all():
         if gp.id not in answered_player_ids and gp.consecutive_correct > 0:
@@ -171,9 +161,7 @@ def broadcast_round_end(
     )
 
 
-def broadcast_next_round(
-    room_code: str, round_obj: GameRound, game: Game
-) -> None:
+def broadcast_next_round(room_code: str, round_obj: GameRound, game: Game) -> None:
     """Broadcast that the game has moved to the next round."""
     round_data = _serialize_to_dict(GameRoundSerializer(round_obj))
     _group_send(

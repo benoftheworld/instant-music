@@ -7,7 +7,6 @@ BonusService — activation et consommation des bonus en partie
 
 import logging
 import random
-from typing import Optional
 
 from django.db import transaction
 from django.utils import timezone
@@ -59,9 +58,7 @@ class ShopService:
         # Vérification du stock
         if item.stock is not None:
             if item.stock < quantity:
-                raise ItemNotAvailableError(
-                    _("Stock insuffisant pour cet article.")
-                )
+                raise ItemNotAvailableError(_("Stock insuffisant pour cet article."))
 
         total_cost = item.cost * quantity
 
@@ -119,9 +116,9 @@ class ShopService:
 
     def get_user_inventory(self, user):
         """Récupérer l'inventaire complet d'un utilisateur."""
-        return UserInventory.objects.filter(
-            user=user, quantity__gt=0
-        ).select_related("item")
+        return UserInventory.objects.filter(user=user, quantity__gt=0).select_related(
+            "item"
+        )
 
     def get_total_coins_available(self) -> int:
         """
@@ -131,10 +128,7 @@ class ShopService:
         """
         from apps.achievements.models import Achievement
 
-        return (
-            Achievement.objects.aggregate(total=models_Sum("points"))["total"]
-            or 0
-        )
+        return Achievement.objects.aggregate(total=models_Sum("points"))["total"] or 0
 
 
 class BonusService:
@@ -155,7 +149,7 @@ class BonusService:
         user,
         game,
         bonus_type: str,
-        round_number: Optional[int] = None,
+        round_number: int | None = None,
     ) -> GameBonus:
         """
         Activer un bonus en partie.
@@ -399,9 +393,7 @@ class BonusService:
         from apps.games.models import GamePlayer
 
         try:
-            game_player = GamePlayer.objects.get(
-                game=round_obj.game, user=player
-            )
+            game_player = GamePlayer.objects.get(game=round_obj.game, user=player)
         except GamePlayer.DoesNotExist:
             return 0
 

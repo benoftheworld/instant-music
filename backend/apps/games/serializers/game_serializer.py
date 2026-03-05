@@ -3,21 +3,17 @@
 from rest_framework import serializers
 
 from ..models import Game
-from .karaoke_song_serializer import KaraokeSongSerializer
 from .game_player_serializer import GamePlayerSerializer
+from .karaoke_song_serializer import KaraokeSongSerializer
 
 
 class GameSerializer(serializers.ModelSerializer):
     """Serializer for Game."""
 
     players = GamePlayerSerializer(many=True, read_only=True)
-    host_username = serializers.CharField(
-        source="host.username", read_only=True
-    )
+    host_username = serializers.CharField(source="host.username", read_only=True)
     player_count = serializers.SerializerMethodField()
-    karaoke_song_detail = KaraokeSongSerializer(
-        source="karaoke_song", read_only=True
-    )
+    karaoke_song_detail = KaraokeSongSerializer(source="karaoke_song", read_only=True)
 
     class Meta:
         model = Game

@@ -64,34 +64,26 @@ class TestGameModel:
         )
 
     def test_game_creation(self):
-        game = Game.objects.create(
-            host=self.user, room_code="ABC123", mode="classique"
-        )
+        game = Game.objects.create(host=self.user, room_code="ABC123", mode="classique")
         assert game.room_code == "ABC123"
         assert game.host == self.user
         assert game.status == "waiting"
 
     def test_game_default_values(self):
-        game = Game.objects.create(
-            host=self.user, room_code="DEF456", mode="classique"
-        )
+        game = Game.objects.create(host=self.user, room_code="DEF456", mode="classique")
         assert game.max_players == 8
         assert game.num_rounds == 10
         assert game.round_duration == 30
 
     def test_add_player(self):
-        game = Game.objects.create(
-            host=self.user, room_code="GHI789", mode="classique"
-        )
+        game = Game.objects.create(host=self.user, room_code="GHI789", mode="classique")
         player = GamePlayer.objects.create(game=game, user=self.user)
         assert game.players.count() == 1
         assert player.score == 0
         assert player.consecutive_correct == 0
 
     def test_unique_player_per_game(self):
-        game = Game.objects.create(
-            host=self.user, room_code="JKL012", mode="classique"
-        )
+        game = Game.objects.create(host=self.user, room_code="JKL012", mode="classique")
         GamePlayer.objects.create(game=game, user=self.user)
         with pytest.raises(Exception):
             GamePlayer.objects.create(game=game, user=self.user)
@@ -165,9 +157,7 @@ class TestGameJoinLeave:
         url = f"/api/games/{self.game.room_code}/join/"
         response = self.player_client.post(url)
         assert response.status_code == status.HTTP_201_CREATED
-        assert GamePlayer.objects.filter(
-            game=self.game, user=self.player
-        ).exists()
+        assert GamePlayer.objects.filter(game=self.game, user=self.player).exists()
 
     @patch("apps.games.views.game_viewset.broadcast_player_join")
     def test_join_already_joined(self, mock_broadcast):
@@ -198,9 +188,7 @@ class TestGameJoinLeave:
         url = f"/api/games/{self.game.room_code}/leave/"
         response = self.player_client.post(url)
         assert response.status_code == status.HTTP_200_OK
-        assert not GamePlayer.objects.filter(
-            game=self.game, user=self.player
-        ).exists()
+        assert not GamePlayer.objects.filter(game=self.game, user=self.player).exists()
 
     @patch("apps.games.views.game_viewset.broadcast_player_leave")
     def test_host_leave_cancels_game(self, mock_broadcast):
@@ -276,9 +264,7 @@ class TestAnswerSubmission:
         self.game = _make_game(self.host)
         self.game.status = "in_progress"
         self.game.save()
-        self.player = GamePlayer.objects.create(
-            game=self.game, user=self.player_user
-        )
+        self.player = GamePlayer.objects.create(game=self.game, user=self.player_user)
         self.round = _make_round(self.game, round_number=1, started=True)
 
         self.client = APIClient()
@@ -290,9 +276,7 @@ class TestAnswerSubmission:
         data = {"answer": "Test Song", "response_time": 5.0}
         response = self.client.post(url, data)
         assert response.status_code == status.HTTP_201_CREATED
-        assert GameAnswer.objects.filter(
-            round=self.round, player=self.player
-        ).exists()
+        assert GameAnswer.objects.filter(round=self.round, player=self.player).exists()
 
     @patch("apps.games.views.game_viewset.broadcast_round_end")
     def test_answer_duplicate(self, mock_broadcast):
@@ -373,8 +357,7 @@ class TestPublicGamesAndHistory:
         assert response.status_code == status.HTTP_200_OK
         codes = [g["room_code"] for g in response.data]
         assert not any(
-            Game.objects.filter(room_code=c, is_public=False).exists()
-            for c in codes
+            Game.objects.filter(room_code=c, is_public=False).exists() for c in codes
         )
 
     def test_history_returns_finished_games(self):

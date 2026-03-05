@@ -11,7 +11,7 @@ Usage :
 """
 
 from django.core.management.base import BaseCommand
-from django.db.models import Sum, F
+from django.db.models import F, Sum
 
 from apps.achievements.models import UserAchievement
 from apps.shop.models import UserInventory
@@ -37,7 +37,9 @@ class Command(BaseCommand):
         dry_run: bool = options["dry_run"]
         verb = "SIMULATION" if dry_run else "MISE À JOUR"
 
-        self.stdout.write(self.style.WARNING(f"[{verb}] Synchronisation des soldes de pièces…\n"))
+        self.stdout.write(
+            self.style.WARNING(f"[{verb}] Synchronisation des soldes de pièces…\n")
+        )
 
         users = User.objects.all()
         total_updated = 0
@@ -46,8 +48,9 @@ class Command(BaseCommand):
         for user in users:
             # 1. Total des points issus des achievements débloqués
             achievement_coins: int = (
-                UserAchievement.objects.filter(user=user)
-                .aggregate(total=Sum("achievement__points"))["total"]
+                UserAchievement.objects.filter(user=user).aggregate(
+                    total=Sum("achievement__points")
+                )["total"]
                 or 0
             )
 

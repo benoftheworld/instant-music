@@ -6,4 +6,3 @@ This module intentionally registers no admin classes.
 """
 
 # No admin registrations for playlists (models removed).
-

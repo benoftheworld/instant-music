@@ -17,6 +17,7 @@ Staff bypass:
 
 import json
 import logging
+
 from django.http import HttpResponse
 from django.utils.deprecation import MiddlewareMixin
 
@@ -91,8 +92,7 @@ class MaintenanceMiddleware(MiddlewareMixin):
         payload = {
             "maintenance": True,
             "title": self._cached_title or "Maintenance en cours",
-            "message": self._cached_message
-            or "Site temporairement indisponible.",
+            "message": self._cached_message or "Site temporairement indisponible.",
         }
         return HttpResponse(
             json.dumps(payload, ensure_ascii=False),

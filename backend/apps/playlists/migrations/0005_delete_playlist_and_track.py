@@ -3,9 +3,11 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("playlists", "0004_remove_playlist_spotify_id_remove_track_spotify_id_and_more"),
+        (
+            "playlists",
+            "0004_remove_playlist_spotify_id_remove_track_spotify_id_and_more",
+        ),
     ]
 
     operations = [

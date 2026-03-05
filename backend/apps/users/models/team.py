@@ -13,9 +13,7 @@ class Team(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(_("nom"), max_length=100, unique=True)
-    description = models.TextField(
-        _("description"), max_length=500, blank=True
-    )
+    description = models.TextField(_("description"), max_length=500, blank=True)
     avatar = models.ImageField(
         _("avatar"),
         upload_to="team_avatars/",

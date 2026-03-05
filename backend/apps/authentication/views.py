@@ -5,10 +5,10 @@ Views for authentication.
 import logging
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
+from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.mail import send_mail
-from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import (
     api_view,
@@ -17,18 +17,18 @@ from rest_framework.decorators import (
 )
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from apps.users.encryption import hash_email
-from apps.users.serializers import UserSerializer
 from apps.core.throttles import (
     LoginThrottle,
     PasswordResetThrottle,
     RegisterThrottle,
     TokenRefreshThrottle,
 )
+from apps.users.encryption import hash_email
+from apps.users.serializers import UserSerializer
 
 from .serializers import (
     LoginSerializer,
@@ -154,9 +154,7 @@ def password_reset_request(request):
 
     email = serializer.validated_data["email"]
     success_response = Response(
-        {
-            "message": "Si ce compte existe, un lien de réinitialisation a été envoyé."
-        },
+        {"message": "Si ce compte existe, un lien de réinitialisation a été envoyé."},
         status=status.HTTP_200_OK,
     )
 

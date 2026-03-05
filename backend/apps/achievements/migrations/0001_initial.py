@@ -5,7 +5,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []
@@ -14,13 +13,35 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Achievement",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("name", models.CharField(max_length=100, verbose_name="nom")),
                 ("description", models.TextField(verbose_name="description")),
-                ("icon", models.ImageField(blank=True, null=True, upload_to="achievements/", verbose_name="icône")),
+                (
+                    "icon",
+                    models.ImageField(
+                        blank=True,
+                        null=True,
+                        upload_to="achievements/",
+                        verbose_name="icône",
+                    ),
+                ),
                 ("points", models.IntegerField(default=10, verbose_name="points")),
-                ("condition_type", models.CharField(max_length=50, verbose_name="type de condition")),
-                ("condition_value", models.IntegerField(verbose_name="valeur de condition")),
+                (
+                    "condition_type",
+                    models.CharField(max_length=50, verbose_name="type de condition"),
+                ),
+                (
+                    "condition_value",
+                    models.IntegerField(verbose_name="valeur de condition"),
+                ),
             ],
             options={
                 "verbose_name": "succès",
@@ -30,11 +51,25 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="UserAchievement",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("unlocked_at", models.DateTimeField(auto_now_add=True, verbose_name="débloqué le")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "unlocked_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="débloqué le"),
+                ),
                 (
                     "achievement",
-                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="achievements.achievement"),
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="achievements.achievement",
+                    ),
                 ),
             ],
             options={

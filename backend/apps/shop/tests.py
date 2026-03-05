@@ -3,7 +3,6 @@ Tests de l'application boutique.
 """
 
 import pytest
-from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -88,9 +87,7 @@ class TestShopItems:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_inventory_list(self):
-        UserInventory.objects.create(
-            user=self.user, item=self.item_bonus, quantity=2
-        )
+        UserInventory.objects.create(user=self.user, item=self.item_bonus, quantity=2)
         response = self.client.get("/api/shop/inventory/")
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1

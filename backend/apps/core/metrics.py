@@ -2,10 +2,10 @@
 Prometheus metrics endpoint for Django.
 """
 
-from django.http import HttpResponse
-
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 import os
+
+from django.http import HttpResponse
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 try:
     # In case of Gunicorn with multiple workers (multiprocess mode)

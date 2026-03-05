@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("playlists", "0003_spotifytoken"),
     ]
@@ -21,12 +20,16 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="playlist",
             name="youtube_id",
-            field=models.CharField(default="", max_length=255, unique=True, verbose_name="YouTube ID"),
+            field=models.CharField(
+                default="", max_length=255, unique=True, verbose_name="YouTube ID"
+            ),
         ),
         migrations.AddField(
             model_name="track",
             name="youtube_id",
-            field=models.CharField(default="", max_length=255, unique=True, verbose_name="YouTube ID"),
+            field=models.CharField(
+                default="", max_length=255, unique=True, verbose_name="YouTube ID"
+            ),
         ),
         migrations.AlterField(
             model_name="playlist",

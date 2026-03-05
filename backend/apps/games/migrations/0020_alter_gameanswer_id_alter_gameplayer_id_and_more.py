@@ -17,7 +17,6 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("games", "0019_add_is_public_and_playlist_info"),
         # Nécessaire : users/0005 convertit users_user.id en uuid et met à jour

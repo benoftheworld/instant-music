@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("games", "0002_initial"),
     ]
@@ -13,11 +12,18 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="game",
             name="playlist_id",
-            field=models.CharField(blank=True, max_length=255, null=True, verbose_name="ID playlist YouTube"),
+            field=models.CharField(
+                blank=True,
+                max_length=255,
+                null=True,
+                verbose_name="ID playlist YouTube",
+            ),
         ),
         migrations.AlterField(
             model_name="gameround",
             name="started_at",
-            field=models.DateTimeField(blank=True, null=True, verbose_name="démarré le"),
+            field=models.DateTimeField(
+                blank=True, null=True, verbose_name="démarré le"
+            ),
         ),
     ]

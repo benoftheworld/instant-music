@@ -38,9 +38,7 @@ class ShopItem(models.Model):
 
     name = models.CharField(_("nom"), max_length=100)
     description = models.TextField(_("description"))
-    icon = models.ImageField(
-        _("icône"), upload_to="shop/", null=True, blank=True
-    )
+    icon = models.ImageField(_("icône"), upload_to="shop/", null=True, blank=True)
 
     item_type = models.CharField(
         _("type d'article"),

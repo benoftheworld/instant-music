@@ -12,30 +12,29 @@ Layout:
 """
 
 import io
-from typing import List, Dict, Any
 from datetime import datetime
+from typing import Any
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import (
     BaseDocTemplate,
-    PageTemplate,
     Frame,
+    KeepTogether,
+    PageTemplate,
     Paragraph,
     Spacer,
     Table,
     TableStyle,
-    KeepTogether,
 )
 
 from .services import (
-    SCORE_BASE_POINTS,
-    SCORE_TIME_PENALTY_PER_SEC,
-    SCORE_MIN_CORRECT,
-    SCORE_MIN_FINAL,
     RANK_BONUS,
+    SCORE_BASE_POINTS,
+    SCORE_MIN_CORRECT,
+    SCORE_TIME_PENALTY_PER_SEC,
 )
 
 # ── Palette ──────────────────────────────────────────────────────────────────
@@ -99,9 +98,7 @@ def _draw_page(canvas, doc, room_code: str, game_name: str) -> None:
     canvas.setFillColor(C_GREY_TEXT)
     canvas.drawString(MARGIN, FOOTER_H - 4 * mm, "Généré par InstantMusic")
     canvas.drawCentredString(PAGE_W / 2, FOOTER_H - 4 * mm, f"Page {doc.page}")
-    canvas.drawRightString(
-        PAGE_W - MARGIN, FOOTER_H - 4 * mm, f"Salle {room_code}"
-    )
+    canvas.drawRightString(PAGE_W - MARGIN, FOOTER_H - 4 * mm, f"Salle {room_code}")
 
     canvas.restoreState()
 
@@ -147,9 +144,9 @@ def _medal(rank: int) -> str:
 
 
 def generate_results_pdf(
-    game_data: Dict[str, Any],
-    rankings: List[Dict[str, Any]],
-    rounds: List[Dict[str, Any]],
+    game_data: dict[str, Any],
+    rankings: list[dict[str, Any]],
+    rounds: list[dict[str, Any]],
 ) -> bytes:
     """Return a polished PDF (bytes) containing the full game results."""
 
@@ -212,9 +209,7 @@ def generate_results_pdf(
     _s = _sty_factory(base)
 
     S = {
-        "sec": _s(
-            "sec", fontSize=11, textColor=C_DARK, fontName="Helvetica-Bold"
-        ),
+        "sec": _s("sec", fontSize=11, textColor=C_DARK, fontName="Helvetica-Bold"),
         "title": _s(
             "title",
             fontSize=20,
@@ -243,9 +238,7 @@ def generate_results_pdf(
         "white": _s("wh", fontSize=9, textColor=C_WHITE),
         "white_sm": _s("whsm", fontSize=8, textColor=C_WHITE),
         "lilac": _s("lilac", fontSize=8, textColor=colors.HexColor("#C4B5FD")),
-        "green_sm": _s(
-            "grsm", fontSize=8, textColor=colors.HexColor("#86EFAC")
-        ),
+        "green_sm": _s("grsm", fontSize=8, textColor=colors.HexColor("#86EFAC")),
         "center": _s("ctr", fontSize=9, textColor=C_DARK_TEXT, alignment=1),
         "center_w": _s(
             "ctrw",
@@ -286,9 +279,7 @@ def generate_results_pdf(
     for i in range(0, len(meta_pairs), 2):
         row: list = []
         for k, v in meta_pairs[i : i + 2]:
-            row.append(
-                Paragraph(f"<font color='#6B7280'>{k}</font>", S["body_sm"])
-            )
+            row.append(Paragraph(f"<font color='#6B7280'>{k}</font>", S["body_sm"]))
             row.append(Paragraph(f"<b>{v}</b>", S["bold_sm"]))
         while len(row) < 4:
             row.append("")
@@ -319,9 +310,7 @@ def generate_results_pdf(
     # ════════════════════════════════════════════════════════════════════════
     # 2 — PODIUM
     # ════════════════════════════════════════════════════════════════════════
-    top3_by_rank = {
-        p.get("rank"): p for p in rankings if p.get("rank", 99) <= 3
-    }
+    top3_by_rank = {p.get("rank"): p for p in rankings if p.get("rank", 99) <= 3}
 
     if top3_by_rank:
         elements.append(_section_header("Podium", S["sec"]))
@@ -467,9 +456,7 @@ def generate_results_pdf(
 
             rk_rows.append(
                 [
-                    Paragraph(
-                        _medal(rank_int) if rank_int else str(rank), medal_sty
-                    ),
+                    Paragraph(_medal(rank_int) if rank_int else str(rank), medal_sty),
                     Paragraph(uname, txt_sty),
                     Paragraph(f"{score} pts", txt_sty),
                     Paragraph(team, grey_sty),
@@ -533,9 +520,7 @@ def generate_results_pdf(
             )
             try:
                 min_time = (
-                    min(
-                        float(a.get("response_time", 9999)) for a in sorted_ans
-                    )
+                    min(float(a.get("response_time", 9999)) for a in sorted_ans)
                     if sorted_ans
                     else None
                 )
@@ -634,7 +619,7 @@ def generate_results_pdf(
                             Paragraph(str(row_i), S["grey"]),
                             Paragraph(
                                 (
-                                    f"<b>{a.get('username','?')}</b>"
+                                    f"<b>{a.get('username', '?')}</b>"
                                     if is_fastest
                                     else a.get("username", "?")
                                 ),
@@ -642,7 +627,7 @@ def generate_results_pdf(
                             ),
                             Paragraph(ans_text, txt_sty),
                             Paragraph(
-                                f"+{a.get('points_earned',0)}",
+                                f"+{a.get('points_earned', 0)}",
                                 S["bold_sm"] if is_ok else S["grey"],
                             ),
                             Paragraph(time_str, S["grey"]),

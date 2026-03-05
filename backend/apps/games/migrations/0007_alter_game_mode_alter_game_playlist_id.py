@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("games", "0006_add_game_modes_and_round_fields"),
     ]
@@ -30,6 +29,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="game",
             name="playlist_id",
-            field=models.CharField(blank=True, max_length=255, null=True, verbose_name="ID playlist Deezer"),
+            field=models.CharField(
+                blank=True, max_length=255, null=True, verbose_name="ID playlist Deezer"
+            ),
         ),
     ]

@@ -4,19 +4,20 @@ URL configuration for InstantMusic project.
 
 import os
 
-from django.contrib import admin
-from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import include, path
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+
 from apps.core.health import (
     health_check,
-    readiness_check,
     liveness_check,
+    readiness_check,
 )
 from apps.core.metrics import metrics as metrics_view
 
@@ -62,9 +63,5 @@ urlpatterns = [
 
 # Serve media files in development
 if settings.DEBUG:
-    urlpatterns += static(
-        settings.MEDIA_URL, document_root=settings.MEDIA_ROOT
-    )
-    urlpatterns += static(
-        settings.STATIC_URL, document_root=settings.STATIC_ROOT
-    )
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

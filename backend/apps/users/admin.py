@@ -6,7 +6,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
-from .models import User, Friendship, Team, TeamMember, TeamJoinRequest
+
+from .models import Friendship, Team, TeamJoinRequest, TeamMember, User
 
 
 @admin.register(User)
@@ -132,9 +133,7 @@ class UserAdmin(BaseUserAdmin):
         if obj.total_games_played == 0:
             return format_html('<span style="color:#6b7280;">0%</span>')
         rate = (obj.total_wins / obj.total_games_played) * 100
-        color = (
-            "#10b981" if rate >= 50 else "#f59e0b" if rate >= 25 else "#6b7280"
-        )
+        color = "#10b981" if rate >= 50 else "#f59e0b" if rate >= 25 else "#6b7280"
         return format_html(
             '<span style="color:{}; font-weight:bold;">{}%</span>',
             color,
@@ -247,9 +246,7 @@ class TeamAdmin(admin.ModelAdmin):
             _("Statistiques"),
             {
                 "fields": ("total_games", "total_wins", "total_points"),
-                "description": _(
-                    "Statistiques mises à jour automatiquement."
-                ),
+                "description": _("Statistiques mises à jour automatiquement."),
             },
         ),
         (

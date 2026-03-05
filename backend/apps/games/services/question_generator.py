@@ -6,29 +6,29 @@ import hashlib
 import logging
 import random
 import re
-from typing import Dict, List, Optional
 
 import requests
 from django.core.cache import cache
 
-from apps.playlists.deezer_service import deezer_service, DeezerAPIError
-from apps.playlists.youtube_service import youtube_service, YouTubeAPIError
 from apps.core.prometheus_metrics import (
-    EXTERNAL_API_REQUESTS_TOTAL,
-    EXTERNAL_API_ERRORS_TOTAL,
     EXTERNAL_API_DURATION_SECONDS,
+    EXTERNAL_API_ERRORS_TOTAL,
+    EXTERNAL_API_REQUESTS_TOTAL,
 )
-from ..models import GameMode
+from apps.playlists.deezer_service import DeezerAPIError, deezer_service
+from apps.playlists.youtube_service import YouTubeAPIError, youtube_service
+
 from ..lyrics_service import (
-    get_lyrics,
     create_lyrics_question,
+    get_lyrics,
     get_synced_lyrics,
 )
+from ..models import GameMode
 from .scoring import (
-    MUSICBRAINZ_API_BASE,
-    MUSICBRAINZ_USER_AGENT,
-    MUSICBRAINZ_API_TIMEOUT,
     CACHE_TTL_MUSICBRAINZ,
+    MUSICBRAINZ_API_BASE,
+    MUSICBRAINZ_API_TIMEOUT,
+    MUSICBRAINZ_USER_AGENT,
 )
 
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ class QuestionGeneratorService:
     # ─── Helpers : année originale (MusicBrainz) ─────────────────────
 
     @staticmethod
-    def _get_musicbrainz_year(artist: str, title: str) -> Optional[int]:
+    def _get_musicbrainz_year(artist: str, title: str) -> int | None:
         """
         Query MusicBrainz for the earliest known release year of a recording.
 
@@ -59,9 +59,7 @@ class QuestionGeneratorService:
         Results are cached for 24 h to avoid hammering the service.
         Returns the year as int, or None if the lookup fails.
         """
-        cache_key = (
-            "mb_year_" + hashlib.md5(f"{artist}|{title}".encode()).hexdigest()
-        )
+        cache_key = "mb_year_" + hashlib.md5(f"{artist}|{title}".encode()).hexdigest()
         cached = cache.get(cache_key)
         if cached is not None:
             return cached  # type: ignore[no-any-return]
@@ -105,11 +103,9 @@ class QuestionGeneratorService:
                 except ValueError:
                     pass
 
-        result: Optional[int] = min(years) if years else None
+        result: int | None = min(years) if years else None
         cache.set(cache_key, result, CACHE_TTL_MUSICBRAINZ)
-        logger.debug(
-            "MusicBrainz year for '%s – %s': %s", artist, title, result
-        )
+        logger.debug("MusicBrainz year for '%s – %s': %s", artist, title, result)
         return result
 
     # ─── Public entry point ──────────────────────────────────────────
@@ -123,7 +119,7 @@ class QuestionGeneratorService:
         user=None,
         lyrics_words_count: int = 3,
         guess_target: str = "title",
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Generate quiz questions from a Deezer playlist.
 
@@ -142,11 +138,9 @@ class QuestionGeneratorService:
         tracks = self._fetch_tracks(playlist_id, limit=50)
 
         random.shuffle(tracks)
-        selected_tracks = tracks[
-            : min(num_questions * 2, len(tracks))
-        ]  # extra buffer
+        selected_tracks = tracks[: min(num_questions * 2, len(tracks))]  # extra buffer
 
-        questions: List[Dict] = []
+        questions: list[dict] = []
 
         for track in selected_tracks:
             if len(questions) >= num_questions:
@@ -166,7 +160,7 @@ class QuestionGeneratorService:
 
     # ─── Track fetching (shared) ─────────────────────────────────────
 
-    def _fetch_tracks(self, playlist_id: str, limit: int = 50) -> List[Dict]:
+    def _fetch_tracks(self, playlist_id: str, limit: int = 50) -> list[dict]:
         """Fetch tracks from Deezer playlist with fallback."""
         import time as _time
 
@@ -192,9 +186,7 @@ class QuestionGeneratorService:
                 playlist_id,
                 e,
             )
-            raise ValueError(
-                f"Erreur lors de l'accès à la playlist Deezer: {e}"
-            )
+            raise ValueError(f"Erreur lors de l'accès à la playlist Deezer: {e}")
 
         if not tracks or len(tracks) < 4:
             found = len(tracks) if tracks else 0
@@ -209,9 +201,7 @@ class QuestionGeneratorService:
                     service="deezer", endpoint="get_playlist"
                 ).inc()
                 meta = self.deezer.get_playlist(playlist_id)
-                query = (
-                    meta["name"] if meta and meta.get("name") else playlist_id
-                )
+                query = meta["name"] if meta and meta.get("name") else playlist_id
             except Exception:
                 query = playlist_id
 
@@ -239,11 +229,11 @@ class QuestionGeneratorService:
     def _generate_for_mode(
         self,
         game_mode: str,
-        track: Dict,
-        all_tracks: List[Dict],
+        track: dict,
+        all_tracks: list[dict],
         lyrics_words_count: int = 3,
         guess_target: str = "title",
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """Route to the correct question generator based on game mode."""
         if game_mode == GameMode.CLASSIQUE:
             if guess_target == "artist":
@@ -273,8 +263,8 @@ class QuestionGeneratorService:
     # ─── Quiz 4 (default) ────────────────────────────────────────────
 
     def _generate_guess_title_question(
-        self, correct_track: Dict, all_tracks: List[Dict]
-    ) -> Optional[Dict]:
+        self, correct_track: dict, all_tracks: list[dict]
+    ) -> dict | None:
         """Generate a 'guess the title' question."""
         correct_answer = correct_track["name"]
         wrong_answers = self._pick_wrong_answers(
@@ -300,8 +290,8 @@ class QuestionGeneratorService:
         }
 
     def _generate_guess_artist_question(
-        self, correct_track: Dict, all_tracks: List[Dict]
-    ) -> Optional[Dict]:
+        self, correct_track: dict, all_tracks: list[dict]
+    ) -> dict | None:
         """Generate a 'guess the artist' question."""
         correct_answer = ", ".join(correct_track["artists"])
         other_tracks = [
@@ -338,7 +328,7 @@ class QuestionGeneratorService:
 
     # ─── Année de Sortie ─────────────────────────────────────────────
 
-    def _generate_year_question(self, track: Dict) -> Optional[Dict]:
+    def _generate_year_question(self, track: dict) -> dict | None:
         """Player guesses the release year (±2 tolerance)."""
         track_id = track["track_id"]
 
@@ -416,7 +406,7 @@ class QuestionGeneratorService:
             "preview_url": track.get("preview_url"),
             "album_image": track.get("album_image"),
             "question_type": "guess_year",
-            "question_text": f'En quelle année est sorti « {track["name"]} » de {artist} ?',
+            "question_text": f"En quelle année est sorti « {track['name']} » de {artist} ?",
             "correct_answer": str(year),
             "options": options,
             "extra_data": {
@@ -429,8 +419,8 @@ class QuestionGeneratorService:
     # ─── Lyrics ──────────────────────────────────────────────────────
 
     def _generate_lyrics_question(
-        self, track: Dict, all_tracks: List[Dict], words_to_blank: int = 1
-    ) -> Optional[Dict]:
+        self, track: dict, all_tracks: list[dict], words_to_blank: int = 1
+    ) -> dict | None:
         """Fetch lyrics, extract a line, blank out a sequence of words."""
         artist = ", ".join(track["artists"])
         lyrics = get_lyrics(artist, track["name"])
@@ -466,7 +456,7 @@ class QuestionGeneratorService:
             "preview_url": track.get("preview_url"),
             "album_image": track.get("album_image"),
             "question_type": "lyrics",
-            "question_text": f'Complétez les paroles de « {track["name"]} » :',
+            "question_text": f"Complétez les paroles de « {track['name']} » :",
             "correct_answer": correct_word,
             "options": options,
             "extra_data": {
@@ -477,8 +467,8 @@ class QuestionGeneratorService:
     # ─── Karaoké ─────────────────────────────────────────────────────
 
     def _generate_karaoke_question(
-        self, track: Dict, all_tracks: List[Dict]
-    ) -> Optional[Dict]:
+        self, track: dict, all_tracks: list[dict]
+    ) -> dict | None:
         """Generate a karaoke round: YouTube full-song playback + synced lyrics."""
         artist = ", ".join(track["artists"])
 
@@ -521,7 +511,7 @@ class QuestionGeneratorService:
             )
             return None
 
-        extra_data: Dict = {
+        extra_data: dict = {
             "synced_lyrics": synced,
             "youtube_video_id": youtube_video_id,
             "video_duration_ms": video_duration_ms,
@@ -544,16 +534,14 @@ class QuestionGeneratorService:
 
     def _pick_wrong_answers(
         self,
-        correct_track: Dict,
-        all_tracks: List[Dict],
+        correct_track: dict,
+        all_tracks: list[dict],
         key: str = "name",
         count: int = 3,
-    ) -> List[str]:
+    ) -> list[str]:
         """Pick distinct wrong answers from the track pool."""
         correct_val = correct_track[key]
-        other = [
-            t for t in all_tracks if t["track_id"] != correct_track["track_id"]
-        ]
+        other = [t for t in all_tracks if t["track_id"] != correct_track["track_id"]]
         random.shuffle(other)
 
         wrong = []

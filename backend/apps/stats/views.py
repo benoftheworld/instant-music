@@ -2,19 +2,20 @@
 Views for stats.
 """
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import permissions
-from django.db.models import Sum, Avg, Max, Count, Q
+from django.db.models import Avg, Count, Max, Q, Sum
 from django.db.models.functions import Coalesce
+from rest_framework import permissions
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from apps.games.models import GamePlayer, GameAnswer, Game, GameMode
 from apps.achievements.models import Achievement, UserAchievement
-from apps.users.models import User, Team, TeamMember
+from apps.core.pagination import paginated_response, parse_pagination_params
 from apps.core.throttles import LeaderboardThrottle
-from apps.core.pagination import parse_pagination_params, paginated_response
+from apps.games.models import GameAnswer, GameMode, GamePlayer
+from apps.users.models import Team, User
+
 from .serializers import UserDetailedStatsSerializer
-from .services import get_global_leaderboard, _build_leaderboard_entry
+from .services import _build_leaderboard_entry, get_global_leaderboard
 
 
 class UserDetailedStatsView(APIView):
@@ -37,21 +38,15 @@ class UserDetailedStatsView(APIView):
         answers = GameAnswer.objects.filter(player__user=user)
         total_answers = answers.count()
         total_correct = answers.filter(is_correct=True).count()
-        accuracy = (
-            (total_correct / total_answers * 100) if total_answers > 0 else 0.0
-        )
-        avg_response_time = (
-            answers.aggregate(a=Avg("response_time"))["a"] or 0.0
-        )
+        accuracy = (total_correct / total_answers * 100) if total_answers > 0 else 0.0
+        avg_response_time = answers.aggregate(a=Avg("response_time"))["a"] or 0.0
 
         # Win rate
         win_rate = (total_wins / total_games * 100) if total_games > 0 else 0.0
 
         # Achievements
         achievements_total = Achievement.objects.count()
-        achievements_unlocked = UserAchievement.objects.filter(
-            user=user
-        ).count()
+        achievements_unlocked = UserAchievement.objects.filter(user=user).count()
 
         data = {
             "total_games_played": total_games,

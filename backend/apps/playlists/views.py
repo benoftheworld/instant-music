@@ -2,17 +2,18 @@
 Views for playlists app (Deezer + YouTube search helpers).
 """
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from drf_spectacular.utils import extend_schema, OpenApiParameter
 
-from .serializers import PlaylistSerializer
-from .deezer_service import deezer_service, DeezerAPIError
-from .youtube_service import youtube_service, YouTubeAPIError
 from apps.core.prometheus_metrics import EXTERNAL_API_REQUESTS_TOTAL
 from apps.core.throttles import PlaylistSearchThrottle
+
+from .deezer_service import DeezerAPIError, deezer_service
+from .serializers import PlaylistSerializer
+from .youtube_service import YouTubeAPIError, youtube_service
 
 
 class PlaylistViewSet(viewsets.ViewSet):
@@ -38,9 +39,7 @@ class PlaylistViewSet(viewsets.ViewSet):
 
     @extend_schema(
         parameters=[
-            OpenApiParameter(
-                "query", str, description="Search query for playlists"
-            )
+            OpenApiParameter("query", str, description="Search query for playlists")
         ],
         responses={200: PlaylistSerializer(many=True)},
     )
@@ -71,7 +70,7 @@ class PlaylistViewSet(viewsets.ViewSet):
             )
 
     @extend_schema(responses={200: PlaylistSerializer})
-    @action(detail=False, methods=["get"], url_path="(?P<playlist_id>\d+)")
+    @action(detail=False, methods=["get"], url_path=r"(?P<playlist_id>\d+)")
     def get_playlist(self, request, playlist_id=None):
         try:
             EXTERNAL_API_REQUESTS_TOTAL.labels(
@@ -90,9 +89,7 @@ class PlaylistViewSet(viewsets.ViewSet):
                 {"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
 
-    @action(
-        detail=False, methods=["get"], url_path="(?P<playlist_id>\d+)/tracks"
-    )
+    @action(detail=False, methods=["get"], url_path=r"(?P<playlist_id>\d+)/tracks")
     def get_playlist_tracks(self, request, playlist_id=None):
         try:
             limit = int(request.query_params.get("limit", 50))
@@ -109,9 +106,7 @@ class PlaylistViewSet(viewsets.ViewSet):
                 {"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
 
-    @action(
-        detail=False, methods=["get"], url_path="(?P<playlist_id>\d+)/validate"
-    )
+    @action(detail=False, methods=["get"], url_path=r"(?P<playlist_id>\d+)/validate")
     def validate_playlist_access(self, request, playlist_id=None):
         try:
             EXTERNAL_API_REQUESTS_TOTAL.labels(
@@ -133,9 +128,7 @@ class PlaylistViewSet(viewsets.ViewSet):
 
     @extend_schema(
         parameters=[
-            OpenApiParameter(
-                "query", str, description="Search query for YouTube songs"
-            )
+            OpenApiParameter("query", str, description="Search query for YouTube songs")
         ]
     )
     @action(detail=False, methods=["get"], url_path="youtube-songs/search")
@@ -155,9 +148,7 @@ class PlaylistViewSet(viewsets.ViewSet):
             EXTERNAL_API_REQUESTS_TOTAL.labels(
                 service="youtube", endpoint="search_music_videos"
             ).inc()
-            tracks = youtube_service.search_music_videos(
-                query.strip(), limit=limit
-            )
+            tracks = youtube_service.search_music_videos(query.strip(), limit=limit)
             return Response({"tracks": tracks, "source": "youtube"})
         except YouTubeAPIError as e:
             return Response(

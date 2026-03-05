@@ -20,7 +20,6 @@ def migrate_old_modes(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("games", "0012_game_lyrics_words_count"),
     ]

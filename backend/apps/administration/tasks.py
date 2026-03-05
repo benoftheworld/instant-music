@@ -51,9 +51,7 @@ def anonymize_old_game_data(retention_days: int = 365):
         )
 
     # Marque les anciennes parties annulées pour suppression
-    old_cancelled = Game.objects.filter(
-        status="cancelled", created_at__lt=cutoff
-    )
+    old_cancelled = Game.objects.filter(status="cancelled", created_at__lt=cutoff)
     deleted_cancelled, _ = old_cancelled.delete()
 
     if deleted_cancelled:
@@ -62,4 +60,7 @@ def anonymize_old_game_data(retention_days: int = 365):
             deleted_cancelled,
         )
 
-    return {"answers_deleted": deleted_count, "cancelled_games_deleted": deleted_cancelled}
+    return {
+        "answers_deleted": deleted_count,
+        "cancelled_games_deleted": deleted_cancelled,
+    }

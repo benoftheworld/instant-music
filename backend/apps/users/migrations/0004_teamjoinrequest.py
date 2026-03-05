@@ -6,7 +6,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("users", "0003_team_remove_user_bio_teammember_team_members_and_more"),
     ]
@@ -15,18 +14,36 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="TeamJoinRequest",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 (
                     "status",
                     models.CharField(
-                        choices=[("pending", "En attente"), ("approved", "Approuvée"), ("rejected", "Refusée")],
+                        choices=[
+                            ("pending", "En attente"),
+                            ("approved", "Approuvée"),
+                            ("rejected", "Refusée"),
+                        ],
                         default="pending",
                         max_length=20,
                         verbose_name="statut",
                     ),
                 ),
-                ("created_at", models.DateTimeField(auto_now_add=True, verbose_name="créé le")),
-                ("updated_at", models.DateTimeField(auto_now=True, verbose_name="modifié le")),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="créé le"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="modifié le"),
+                ),
                 (
                     "team",
                     models.ForeignKey(

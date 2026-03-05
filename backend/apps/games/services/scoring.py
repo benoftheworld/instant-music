@@ -21,7 +21,9 @@ KARAOKE_FALLBACK_DURATION: int = 180  # 3 min fallback
 
 # MusicBrainz (used for génération mode to resolve original release year)
 MUSICBRAINZ_API_BASE = "https://musicbrainz.org/ws/2"
-MUSICBRAINZ_USER_AGENT = "InstantMusic/1.0 (https://github.com/benoftheworld/instant-music)"
+MUSICBRAINZ_USER_AGENT = (
+    "InstantMusic/1.0 (https://github.com/benoftheworld/instant-music)"
+)
 MUSICBRAINZ_API_TIMEOUT: int = 8  # seconds (100 results can be large)
 CACHE_TTL_MUSICBRAINZ: int = 86400  # 24 h
 

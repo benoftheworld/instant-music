@@ -5,20 +5,25 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('users', '0010_user_privacy_policy_accepted_at'),
+        ("users", "0010_user_privacy_policy_accepted_at"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='user',
-            name='email',
-            field=apps.users.fields.EncryptedEmailField(verbose_name='email address'),
+            model_name="user",
+            name="email",
+            field=apps.users.fields.EncryptedEmailField(verbose_name="email address"),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='email_hash',
-            field=models.CharField(db_index=True, editable=False, max_length=64, unique=True, verbose_name='email hash'),
+            model_name="user",
+            name="email_hash",
+            field=models.CharField(
+                db_index=True,
+                editable=False,
+                max_length=64,
+                unique=True,
+                verbose_name="email hash",
+            ),
         ),
     ]

@@ -78,13 +78,9 @@ class ShopItemAdmin(admin.ModelAdmin):
     @admin.display(description=_("Stock"))
     def stock_display(self, obj):
         if obj.stock is None:
-            return format_html(
-                '<span style="color:#10b981;font-weight:bold;">∞</span>'
-            )
+            return format_html('<span style="color:#10b981;font-weight:bold;">∞</span>')
         if obj.stock == 0:
-            return format_html(
-                '<span style="color:#ef4444;font-weight:bold;">0</span>'
-            )
+            return format_html('<span style="color:#ef4444;font-weight:bold;">0</span>')
         return obj.stock
 
 

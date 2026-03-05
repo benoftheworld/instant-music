@@ -325,9 +325,7 @@ class TestFriendships:
             to_user=self.user2,
             status=FriendshipStatus.PENDING,
         )
-        response = self.client2.post(
-            f"/api/users/friends/{friendship.id}/accept/"
-        )
+        response = self.client2.post(f"/api/users/friends/{friendship.id}/accept/")
         assert response.status_code == status.HTTP_200_OK
         friendship.refresh_from_db()
         assert friendship.status == FriendshipStatus.ACCEPTED
@@ -338,9 +336,7 @@ class TestFriendships:
             to_user=self.user2,
             status=FriendshipStatus.PENDING,
         )
-        response = self.client2.post(
-            f"/api/users/friends/{friendship.id}/reject/"
-        )
+        response = self.client2.post(f"/api/users/friends/{friendship.id}/reject/")
         assert response.status_code == status.HTTP_200_OK
         friendship.refresh_from_db()
         assert friendship.status == FriendshipStatus.REJECTED
@@ -371,9 +367,7 @@ class TestFriendships:
             to_user=self.user2,
             status=FriendshipStatus.ACCEPTED,
         )
-        response = self.client1.delete(
-            f"/api/users/friends/{friendship.id}/remove/"
-        )
+        response = self.client1.delete(f"/api/users/friends/{friendship.id}/remove/")
         assert response.status_code == status.HTTP_200_OK
         assert not Friendship.objects.filter(id=friendship.id).exists()
 
@@ -385,9 +379,7 @@ class TestFriendships:
             status=FriendshipStatus.PENDING,
         )
         # user1 essaie d'accepter sa propre requête
-        response = self.client1.post(
-            f"/api/users/friends/{friendship.id}/accept/"
-        )
+        response = self.client1.post(f"/api/users/friends/{friendship.id}/accept/")
         assert response.status_code in (
             status.HTTP_400_BAD_REQUEST,
             status.HTTP_403_FORBIDDEN,

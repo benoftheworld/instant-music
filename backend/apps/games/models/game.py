@@ -44,9 +44,7 @@ class Game(models.Model):
         max_length=10,
         choices=GuessTarget.choices,
         default=GuessTarget.TITLE,
-        help_text=_(
-            "En mode QCM Classique/Rapide : deviner l'artiste ou le titre"
-        ),
+        help_text=_("En mode QCM Classique/Rapide : deviner l'artiste ou le titre"),
     )
     status = models.CharField(
         _("statut"),

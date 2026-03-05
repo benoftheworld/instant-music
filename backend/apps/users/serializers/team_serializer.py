@@ -89,23 +89,13 @@ class TeamJoinRequestCreateSerializer(serializers.Serializer):
         team = self.context.get("team")
 
         if TeamMember.objects.filter(team=team, user=request.user).exists():
-            raise serializers.ValidationError(
-                "Vous êtes déjà membre de cette équipe."
-            )
+            raise serializers.ValidationError("Vous êtes déjà membre de cette équipe.")
 
-        if TeamJoinRequest.objects.filter(
-            team=team, user=request.user
-        ).exists():
-            existing = TeamJoinRequest.objects.get(
-                team=team, user=request.user
-            )
+        if TeamJoinRequest.objects.filter(team=team, user=request.user).exists():
+            existing = TeamJoinRequest.objects.get(team=team, user=request.user)
             if existing.status == TeamJoinRequestStatus.PENDING:
-                raise serializers.ValidationError(
-                    "Une demande est déjà en cours."
-                )
+                raise serializers.ValidationError("Une demande est déjà en cours.")
             elif existing.status == TeamJoinRequestStatus.APPROVED:
-                raise serializers.ValidationError(
-                    "Votre demande a déjà été approuvée."
-                )
+                raise serializers.ValidationError("Votre demande a déjà été approuvée.")
 
         return attrs

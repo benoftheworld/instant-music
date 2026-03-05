@@ -15,6 +15,10 @@ from rest_framework_simplejwt.token_blacklist.models import (
     OutstandingToken,
 )
 
+from apps.achievements.models import UserAchievement
+from apps.games.models import GameAnswer
+from apps.shop.models import UserInventory
+
 from ..models import User
 from ..models.team_member import TeamMember
 from ..serializers import (
@@ -23,9 +27,6 @@ from ..serializers import (
     UserProfileUpdateSerializer,
     UserSerializer,
 )
-from apps.achievements.models import UserAchievement
-from apps.games.models import GameAnswer
-from apps.shop.models import UserInventory
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -47,9 +48,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def me(self, request):
         """Get or update current user profile."""
         if request.method == "GET":
-            serializer = UserSerializer(
-                request.user, context={"request": request}
-            )
+            serializer = UserSerializer(request.user, context={"request": request})
             return Response(serializer.data)
 
         serializer = UserProfileUpdateSerializer(
@@ -70,9 +69,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             user = request.user
 
-            if not user.check_password(
-                serializer.validated_data["old_password"]
-            ):
+            if not user.check_password(serializer.validated_data["old_password"]):
                 return Response(
                     {"old_password": "Mot de passe incorrect."},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -161,9 +158,9 @@ class UserViewSet(viewsets.ModelViewSet):
                         ans.answered_at.isoformat() if ans.answered_at else None
                     ),
                 }
-                for ans in GameAnswer.objects.filter(
-                    player__user=user
-                ).select_related("round__game").order_by("-answered_at")[:500]
+                for ans in GameAnswer.objects.filter(player__user=user)
+                .select_related("round__game")
+                .order_by("-answered_at")[:500]
             ],
             "achievements": [
                 {
@@ -171,25 +168,27 @@ class UserViewSet(viewsets.ModelViewSet):
                     "description": ua.achievement.description,
                     "unlocked_at": ua.unlocked_at.isoformat(),
                 }
-                for ua in UserAchievement.objects.filter(
-                    user=user
-                ).select_related("achievement")
+                for ua in UserAchievement.objects.filter(user=user).select_related(
+                    "achievement"
+                )
             ],
             "teams": [
                 {
                     "team_name": tm.team.name,
                     "role": tm.role,
-                    "joined_at": tm.joined_at.isoformat() if hasattr(tm, "joined_at") else None,
+                    "joined_at": tm.joined_at.isoformat()
+                    if hasattr(tm, "joined_at")
+                    else None,
                 }
-                for tm in TeamMember.objects.filter(
-                    user=user
-                ).select_related("team")
+                for tm in TeamMember.objects.filter(user=user).select_related("team")
             ],
             "inventory": [
                 {
                     "item_name": inv.item.name if hasattr(inv, "item") else str(inv),
                     "quantity": getattr(inv, "quantity", None),
-                    "acquired_at": inv.acquired_at.isoformat() if hasattr(inv, "acquired_at") else None,
+                    "acquired_at": inv.acquired_at.isoformat()
+                    if hasattr(inv, "acquired_at")
+                    else None,
                 }
                 for inv in UserInventory.objects.filter(user=user)
             ],
@@ -198,9 +197,9 @@ class UserViewSet(viewsets.ModelViewSet):
                     "username": f.to_user.username,
                     "since": f.updated_at.isoformat(),
                 }
-                for f in user.friendships_sent.filter(
-                    status="accepted"
-                ).select_related("to_user")
+                for f in user.friendships_sent.filter(status="accepted").select_related(
+                    "to_user"
+                )
             ]
             + [
                 {

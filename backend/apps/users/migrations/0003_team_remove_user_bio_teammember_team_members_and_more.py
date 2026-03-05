@@ -6,7 +6,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("users", "0002_alter_user_managers_remove_user_date_joined_and_more"),
     ]
@@ -15,15 +14,54 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Team",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("name", models.CharField(max_length=100, unique=True, verbose_name="nom")),
-                ("description", models.TextField(blank=True, max_length=500, verbose_name="description")),
-                ("avatar", models.ImageField(blank=True, null=True, upload_to="team_avatars/", verbose_name="avatar")),
-                ("total_games", models.IntegerField(default=0, verbose_name="parties jouées")),
-                ("total_wins", models.IntegerField(default=0, verbose_name="victoires")),
-                ("total_points", models.IntegerField(default=0, verbose_name="points totaux")),
-                ("created_at", models.DateTimeField(auto_now_add=True, verbose_name="créé le")),
-                ("updated_at", models.DateTimeField(auto_now=True, verbose_name="modifié le")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "name",
+                    models.CharField(max_length=100, unique=True, verbose_name="nom"),
+                ),
+                (
+                    "description",
+                    models.TextField(
+                        blank=True, max_length=500, verbose_name="description"
+                    ),
+                ),
+                (
+                    "avatar",
+                    models.ImageField(
+                        blank=True,
+                        null=True,
+                        upload_to="team_avatars/",
+                        verbose_name="avatar",
+                    ),
+                ),
+                (
+                    "total_games",
+                    models.IntegerField(default=0, verbose_name="parties jouées"),
+                ),
+                (
+                    "total_wins",
+                    models.IntegerField(default=0, verbose_name="victoires"),
+                ),
+                (
+                    "total_points",
+                    models.IntegerField(default=0, verbose_name="points totaux"),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="créé le"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="modifié le"),
+                ),
             ],
             options={
                 "verbose_name": "équipe",
@@ -38,17 +76,34 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="TeamMember",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 (
                     "role",
                     models.CharField(
-                        choices=[("owner", "Propriétaire"), ("admin", "Administrateur"), ("member", "Membre")],
+                        choices=[
+                            ("owner", "Propriétaire"),
+                            ("admin", "Administrateur"),
+                            ("member", "Membre"),
+                        ],
                         default="member",
                         max_length=20,
                         verbose_name="rôle",
                     ),
                 ),
-                ("joined_at", models.DateTimeField(auto_now_add=True, verbose_name="a rejoint le")),
+                (
+                    "joined_at",
+                    models.DateTimeField(
+                        auto_now_add=True, verbose_name="a rejoint le"
+                    ),
+                ),
                 (
                     "team",
                     models.ForeignKey(
@@ -79,7 +134,10 @@ class Migration(migrations.Migration):
             model_name="team",
             name="members",
             field=models.ManyToManyField(
-                related_name="teams", through="users.TeamMember", to=settings.AUTH_USER_MODEL, verbose_name="membres"
+                related_name="teams",
+                through="users.TeamMember",
+                to=settings.AUTH_USER_MODEL,
+                verbose_name="membres",
             ),
         ),
         migrations.AddField(
@@ -95,18 +153,36 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Friendship",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 (
                     "status",
                     models.CharField(
-                        choices=[("pending", "En attente"), ("accepted", "Acceptée"), ("rejected", "Refusée")],
+                        choices=[
+                            ("pending", "En attente"),
+                            ("accepted", "Acceptée"),
+                            ("rejected", "Refusée"),
+                        ],
                         default="pending",
                         max_length=20,
                         verbose_name="statut",
                     ),
                 ),
-                ("created_at", models.DateTimeField(auto_now_add=True, verbose_name="créé le")),
-                ("updated_at", models.DateTimeField(auto_now=True, verbose_name="modifié le")),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="créé le"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="modifié le"),
+                ),
                 (
                     "from_user",
                     models.ForeignKey(

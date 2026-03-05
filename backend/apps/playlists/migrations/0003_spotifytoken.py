@@ -6,24 +6,45 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("playlists", "0002_track_alter_playlist_options_playlist_external_url_and_more"),
+        (
+            "playlists",
+            "0002_track_alter_playlist_options_playlist_external_url_and_more",
+        ),
     ]
 
     operations = [
         migrations.CreateModel(
             name="SpotifyToken",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("access_token", models.TextField(verbose_name="access token")),
                 ("refresh_token", models.TextField(verbose_name="refresh token")),
-                ("token_type", models.CharField(default="Bearer", max_length=50, verbose_name="type de token")),
+                (
+                    "token_type",
+                    models.CharField(
+                        default="Bearer", max_length=50, verbose_name="type de token"
+                    ),
+                ),
                 ("expires_at", models.DateTimeField(verbose_name="expire le")),
                 ("scope", models.TextField(blank=True, verbose_name="scopes")),
-                ("created_at", models.DateTimeField(auto_now_add=True, verbose_name="créé le")),
-                ("updated_at", models.DateTimeField(auto_now=True, verbose_name="mis à jour le")),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="créé le"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="mis à jour le"),
+                ),
                 (
                     "user",
                     models.OneToOneField(

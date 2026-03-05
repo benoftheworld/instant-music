@@ -1,12 +1,13 @@
 """
 Serializers for stats.
 """
+
 from rest_framework import serializers
 
 
 class UserDetailedStatsSerializer(serializers.Serializer):
     """Serializer for detailed user statistics."""
-    
+
     total_games_played = serializers.IntegerField()
     total_wins = serializers.IntegerField()
     total_points = serializers.IntegerField()
