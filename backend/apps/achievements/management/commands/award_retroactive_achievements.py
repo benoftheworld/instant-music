@@ -1,4 +1,11 @@
-"""Management command to retroactively check and award achievements for all users.
+"""Management command to retroactively check and award achievements.
+
+This command iterates through all users and checks their past game history to
+determine if they qualify for any achievements that were not previously
+awarded.
+For example, it checks if a user has ever had a "Perfect Game" (where they
+answered all questions correctly) and awards the corresponding achievement if
+they haven't already received it.
 """
 
 from django.core.management.base import BaseCommand
@@ -26,7 +33,9 @@ class Command(BaseCommand):
         for user in users:
             # Check if user ever had a perfect game
             perfect_game = False
-            game_players = GamePlayer.objects.filter(user=user, rank__isnull=False)
+            game_players = GamePlayer.objects.filter(
+                user=user, rank__isnull=False
+            )
             for gp in game_players:
                 game = gp.game
                 total_rounds = game.rounds.count()
@@ -41,7 +50,9 @@ class Command(BaseCommand):
                         break
 
             round_data = {"perfect_game": perfect_game}
-            awarded = achievement_service.check_and_award(user, round_data=round_data)
+            awarded = achievement_service.check_and_award(
+                user, round_data=round_data
+            )
 
             if awarded:
                 names = [a.name for a in awarded]
@@ -53,5 +64,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"{user.username}: no new achievements")
 
         self.stdout.write(
-            self.style.SUCCESS(f"\nTotal achievements awarded: {total_awarded}")
+            self.style.SUCCESS(
+                f"\nTotal achievements awarded: {total_awarded}"
+            )
         )

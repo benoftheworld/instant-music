@@ -2,7 +2,8 @@
 
 Recalcule le solde de chaque utilisateur à partir :
   - des achievements déjà débloqués (points de chaque UserAchievement)
-  - diminué des achats effectués en boutique (quantité × coût de chaque article)
+  - diminué des achats effectués en boutique
+  (quantité * coût de chaque article)
 
 Usage :
     make dev-shell
@@ -26,6 +27,12 @@ class Command(BaseCommand):
     )
 
     def add_arguments(self, parser):
+        """Ajoute l'argument optionnel --dry-run pour simuler sans persister.
+
+        Arguments :
+            parser : ArgumentParser fourni par Django pour définir les
+            options de la commande.
+        """
         parser.add_argument(
             "--dry-run",
             action="store_true",
@@ -33,11 +40,27 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        """Effectue la synchro des soldes de pièces pour tous les utilisateurs.
+
+        Pour chaque utilisateur, calcule le solde attendu et compare avec le
+        solde actuel. Affiche les changements et met à jour en base si
+        --dry-run n'est pas activé.
+
+        Arguments :
+        - args : Arguments positionnels (non utilisés ici).
+        - options : Dictionnaire des options, notamment 'dry_run' pour indiquer
+          si la commande doit simuler ou appliquer les changements.
+
+        Affiche un résumé à la fin avec le nombre d'utilisateurs mis à jour et
+        inchangés.
+        """
         dry_run: bool = options["dry_run"]
         verb = "SIMULATION" if dry_run else "MISE À JOUR"
 
         self.stdout.write(
-            self.style.WARNING(f"[{verb}] Synchronisation des soldes de pièces…\n")
+            self.style.WARNING(
+                f"[{verb}] Synchronisation des soldes de pièces…\n"
+            )
         )
 
         users = User.objects.all()
@@ -53,7 +76,7 @@ class Command(BaseCommand):
                 or 0
             )
 
-            # 2. Total des pièces dépensées en boutique (quantité × coût actuel)
+            # 2. Total des pièces dépensées en boutique (quantité × coût)
             spent: int = (
                 UserInventory.objects.filter(user=user)
                 .annotate(line_cost=F("quantity") * F("item__cost"))
@@ -70,7 +93,8 @@ class Command(BaseCommand):
                 sign = "+" if delta >= 0 else ""
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"  {user.username}: {current_balance} → {expected_balance} "
+                        f"  {user.username}: {current_balance} "
+                        f" → {expected_balance} "
                         f"({sign}{delta}) "
                         f"[achievements={achievement_coins}, dépensé={spent}]"
                     )
@@ -86,7 +110,8 @@ class Command(BaseCommand):
         self.stdout.write("")
         self.stdout.write(
             self.style.SUCCESS(
-                f"[{verb}] Terminé — {total_updated} utilisateur(s) mis à jour, "
+                f"[{verb}] Terminé — {total_updated}"
+                f" utilisateur(s) mis à jour, "
                 f"{total_unchanged} inchangé(s)."
             )
         )

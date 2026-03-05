@@ -1,5 +1,4 @@
-"""Admin for achievements.
-"""
+"""Admin for achievements."""
 
 from django.contrib import admin
 from django.utils.html import format_html
@@ -56,6 +55,18 @@ class AchievementAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("UUID"))
     def uuid_short(self, obj):
+        """Affiche les 8 premiers caractères de l'UUID avec un tooltip complet.
+
+        Ajoute un style monospace et une couleur grise pour différencier
+        visuellement l'UUID.
+
+        Arguments:
+            obj: L'instance de l'objet à afficher.
+
+        Return:
+            Un HTML formaté avec le UUID court et un tooltip complet.
+
+        """
         short = str(obj.id)[:8]
         return format_html(
             '<span title="{}" style="font-family:monospace;font-size:11px;'

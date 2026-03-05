@@ -1,4 +1,10 @@
 """Management command to seed default achievements.
+
+This command populates the database with a predefined set of achievements that
+users can earn by playing the game. It includes milestones for games played,
+wins, points, and special conditions like perfect rounds or win streaks.
+The command also supports an optional --reset flag to clear existing
+achievements before seeding new ones.
 """
 
 from django.core.management.base import BaseCommand
