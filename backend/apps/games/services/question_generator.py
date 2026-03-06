@@ -255,6 +255,24 @@ class QuestionGeneratorService:
             )
         elif game_mode == GameMode.KARAOKE:
             return self._generate_karaoke_question(track, all_tracks)
+        elif game_mode == GameMode.LENT:
+            if guess_target == "artist":
+                q = self._generate_guess_artist_question(track, all_tracks)
+            else:
+                q = self._generate_guess_title_question(track, all_tracks)
+            if q:
+                q["extra_data"] = q.get("extra_data", {})
+                q["extra_data"]["audio_effect"] = "slow"
+            return q
+        elif game_mode == GameMode.INVERSE:
+            if guess_target == "artist":
+                q = self._generate_guess_artist_question(track, all_tracks)
+            else:
+                q = self._generate_guess_title_question(track, all_tracks)
+            if q:
+                q["extra_data"] = q.get("extra_data", {})
+                q["extra_data"]["audio_effect"] = "reversed"
+            return q
         else:
             return self._generate_guess_title_question(track, all_tracks)
 
