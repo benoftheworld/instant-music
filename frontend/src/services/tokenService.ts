@@ -26,6 +26,10 @@ export const tokenService = {
     localStorage.setItem(ACCESS_KEY, access);
   },
 
+  setRefreshToken(refresh: string): void {
+    localStorage.setItem(REFRESH_KEY, refresh);
+  },
+
   clearTokens(): void {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);

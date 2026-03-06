@@ -345,7 +345,6 @@ class GameViewSet(viewsets.ModelViewSet):
             )
 
         answer_text = request.data.get("answer")
-        response_time = request.data.get("response_time", 0)
 
         if not answer_text:
             return Response(
@@ -353,12 +352,20 @@ class GameViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Anti-triche : le serveur calcule le temps de réponse à partir du
+        # début du round au lieu de faire confiance au client.
+        if round_obj.started_at:
+            delta = (timezone.now() - round_obj.started_at).total_seconds()
+            response_time = max(0.0, min(delta, float(round_obj.duration)))
+        else:
+            response_time = 0.0
+
         try:
             game_answer = game_service.submit_answer(
                 player=player,
                 round_obj=round_obj,
                 answer=answer_text,
-                response_time=float(response_time),
+                response_time=response_time,
             )
 
             # Verrou atomique pour éviter la condition de course où deux joueurs

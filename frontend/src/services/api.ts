@@ -43,8 +43,11 @@ class ApiService {
                 refresh: refreshToken,
               });
 
-              const { access } = response.data;
+              const { access, refresh: newRefresh } = response.data;
               tokenService.setAccessToken(access);
+              if (newRefresh) {
+                tokenService.setRefreshToken(newRefresh);
+              }
 
               originalRequest.headers.Authorization = `Bearer ${access}`;
               return this.api(originalRequest);
