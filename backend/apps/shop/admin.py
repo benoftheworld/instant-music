@@ -95,7 +95,7 @@ class UserInventoryAdmin(admin.ModelAdmin):
     list_filter = ["item__item_type", "purchased_at"]
     search_fields = ["user__username", "item__name", "id"]
     raw_id_fields = ["user", "item"]
-    readonly_fields = ["id", "user", "item", "quantity", "purchased_at"]
+    readonly_fields = ["id", "user", "item", "purchased_at"]
 
     fieldsets = (
         (
