@@ -335,10 +335,9 @@ class BonusService:
                 self.consume_bonus(b)
             return 0
 
-        # Vérifier si le leader a un bouclier actif
+        # Vérifier si le leader a un bouclier actif (peu importe le round d'activation)
         has_shield = GameBonus.objects.filter(
             player=leader,
-            round_number=round_number,
             bonus_type=BonusType.SHIELD,
             is_used=False,
         ).exists()
@@ -347,7 +346,6 @@ class BonusService:
             # Consommer le bouclier du leader
             GameBonus.objects.filter(
                 player=leader,
-                round_number=round_number,
                 bonus_type=BonusType.SHIELD,
                 is_used=False,
             ).update(is_used=True, used_at=timezone.now())

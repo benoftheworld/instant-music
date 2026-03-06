@@ -286,10 +286,26 @@ DEFAULT_ACHIEVEMENTS = [
         "points": 50,
     },
     {
+        "name": "Maître du brouillard",
+        "description": "Utiliser le bonus Mode Brouillard 3 fois",
+        "condition_type": "bonus_used",
+        "condition_value": 3,
+        "condition_extra": "fog",
+        "points": 45,
+    },
+    {
+        "name": "Imposteur",
+        "description": "Utiliser le bonus Joker 5 fois",
+        "condition_type": "bonus_used",
+        "condition_value": 5,
+        "condition_extra": "joker",
+        "points": 50,
+    },
+    {
         "name": "Maestro des bonus",
-        "description": "Utiliser chacun des 6 types de bonus au moins une fois",
+        "description": "Utiliser chacun des 8 types de bonus au moins une fois",
         "condition_type": "all_bonuses_used",
-        "condition_value": 6,
+        "condition_value": 8,
         "points": 75,
     },
     # Performance avancée
@@ -322,6 +338,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Delete all existing achievements before seeding",
         )
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Update existing achievements (description, points, condition)",
+        )
 
     def handle(self, *args, **options):
         """Seed achievements, optionally resetting existing ones first."""
@@ -335,19 +356,30 @@ class Command(BaseCommand):
         created_count = 0
         skipped_count = 0
 
+        force = options["force"]
+        updated_count = 0
+
         for data in DEFAULT_ACHIEVEMENTS:
-            _, created = Achievement.objects.get_or_create(
+            obj, created = Achievement.objects.get_or_create(
                 name=data["name"],
                 defaults=data,
             )
             if created:
                 created_count += 1
+            elif force:
+                for field, value in data.items():
+                    if field != "name":
+                        setattr(obj, field, value)
+                obj.save()
+                updated_count += 1
+                self.stdout.write(self.style.WARNING(f"  ↻ Mis à jour : {obj.name}"))
             else:
                 skipped_count += 1
 
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seeded achievements: {created_count} created, "
+                f"{updated_count} updated, "
                 f"{skipped_count} already existed"
             )
         )

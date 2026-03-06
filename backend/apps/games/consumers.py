@@ -480,7 +480,16 @@ class GameConsumer(AsyncWebsocketConsumer):
             )
             return
 
-        round_data = data.get("round_data")
+        round_data = data.get("round_data") or {}
+
+        # Vérifier si un brouillard est actif pour ce round et l'injecter dans les données
+        round_number = round_data.get("round_number") if round_data else None
+        if round_number is not None:
+            fog_active, fog_activator = await self._check_and_consume_fog(round_number)
+            if fog_active:
+                round_data = dict(round_data)
+                round_data["fog_active"] = True
+                round_data["fog_activator"] = fog_activator
 
         await self.channel_layer.group_send(
             self.room_group_name,
