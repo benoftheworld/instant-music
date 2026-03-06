@@ -296,7 +296,7 @@ class UserPublicStatsView(APIView):
                 "user_id": str(user.id),
                 "username": user.username,
                 "avatar": user.avatar.url if user.avatar else None,
-                "date_joined": user.date_joined.isoformat(),
+                "date_joined": user.created_at.isoformat(),
                 "team": team_info,
                 "stats": {
                     "total_games_played": total_games,

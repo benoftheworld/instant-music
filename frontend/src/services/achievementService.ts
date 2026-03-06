@@ -20,7 +20,7 @@ export const achievementService = {
   },
 
   /** Get achievements unlocked by a specific user */
-  async getByUser(userId: number): Promise<UserAchievement[]> {
+  async getByUser(userId: string): Promise<UserAchievement[]> {
     const response = await api.get<UserAchievement[]>(`/achievements/user/${userId}/`);
     return response.data;
   },

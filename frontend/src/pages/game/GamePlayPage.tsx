@@ -200,6 +200,10 @@ export default function GamePlayPage() {
     soundEffects.countdownGo();
     roundPlayingStartTimeRef.current = Date.now(); // ← start the response-time clock
     dispatch({ type: 'ENTER_PLAYING' });
+    // Brouillard : démarrer le timer 5s maintenant que les options sont visibles
+    if (fogActive) {
+      setTimeout(() => dispatch({ type: 'SET_FOG', active: false, activator: null }), 5000);
+    }
   };
 
   // ─── Render the correct question component based on game mode ───

@@ -44,7 +44,7 @@ export default function PublicProfilePage() {
       try {
         const [profileData, achievementsData] = await Promise.all([
           statsService.getUserStats(id),
-          achievementService.getByUser(id as unknown as number),
+          achievementService.getByUser(id),
         ]);
         setProfile(profileData);
         setAchievements(achievementsData);

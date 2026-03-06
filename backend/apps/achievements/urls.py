@@ -13,7 +13,7 @@ urlpatterns = [
         name="user-achievement-list",
     ),
     path(
-        "user/<int:user_id>/",
+        "user/<uuid:user_id>/",
         views.UserAchievementsByUserView.as_view(),
         name="user-achievements-by-user",
     ),
