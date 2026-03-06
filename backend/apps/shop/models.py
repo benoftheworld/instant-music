@@ -21,6 +21,8 @@ class BonusType(models.TextChoices):
     FIFTY_FIFTY = "fifty_fifty", _("50/50 (retire 2 mauvaises réponses)")
     STEAL = "steal", _("Vol de points (-100 pts au 1er)")
     SHIELD = "shield", _("Bouclier (protection vol)")
+    FOG = "fog", _("Mode brouillard (floute les réponses au prochain round)")
+    JOKER = "joker", _("Joker (réponse fausse comptée comme correcte)")
 
 
 class ItemType(models.TextChoices):

@@ -43,6 +43,8 @@ export default function GamePlayPage() {
     myPointsEarned,
     excludedOptions,
     roundPhase,
+    fogActive,
+    fogActivator,
   } = state;
 
   // ── Refs (imperative / timing concerns) ────────────────────────────────
@@ -217,6 +219,7 @@ export default function GamePlayPage() {
       roundResults,
       seekOffsetMs, // Offset for the loading screen
       excludedOptions,
+      fogBlur: fogActive && fogActivator !== user?.username,
     };
 
     // In text mode, we render the appropriate question component

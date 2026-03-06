@@ -19,6 +19,7 @@ interface Props {
   roundResults: RoundResults | null;
   seekOffsetMs?: number; // milliseconds to subtract from seek time (e.g. loading screen duration)
   excludedOptions?: string[]; // options to hide for 50/50 bonus
+  fogBlur?: boolean; // brouillard : flouter les options pour les adversaires
 }
 
 /* ───────────────────── Shared audio hook ───────────────────── */
@@ -365,6 +366,7 @@ export function OptionsGrid({
   roundResults,
   onOptionClick,
   excludedOptions = [],
+  fogBlur = false,
 }: {
   options: string[];
   hasAnswered: boolean;
@@ -373,6 +375,7 @@ export function OptionsGrid({
   roundResults: RoundResults | null;
   onOptionClick: (option: string) => void;
   excludedOptions?: string[];
+  fogBlur?: boolean;
 }) {
   const visibleOptions = showResults
     ? options
@@ -393,8 +396,15 @@ export function OptionsGrid({
     return 'bg-white border-2 border-gray-300';
   };
 
+  // Appliquer le brouillard tant que le joueur n’a pas répondu et que les résultats ne sont pas affichés
+  const isBlurred = fogBlur && !hasAnswered && !showResults;
+
   return (
-    <div className="grid grid-cols-2 gap-2 md:gap-4 mb-4 md:mb-6">
+    <div
+      className={`grid grid-cols-2 gap-2 md:gap-4 mb-4 md:mb-6 transition-[filter] duration-1000${
+        isBlurred ? ' blur-sm select-none' : ''
+      }`}
+    >
       {visibleOptions.map((option, index) => (
         <button
           key={index}

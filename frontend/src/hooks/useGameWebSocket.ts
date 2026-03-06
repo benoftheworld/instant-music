@@ -44,6 +44,13 @@ export function useGameWebSocket({
           soundEffects.roundLoading();
           dispatch({ type: 'START_ROUND', round: data.round_data });
           roundPlayingStartTimeRef.current = 0;
+          // Brouillard : flouter les options 5s pour tous sauf l'activateur
+          if (data.round_data?.fog_active) {
+            dispatch({ type: 'SET_FOG', active: true, activator: data.round_data.fog_activator ?? null });
+            setTimeout(() => dispatch({ type: 'SET_FOG', active: false, activator: null }), 5000);
+          } else {
+            dispatch({ type: 'SET_FOG', active: false, activator: null });
+          }
           break;
 
         case 'player_answered':
@@ -116,6 +123,14 @@ export function useGameWebSocket({
           isAdvancingRef.current = false;
           dispatch({ type: 'START_ROUND', round: data.round_data });
           roundPlayingStartTimeRef.current = 0;
+          // Brouillard : flouter les options 5s pour tous sauf l'activateur
+          if (data.round_data?.fog_active) {
+            dispatch({ type: 'SET_FOG', active: true, activator: data.round_data.fog_activator ?? null });
+            setTimeout(() => dispatch({ type: 'SET_FOG', active: false, activator: null }), 5000);
+          } else {
+            // S'assurer que tout brouillard résiduel est effacé
+            dispatch({ type: 'SET_FOG', active: false, activator: null });
+          }
           // Update players with fresh scores (preserving avatar)
           if (data.updated_players) {
             dispatch({

@@ -75,6 +75,28 @@ BONUS_ITEMS = [
         "cost": 70,
         "sort_order": 60,
     },
+    {
+        "name": "Mode Brouillard",
+        "description": (
+            "Floute les options de réponse QCM de tous les adversaires pendant 5 secondes "
+            "au début du prochain round. Vous seul voyez clair — jouez stratégiquement !"
+        ),
+        "item_type": ItemType.BONUS,
+        "bonus_type": BonusType.FOG,
+        "cost": 80,
+        "sort_order": 65,
+    },
+    {
+        "name": "Joker",
+        "description": (
+            "Répondez faux et obtenez quand même des points comme si c'était correct "
+            "(basés sur votre temps de réponse). Sans bonus de streak ni de classement."
+        ),
+        "item_type": ItemType.BONUS,
+        "bonus_type": BonusType.JOKER,
+        "cost": 120,
+        "sort_order": 70,
+    },
 ]
 
 PHYSICAL_ITEMS = [

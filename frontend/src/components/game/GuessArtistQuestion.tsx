@@ -15,6 +15,7 @@ const GuessArtistQuestion = ({
   roundResults,
   seekOffsetMs = 0,
   excludedOptions = [],
+  fogBlur = false,
 }: Props) => {
   const audio = useAudioPlayer(round, showResults, undefined, seekOffsetMs);
 
@@ -46,6 +47,7 @@ const GuessArtistQuestion = ({
         roundResults={roundResults}
         onOptionClick={onAnswerSubmit}
         excludedOptions={excludedOptions}
+        fogBlur={fogBlur}
       />
 
       <ResultFooter

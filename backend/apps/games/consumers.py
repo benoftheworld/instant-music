@@ -437,7 +437,16 @@ class GameConsumer(AsyncWebsocketConsumer):
             )
             return
 
-        round_data = data.get("round_data")
+        round_data = data.get("round_data") or {}
+
+        # Vérifier si un brouillard est actif pour ce round et l'injecter dans les données
+        round_number = round_data.get("round_number") if round_data else None
+        if round_number is not None:
+            fog_active, fog_activator = await self._check_and_consume_fog(round_number)
+            if fog_active:
+                round_data = dict(round_data)
+                round_data["fog_active"] = True
+                round_data["fog_activator"] = fog_activator
 
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -530,6 +539,17 @@ class GameConsumer(AsyncWebsocketConsumer):
         ).first()
         round_number = current_round.round_number if current_round else None
 
+        # Le brouillard s’applique au round SUIVANT
+        if bonus_type == "fog":
+            if current_round is None:
+                return {"error": "Aucun round en cours. Le brouillard s’applique au round suivant."}
+            round_number = current_round.round_number + 1
+
+        # Le joker nécessite un round actif
+        elif bonus_type == "joker":
+            if current_round is None:
+                return {"error": "Aucun round en cours. Le joker ne peut être activé que pendant un round."}
+
         try:
             game_bonus = bonus_service.activate_bonus(
                 user, game, bonus_type, round_number=round_number
@@ -539,6 +559,33 @@ class GameConsumer(AsyncWebsocketConsumer):
             return {"error": str(e)}
         except BonusAlreadyActiveError as e:
             return {"error": str(e)}
+
+    @database_sync_to_async
+    def _check_and_consume_fog(self, round_number: int) -> tuple[bool, str | None]:
+        """Vérifie si un bonus brouillard est actif pour ce round, le consomme et
+        retourne (fog_active, username_activateur).
+        """
+        from django.utils import timezone
+
+        from apps.shop.models import BonusType, GameBonus
+
+        bonus = (
+            GameBonus.objects.filter(
+                game__room_code=self.room_code,
+                bonus_type=BonusType.FOG,
+                round_number=round_number,
+                is_used=False,
+            )
+            .select_related("player__user")
+            .first()
+        )
+        if bonus:
+            username = bonus.player.user.username
+            bonus.is_used = True
+            bonus.used_at = timezone.now()
+            bonus.save(update_fields=["is_used", "used_at"])
+            return True, username  # type: ignore[return-value]
+        return False, None  # type: ignore[return-value]
 
     async def finish_game(self, data):
         """Handle game finish."""

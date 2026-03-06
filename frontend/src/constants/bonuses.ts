@@ -64,6 +64,22 @@ export const BONUS_META: Record<BonusType, BonusMeta> = {
     gradientClass: 'bg-gradient-to-br from-gray-400 to-slate-600',
     description: 'Protège vos points contre un vol',
   },
+  fog: {
+    emoji: '🌫️',
+    label: 'Mode Brouillard',
+    shortLabel: 'Brouillard',
+    color: 'from-gray-400 to-slate-500',
+    gradientClass: 'bg-gradient-to-br from-gray-400 to-slate-500',
+    description: 'Floute les options QCM de vos adversaires 5s au prochain round',
+  },
+  joker: {
+    emoji: '🃏',
+    label: 'Joker',
+    shortLabel: 'Joker',
+    color: 'from-violet-500 to-fuchsia-500',
+    gradientClass: 'bg-gradient-to-br from-violet-500 to-fuchsia-500',
+    description: 'Répondez faux et obtenez quand même des points (selon votre temps)',
+  },
 };
 
 /** Raccourci pour récupérer les métadonnées d'un bonus. */

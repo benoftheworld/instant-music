@@ -18,6 +18,7 @@ const YearQuestion = ({
   roundResults,
   seekOffsetMs = 0,
   excludedOptions = [],
+  fogBlur = false,
 }: Props) => {
   const audio = useAudioPlayer(round, showResults, undefined, seekOffsetMs);
   const [yearInput, setYearInput] = useState('');
@@ -77,6 +78,7 @@ const YearQuestion = ({
             roundResults={roundResults}
             onOptionClick={onAnswerSubmit}
             excludedOptions={excludedOptions}
+            fogBlur={fogBlur}
           />
           <ResultFooter
             showResults={showResults}

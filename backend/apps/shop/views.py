@@ -128,6 +128,23 @@ class InventoryViewSet(GenericViewSet):
         ).first()
         round_number = current_round.round_number if current_round else None
 
+        # Le brouillard s'applique au round SUIVANT — refuser si aucun round actif
+        if bonus_type == "fog":
+            if current_round is None:
+                return Response(
+                    {"detail": "Aucun round en cours. Le brouillard s'applique au round suivant."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            round_number = current_round.round_number + 1
+
+        # Le joker s'applique au round EN COURS — refuser si aucun round actif
+        elif bonus_type == "joker":
+            if current_round is None:
+                return Response(
+                    {"detail": "Aucun round en cours. Le joker ne peut être activé que pendant un round."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         try:
             game_bonus = bonus_service.activate_bonus(
                 request.user, game, bonus_type, round_number=round_number

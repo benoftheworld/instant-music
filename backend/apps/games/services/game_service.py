@@ -474,6 +474,24 @@ class GameService:
             accuracy_factor, response_time, round_obj.duration
         )
 
+        # ── Bonus Joker : réponse fausse comptée comme correcte ─────────────
+        if not is_correct:
+            from apps.shop.models import BonusType as ShopBonusType
+            from apps.shop.models import GameBonus
+
+            joker_qs = GameBonus.objects.filter(
+                game=round_obj.game,
+                player=player,
+                round_number=round_obj.round_number,
+                bonus_type=ShopBonusType.JOKER,
+                is_used=False,
+            )
+            if joker_qs.exists():
+                # Calcul des points comme si la réponse était correcte (accuracy 1.0)
+                # Sans bonus de rang ni de streak (is_correct reste False)
+                points = self.calculate_score(1.0, response_time, round_obj.duration)
+                joker_qs.update(is_used=True, used_at=timezone.now())
+
         # Rank bonus based on answer order
         rank_bonus = 0
         if is_correct:

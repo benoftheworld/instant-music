@@ -31,6 +31,8 @@ export interface GamePlayState {
   myPointsEarned: number;
   excludedOptions: string[];
   roundPhase: RoundPhase;
+  fogActive: boolean;
+  fogActivator: string | null;
 }
 
 export type GamePlayAction =
@@ -45,7 +47,8 @@ export type GamePlayAction =
   | { type: 'ENTER_RESULTS' }
   | { type: 'TICK'; time: number }
   | { type: 'SET_EXCLUDED_OPTIONS'; options: string[] }
-  | { type: 'UPDATE_ROUND_DURATION'; duration: number };
+  | { type: 'UPDATE_ROUND_DURATION'; duration: number }
+  | { type: 'SET_FOG'; active: boolean; activator: string | null };
 
 // ── Initial state ───────────────────────────────────────────────────────────
 
@@ -61,6 +64,8 @@ export const initialGamePlayState: GamePlayState = {
   myPointsEarned: 0,
   excludedOptions: [],
   roundPhase: 'loading',
+  fogActive: false,
+  fogActivator: null,
 };
 
 // ── Reducer ─────────────────────────────────────────────────────────────────
@@ -133,6 +138,9 @@ export function gamePlayReducer(
         ...state,
         currentRound: { ...state.currentRound, duration: action.duration },
       };
+
+    case 'SET_FOG':
+      return { ...state, fogActive: action.active, fogActivator: action.activator };
 
     default:
       return state;

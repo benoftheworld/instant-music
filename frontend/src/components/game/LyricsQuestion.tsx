@@ -16,6 +16,7 @@ const LyricsQuestion = ({
   showResults,
   roundResults,
   excludedOptions = [],
+  fogBlur = false,
 }: Props) => {
   // For Lyrics mode: only play audio when showing results
   const audio = useAudioPlayerOnResults(round, showResults);
@@ -74,6 +75,7 @@ const LyricsQuestion = ({
         roundResults={roundResults}
         onOptionClick={onAnswerSubmit}
         excludedOptions={excludedOptions}
+        fogBlur={fogBlur}
       />
 
       <ResultFooter

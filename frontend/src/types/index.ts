@@ -369,7 +369,9 @@ export type BonusType =
   | 'time_bonus'
   | 'fifty_fifty'
   | 'steal'
-  | 'shield';
+  | 'shield'
+  | 'fog'
+  | 'joker';
 
 export type ItemType = 'bonus' | 'physical';
 
