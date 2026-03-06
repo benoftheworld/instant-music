@@ -130,6 +130,7 @@ services:
       args:
         - VITE_API_URL=${VITE_API_URL}
         - VITE_WS_URL=${VITE_WS_URL}
+        - VITE_ADMIN_URL=${ADMIN_URL:-admin/}
     container_name: instantmusic_frontend_prod
     restart: unless-stopped
     healthcheck:
@@ -145,15 +146,19 @@ services:
   nginx:
     image: nginx:alpine
     container_name: instantmusic_nginx_prod
+    environment:
+      - ADMIN_URL=${ADMIN_URL:-admin/}
     volumes:
-      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf.template:ro
       - ../nginx/security_headers.conf:/etc/nginx/security_headers.conf:ro
       - ../nginx/security_headers_grafana.conf:/etc/nginx/security_headers_grafana.conf:ro
+      - ../nginx/security_headers_kibana.conf:/etc/nginx/security_headers_kibana.conf:ro
       - ../nginx/monitoring:/etc/nginx/monitoring:ro
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
       - letsencrypt:/etc/letsencrypt:ro
       - certbot_webroot:/var/www/certbot:ro
+    command: /bin/sh -c "envsubst '$${ADMIN_URL}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
     ports:
       - '80:80'
       - '443:443'

@@ -71,17 +71,23 @@ services:
     entrypoint: ['bash', '-c']
     command:
       - |
-        echo 'Configuration des utilisateurs built-in…'
+        set -e
+        echo 'Vérification de la connexion à Elasticsearch…'
+        curl -sf --retry 5 --retry-delay 5 -u "elastic:$${ELASTIC_PASSWORD}" \
+          "http://elasticsearch:9200/_security/_authenticate" > /dev/null
+        echo 'Connexion OK. Configuration des utilisateurs built-in…'
         # kibana_system — utilisé par Kibana pour communiquer avec ES
-        curl -s -X POST -u "elastic:$${ELASTIC_PASSWORD}" \
+        curl -sf --retry 3 --retry-delay 5 -X POST -u "elastic:$${ELASTIC_PASSWORD}" \
           -H 'Content-Type: application/json' \
           "http://elasticsearch:9200/_security/user/kibana_system/_password" \
           -d '{"password": "'"$${KIBANA_PASSWORD}"'"}'
+        echo 'kibana_system OK'
         # logstash_system — utilisé par Logstash pour écrire dans ES
-        curl -s -X POST -u "elastic:$${ELASTIC_PASSWORD}" \
+        curl -sf --retry 3 --retry-delay 5 -X POST -u "elastic:$${ELASTIC_PASSWORD}" \
           -H 'Content-Type: application/json' \
           "http://elasticsearch:9200/_security/user/logstash_system/_password" \
           -d '{"password": "'"$${LOGSTASH_PASSWORD}"'"}'
+        echo 'logstash_system OK'
         echo 'Utilisateurs configurés.'
     environment:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
