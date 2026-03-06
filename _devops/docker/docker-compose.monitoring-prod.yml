@@ -82,12 +82,24 @@ services:
           "http://elasticsearch:9200/_security/user/kibana_system/_password" \
           -d '{"password": "'"$${KIBANA_PASSWORD}"'"}'
         echo 'kibana_system OK'
-        # logstash_system — utilisé par Logstash pour écrire dans ES
+        # logstash_system — monitoring interne Logstash
         curl -sf --retry 3 --retry-delay 5 -X POST -u "elastic:$${ELASTIC_PASSWORD}" \
           -H 'Content-Type: application/json' \
           "http://elasticsearch:9200/_security/user/logstash_system/_password" \
           -d '{"password": "'"$${LOGSTASH_PASSWORD}"'"}'
         echo 'logstash_system OK'
+        # logstash_writer — rôle + utilisateur dédié à l'écriture des index applicatifs
+        # (logstash_system est un user built-in de monitoring, il n'a PAS les droits d'écriture)
+        curl -sf --retry 3 --retry-delay 5 -X PUT -u "elastic:$${ELASTIC_PASSWORD}" \
+          -H 'Content-Type: application/json' \
+          "http://elasticsearch:9200/_security/role/logstash_writer" \
+          -d '{"cluster":["manage_index_templates","monitor"],"indices":[{"names":["instantmusic-*"],"privileges":["write","create_index","manage"]}]}'
+        echo 'role logstash_writer OK'
+        curl -sf --retry 3 --retry-delay 5 -X PUT -u "elastic:$${ELASTIC_PASSWORD}" \
+          -H 'Content-Type: application/json' \
+          "http://elasticsearch:9200/_security/user/logstash_writer" \
+          -d '{"password":"'"$${LOGSTASH_PASSWORD}"'","roles":["logstash_writer"],"full_name":"Logstash Writer"}'
+        echo 'user logstash_writer OK'
         echo 'Utilisateurs configurés.'
     environment:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
