@@ -70,6 +70,7 @@ class LeaderboardView(APIView):
     """General leaderboard - top players by total points."""
 
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []
     throttle_classes = [LeaderboardThrottle]
 
     def get(self, request):
@@ -82,6 +83,7 @@ class LeaderboardByModeView(APIView):
     """Leaderboard by game mode."""
 
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []
 
     def get(self, request, mode):
         page, page_size, offset = parse_pagination_params(request)
@@ -150,6 +152,7 @@ class TeamLeaderboardView(APIView):
     """Team leaderboard - top teams by total points."""
 
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []
 
     def get(self, request):
         page, page_size, offset = parse_pagination_params(request)

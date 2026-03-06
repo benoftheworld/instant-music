@@ -4,6 +4,26 @@ import { tokenService } from './tokenService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+// Queue pour éviter plusieurs appels refresh simultanés (race condition).
+// Quand un refresh est déjà en cours, les requêtes 401 suivantes attendent
+// sa résolution avant d'être rejouées avec le nouveau token.
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (reason?: unknown) => void;
+}> = [];
+
+function processQueue(error: unknown, token: string | null = null): void {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token as string);
+    }
+  });
+  failedQueue = [];
+}
+
 class ApiService {
   private api: AxiosInstance;
 
@@ -34,7 +54,21 @@ class ApiService {
         const originalRequest = error.config as any;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
+          // Un refresh est déjà en cours : on met la requête en file d'attente
+          // pour éviter plusieurs appels concurrents à /token/refresh/.
+          if (isRefreshing) {
+            return new Promise<string>((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
+            })
+              .then((token) => {
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+                return this.api(originalRequest);
+              })
+              .catch((err) => Promise.reject(err));
+          }
+
           originalRequest._retry = true;
+          isRefreshing = true;
 
           try {
             const refreshToken = tokenService.getRefreshToken();
@@ -49,14 +83,19 @@ class ApiService {
                 tokenService.setRefreshToken(newRefresh);
               }
 
+              processQueue(null, access);
               originalRequest.headers.Authorization = `Bearer ${access}`;
               return this.api(originalRequest);
             }
           } catch (refreshError) {
-            // Nettoyage local — le refresh a échoué, on vide le store et localStorage
+            // Le refresh a échoué — on rejette toutes les requêtes en attente
+            // puis on vide le store et on redirige vers /login.
+            processQueue(refreshError);
             useAuthStore.getState().logout();
             window.location.href = '/login';
             return Promise.reject(refreshError);
+          } finally {
+            isRefreshing = false;
           }
         }
 

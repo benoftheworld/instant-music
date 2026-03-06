@@ -6,7 +6,7 @@ GET /api/administration/status/
 """
 
 from django.views.decorators.cache import never_cache
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -15,6 +15,7 @@ from .models import LegalPage, SiteConfiguration
 
 @never_cache
 @api_view(["GET"])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def site_status(request):
     """Return current maintenance & banner state.
@@ -50,6 +51,7 @@ def site_status(request):
 
 @never_cache
 @api_view(["GET"])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def legal_page(request, page_type: str):
     """Return the content of a legal page (privacy policy or legal notices).

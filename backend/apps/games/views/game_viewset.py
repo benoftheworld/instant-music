@@ -580,6 +580,7 @@ class GameViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["get"],
         permission_classes=[permissions.AllowAny],
+        authentication_classes=[],
     )
     def history(self, request):
         """Get game history (finished games)."""
@@ -613,6 +614,7 @@ class GameViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["get"],
         permission_classes=[permissions.AllowAny],
+        authentication_classes=[],
     )
     def leaderboard(self, request):
         """Get global leaderboard of top players.
