@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { gameService } from '../../services/gameService';
 import { getMediaUrl } from '../../services/api';
-import type { GamePlayer } from '@/types';
+import { BONUS_META } from '../../constants/bonuses';
+import type { BonusType, GamePlayer } from '@/types';
 
 interface RoundAnswer {
   username: string;
@@ -14,6 +15,11 @@ interface RoundAnswer {
   streak_bonus?: number;
 }
 
+interface RoundBonus {
+  username: string;
+  bonus_type: string;
+}
+
 interface RoundDetail {
   round_number: number;
   track_name: string;
@@ -21,6 +27,7 @@ interface RoundDetail {
   correct_answer: string;
   track_id: string;
   answers: RoundAnswer[];
+  bonuses: RoundBonus[];
 }
 
 interface GameResult {
@@ -92,6 +99,28 @@ function RoundRow({ round, players }: { round: RoundDetail; players: GamePlayer[
           ✅ {round.correct_answer}
         </span>
       </div>
+
+      {/* Bonus utilisés ce round */}
+      {round.bonuses && round.bonuses.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 px-5 py-2 bg-amber-400/5 border-b border-white/5">
+          <span className="text-white/30 text-xs uppercase tracking-wider shrink-0">Bonus&nbsp;:</span>
+          {round.bonuses.map((b, i) => {
+            const meta = BONUS_META[b.bonus_type as BonusType];
+            return (
+              <span
+                key={i}
+                className="inline-flex items-center gap-1 text-xs bg-white/10 border border-white/10 rounded-full px-2.5 py-0.5 text-white/80"
+                title={meta?.description}
+              >
+                <span aria-hidden="true">{meta?.emoji ?? '✨'}</span>
+                <span className="font-semibold text-white">{b.username}</span>
+                <span className="text-white/50">·</span>
+                <span>{meta?.shortLabel ?? b.bonus_type}</span>
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       {/* Top-3 table */}
       {top3.length > 0 ? (

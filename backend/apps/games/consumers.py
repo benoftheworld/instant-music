@@ -389,18 +389,28 @@ class GameConsumer(AsyncWebsocketConsumer):
     def get_game_data(self):
         """Get game data with players."""
         from django.conf import settings
+        from django.db.models import Prefetch
 
-        from .models import Game
+        from .models import Game, GamePlayer
 
         try:
-            game = Game.objects.get(room_code=self.room_code)
+            game = (
+                Game.objects.select_related("host")
+                .prefetch_related(
+                    Prefetch(
+                        "players",
+                        queryset=GamePlayer.objects.select_related("user"),
+                    )
+                )
+                .get(room_code=self.room_code)
+            )
 
             # Build absolute base URL from settings
             base_url = getattr(settings, "BACKEND_BASE_URL", "").rstrip("/")
 
             # Build game data manually to include proper avatar URLs
             players_data = []
-            for player in game.players.select_related("user").all():
+            for player in game.players.all():
                 avatar_url = None
                 if player.user.avatar:
                     avatar_url = f"{base_url}{player.user.avatar.url}"

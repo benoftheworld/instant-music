@@ -36,6 +36,18 @@ from .services import (
     SCORE_TIME_PENALTY_PER_SEC,
 )
 
+# ── Libellés courts des bonus boutique (police standard, sans emoji) ─────────
+_BONUS_LABELS: dict[str, str] = {
+    "double_points": "Points x2",
+    "max_points": "Points max",
+    "time_bonus": "+15 s",
+    "fifty_fifty": "50/50",
+    "steal": "Vol de pts",
+    "shield": "Bouclier",
+    "fog": "Brouillard",
+    "joker": "Joker",
+}
+
 # ── Palette ──────────────────────────────────────────────────────────────────
 C_DARK = colors.HexColor("#1E1B4B")  # deep indigo — header band
 C_ACCENT = colors.HexColor("#7C3AED")  # violet      — accent bars
@@ -574,6 +586,37 @@ def generate_results_pdf(
 
             block = [hdr]
 
+            # Bonus utilisés ce round
+            round_bonuses = rd.get("bonuses", [])
+            if round_bonuses:
+                bonus_parts = [
+                    f"{b.get('username', '?')} — {_BONUS_LABELS.get(b.get('bonus_type', ''), b.get('bonus_type', ''))}"
+                    for b in round_bonuses
+                ]
+                bonus_tbl = Table(
+                    [
+                        [
+                            Paragraph("<b>Bonus :</b>", S["bold_sm"]),
+                            Paragraph("  |  ".join(bonus_parts), S["body_sm"]),
+                        ]
+                    ],
+                    colWidths=[COL_W * 0.12, COL_W * 0.88],
+                )
+                bonus_tbl.setStyle(
+                    TableStyle(
+                        [
+                            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFBEB")),
+                            ("TOPPADDING", (0, 0), (-1, -1), 3),
+                            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                            ("LINEBELOW", (0, 0), (-1, -1), 0.5, colors.HexColor("#FDE68A")),
+                        ]
+                    )
+                )
+                block.append(bonus_tbl)
+
             if sorted_ans:
                 col_hdr_sty = _s(
                     "ahdr",
@@ -721,6 +764,16 @@ def generate_results_pdf(
             Paragraph("<b>Bonus série</b>", S["bold_sm"]),
             Paragraph(
                 "Points croissants selon le nombre de bonnes réponses consécutives",
+                S["body_sm"],
+            ),
+        ],
+        [
+            Paragraph("<b>Bonus boutique</b>", S["bold_sm"]),
+            Paragraph(
+                "Points x2 (double les points du prochain round correct)  |  "
+                "Points max (garantit au moins 100 pts de base)  |  "
+                "Vol de pts (−100 pts au leader, si non protégé)  |  "
+                "Joker (mauvaise réponse comptabilisée comme correcte)",
                 S["body_sm"],
             ),
         ],

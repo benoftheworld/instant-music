@@ -18,6 +18,24 @@ def build_rounds_detail(game: Game) -> tuple[list[dict], dict[str, int]]:
         tuple: (rounds_detail, player_streaks)
 
     """
+    from apps.shop.models import GameBonus
+
+    # Précharger tous les bonus de la partie en une seule requête
+    bonuses_by_round: dict[int, list[dict]] = {}
+    for bonus in (
+        GameBonus.objects.filter(game=game)
+        .select_related("player__user")
+        .order_by("activated_at")
+    ):
+        rnd = bonus.round_number
+        if rnd is not None:
+            bonuses_by_round.setdefault(rnd, []).append(
+                {
+                    "username": bonus.player.user.username,
+                    "bonus_type": bonus.bonus_type,
+                }
+            )
+
     rounds = (
         GameRound.objects.filter(game=game)
         .prefetch_related(
@@ -65,6 +83,7 @@ def build_rounds_detail(game: Game) -> tuple[list[dict], dict[str, int]]:
                 "correct_answer": r.correct_answer,
                 "track_id": r.track_id,
                 "answers": answers,
+                "bonuses": bonuses_by_round.get(r.round_number, []),
             }
         )
 
