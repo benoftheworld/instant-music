@@ -3,7 +3,9 @@
 
 import json
 import logging
+import time
 
+import redis.asyncio as aioredis
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
@@ -14,6 +16,53 @@ from apps.core.prometheus_metrics import (
 )
 
 logger = logging.getLogger("apps.games.consumer")
+
+# ── Rate limiting WebSocket (fenêtre glissante Redis) ────────────────────────
+# Clé Redis : ws_rl:{user_id}:{room_code}:{message_type}
+# Valeurs : (max_messages, window_seconds)
+_WS_RATE_LIMITS: dict[str, tuple[int, int]] = {
+    "player_answer": (5, 10),   # 5 réponses par 10 s (anti-spam de réponses)
+    "activate_bonus": (3, 60),  # 3 activations de bonus par 60 s
+    "player_join": (5, 30),     # 5 tentatives de join par 30 s
+    "start_game": (3, 60),      # 3 tentatives par 60 s (action ponctuelle)
+    "_default": (30, 10),       # filet de sécurité global
+}
+
+# Script Lua : fenêtre glissante atomique (scored set + pruning)
+# KEYS[1] = clé du compteur
+# ARGV[1] = timestamp courant (ms), ARGV[2] = largeur fenêtre (ms), ARGV[3] = limite
+# Retourne 1 si la requête est autorisée, 0 si throttlée.
+_SLIDING_WINDOW_SCRIPT = """
+local key    = KEYS[1]
+local now_ms = tonumber(ARGV[1])
+local win_ms = tonumber(ARGV[2])
+local limit  = tonumber(ARGV[3])
+redis.call('ZREMRANGEBYSCORE', key, '-inf', now_ms - win_ms)
+local count = redis.call('ZCARD', key)
+if count >= limit then
+    return 0
+end
+local seq = redis.call('INCR', key .. ':seq')
+redis.call('ZADD', key, now_ms, now_ms .. ':' .. seq)
+local ttl = math.ceil(win_ms / 1000) + 1
+redis.call('EXPIRE', key, ttl)
+redis.call('EXPIRE', key .. ':seq', ttl)
+return 1
+"""
+
+_ws_redis_client: aioredis.Redis | None = None  # pool partagé par le process
+
+
+def _get_ws_redis() -> aioredis.Redis:
+    """Retourne (ou crée) le client Redis async dédié au rate limiting WS."""
+    global _ws_redis_client
+    if _ws_redis_client is None:
+        from django.conf import settings
+
+        url = settings.CACHES["default"]["LOCATION"]
+        _ws_redis_client = aioredis.from_url(url, decode_responses=True)
+    return _ws_redis_client
+
 
 # ── Schéma de validation des messages WebSocket entrants ─────────────────────
 # Chaque type de message définit ses champs obligatoires et optionnels.
@@ -246,6 +295,24 @@ class GameConsumer(AsyncWebsocketConsumer):
             },
         )
 
+        # ── Rate limiting (fenêtre glissante Redis) ───────────────────────────
+        if not await self._check_rate_limit(message_type):
+            logger.warning(
+                "ws_rate_limit",
+                extra={
+                    "event_type": "rate_limit",
+                    "room_code": self.room_code,
+                    "user_id": self.scope["user"].id,
+                    "message_type": message_type,
+                },
+            )
+            await self.send(
+                text_data=json.dumps(
+                    {"type": "error", "message": "Trop de messages. Veuillez patienter."}
+                )
+            )
+            return
+
         # Route message to appropriate handler
         handlers = {
             "player_join": self.player_join,
@@ -279,6 +346,30 @@ class GameConsumer(AsyncWebsocketConsumer):
                 )
             )
 
+    async def _check_rate_limit(self, message_type: str) -> bool:
+        """Vérifie la limite de débit via fenêtre glissante Redis.
+
+        Retourne True si la requête est autorisée, False si throttlée.
+        """
+        user_id = self.scope["user"].id
+        limit, window = _WS_RATE_LIMITS.get(message_type, _WS_RATE_LIMITS["_default"])
+        key = f"ws_rl:{user_id}:{self.room_code}:{message_type}"
+        now_ms = int(time.time() * 1000)
+        win_ms = window * 1000
+        try:
+            result = await _get_ws_redis().eval(
+                _SLIDING_WINDOW_SCRIPT, 1, key, now_ms, win_ms, limit
+            )
+            return bool(result)
+        except Exception:
+            # En cas d'erreur Redis, on laisse passer (fail-open) pour ne pas
+            # bloquer le jeu si Redis est temporairement indisponible.
+            logger.exception(
+                "ws_rate_limit_redis_error",
+                extra={"room_code": self.room_code, "user_id": user_id},
+            )
+            return True
+
     async def player_join(self, data):
         """Handle player joining the game (legacy WS message - prefer API call)."""
         # Get updated game data
@@ -289,7 +380,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {
                 "type": "broadcast_player_join",
-                "player": data.get("player"),
+                "player": {"user": str(self.scope["user"].id), "username": self.scope["user"].username},
                 "game_data": game_data,
             },
         )
@@ -387,9 +478,8 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def player_answer(self, data):
         """Handle player submitting an answer."""
-        player_username = data.get("player")
-        answer = data.get("answer")
-        response_time = data.get("response_time", 0)
+        # On utilise l'identité authentifiée (scope) pour éviter l'usurpation.
+        player_username = self.scope["user"].username
 
         # Broadcast that player answered (without revealing correctness yet)
         await self.channel_layer.group_send(
@@ -430,6 +520,14 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def start_round(self, data):
         """Handle round start."""
         if not await self._is_host():
+            logger.warning(
+                "ws_auth_forbidden",
+                extra={
+                    "action": "start_round",
+                    "user_id": self.scope["user"].id,
+                    "room_code": self.room_code,
+                },
+            )
             await self.send(
                 text_data=json.dumps(
                     {"type": "error", "message": "Action réservée à l'hôte."}
@@ -456,6 +554,14 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def end_round(self, data):
         """Handle round end."""
         if not await self._is_host():
+            logger.warning(
+                "ws_auth_forbidden",
+                extra={
+                    "action": "end_round",
+                    "user_id": self.scope["user"].id,
+                    "room_code": self.room_code,
+                },
+            )
             await self.send(
                 text_data=json.dumps(
                     {"type": "error", "message": "Action réservée à l'hôte."}
@@ -473,6 +579,14 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def next_round(self, data):
         """Handle next round."""
         if not await self._is_host():
+            logger.warning(
+                "ws_auth_forbidden",
+                extra={
+                    "action": "next_round",
+                    "user_id": self.scope["user"].id,
+                    "room_code": self.room_code,
+                },
+            )
             await self.send(
                 text_data=json.dumps(
                     {"type": "error", "message": "Action réservée à l'hôte."}
