@@ -1,6 +1,7 @@
 import { api } from './api';
 import type {
   UserDetailedStats,
+  UserPublicProfile,
   MyRank,
   GameMode,
   LeaderboardEntry,
@@ -57,6 +58,12 @@ export const statsService = {
   /** Get current user's rank in leaderboards */
   async getMyRank(): Promise<MyRank> {
     const response = await api.get<MyRank>('/stats/my-rank/');
+    return response.data;
+  },
+
+  /** Get public stats for a specific user */
+  async getUserStats(userId: string): Promise<UserPublicProfile> {
+    const response = await api.get<UserPublicProfile>(`/stats/user/${userId}/`);
     return response.data;
   },
 };

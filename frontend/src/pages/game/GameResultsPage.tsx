@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { gameService } from '../../services/gameService';
 import { getMediaUrl } from '../../services/api';
 import type { GamePlayer } from '@/types';
@@ -62,6 +62,9 @@ function Avatar({ username, avatar, size = 'md' }: { username: string; avatar?: 
 function RoundRow({ round, players }: { round: RoundDetail; players: GamePlayer[] }) {
   const [expanded, setExpanded] = useState(false);
 
+  const playerUserId = (username: string) =>
+    players.find((p) => p.username === username)?.user_id;
+
   // Sort answers by points earned desc for ranking
   const sorted = [...round.answers].sort((a, b) => b.points_earned - a.points_earned || a.response_time - b.response_time);
   const top3 = sorted.slice(0, 3);
@@ -112,7 +115,13 @@ function RoundRow({ round, players }: { round: RoundDetail; players: GamePlayer[
                     <td className="pr-3 py-2.5">
                       <div className="flex items-center gap-2">
                         <Avatar username={ans.username} avatar={playerAvatar(ans.username)} size="sm" />
-                        <span className="text-white font-medium">{ans.username}</span>
+                        <span className="text-white font-medium">
+                          {playerUserId(ans.username) ? (
+                            <Link to={`/profile/${playerUserId(ans.username)}`} className="hover:underline transition-colors">
+                              {ans.username}
+                            </Link>
+                          ) : ans.username}
+                        </span>
                         {isFastest && <span className="text-yellow-300 text-xs">⚡</span>}
                       </div>
                     </td>
@@ -143,7 +152,13 @@ function RoundRow({ round, players }: { round: RoundDetail; players: GamePlayer[
                     <td className="pr-3 py-2.5">
                       <div className="flex items-center gap-2">
                         <Avatar username={ans.username} avatar={playerAvatar(ans.username)} size="sm" />
-                        <span className="text-white/80 font-medium">{ans.username}</span>
+                        <span className="text-white/80 font-medium">
+                          {playerUserId(ans.username) ? (
+                            <Link to={`/profile/${playerUserId(ans.username)}`} className="hover:underline transition-colors">
+                              {ans.username}
+                            </Link>
+                          ) : ans.username}
+                        </span>
                         {isFastest && <span className="text-yellow-300 text-xs">⚡</span>}
                       </div>
                     </td>
@@ -289,7 +304,11 @@ export default function GameResultsPage() {
                     <span className="text-3xl sm:text-4xl">{isWinner ? '👑' : MEDAL[pos]}</span>
                     <Avatar username={player.username} avatar={player.avatar} size={isWinner ? 'lg' : 'md'} />
                     <p className={`font-bold mt-1 ${isWinner ? 'text-lg text-yellow-300' : 'text-sm text-white/80'}`}>
-                      {player.username}
+                      {player.user_id ? (
+                        <Link to={`/profile/${player.user_id}`} className="hover:underline transition-colors">
+                          {player.username}
+                        </Link>
+                      ) : player.username}
                     </p>
                     <div className={`w-28 sm:w-36 ${podiumHeights[colIdx]} ${barColors[pos]} rounded-t-xl flex flex-col items-center justify-center shadow-lg ${glowColors[pos]} border-t-4 ${borderColors[pos]}`}>
                       <p className={`font-extrabold ${isWinner ? 'text-3xl' : 'text-2xl'} text-white drop-shadow`}>
@@ -338,7 +357,11 @@ export default function GameResultsPage() {
                         <div className="flex items-center gap-2.5">
                           <Avatar username={player.username} avatar={player.avatar} size="sm" />
                           <span className={`font-medium ${isWinner ? 'text-yellow-300' : 'text-white'}`}>
-                            {player.username}
+                            {player.user_id ? (
+                              <Link to={`/profile/${player.user_id}`} className="hover:underline transition-colors">
+                                {player.username}
+                              </Link>
+                            ) : player.username}
                           </span>
                         </div>
                       </td>
@@ -365,7 +388,13 @@ export default function GameResultsPage() {
             <div className="flex items-center gap-4 bg-yellow-400/10 border border-yellow-400/30 rounded-2xl px-5 py-3">
               <span className="text-3xl">👑</span>
               <div>
-                <p className="text-yellow-300 font-bold text-lg">{winner.username}</p>
+                <p className="text-yellow-300 font-bold text-lg">
+                  {winner.user_id ? (
+                    <Link to={`/profile/${winner.user_id}`} className="hover:underline transition-colors">
+                      {winner.username}
+                    </Link>
+                  ) : winner.username}
+                </p>
                 <p className="text-white/50 text-sm">remporte la partie avec {winner.score} pts</p>
               </div>
             </div>

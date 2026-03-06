@@ -12,6 +12,7 @@ def _build_leaderboard_entry(idx: int, user: User, extra: dict | None = None) ->
     """Construit une entrée de leaderboard pour un utilisateur."""
     team_membership = user.team_memberships.first()
     team_name = team_membership.team.name if team_membership else None
+    team_id = str(team_membership.team.id) if team_membership else None
 
     entry = {
         "rank": idx,
@@ -23,6 +24,7 @@ def _build_leaderboard_entry(idx: int, user: User, extra: dict | None = None) ->
         "total_wins": user.total_wins,
         "win_rate": round(user.win_rate, 1),
         "team_name": team_name,
+        "team_id": team_id,
     }
     if extra:
         entry.update(extra)

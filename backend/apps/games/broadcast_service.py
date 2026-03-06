@@ -122,9 +122,41 @@ def broadcast_game_update(room_code: str, game_data: dict) -> None:
     )
 
 
-def broadcast_round_start(room_code: str, round_obj: GameRound) -> None:
+def broadcast_round_start(room_code: str, round_obj: GameRound, game: Game) -> None:
     """Broadcast that a round has started with its data."""
+    from django.utils import timezone
+
+    from apps.shop.models import BonusType, GameBonus
+
     round_data = _serialize_to_dict(GameRoundSerializer(round_obj))
+
+    # Vérifier si un brouillard est actif pour ce round et l'injecter dans les données
+    fog_bonus = (
+        GameBonus.objects.filter(
+            game=game,
+            bonus_type=BonusType.FOG,
+            round_number=round_obj.round_number,
+            is_used=False,
+        )
+        .select_related("player__user")
+        .first()
+    )
+    if fog_bonus:
+        round_data["fog_active"] = True
+        round_data["fog_activator"] = fog_bonus.player.user.username
+        fog_bonus.is_used = True
+        fog_bonus.used_at = timezone.now()
+        fog_bonus.save(update_fields=["is_used", "used_at"])
+        logger.info(
+            "fog_bonus_consumed",
+            extra={
+                "room_code": room_code,
+                "round_number": round_obj.round_number,
+                "activator": fog_bonus.player.user.username,
+                "broadcast": "round_start",
+            },
+        )
+
     _group_send(
         room_code,
         {
@@ -185,6 +217,15 @@ def broadcast_next_round(room_code: str, round_obj: GameRound, game: Game) -> No
         fog_bonus.is_used = True
         fog_bonus.used_at = timezone.now()
         fog_bonus.save(update_fields=["is_used", "used_at"])
+        logger.info(
+            "fog_bonus_consumed",
+            extra={
+                "room_code": room_code,
+                "round_number": round_obj.round_number,
+                "activator": fog_bonus.player.user.username,
+                "broadcast": "next_round",
+            },
+        )
 
     _group_send(
         room_code,

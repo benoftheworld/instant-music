@@ -19,4 +19,9 @@ urlpatterns = [
         name="leaderboard-by-mode",
     ),
     path("my-rank/", views.MyRankView.as_view(), name="my-rank"),
+    path(
+        "user/<str:user_id>/",
+        views.UserPublicStatsView.as_view(),
+        name="user-public-stats",
+    ),
 ]

@@ -29,6 +29,7 @@ const GameResultsPage = lazy(() => import('./pages/game/GameResultsPage'));
 const GameHistoryPage = lazy(() => import('./pages/GameHistoryPage'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const ShopPage = lazy(() => import('./pages/ShopPage'));
+const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 function PageLoader() {
@@ -96,6 +97,7 @@ function App() {
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
+          <Route path="profile/:id" element={<PublicProfilePage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="friends" element={<FriendsPage />} />
           <Route path="teams" element={<TeamsPage />} />

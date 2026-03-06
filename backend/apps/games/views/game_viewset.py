@@ -270,7 +270,7 @@ class GameViewSet(viewsets.ModelViewSet):
             game, rounds = game_service.start_game(game)
 
             if rounds:
-                broadcast_round_start(room_code, rounds[0])
+                broadcast_round_start(room_code, rounds[0], game)
 
             return Response(
                 {

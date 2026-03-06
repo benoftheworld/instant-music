@@ -91,7 +91,9 @@ def build_rankings(game: Game) -> list[dict]:
 
         rankings.append(
             {
+                "user_id": str(p.user.id),
                 "username": p.user.username,
+                "avatar": p.user.avatar.url if p.user.avatar else None,
                 "score": p.score,
                 "rank": p.rank,
                 "team_name": team_name,

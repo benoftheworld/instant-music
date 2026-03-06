@@ -79,6 +79,7 @@ export interface Game {
 export interface GamePlayer {
   id: number | string;
   user?: number;
+  user_id?: string;
   username: string;
   avatar?: string;
   score: number;
@@ -253,6 +254,7 @@ export interface LeaderboardEntry {
   total_points: number;
   win_rate: number;
   team_name?: string | null;
+  team_id?: string | null;
 }
 
 export interface TeamLeaderboardEntry {
@@ -428,4 +430,13 @@ export interface UserDetailedStats {
   achievements_unlocked: number;
   achievements_total: number;
   recent_games: GameHistory[];
+}
+
+export interface UserPublicProfile {
+  user_id: string;
+  username: string;
+  avatar: string | null;
+  date_joined: string;
+  team: { id: string; name: string } | null;
+  stats: UserDetailedStats;
 }
