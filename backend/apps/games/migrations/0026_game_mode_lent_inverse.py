@@ -1,4 +1,4 @@
-# Migration: ajout des modes de jeu "lent" et "inverse" (manipulation audio).
+# Migration: ajout du mode "mollo" (manipulation audio - ralenti).
 
 from django.db import migrations, models
 
@@ -20,7 +20,6 @@ class Migration(migrations.Migration):
                     ("paroles", "Paroles"),
                     ("karaoke", "Karaoké"),
                     ("mollo", "Mollo (ralenti)"),
-                    ("inverse", "À l'envers"),
                 ],
                 default="classique",
                 max_length=20,

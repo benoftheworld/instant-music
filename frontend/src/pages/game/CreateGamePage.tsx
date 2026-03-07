@@ -42,12 +42,6 @@ const gameModes: { value: GameMode; label: string; description: string; icon: st
     description: 'La musique joue au ralenti (0.6×). Reconnaissez le morceau malgré le tempo changé.',
     icon: '🦥',
   },
-  {
-    value: 'inverse',
-    label: 'À l\'envers',
-    description: 'La musique joue à l\'envers. Reconnaissez la chanson jouée en sens inverse.',
-    icon: '🔄',
-  },
 ];
 
 export default function CreateGamePage() {
@@ -462,8 +456,8 @@ export default function CreateGamePage() {
           </div>
         )}
 
-        {/* Classique / Rapide / Mollo / Inverse specific */}
-        {(selectedMode === 'classique' || selectedMode === 'rapide' || selectedMode === 'mollo' || selectedMode === 'inverse') && (
+        {/* Classique / Rapide / Mollo specific */}
+        {(selectedMode === 'classique' || selectedMode === 'rapide' || selectedMode === 'mollo') && (
           <div className="space-y-4">
             {answerMode === 'mcq' ? (
               <div>
@@ -619,7 +613,7 @@ export default function CreateGamePage() {
                   <span className="text-gray-500">Réponse :</span>{' '}
                   <strong>{answerMode === 'mcq' ? 'QCM' : 'Saisie libre'}</strong>
                 </li>
-                {(selectedMode === 'classique' || selectedMode === 'rapide' || selectedMode === 'mollo' || selectedMode === 'inverse') && answerMode === 'mcq' && (
+                {(selectedMode === 'classique' || selectedMode === 'rapide' || selectedMode === 'mollo') && answerMode === 'mcq' && (
                   <li>
                     <span className="text-gray-500">Cible :</span>{' '}
                     <strong>{guessTarget === 'artist' ? 'Artiste' : 'Titre'}</strong>

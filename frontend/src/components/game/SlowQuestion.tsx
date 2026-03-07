@@ -4,7 +4,7 @@ import {
 } from './shared';
 
 /**
- * SlowQuestion – Mode "Mollo" : la musique joue à 0.6× de sa vitesse normale.
+ * SlowQuestion – Mode "Mollo" : la musique joue à 0.3× de sa vitesse normale.
  * Le joueur doit reconnaître le morceau malgré le tempo ralenti.
  */
 const SlowQuestion = ({
@@ -18,7 +18,7 @@ const SlowQuestion = ({
   excludedOptions = [],
   fogBlur = false,
 }: Props) => {
-  const audio = useAudioPlayer(round, showResults, undefined, seekOffsetMs, 0.6);
+  const audio = useAudioPlayer(round, showResults, undefined, seekOffsetMs, 0.3);
 
   return (
     <div className="bg-white rounded-lg shadow-xl p-4 md:p-8">

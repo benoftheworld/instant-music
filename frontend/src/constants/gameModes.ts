@@ -32,12 +32,7 @@ export const GAME_MODE_CONFIG: Record<GameMode, { label: string; icon: string; d
   mollo: {
     label: 'Mollo',
     icon: '🦥',
-    description: 'La musique joue au ralenti (0.6×) — reconnaissez le morceau malgré le tempo changé',
-  },
-  inverse: {
-    label: 'À l\'envers',
-    icon: '🔄',
-    description: 'La musique joue à l\'envers — reconnaissez la chanson jouée en sens inverse',
+    description: 'La musique joue au ralenti — reconnaissez le morceau malgré le tempo changé',
   },
 };
 
@@ -50,7 +45,6 @@ export const LEADERBOARD_TABS: { value: GameMode | 'general' | 'teams'; label: s
   { value: 'paroles', label: 'Paroles', icon: '📝' },
   { value: 'karaoke', label: 'Karaoké', icon: '🎤' },
   { value: 'mollo', label: 'Mollo', icon: '🦥' },
-  { value: 'inverse', label: 'À l\'envers', icon: '🔄' },
 ];
 
 /**

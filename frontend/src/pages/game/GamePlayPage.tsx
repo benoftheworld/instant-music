@@ -18,7 +18,6 @@ import LyricsQuestion from '../../components/game/LyricsQuestion';
 import KaraokeQuestion from '../../components/game/KaraokeQuestion';
 import GuessArtistQuestion from '../../components/game/GuessArtistQuestion';
 import SlowQuestion from '../../components/game/SlowQuestion';
-import ReversedQuestion from '../../components/game/ReversedQuestion';
 import TextModeQuestion from '../../components/game/TextModeQuestion';
 import VolumeControl from '../../components/game/VolumeControl';
 import LiveScoreboard from '../../components/game/LiveScoreboard';
@@ -269,8 +268,6 @@ export default function GamePlayPage() {
       }
       case 'mollo':
         return <SlowQuestion {...commonProps} />;
-      case 'inverse':
-        return <ReversedQuestion {...commonProps} />;
       default:
         return <QuizQuestion {...commonProps} />;
     }

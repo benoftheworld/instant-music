@@ -40,7 +40,7 @@ export interface RegisterData {
   accept_privacy_policy: boolean;
 }
 
-export type GameMode = 'classique' | 'rapide' | 'generation' | 'paroles' | 'karaoke' | 'mollo' | 'inverse';
+export type GameMode = 'classique' | 'rapide' | 'generation' | 'paroles' | 'karaoke' | 'mollo';
 export type GameStatus = 'waiting' | 'in_progress' | 'finished' | 'cancelled';
 export type AnswerMode = 'mcq' | 'text';
 export type GuessTarget = 'artist' | 'title';

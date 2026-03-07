@@ -14,7 +14,6 @@ class GameMode(models.TextChoices):
     PAROLES = "paroles", _("Paroles")
     KARAOKE = "karaoke", _("Karaoké")
     LENT = "mollo", _("Mollo (ralenti)")
-    INVERSE = "inverse", _("À l'envers")
 
 
 class AnswerMode(models.TextChoices):
