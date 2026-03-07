@@ -95,9 +95,15 @@ export function useAudioPlayer(
       if (seekTime > 0 && seekTime < 30) {
         try { audio.currentTime = seekTime; } catch (_) { /* ignore */ }
       }
+      // Re-apply playbackRate right before play() — some browsers reset it after src load
+      audio.playbackRate = playbackRate;
       audio.play()
         .then(() => {
-          if (mountedRef.current) { setIsPlaying(true); setNeedsPlay(false); }
+          if (mountedRef.current) {
+            audio.playbackRate = playbackRate; // force after play() resolves
+            setIsPlaying(true);
+            setNeedsPlay(false);
+          }
         })
         .catch(() => {
           if (mountedRef.current) setNeedsPlay(true);
@@ -147,12 +153,16 @@ export function useAudioPlayer(
     setPlayerError(null);
     if (audioRef.current) {
       audioRef.current.volume = getEffectiveMusicVolume();
+      audioRef.current.playbackRate = playbackRate;
       const seekTime = getSeekTime();
       if (seekTime > 0 && seekTime < 30) {
         try { audioRef.current.currentTime = seekTime; } catch (_) { /* */ }
       }
       audioRef.current.play()
-        .then(() => { setIsPlaying(true); setNeedsPlay(false); })
+        .then(() => {
+          if (audioRef.current) audioRef.current.playbackRate = playbackRate;
+          setIsPlaying(true); setNeedsPlay(false);
+        })
         .catch(() => setPlayerError('Impossible de lancer la lecture'));
       return;
     }
@@ -169,8 +179,12 @@ export function useAudioPlayer(
       if (seekTime > 0 && seekTime < 30) {
         try { audio.currentTime = seekTime; } catch (_) { /* */ }
       }
+      audio.playbackRate = playbackRate;
       audio.play()
-        .then(() => { setIsPlaying(true); setNeedsPlay(false); scheduleStop(audioRef.current); })
+        .then(() => {
+          audio.playbackRate = playbackRate;
+          setIsPlaying(true); setNeedsPlay(false); scheduleStop(audioRef.current);
+        })
         .catch(() => setPlayerError('Impossible de lancer la lecture'));
     }, { once: true });
     audio.addEventListener('error', () => setPlayerError("Impossible de charger l'aperçu audio"), { once: true });
