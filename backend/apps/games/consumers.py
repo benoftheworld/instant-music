@@ -667,6 +667,9 @@ class GameConsumer(AsyncWebsocketConsumer):
         except Game.DoesNotExist:
             return {"error": "Partie introuvable."}
 
+        if not game.is_online:
+            return {"error": "Les bonus sont désactivés en mode hors ligne (solo)."}
+
         current_round = game.rounds.filter(
             started_at__isnull=False, ended_at__isnull=True
         ).first()

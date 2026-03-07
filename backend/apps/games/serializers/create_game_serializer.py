@@ -51,6 +51,10 @@ class CreateGameSerializer(serializers.ModelSerializer):
         else:
             if not data.get("playlist_id"):
                 raise serializers.ValidationError("Veuillez sélectionner une playlist.")
+            # Mode hors ligne (solo) : forcer 1 joueur max et partie privée
+            if not data.get("is_online", True):
+                data["max_players"] = 1
+                data["is_public"] = False
         return data
 
     def validate_round_duration(self, value):

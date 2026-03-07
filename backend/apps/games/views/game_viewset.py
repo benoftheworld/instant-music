@@ -248,11 +248,11 @@ class GameViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_200_OK,
             )
 
-        min_players = 1 if game.mode == "karaoke" else 2
+        min_players = 1 if game.mode == "karaoke" or not game.is_online else 2
         if game.players.count() < min_players:
             msg = (
                 "Au moins 1 joueur est nécessaire."
-                if game.mode == "karaoke"
+                if game.mode == "karaoke" or not game.is_online
                 else "Au moins 2 joueurs sont nécessaires."
             )
             return Response(
