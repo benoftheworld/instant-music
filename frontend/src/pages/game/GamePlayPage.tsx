@@ -340,6 +340,7 @@ export default function GamePlayPage() {
 
   // Show game screen during round
   const isKaraoke = game?.mode === 'karaoke';
+  const isSolo = isKaraoke || !game?.is_online;
 
   return (
     <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
@@ -418,7 +419,7 @@ export default function GamePlayPage() {
         )}
       </div>
       {/* Panneau d'activation des bonus — flottant en bas à droite */}
-      {roomCode && !isKaraoke && (
+      {roomCode && !isSolo && (
         <BonusActivator
           roomCode={roomCode}
           onBonusActivated={(_bonusType, extra) => {

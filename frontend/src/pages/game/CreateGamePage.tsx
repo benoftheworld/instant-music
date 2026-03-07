@@ -222,7 +222,7 @@ export default function CreateGamePage() {
                 <input
                   type="range"
                   min="10"
-                  max="60"
+                  max="30"
                   step="5"
                   value={roundDuration}
                   onChange={(e) => setRoundDuration(parseInt(e.target.value))}
@@ -244,7 +244,7 @@ export default function CreateGamePage() {
               <div className="flex gap-4 w-full justify-center">
                 <input
                   type="range"
-                  min="3"
+                  min="10"
                   max="30"
                   value={scoreDisplayDuration}
                   onChange={(e) => setScoreDisplayDuration(parseInt(e.target.value))}
@@ -313,6 +313,7 @@ export default function CreateGamePage() {
           {/* Max players & rounds — hidden for karaoke (solo, 1 round) */}
           {!isKaraoke && (
             <>
+              {isOnline && (
               <div className="flex flex-col gap-2 w-full">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   👥 Nombre maximum de joueurs
@@ -332,6 +333,7 @@ export default function CreateGamePage() {
                 </div>
                 <p className="text-sm text-gray-500 mt-1">Nombre maximum de joueurs</p>
               </div>
+              )}
 
               <div className="flex flex-col gap-2 w-full">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -360,13 +362,21 @@ export default function CreateGamePage() {
                   checked={!isOnline}
                   onChange={(e) => {
                     setIsOnline(!e.target.checked);
-                    if (e.target.checked) setIsPublic(false);
+                    if (e.target.checked) {
+                      setIsPublic(false);
+                      setMaxPlayers(1);
+                    } else {
+                      setMaxPlayers(8);
+                    }
                   }}
                   className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                 />
-                <label htmlFor="isOffline" className="text-sm font-medium text-gray-700">
-                  📴 Mode hors ligne (solo)
-                </label>
+                <div>
+                  <label htmlFor="isOffline" className="text-sm font-medium text-gray-700">
+                    📴 Mode hors ligne (solo)
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">Joueur unique. Bonus désactivés.</p>
+                </div>
               </div>
             </>
           )}

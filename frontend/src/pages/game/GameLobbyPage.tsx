@@ -161,11 +161,11 @@ export default function GameLobbyPage() {
       return;
     }
 
-    // Check minimum players (karaoke is solo, others need 2+)
-    const minPlayers = game.mode === 'karaoke' ? 1 : 2;
+    // Check minimum players (solo modes need 1, others need 2+)
+    const minPlayers = isSolo ? 1 : 2;
     if (game.player_count < minPlayers) {
       setStartError(
-        game.mode === 'karaoke'
+        isSolo
           ? 'Il faut au moins 1 joueur pour démarrer'
           : 'Il faut au moins 2 joueurs pour démarrer'
       );
@@ -280,6 +280,7 @@ export default function GameLobbyPage() {
   }
 
   const isHost = user?.id === game.host;
+  const isSolo = game.mode === 'karaoke' || !game.is_online;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -484,13 +485,13 @@ export default function GameLobbyPage() {
                   <button
                     onClick={handleStartGame}
                     className="btn-primary flex-1"
-                    disabled={(game.mode === 'karaoke' ? game.player_count < 1 : game.player_count < 2) || startingGame}
+                    disabled={(isSolo ? game.player_count < 1 : game.player_count < 2) || startingGame}
                   >
                     {startingGame ? 'Démarrage...' : 'Démarrer la partie'}
                   </button>
                 )}
               </div>
-              {isHost && game.mode !== 'karaoke' && game.player_count < 2 && (
+              {isHost && !isSolo && game.player_count < 2 && (
                 <p className="text-sm text-orange-600 text-center mt-2">
                   Il faut au moins 2 joueurs pour démarrer
                 </p>
