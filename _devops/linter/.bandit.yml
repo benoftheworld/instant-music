@@ -1,0 +1,28 @@
+# Bandit security scanner configuration
+# Docs: https://bandit.readthedocs.io/en/latest/config.html
+#
+# Run manually: bandit -r backend/ -c _devops/linter/.bandit.yml
+# Or via pyproject.toml: bandit -r backend/ -c pyproject.toml
+
+assert_used:
+  skips: ['*_test.py', '*/test_*.py', '*/tests/*.py']
+
+# Tests to skip globally
+# B101 - assert_used: acceptable in test files (handled above per-file)
+# B601 - paramiko_calls: not relevant to this project
+skips:
+  - B601
+
+# Severity / confidence thresholds
+# LOW, MEDIUM, HIGH
+# All issues at LOW severity and above will be reported
+severity: LOW
+confidence: LOW
+
+# Paths to exclude from scanning
+exclude_dirs:
+  - .git
+  - .venv
+  - venv
+  - node_modules
+  - backend/apps/*/migrations

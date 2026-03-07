@@ -1,0 +1,32 @@
+# Hadolint Dockerfile linter configuration
+# Docs: https://github.com/hadolint/hadolint
+#
+# Run manually: hadolint backend/Dockerfile
+# Or via CI: hadolint-action with recursive: true
+
+# Failure threshold – only fail CI on errors at or above this level
+# Possible values: error, warning, info, style, ignore, none
+failure-threshold: error
+
+# Ignored rules
+# DL3008 – pin versions in apt-get (advisory, not enforced here)
+# DL3009 – delete apt-get lists (advisory for CI images)
+# DL3018 – pin versions in apk add (our alpine base is pinned by image tag)
+# SC2086 – double quote to prevent glob splitting (handled case-by-case)
+ignore:
+  - DL3008
+  - DL3009
+  - DL3018
+
+# Trusted Docker registries (no DL3002 warnings for these)
+trustedRegistries:
+  - docker.io
+  - ghcr.io
+
+# Override rule severity
+overrides:
+  rules:
+    - id: DL3006   # always tag the version of the image
+      severity: warning
+    - id: DL3007   # using latest is prone to errors
+      severity: warning

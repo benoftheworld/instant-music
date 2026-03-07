@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django
+*.log
+db.sqlite3
+media/
+staticfiles/
+
+# Env
+.env
+.env.prod
+.env.local
+.env.*.local
+.venv/
+venv/
+
+# IDEs
+.vscode/
+.idea/
+
+# Node
+node_modules/
+
+# Frontend build
+frontend/dist/
+
+# Docker
+docker-compose.override.yml
+
+# Backups
+backups/
+*.sql
+*.sql.gz
+
+# SSL Certificates
+nginx/ssl/*.pem
+nginx/ssl/*.key
+nginx/ssl/*.crt
+
+# Logs
+logs/
+*.log
+
+# Misc
+.DS_Store
+_devops/nginx/monitoring/.htpasswd

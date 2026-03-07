@@ -1,0 +1,28 @@
+# Formatting and import sorting are handled by ruff (see root pyproject.toml)
+# This file only contains mypy configuration for the backend package.
+
+[tool.mypy]
+python_version = "3.14"
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
+check_untyped_defs = true
+disallow_untyped_defs = false # enable progressively — set true per-module
+ignore_missing_imports = true
+exclude = ["migrations/"]
+
+[[tool.mypy.overrides]]
+module = [
+    "apps.games.services",
+    "apps.games.broadcast_service",
+    "apps.games.lyrics_service",
+    "apps.games.signals",
+    "apps.playlists.youtube_service",
+    "apps.playlists.deezer_service",
+    "apps.achievements.services",
+]
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["config.settings.*"]
+disable_error_code = ["index", "attr-defined"]

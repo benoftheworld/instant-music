@@ -1,0 +1,202 @@
+name: instantmusic
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: instantmusic_db_prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env.prod
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app-network
+
+  # Redis (Cache & WebSocket Broker)
+  redis:
+    image: redis:7-alpine
+    container_name: instantmusic_redis_prod
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - app-network
+
+  # Django Backend
+  # Scalable horizontalement : docker compose up --scale backend=3
+  # Nombre de workers Gunicorn contrôlé par GUNICORN_WORKERS (défaut: 4)
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile.prod
+    command: >
+      gunicorn config.asgi:application
+      -k uvicorn.workers.UvicornWorker
+      -b 0.0.0.0:8000
+      --workers ${GUNICORN_WORKERS:-4}
+      --log-level info
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    expose:
+      - '8000'
+    env_file:
+      - ./.env.prod
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/api/health/']
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    networks:
+      - app-network
+
+  # Celery Worker (Async Tasks)
+  # Scalable horizontalement : docker compose up --scale celery=2
+  # Concurrence contrôlée par CELERY_CONCURRENCY (défaut: 4)
+  celery:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile.prod
+    command: celery -A config worker -l info --concurrency=${CELERY_CONCURRENCY:-4}
+    volumes:
+      - media_volume:/app/media
+    env_file:
+      - ./.env.prod
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'celery -A config inspect ping -d celery@$$HOSTNAME --timeout=5 -q || exit 1']
+      interval: 30s
+      timeout: 15s
+      start_period: 60s
+      retries: 3
+    networks:
+      - app-network
+
+  # Celery Beat (Scheduled Tasks) — une seule instance
+  celery-beat:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile.prod
+    container_name: instantmusic_celery_beat_prod
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler --pidfile=/app/celerybeat.pid
+    volumes:
+      - media_volume:/app/media
+    env_file:
+      - ./.env.prod
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'test -f /app/celerybeat.pid || exit 1']
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    networks:
+      - app-network
+
+  # React Frontend (Build + Nginx)
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile.prod
+      args:
+        - VITE_API_URL=${VITE_API_URL}
+        - VITE_WS_URL=${VITE_WS_URL}
+        - VITE_ADMIN_URL=${ADMIN_URL:-admin/}
+    container_name: instantmusic_frontend_prod
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost/health | grep -q healthy || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 5
+    networks:
+      - app-network
+
+  # Nginx (Reverse Proxy)
+  nginx:
+    image: nginx:alpine
+    container_name: instantmusic_nginx_prod
+    environment:
+      - ADMIN_URL=${ADMIN_URL:-admin/}
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf.template:ro
+      - ../nginx/security_headers.conf:/etc/nginx/security_headers.conf:ro
+      - ../nginx/security_headers_grafana.conf:/etc/nginx/security_headers_grafana.conf:ro
+      - ../nginx/security_headers_kibana.conf:/etc/nginx/security_headers_kibana.conf:ro
+      - ../nginx/monitoring:/etc/nginx/monitoring:ro
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
+      - letsencrypt:/etc/letsencrypt:ro
+      - certbot_webroot:/var/www/certbot:ro
+    command: /bin/sh -c "envsubst '$${ADMIN_URL}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    ports:
+      - '80:80'
+      - '443:443'
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q --spider http://localhost/ || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    networks:
+      - app-network
+
+  # Certbot (renouvellement automatique des certificats SSL)
+  certbot:
+    image: certbot/certbot:latest
+    container_name: instantmusic_certbot_prod
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
+    # Renouvelle automatiquement le certificat toutes les 12h
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done'
+    restart: unless-stopped
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+  letsencrypt:
+  certbot_webroot:
+
+networks:
+  app-network:
+    driver: bridge

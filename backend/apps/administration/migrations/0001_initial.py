@@ -1,0 +1,102 @@
+"""Initial migration for apps.administration.
+"""
+
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+    initial = True
+
+    dependencies = []
+
+    operations = [
+        migrations.CreateModel(
+            name="SiteConfiguration",
+            fields=[
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "maintenance_mode",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Quand activé, toutes les requêtes non-admin retournent 503 et le frontend affiche le message de maintenance.",
+                        verbose_name="mode maintenance",
+                    ),
+                ),
+                (
+                    "maintenance_title",
+                    models.CharField(
+                        blank=True,
+                        default="Maintenance en cours",
+                        help_text="Titre affiché sur la page de maintenance.",
+                        max_length=200,
+                        verbose_name="titre de maintenance",
+                    ),
+                ),
+                (
+                    "maintenance_message",
+                    models.TextField(
+                        blank=True,
+                        default="Le site est temporairement indisponible pour maintenance. Merci de réessayer dans quelques instants.",
+                        help_text="Message affiché aux utilisateurs pendant la maintenance.",
+                        verbose_name="message de maintenance",
+                    ),
+                ),
+                (
+                    "banner_enabled",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Affiche un bandeau en haut du frontend.",
+                        verbose_name="bandeau actif",
+                    ),
+                ),
+                (
+                    "banner_message",
+                    models.CharField(
+                        blank=True,
+                        default="",
+                        help_text="Texte affiché dans le bandeau (500 caractères max).",
+                        max_length=500,
+                        verbose_name="message du bandeau",
+                    ),
+                ),
+                (
+                    "banner_color",
+                    models.CharField(
+                        choices=[
+                            ("info", "Bleu — information"),
+                            ("success", "Vert — succès"),
+                            ("warning", "Orange — avertissement"),
+                            ("danger", "Rouge — danger"),
+                        ],
+                        default="info",
+                        max_length=10,
+                        verbose_name="couleur du bandeau",
+                    ),
+                ),
+                (
+                    "banner_dismissible",
+                    models.BooleanField(
+                        default=True,
+                        help_text="L'utilisateur peut fermer le bandeau.",
+                        verbose_name="bandeau fermable",
+                    ),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="mis à jour le"),
+                ),
+            ],
+            options={
+                "verbose_name": "Configuration du site",
+                "verbose_name_plural": "Configuration du site",
+            },
+        ),
+    ]
