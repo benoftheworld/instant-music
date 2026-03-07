@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Cache pip packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-lint-${{ hashFiles('**/requirements/*.txt') }}
@@ -59,7 +59,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Cache pip packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-mypy-${{ hashFiles('backend/requirements/development.txt') }}
@@ -172,7 +172,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Cache pip packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-test-${{ hashFiles('backend/requirements/development.txt') }}
