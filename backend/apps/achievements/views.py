@@ -1,5 +1,4 @@
-"""Views for achievements.
-"""
+"""Views for achievements."""
 
 from rest_framework import generics, permissions
 
@@ -15,15 +14,22 @@ class AchievementListView(generics.ListAPIView):
     pagination_class = None
 
     def get_queryset(self):
-        return Achievement.objects.all().order_by("condition_type", "condition_value")
+        """Return all achievements, ordered by condition type and value."""
+        return Achievement.objects.all().order_by(
+            "condition_type", 
+            "condition_value"
+        )
 
     def get_serializer_context(self):
+        """Add pre-fetched user achievements to the serializer context."""
         ctx = super().get_serializer_context()
         # Pre-fetch all user achievements in one query to avoid N+1
         if self.request.user.is_authenticated:
             ctx["user_achievements"] = {
                 ua.achievement_id: ua
-                for ua in UserAchievement.objects.filter(user=self.request.user)
+                for ua in UserAchievement.objects.filter(
+                    user=self.request.user
+                )
             }
         return ctx
 
@@ -35,6 +41,7 @@ class UserAchievementListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        """Return achievements unlocked by the user, ordered by date."""
         return (
             UserAchievement.objects.filter(user=self.request.user)
             .select_related("achievement")
@@ -49,6 +56,7 @@ class UserAchievementsByUserView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        """Return achievements unlocked by the user, ordered by date."""
         user_id = self.kwargs.get("user_id")
         return (
             UserAchievement.objects.filter(user_id=user_id)

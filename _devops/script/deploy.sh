@@ -218,11 +218,9 @@ if [[ "$OPT_BLUE_GREEN" == "true" ]]; then
     if [[ "$CURRENT" == "backend-green" ]]; then
         NEW_SLOT="blue"
         NEW_SERVICE="backend-blue"
-        NEW_PORT="8001"
     else
         NEW_SLOT="green"
         NEW_SERVICE="backend-green"
-        NEW_PORT="8002"
     fi
 
     log_section "Blue-green: deploiement sur le slot $NEW_SLOT"

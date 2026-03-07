@@ -77,6 +77,15 @@ class AchievementAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Points"))
     def points_badge(self, obj):
+        """Affiche les points sous forme de badge stylisé.
+        
+        Arguments:
+            obj: L'instance de l'objet à afficher.
+
+        Return:
+            Un HTML formaté avec les points sous forme de badge.
+
+        """
         return format_html(
             '<span style="background:#8b5cf6; color:#fff; padding:2px 8px; '
             'border-radius:12px; font-size:11px; font-weight:bold;">{} pts</span>',
@@ -85,6 +94,15 @@ class AchievementAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Débloqué par"))
     def unlock_count(self, obj):
+        """Affiche le nombre de fois que ce succès a été débloqué.
+
+        Arguments:
+            obj: L'instance de l'objet à afficher.
+
+        Return:
+            Le nombre d'utilisateurs ayant débloqué ce succès.
+
+        """
         return obj.userachievement_set.count()
 
 
@@ -116,6 +134,15 @@ class UserAchievementAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("UUID"))
     def uuid_short(self, obj):
+        """Affiche les 8 premiers caractères de l'UUID avec un tooltip complet.
+        
+        Arguments:
+            obj: L'instance de l'objet à afficher.
+            
+        Return:
+            Un HTML formaté avec le UUID court et un tooltip complet.
+
+        """
         short = str(obj.id)[:8]
         return format_html(
             '<span title="{}" style="font-family:monospace;font-size:11px;'

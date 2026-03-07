@@ -1,8 +1,8 @@
-"""Models for achievements.
-"""
+"""Models for achievements."""
 
 import uuid
 
+from auditlog.registry import auditlog
 from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -33,6 +33,7 @@ class Achievement(models.Model):
         verbose_name_plural = _("succès")
 
     def __str__(self) -> str:
+        """Affiche le nom de l'achievement."""
         return self.name  # type: ignore[no-any-return]
 
 
@@ -56,11 +57,8 @@ class UserAchievement(models.Model):
         unique_together = ["user", "achievement"]
 
     def __str__(self) -> str:
+        """Affiche l'utilisateur et le succès débloqué."""
         return f"{self.user.username} - {self.achievement.name}"
-
-
-# Audit log — traçabilité des modifications admin
-from auditlog.registry import auditlog
 
 auditlog.register(Achievement)
 auditlog.register(UserAchievement)

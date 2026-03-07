@@ -1,5 +1,4 @@
-"""Maintenance middleware — blocks all non-admin/non-health requests when
-maintenance mode is enabled in SiteConfiguration.
+"""Middleware to enforce maintenance mode site-wide.
 
 Excluded paths (always pass through):
   - /admin/      — Django admin
@@ -35,8 +34,7 @@ _EXCLUDED_PREFIXES = (
 
 
 class MaintenanceMiddleware(MiddlewareMixin):
-    """Returns HTTP 503 with a JSON body when maintenance_mode is True,
-    except for whitelisted paths.
+    """Return 503 Service Unavailable if maintenance mode is active.
 
     The configuration is read from the DB on every request but cached in
     memory for 5 seconds via a simple class-level cache to avoid a DB hit
@@ -70,6 +68,7 @@ class MaintenanceMiddleware(MiddlewareMixin):
         MaintenanceMiddleware._cache_ts = now
 
     def process_request(self, request):
+        """Check if maintenance mode is active and return 503 if so."""
         self._refresh_cache()
 
         if not self._cached_maintenance:

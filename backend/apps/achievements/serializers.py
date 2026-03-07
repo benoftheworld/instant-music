@@ -1,5 +1,4 @@
-"""Serializers for achievements.
-"""
+"""Serializers for achievements."""
 
 from rest_framework import serializers
 
@@ -58,7 +57,7 @@ class AchievementSerializer(serializers.ModelSerializer):
         return self._get_user_achievement(obj) is not None
 
     def get_unlocked_at(self, obj):
-        """Return the timestamp when the current user unlocked this achievement."""
+        """Return the timestamp when the user unlocked the achievement."""
         ua = self._get_user_achievement(obj)
         if ua:
             return ua.unlocked_at.isoformat()

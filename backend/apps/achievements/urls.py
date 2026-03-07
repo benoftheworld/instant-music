@@ -1,5 +1,4 @@
-"""URL configuration for achievements app.
-"""
+"""URL configuration for achievements app."""
 
 from django.urls import path
 

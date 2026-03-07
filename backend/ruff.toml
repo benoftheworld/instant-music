@@ -29,9 +29,8 @@ exclude = [
     "docs",
     "db-data",
     "dev",
-    "src/gunicorn",
-    "src/db/migrations/*",
     "**/__init__.py",
+    "apps/*/migrations/*"
 ]
 
 # Same as Black.

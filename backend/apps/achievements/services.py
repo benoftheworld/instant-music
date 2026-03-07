@@ -1,9 +1,11 @@
-"""Service for checking and awarding achievements to users.
-"""
+"""Service for checking and awarding achievements to users."""
 
 import logging
 from typing import Any
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from django.conf import settings
 from django.db import transaction
 
 from .models import Achievement, UserAchievement
@@ -11,13 +13,11 @@ from .models import Achievement, UserAchievement
 logger = logging.getLogger(__name__)
 
 
-def _push_achievement_notification(user_id: int, achievement: "Achievement") -> None:
-    """Push a WebSocket notification to the user for a newly unlocked achievement."""
+def _push_achievement_notification(
+        user_id: int, achievement: "Achievement"
+    ) -> None:
+    """Push a WebSocket notif to the user for a newly unlocked achievement."""
     try:
-        from asgiref.sync import async_to_sync
-        from channels.layers import get_channel_layer
-        from django.conf import settings
-
         channel_layer = get_channel_layer()
         if channel_layer is None:
             return
@@ -89,7 +89,8 @@ class AchievementService:
         Args:
             user: The user to check achievements for
             game: Optional game that just finished (for context)
-            round_data: Optional dict with round-specific info (e.g. perfect_round=True)
+            round_data: Optional dict with round-specific info
+              (e.g. perfect_round=True)
 
         Returns:
             List of newly awarded Achievement objects
@@ -165,17 +166,15 @@ class AchievementService:
 
         elif ctype == CONDITION_PERFECT_ROUND:
             # Perfect round: all answers correct in a single game
-            if round_data and round_data.get("perfect_game"):
-                return True
-            return False
+            return bool(round_data and round_data.get("perfect_game"))
 
         elif ctype == CONDITION_WIN_STREAK:
             # Check consecutive wins from recent games
             from apps.games.models import GamePlayer
 
-            recent_games = GamePlayer.objects.filter(user=user).order_by("-joined_at")[
-                :cvalue
-            ]
+            recent_games = GamePlayer.objects.filter(user=user).order_by(
+                "-joined_at"
+            )[:cvalue]
 
             if recent_games.count() < cvalue:
                 return False
@@ -262,7 +261,11 @@ class AchievementService:
             from apps.games.models import GamePlayer
 
             return (  # type: ignore[no-any-return]
-                GamePlayer.objects.filter(user=user, game__mode=cextra, rank=1).count()
+                GamePlayer.objects.filter(
+                    user=user, 
+                    game__mode=cextra, 
+                    rank=1
+                ).count()
                 >= cvalue
             )
 
@@ -291,7 +294,10 @@ class AchievementService:
             from apps.games.models import Game
 
             return (  # type: ignore[no-any-return]
-                Game.objects.filter(host=user, status="finished").count() >= cvalue
+                Game.objects.filter(
+                    host=user, 
+                    status="finished"
+                ).count() >= cvalue
             )
 
         elif ctype == CONDITION_INVITATIONS_SENT:

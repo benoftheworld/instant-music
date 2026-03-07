@@ -1,5 +1,4 @@
-"""Django admin configuration for apps/administration.
-"""
+"""Django admin configuration for apps/administration."""
 
 from django.contrib import admin, messages
 from django.utils.html import format_html
@@ -10,9 +9,7 @@ from .models import LegalPage, SiteConfiguration
 
 @admin.register(SiteConfiguration)
 class SiteConfigurationAdmin(admin.ModelAdmin):
-    """Admin pour la configuration globale du site.
-    Singleton — une seule ligne possible.
-    """
+    """Admin pour la configuration globale du site."""
 
     fieldsets = (
         (
@@ -69,6 +66,20 @@ class SiteConfigurationAdmin(admin.ModelAdmin):
         return base
 
     def status_overview(self, obj):
+        """Display the current status of the site with visual indicators.
+
+        This method returns an HTML string that shows whether the site 
+        is in maintenance mode and whether the information banner is 
+        active. It uses colored badges and icons for clarity.
+
+        Args:
+            obj: The SiteConfiguration instance 
+                (can be None when adding a new one).
+
+        Returns:
+            An HTML string with visual indicators of the site's status.
+
+        """
         if obj is None:
             return "—"
         parts = []
@@ -107,6 +118,7 @@ class SiteConfigurationAdmin(admin.ModelAdmin):
         return False
 
     def save_model(self, request, obj, form, change):
+        """After saving, display a message about the new status of the site."""
         super().save_model(request, obj, form, change)
         if obj.maintenance_mode:
             self.message_user(
@@ -124,7 +136,7 @@ class SiteConfigurationAdmin(admin.ModelAdmin):
 
 @admin.register(LegalPage)
 class LegalPageAdmin(admin.ModelAdmin):
-    """Admin pour les pages légales (politique de confidentialité, mentions légales)."""
+    """Admin pour les pages légales."""
 
     list_display = ("page_type", "title", "updated_at")
     list_filter = ("page_type",)

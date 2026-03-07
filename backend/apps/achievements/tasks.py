@@ -1,5 +1,4 @@
-"""Tâches Celery pour le système d'achievements.
-"""
+"""Tâches Celery pour le système d'achievements."""
 
 import logging
 
@@ -31,6 +30,8 @@ def check_achievements_async(self, user_id, game_id=None, round_data=None):
         try:
             game = Game.objects.get(pk=game_id)
         except Game.DoesNotExist:
-            logger.warning("check_achievements_async: game %s not found", game_id)
+            logger.warning(
+                "check_achievements_async: game %s not found", game_id
+            )
 
     achievement_service.check_and_award(user, game=game, round_data=round_data)

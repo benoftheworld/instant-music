@@ -341,7 +341,10 @@ class Command(BaseCommand):
         parser.add_argument(
             "--force",
             action="store_true",
-            help="Update existing achievements (description, points, condition)",
+            help=(
+                "Update existing achievements "
+                "(description, points, condition)",
+            )
         )
 
     def handle(self, *args, **options):
@@ -372,7 +375,9 @@ class Command(BaseCommand):
                         setattr(obj, field, value)
                 obj.save()
                 updated_count += 1
-                self.stdout.write(self.style.WARNING(f"  ↻ Mis à jour : {obj.name}"))
+                self.stdout.write(
+                    self.style.WARNING(f"  ↻ Mis à jour : {obj.name}")
+                )
             else:
                 skipped_count += 1
 
