@@ -6,9 +6,6 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "python"
     commit-message:
       prefix: "chore(deps):"
 
@@ -18,9 +15,6 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "javascript"
     commit-message:
       prefix: "chore(deps):"
 
@@ -28,9 +22,6 @@ updates:
     directory: "/backend"
     schedule:
       interval: "monthly"
-    labels:
-      - "dependencies"
-      - "docker"
     commit-message:
       prefix: "chore(deps):"
 
@@ -38,9 +29,6 @@ updates:
     directory: "/frontend"
     schedule:
       interval: "monthly"
-    labels:
-      - "dependencies"
-      - "docker"
     commit-message:
       prefix: "chore(deps):"
 
@@ -48,8 +36,5 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
-    labels:
-      - "dependencies"
-      - "ci"
     commit-message:
       prefix: "chore(ci):"
