@@ -4,7 +4,7 @@ import {
 } from './shared';
 
 /**
- * SlowQuestion – Mode "Lent" : la musique joue à 0.6× de sa vitesse normale.
+ * SlowQuestion – Mode "Mollo" : la musique joue à 0.6× de sa vitesse normale.
  * Le joueur doit reconnaître le morceau malgré le tempo ralenti.
  */
 const SlowQuestion = ({
@@ -23,7 +23,7 @@ const SlowQuestion = ({
   return (
     <div className="bg-white rounded-lg shadow-xl p-4 md:p-8">
       <div className="mb-3 md:mb-6 text-center">
-        <div className="text-2xl md:text-4xl mb-1 md:mb-3">🐢</div>
+        <div className="text-2xl md:text-4xl mb-1 md:mb-3">🦥</div>
         <h2 className="text-lg md:text-2xl font-bold text-gray-800">
           {round.question_text || 'Quel est le titre de ce morceau ?'}
         </h2>

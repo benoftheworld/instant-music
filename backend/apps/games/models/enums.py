@@ -13,7 +13,7 @@ class GameMode(models.TextChoices):
     GENERATION = "generation", _("Génération")
     PAROLES = "paroles", _("Paroles")
     KARAOKE = "karaoke", _("Karaoké")
-    LENT = "mollo", _("Lent (ralenti)")
+    LENT = "mollo", _("Mollo (ralenti)")
     INVERSE = "inverse", _("À l'envers")
 
 

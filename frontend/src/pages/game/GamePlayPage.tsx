@@ -267,7 +267,7 @@ export default function GamePlayPage() {
         };
         return <KaraokeQuestion {...commonProps} onSkipSong={handleKaraokeEnded} />;
       }
-      case 'lent':
+      case 'mollo':
         return <SlowQuestion {...commonProps} />;
       case 'inverse':
         return <ReversedQuestion {...commonProps} />;

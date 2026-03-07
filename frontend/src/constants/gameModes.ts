@@ -29,9 +29,9 @@ export const GAME_MODE_CONFIG: Record<GameMode, { label: string; icon: string; d
     icon: '🎤',
     description: 'Mode solo : musique complète via YouTube avec paroles synchronisées',
   },
-  lent: {
-    label: 'Lent',
-    icon: '🐢',
+  mollo: {
+    label: 'Mollo',
+    icon: '🦥',
     description: 'La musique joue au ralenti (0.6×) — reconnaissez le morceau malgré le tempo changé',
   },
   inverse: {
@@ -49,7 +49,7 @@ export const LEADERBOARD_TABS: { value: GameMode | 'general' | 'teams'; label: s
   { value: 'generation', label: 'Génération', icon: '📅' },
   { value: 'paroles', label: 'Paroles', icon: '📝' },
   { value: 'karaoke', label: 'Karaoké', icon: '🎤' },
-  { value: 'lent', label: 'Lent', icon: '🐢' },
+  { value: 'mollo', label: 'Mollo', icon: '🦥' },
   { value: 'inverse', label: 'À l\'envers', icon: '🔄' },
 ];
 

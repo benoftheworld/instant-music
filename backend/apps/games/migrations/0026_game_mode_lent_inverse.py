@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
                     ("generation", "Génération"),
                     ("paroles", "Paroles"),
                     ("karaoke", "Karaoké"),
-                    ("mollo", "Lent (ralenti)"),
+                    ("mollo", "Mollo (ralenti)"),
                     ("inverse", "À l'envers"),
                 ],
                 default="classique",
