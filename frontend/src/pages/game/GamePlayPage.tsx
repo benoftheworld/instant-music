@@ -378,7 +378,7 @@ export default function GamePlayPage() {
     );
   }
 
-  // Show results screen after round ends
+  // Show results screen after round ends (skip reveal phase — still showing question component)
   if (roundPhase === 'results' && roundResults) {
     // En mode soirée, exclure le présentateur (hôte) du classement
     const displayPlayers = game?.is_party_mode
@@ -393,6 +393,7 @@ export default function GamePlayPage() {
         myPointsEarned={myPointsEarned}
         myAnswer={selectedAnswer}
         playerScores={roundResults.player_scores}
+        roundBonuses={roundResults.round_bonuses}
       />
     );
   }
@@ -411,7 +412,7 @@ export default function GamePlayPage() {
           `Résultats : la bonne réponse était ${roundResults.correct_answer}`}
       </div>
 
-      <div className={`flex-1 flex flex-col min-h-0 container mx-auto ${isKaraoke ? 'max-w-7xl' : 'max-w-6xl'}`}>
+      <div className={`flex-1 flex flex-col min-h-0 container mx-auto ${isKaraoke ? 'max-w-7xl' : 'max-w-7xl'}`}>
         {/* Header with room code and round number */}
         <div className="flex justify-between items-center mb-2 shrink-0">
           <div className="text-white">
@@ -435,15 +436,21 @@ export default function GamePlayPage() {
           {!isKaraoke && (
             <div className="flex items-center gap-3">
               <VolumeControl variant="floating" />
-              <div
-                className={`text-6xl font-bold ${
-                  timeRemaining <= 5 ? 'text-red-400 animate-pulse' : 'text-white'
-                }`}
-                role="timer"
-                aria-label={`${timeRemaining} secondes restantes`}
-              >
-                {timeRemaining}s
-              </div>
+              {roundPhase === 'reveal' ? (
+                <div className="text-4xl font-bold text-green-400">
+                  ✓
+                </div>
+              ) : (
+                <div
+                  className={`text-6xl font-bold ${
+                    timeRemaining <= 5 ? 'text-red-400 animate-pulse' : 'text-white'
+                  }`}
+                  role="timer"
+                  aria-label={`${timeRemaining} secondes restantes`}
+                >
+                  {timeRemaining}s
+                </div>
+              )}
               {/* Annonces screen reader aux seuils critiques */}
               <div aria-live="assertive" className="sr-only">
                 {timeRemaining === 10 && '10 secondes restantes'}

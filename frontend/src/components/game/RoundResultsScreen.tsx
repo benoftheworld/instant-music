@@ -1,7 +1,8 @@
 import { getMediaUrl } from '@/services/api';
 import { formatAnswer } from '@/utils/formatAnswer';
 import { useAudioPlayerOnResults } from './shared';
-import type { GameRound, GamePlayer } from '@/types';
+import { BONUS_META } from '@/constants/bonuses';
+import type { GameRound, GamePlayer, BonusType } from '@/types';
 
 /** Per-player score data for the current round (from backend round_ended event) */
 interface PlayerRoundScore {
@@ -10,6 +11,11 @@ interface PlayerRoundScore {
   response_time: number;
   streak_bonus?: number;
   consecutive_correct?: number;
+}
+
+interface RoundBonusInfo {
+  username: string;
+  bonus_type: string;
 }
 
 interface RoundResultsScreenProps {
@@ -21,7 +27,36 @@ interface RoundResultsScreenProps {
   myAnswer?: string | null;
   /** Per-player round scores keyed by username */
   playerScores?: Record<string, PlayerRoundScore>;
+  /** Bonuses activated during this round */
+  roundBonuses?: RoundBonusInfo[];
   onContinue?: () => void;
+}
+
+/** Generate a human-readable description for a bonus */
+function describeBonusImpact(bonus: RoundBonusInfo): string {
+  const meta = BONUS_META[bonus.bonus_type as BonusType];
+  if (!meta) return `${bonus.username} a utilisé un bonus`;
+
+  switch (bonus.bonus_type) {
+    case 'steal':
+      return `${bonus.username} a volé des points au leader`;
+    case 'shield':
+      return `${bonus.username} s'est protégé contre le vol`;
+    case 'time_bonus':
+      return `${bonus.username} a ajouté 15s au timer`;
+    case 'fog':
+      return `${bonus.username} a brouillé les options des adversaires`;
+    case 'fifty_fifty':
+      return `${bonus.username} a retiré 2 mauvaises réponses`;
+    case 'double_points':
+      return `${bonus.username} a doublé ses points`;
+    case 'max_points':
+      return `${bonus.username} a obtenu le score maximum`;
+    case 'joker':
+      return `${bonus.username} a utilisé un joker`;
+    default:
+      return `${bonus.username} a utilisé ${meta.label}`;
+  }
 }
 
 export default function RoundResultsScreen({
@@ -31,6 +66,7 @@ export default function RoundResultsScreen({
   myPointsEarned,
   myAnswer,
   playerScores,
+  roundBonuses,
   onContinue,
 }: RoundResultsScreenProps) {
   const audio = useAudioPlayerOnResults(round, true);
@@ -40,216 +76,215 @@ export default function RoundResultsScreen({
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 
+  // Find fastest correct player
+  const fastestPlayer = playerScores
+    ? Object.entries(playerScores)
+        .filter(([, s]) => s.is_correct)
+        .sort(([, a], [, b]) => a.response_time - b.response_time)[0]
+    : null;
+
   // Extract year from extra_data if available
   const year = round.extra_data?.year || round.extra_data?.release_date?.substring(0, 4) || null;
   const albumImage = round.extra_data?.album_image;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 flex items-center justify-center">
-      <div className="container mx-auto max-w-5xl">
-        {/* Main Card */}
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-green-500 to-teal-500 p-6 text-center">
-            <div className="text-5xl mb-3">🎉</div>
-            <h2 className="text-3xl font-bold text-white mb-2">
-              Fin du Round {round.round_number}
-            </h2>
-            <p className="text-white/90 text-lg">
-              {myPointsEarned > 0 ? `+${myPointsEarned} points !` : 'Aucun point'}
-            </p>
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-3 md:p-4 flex flex-col">
+      <div className="flex-1 min-h-0 container mx-auto max-w-7xl flex flex-col">
+        {/* Compact Header */}
+        <div className="bg-gradient-to-r from-green-500 to-teal-500 rounded-t-2xl px-6 py-3 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🎉</span>
+            <div>
+              <h2 className="text-xl font-bold text-white">
+                Fin du Round {round.round_number}
+              </h2>
+              <p className="text-white/90 text-sm">
+                {myPointsEarned > 0 ? `+${myPointsEarned} points !` : 'Aucun point ce round'}
+              </p>
+            </div>
+          </div>
+          {/* Compact Audio Player */}
+          <div className="flex items-center gap-2">
+            {audio.isPlaying ? (
+              <span className="text-white text-2xl animate-pulse">🎵</span>
+            ) : audio.needsPlay ? (
+              <button
+                onClick={audio.handlePlay}
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition font-bold text-sm"
+              >
+                ▶️ Écouter
+              </button>
+            ) : (
+              <span className="text-white text-2xl">⏳</span>
+            )}
+          </div>
+        </div>
+
+        {/* Main Content — 3 columns */}
+        <div className="bg-white rounded-b-2xl shadow-2xl flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden">
+
+          {/* Left Column: Track Info (compact) */}
+          <div className="lg:col-span-4 p-4 flex flex-col gap-3 overflow-y-auto min-h-0 border-r border-gray-100">
+            {/* Album Art + Track Details side by side on desktop */}
+            <div className="flex gap-3">
+              {albumImage ? (
+                <img
+                  src={albumImage}
+                  alt={`${round.track_name} album art`}
+                  className="w-28 h-28 rounded-lg object-cover shadow-md shrink-0"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              ) : (
+                <div className="w-28 h-28 rounded-lg bg-gradient-to-br from-purple-400 to-blue-500 shadow-md flex items-center justify-center shrink-0">
+                  <span className="text-white text-4xl">🎶</span>
+                </div>
+              )}
+              <div className="flex flex-col justify-center min-w-0">
+                <p className="text-lg font-bold text-gray-900 truncate">{round.track_name}</p>
+                <p className="text-sm text-gray-600 truncate">{round.artist_name}</p>
+                {year && <p className="text-xs text-gray-400">{year}</p>}
+              </div>
+            </div>
+
+            {/* Answer section */}
+            <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 font-medium">Bonne réponse</span>
+                <span className="text-sm font-bold text-green-600 truncate">{correctAnswer}</span>
+              </div>
+              {myAnswer !== undefined && myAnswer !== null && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 font-medium">Votre réponse</span>
+                  <span className={`text-sm font-bold truncate ${
+                    myPointsEarned > 0 ? 'text-green-600' : 'text-red-500'
+                  }`}>
+                    {formatAnswer(myAnswer)} {myPointsEarned > 0 ? '✓' : '✗'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Fastest Player Badge */}
+            {fastestPlayer && (
+              <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg p-3 flex items-center gap-3">
+                <span className="text-2xl">⚡</span>
+                <div className="min-w-0">
+                  <p className="text-xs text-amber-600 font-semibold uppercase tracking-wide">Le plus rapide</p>
+                  <p className="text-sm font-bold text-gray-900 truncate">{fastestPlayer[0]}</p>
+                  <p className="text-xs text-amber-500">{fastestPlayer[1].response_time.toFixed(1)}s</p>
+                </div>
+              </div>
+            )}
+
+            {/* Bonus Section */}
+            {roundBonuses && roundBonuses.length > 0 && (
+              <div className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-lg p-3">
+                <p className="text-xs text-violet-600 font-semibold uppercase tracking-wide mb-2">
+                  ⚡ Bonus utilisés
+                </p>
+                <div className="space-y-1.5">
+                  {roundBonuses.map((bonus, i) => {
+                    const meta = BONUS_META[bonus.bonus_type as BonusType];
+                    return (
+                      <div key={i} className="flex items-center gap-2 text-xs">
+                        <span className="text-base shrink-0">{meta?.emoji || '🎁'}</span>
+                        <span className="text-gray-700">{describeBonusImpact(bonus)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 p-6">
-            {/* Left: Track Info */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">
-                🎵 Informations sur la musique
-              </h3>
+          {/* Right Column: Top 5 Players */}
+          <div className="lg:col-span-8 p-4 flex flex-col min-h-0">
+            <h3 className="text-lg font-bold text-gray-800 mb-3 shrink-0 flex items-center gap-2">
+              <span>🏆</span> Classement
+            </h3>
 
-              {/* Album Art */}
-              {albumImage ? (
-                <div className="rounded-lg overflow-hidden shadow-lg">
-                  <img
-                    src={albumImage}
-                    alt={`${round.track_name} album art`}
-                    className="w-full h-auto object-cover"
-                    onError={(e) => {
-                      // Fallback if image doesn't load
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="bg-gradient-to-br from-purple-400 to-blue-500 rounded-lg shadow-lg h-64 flex items-center justify-center">
-                  <div className="text-white text-6xl">🎶</div>
-                </div>
-              )}
-
-              {/* Audio Player */}
-              <div className="flex items-center justify-center p-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg">
-                {audio.isPlaying ? (
-                  <div className="text-white text-center">
-                    <div className="text-3xl animate-pulse">🎵</div>
-                    <p className="text-sm mt-1">Lecture en cours...</p>
+            <div className="space-y-2 flex-1 min-h-0 overflow-y-auto">
+              {topPlayers.map((player, index) => (
+                <div
+                  key={player.id}
+                  className={`flex items-center gap-3 rounded-xl p-3 transition-all ${
+                    index === 0
+                      ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 shadow-lg'
+                      : index === 1
+                      ? 'bg-gradient-to-r from-gray-200 to-gray-300 shadow'
+                      : index === 2
+                      ? 'bg-gradient-to-r from-orange-300 to-orange-400 shadow'
+                      : 'bg-gray-50'
+                  }`}
+                >
+                  {/* Medal / Rank */}
+                  <div className="text-xl w-8 text-center shrink-0">
+                    {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}
                   </div>
-                ) : audio.needsPlay ? (
-                  <button
-                    onClick={audio.handlePlay}
-                    className="px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition font-bold shadow"
-                  >
-                    ▶️ Écouter
-                  </button>
-                ) : (
-                  <div className="text-white text-center">
-                    <div className="text-3xl">⏳</div>
-                    <p className="text-sm mt-1">Chargement...</p>
-                  </div>
-                )}
-              </div>
 
-              {/* Track Details */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">Titre</p>
-                  <p className="text-lg font-bold text-gray-900">{round.track_name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">Artiste</p>
-                  <p className="text-lg font-bold text-gray-900">{round.artist_name}</p>
-                </div>
-                {year && (
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium">Année</p>
-                    <p className="text-lg font-bold text-gray-900">{year}</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">Bonne réponse</p>
-                  <p className="text-lg font-bold text-green-600">{correctAnswer}</p>
-                </div>
-                {myAnswer !== undefined && myAnswer !== null && (
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium">Votre réponse</p>
-                    <p className={`text-lg font-bold ${
-                      myPointsEarned > 0 ? 'text-green-600' : 'text-red-500'
-                    }`}>
-                      {formatAnswer(myAnswer)} {myPointsEarned > 0 ? '✓' : '✗'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Right: Top 5 Players */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">
-                🏆 Top 5 Joueurs
-              </h3>
-
-              <div className="space-y-3">
-                {topPlayers.map((player, index) => (
-                  <div
-                    key={player.id}
-                    className={`flex items-center gap-4 rounded-lg p-4 transition-all ${
-                      index === 0
-                        ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 shadow-lg scale-105'
-                        : index === 1
-                        ? 'bg-gradient-to-r from-gray-300 to-gray-400 shadow-md'
-                        : index === 2
-                        ? 'bg-gradient-to-r from-orange-400 to-orange-500 shadow-md'
-                        : 'bg-gray-100'
-                    }`}
-                  >
-                    {/* Rank */}
-                    <div
-                      className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
-                        index < 3 ? 'text-white' : 'text-gray-700 bg-white'
-                      }`}
-                    >
-                      {index + 1}
+                  {/* Avatar */}
+                  {player.avatar ? (
+                    <img
+                      src={getMediaUrl(player.avatar) ?? player.avatar}
+                      alt={player.username}
+                      className="w-10 h-10 rounded-full object-cover shrink-0"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                      {player.username.charAt(0).toUpperCase()}
                     </div>
+                  )}
 
-                    {/* Avatar */}
-                    {player.avatar ? (
-                      <img
-                        src={getMediaUrl(player.avatar) ?? player.avatar}
-                        alt={player.username}
-                        className="w-12 h-12 rounded-full object-cover"
-                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold">
-                        {player.username.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-
-                    {/* Player Info */}
-                    <div className="flex-1">
-                      <p
-                        className={`font-bold ${
-                          index < 3 ? 'text-white' : 'text-gray-900'
-                        }`}
-                      >
-                        {player.username}
-                      </p>
-                      <p
-                        className={`text-sm ${
-                          index < 3 ? 'text-white/80' : 'text-gray-500'
-                        }`}
-                      >
-                        {player.score} points
-                      </p>
-                      {/* Per-round details */}
+                  {/* Player Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-bold text-sm truncate ${index < 3 ? 'text-white' : 'text-gray-900'}`}>
+                      {player.username}
+                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-xs ${index < 3 ? 'text-white/80' : 'text-gray-500'}`}>
+                        {player.score} pts
+                      </span>
                       {playerScores?.[player.username] && (
-                        <div className={`flex flex-col gap-0.5 mt-0.5 text-xs ${
-                          index < 3 ? 'text-white/70' : 'text-gray-400'
-                        }`}>
-                          <div className="flex items-center gap-2">
-                            <span className={playerScores[player.username].is_correct
+                        <>
+                          <span className={`text-xs ${
+                            playerScores[player.username].is_correct
                               ? (index < 3 ? 'text-green-200' : 'text-green-500')
                               : (index < 3 ? 'text-red-200' : 'text-red-400')
-                            }>
-                              {playerScores[player.username].is_correct ? '✓' : '✗'}
-                              {' '}+{playerScores[player.username].points_earned} pts
-                            </span>
-                            <span>•</span>
-                            <span>
-                              ⏱ {playerScores[player.username].response_time.toFixed(1)}s
-                            </span>
-                          </div>
+                          }`}>
+                            {playerScores[player.username].is_correct ? '✓' : '✗'}
+                            {' '}+{playerScores[player.username].points_earned}
+                          </span>
+                          <span className={`text-xs ${index < 3 ? 'text-white/60' : 'text-gray-400'}`}>
+                            ⏱ {playerScores[player.username].response_time.toFixed(1)}s
+                          </span>
                           {(playerScores[player.username].streak_bonus ?? 0) > 0 && (
-                            <span className={index < 3 ? 'text-orange-200' : 'text-orange-400'}>
-                              🔥 Série ×{playerScores[player.username].consecutive_correct} +{playerScores[player.username].streak_bonus} pts
+                            <span className={`text-xs ${index < 3 ? 'text-orange-200' : 'text-orange-400'}`}>
+                              🔥×{playerScores[player.username].consecutive_correct}
                             </span>
                           )}
-                        </div>
+                        </>
                       )}
                     </div>
-
-                    {/* Medal for top 3 */}
-                    {index === 0 && <div className="text-2xl">🥇</div>}
-                    {index === 1 && <div className="text-2xl">🥈</div>}
-                    {index === 2 && <div className="text-2xl">🥉</div>}
                   </div>
-                ))}
-              </div>
-
-              {/* Continue Button */}
-              {onContinue && (
-                <button
-                  onClick={onContinue}
-                  className="w-full mt-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg"
-                >
-                  Continuer
-                </button>
-              )}
+                </div>
+              ))}
             </div>
+
+            {/* Continue Button */}
+            {onContinue && (
+              <button
+                onClick={onContinue}
+                className="w-full mt-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-4 px-6 rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg text-lg"
+              >
+                Continuer
+              </button>
+            )}
           </div>
         </div>
 
         {/* Auto-continue message */}
-        <p className="text-center text-white/70 mt-4 text-sm">
+        <p className="text-center text-white/60 mt-2 text-xs shrink-0">
           Le prochain round commencera automatiquement...
         </p>
       </div>

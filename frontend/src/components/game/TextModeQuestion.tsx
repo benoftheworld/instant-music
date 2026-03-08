@@ -66,7 +66,7 @@ export default function TextModeQuestion({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-xl p-8" onClick={handleCardClick}>
+    <div className="bg-white rounded-xl shadow-xl p-8" onClick={handleCardClick}>
       {/* Question header */}
       <div className="mb-6 text-center">
         <div className="text-4xl mb-3">{getModeIcon()}</div>

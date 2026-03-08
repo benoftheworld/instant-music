@@ -184,6 +184,24 @@ def broadcast_round_start(room_code: str, round_obj: GameRound, game: Game) -> N
     )
 
 
+def _build_round_bonuses(game: Game, round_number: int) -> list[dict[str, Any]]:
+    """Build list of bonuses activated during a specific round."""
+    from apps.shop.models import GameBonus
+
+    bonuses = (
+        GameBonus.objects.filter(game=game, round_number=round_number)
+        .select_related("player__user")
+        .order_by("activated_at")
+    )
+    return [
+        {
+            "username": b.player.user.username,
+            "bonus_type": b.bonus_type,
+        }
+        for b in bonuses
+    ]
+
+
 def broadcast_round_end(room_code: str, round_obj: GameRound, game: Game) -> None:
     """Broadcast round end with correct answer, per-player scores, and updated totals."""
     # Réinitialiser la série des joueurs qui n'ont pas répondu ce round
@@ -205,6 +223,7 @@ def broadcast_round_end(room_code: str, round_obj: GameRound, game: Game) -> Non
                 "round_data": round_data,
                 "player_scores": _build_player_scores(round_obj),
                 "updated_players": _build_updated_players(game),
+                "round_bonuses": _build_round_bonuses(game, round_obj.round_number),
             },
         },
     )

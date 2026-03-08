@@ -86,6 +86,7 @@ export function useGameWebSocket({
             ...data.results,
             correct_answer: data.results?.correct_answer || '',
             points_earned: myScoreData?.points_earned,
+            round_bonuses: data.results?.round_bonuses || [],
           };
 
           dispatch({ type: 'END_ROUND', results });
@@ -105,8 +106,16 @@ export function useGameWebSocket({
               advanceToNextRound();
             }
           } else {
-            dispatch({ type: 'ENTER_RESULTS' });
-            // Host advances to next round after result display time
+            // Phase reveal : afficher la bonne réponse (boutons colorés) pendant 2.5s
+            // avant de passer à l'écran de résultats complet.
+            const revealDuration = 2500;
+            dispatch({ type: 'ENTER_REVEAL' });
+
+            setTimeout(() => {
+              dispatch({ type: 'ENTER_RESULTS' });
+            }, revealDuration);
+
+            // Host advances to next round after reveal + result display time
             const resultDisplayTime =
               (game?.score_display_duration || 10) * 1000;
             if (user && game && game.host === user.id) {
@@ -117,7 +126,7 @@ export function useGameWebSocket({
               advanceTimeoutRef.current = setTimeout(() => {
                 advanceTimeoutRef.current = null;
                 advanceToNextRound();
-              }, resultDisplayTime);
+              }, revealDuration + resultDisplayTime);
             }
           }
           break;

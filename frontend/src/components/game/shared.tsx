@@ -406,7 +406,7 @@ export function OptionsGrid({
       return 'bg-gray-200 border-2 border-gray-300 cursor-not-allowed';
     }
     if (showResults && roundResults) {
-      if (option === roundResults.correct_answer) return 'bg-green-500 text-white border-2 border-green-700';
+      if (option === roundResults.correct_answer) return 'bg-green-500 text-white border-2 border-green-700 ring-4 ring-green-300 scale-[1.02]';
       if (option === selectedAnswer) return 'bg-red-500 text-white border-2 border-red-700';
       return 'bg-gray-200 border-2 border-gray-300';
     }
@@ -418,7 +418,7 @@ export function OptionsGrid({
 
   return (
     <div
-      className={`grid grid-cols-2 gap-2 md:gap-4 mb-4 md:mb-6 transition-[filter] duration-1000${
+      className={`grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6 flex-1 transition-[filter] duration-1000${
         isBlurred ? ' blur-sm select-none' : ''
       }`}
     >
@@ -426,14 +426,14 @@ export function OptionsGrid({
         <button
           key={index}
           onClick={() => { if (!hasAnswered && !showResults) { soundEffects.click(); onOptionClick(option); } }}
-          className={`p-2 rounded-lg text-left transition-all duration-200 min-h-0 h-full overflow-hidden ${getStyle(option)}`}
+          className={`p-3 md:p-4 rounded-xl text-left transition-all duration-300 min-h-0 h-full overflow-hidden ${getStyle(option)}`}
           disabled={hasAnswered || showResults}
         >
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 shrink-0 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 shrink-0 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">
               {String.fromCharCode(65 + index)}
             </div>
-            <span className="text-sm font-medium leading-tight line-clamp-2">{option}</span>
+            <span className="text-base md:text-lg font-medium leading-tight line-clamp-2">{option}</span>
           </div>
         </button>
       ))}

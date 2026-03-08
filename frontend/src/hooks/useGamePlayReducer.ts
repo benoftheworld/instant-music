@@ -3,7 +3,7 @@ import { mergeUpdatedPlayers } from '@/utils/mergeUpdatedPlayers';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-export type RoundPhase = 'loading' | 'playing' | 'results';
+export type RoundPhase = 'loading' | 'playing' | 'reveal' | 'results';
 
 export interface PlayerScore {
   is_correct: boolean;
@@ -13,10 +13,16 @@ export interface PlayerScore {
   consecutive_correct?: number;
 }
 
+export interface RoundBonusInfo {
+  username: string;
+  bonus_type: string;
+}
+
 export interface RoundResults {
   correct_answer: string;
   player_scores?: Record<string, PlayerScore>;
   points_earned?: number;
+  round_bonuses?: RoundBonusInfo[];
 }
 
 export interface GamePlayState {
@@ -45,6 +51,7 @@ export type GamePlayAction =
   | { type: 'SUBMIT_ANSWER'; answer: string }
   | { type: 'SET_POINTS_EARNED'; points: number }
   | { type: 'END_ROUND'; results: RoundResults }
+  | { type: 'ENTER_REVEAL' }
   | { type: 'ENTER_RESULTS' }
   | { type: 'TICK'; time: number }
   | { type: 'SET_EXCLUDED_OPTIONS'; options: string[] }
@@ -126,6 +133,9 @@ export function gamePlayReducer(
       };
       return { ...state, showResults: true, roundResults: results };
     }
+
+    case 'ENTER_REVEAL':
+      return { ...state, roundPhase: 'reveal' };
 
     case 'ENTER_RESULTS':
       return { ...state, roundPhase: 'results' };
