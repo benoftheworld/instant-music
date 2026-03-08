@@ -66,6 +66,14 @@ class Game(models.Model):
             "Si activé, la partie apparaît dans la liste des parties publiques"
         ),
     )
+    is_party_mode = models.BooleanField(
+        _("mode soirée"),
+        default=False,
+        help_text=_(
+            "Si activé, l'hôte est spectateur (écran projeté) et les joueurs "
+            "voient uniquement les boutons de réponse sur leur téléphone."
+        ),
+    )
     playlist_name = models.CharField(
         _("nom de la playlist"),
         max_length=255,

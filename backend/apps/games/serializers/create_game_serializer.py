@@ -29,6 +29,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
             "karaoke_song_id",
             "is_online",
             "is_public",
+            "is_party_mode",
             "answer_mode",
             "guess_target",
             "round_duration",
@@ -48,16 +49,24 @@ class CreateGameSerializer(serializers.ModelSerializer):
             data["max_players"] = 1
             data["num_rounds"] = 1
             data["score_display_duration"] = 0
+            # Karaoké incompatible avec le mode soirée
+            data["is_party_mode"] = False
         else:
             if not data.get("playlist_id"):
                 raise serializers.ValidationError(
                     "Veuillez sélectionner une playlist."
                 )
+            # Mode soirée : nécessite une partie en ligne
+            if data.get("is_party_mode") and not data.get("is_online", True):
+                raise serializers.ValidationError(
+                    "Le mode soirée nécessite une partie en ligne."
+                )
             # Mode hors ligne (solo) : forcer 1 joueur max et partie privée
             if not data.get("is_online", True):
                 data["max_players"] = 1
                 data["is_public"] = False
-        
+                data["is_party_mode"] = False
+
         return data
 
     def validate_round_duration(self, value):

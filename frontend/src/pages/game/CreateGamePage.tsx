@@ -63,6 +63,7 @@ export default function CreateGamePage() {
   const [numRounds, setNumRounds] = useState(10);
   const [isOnline, setIsOnline] = useState(true);
   const [isPublic, setIsPublic] = useState(false);
+  const [isPartyMode, setIsPartyMode] = useState(false);
 
   // Step 3: Playlist (non-karaoke) or karaoke song
   const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
@@ -128,6 +129,7 @@ export default function CreateGamePage() {
         karaoke_song_id: isKaraoke ? karaokeSelectedSong!.id : undefined,
         is_online: isKaraoke ? false : isOnline,
         is_public: isKaraoke ? false : isPublic,
+        is_party_mode: isKaraoke ? false : (isOnline ? isPartyMode : false),
         answer_mode: answerMode,
         guess_target: guessTarget,
         round_duration: roundDuration,
@@ -302,6 +304,34 @@ export default function CreateGamePage() {
                 </label>
                 <p className="text-xs text-gray-500 mt-1">
                   Visible dans la liste des parties publiques. N'importe qui peut rejoindre.
+                </p>
+              </div>
+            </div>
+          )}
+          {isOnline && (
+            <div
+              className={`flex gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                isPartyMode
+                  ? 'bg-violet-50 border-violet-400'
+                  : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setIsPartyMode((v) => !v)}
+            >
+              <input
+                type="checkbox"
+                id="isPartyMode"
+                checked={isPartyMode}
+                onChange={(e) => setIsPartyMode(e.target.checked)}
+                className="w-5 h-5 text-violet-600 border-gray-300 rounded focus:ring-violet-500 mt-0.5 shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <div>
+                <label htmlFor="isPartyMode" className="text-sm font-medium text-gray-700 cursor-pointer">
+                  🎉 Mode Soirée
+                </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  L'hôte projette l'interface complète sur grand écran. Les joueurs voient
+                  uniquement les boutons de réponse sur leur téléphone.
                 </p>
               </div>
             </div>
@@ -595,6 +625,9 @@ export default function CreateGamePage() {
                   <li><span className="text-gray-500">Mode :</span> <strong>{isOnline ? 'En ligne' : 'Hors ligne'}</strong></li>
                   {isOnline && (
                     <li><span className="text-gray-500">Visibilité :</span> <strong>{isPublic ? '🌐 Publique' : '🔒 Privée'}</strong></li>
+                  )}
+                  {isOnline && isPartyMode && (
+                    <li><span className="text-gray-500">Mode Soirée :</span> <strong>🎉 Activé</strong></li>
                   )}
                 </>
               )}

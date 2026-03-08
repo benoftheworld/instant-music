@@ -24,6 +24,7 @@ import LiveScoreboard from '../../components/game/LiveScoreboard';
 import RoundLoadingScreen from '../../components/game/RoundLoadingScreen';
 import RoundResultsScreen from '../../components/game/RoundResultsScreen';
 import BonusActivator from '../../components/game/BonusActivator';
+import PartyPlayerView from '../../components/game/PartyPlayerView';
 
 export default function GamePlayPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -164,6 +165,8 @@ export default function GamePlayPage() {
     if (!roomCode || !currentRound || hasAnswered) return;
     // Karaoke mode has no answers to submit
     if (game?.mode === 'karaoke') return;
+    // En mode soirée, l'hôte est spectateur — il n'envoie pas de réponse
+    if (game?.is_party_mode && user?.id === game?.host) return;
 
     soundEffects.answerSubmitted();
     dispatch({ type: 'SUBMIT_ANSWER', answer });
@@ -313,13 +316,33 @@ export default function GamePlayPage() {
     );
   }
 
-  // Show loading screen before round starts
+  // Show loading screen before round starts (visible pour tous, y compris mode soirée)
   if (roundPhase === 'loading') {
     return (
       <RoundLoadingScreen
         roundNumber={currentRound.round_number}
         onComplete={handleLoadingComplete}
         duration={game?.timer_start_round || 5}
+      />
+    );
+  }
+
+  // ── Mode Soirée : vue joueur (téléphone) ──────────────────────────────
+  // Intercepte dès ici pour éviter l'affichage du classement complet (RoundResultsScreen)
+  // et de l'interface complète lors des rounds. L'hôte (spectateur) continue normalement.
+  if (game?.is_party_mode && user?.id !== game?.host) {
+    return (
+      <PartyPlayerView
+        round={currentRound}
+        timeRemaining={timeRemaining}
+        hasAnswered={hasAnswered}
+        selectedAnswer={selectedAnswer}
+        showResults={roundPhase === 'results' && showResults}
+        roundResults={roundResults}
+        answerMode={game.answer_mode}
+        onAnswerSubmit={handleAnswerSubmit}
+        excludedOptions={excludedOptions}
+        myPointsEarned={myPointsEarned}
       />
     );
   }

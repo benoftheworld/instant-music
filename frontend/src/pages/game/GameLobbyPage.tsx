@@ -325,6 +325,11 @@ export default function GameLobbyPage() {
                 {game.guess_target === 'artist' ? '🎤 Artiste' : '🎵 Titre'}
               </span>
             )}
+            {game.is_party_mode && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-violet-100 text-violet-800 rounded-full text-xs font-semibold">
+                🎉 Mode Soirée
+              </span>
+            )}
           </div>
 
           {/* Room code + share */}
@@ -406,6 +411,28 @@ export default function GameLobbyPage() {
 
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Mode Soirée — info block */}
+            {game.is_party_mode && (
+              <div className="card border-2 border-violet-200 bg-violet-50">
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl">🎉</span>
+                  <div>
+                    <h3 className="font-bold text-violet-900 mb-1">Mode Soirée activé</h3>
+                    {isHost ? (
+                      <p className="text-sm text-violet-800">
+                        Vous êtes <strong>hôte spectateur</strong>. Projetez cet écran sur grand écran — il affichera la musique
+                        et le classement. Les joueurs n'auront sur leur téléphone que les boutons de réponse.
+                      </p>
+                    ) : (
+                      <p className="text-sm text-violet-800">
+                        La musique jouera depuis l'écran projeté. Sur votre téléphone vous verrez
+                        <strong> uniquement les boutons de réponse</strong>.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Playlist Selection — hidden for karaoke (single track pre-selected) */}
             {game.mode !== 'karaoke' && (
             <div className="card">

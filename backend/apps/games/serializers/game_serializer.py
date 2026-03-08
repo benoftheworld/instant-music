@@ -35,6 +35,7 @@ class GameSerializer(serializers.ModelSerializer):
             "karaoke_song_detail",
             "is_online",
             "is_public",
+            "is_party_mode",
             "answer_mode",
             "guess_target",
             "round_duration",

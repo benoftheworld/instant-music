@@ -63,6 +63,7 @@ export interface Game {
   karaoke_song_detail?: KaraokeSong | null;
   is_online: boolean;
   is_public: boolean;
+  is_party_mode: boolean;
   answer_mode: AnswerMode;
   guess_target: GuessTarget;
   round_duration: number;
@@ -99,6 +100,7 @@ export interface CreateGameData {
   karaoke_song_id?: number | null;
   is_online: boolean;
   is_public: boolean;
+  is_party_mode?: boolean;
   answer_mode: AnswerMode;
   guess_target: GuessTarget;
   round_duration: number;

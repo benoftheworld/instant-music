@@ -125,7 +125,7 @@ export default function GameHistoryPage() {
           {games.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg mb-4">Aucune partie terminée pour le moment</p>
-          <Link to="/create-game" className="btn-primary">
+          <Link to="/game/create" className="btn-primary">
             Créer une partie
           </Link>
         </div>
