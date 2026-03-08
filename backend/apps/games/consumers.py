@@ -204,6 +204,39 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             )
         )
 
+    async def notify_team_join_rejected(self, event):
+        """Push a team join rejected notification to the requester."""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "team_join_rejected",
+                    "rejection": event["rejection"],
+                }
+            )
+        )
+
+    async def notify_team_role_updated(self, event):
+        """Push a role-change notification to the affected member."""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "team_role_updated",
+                    "role_update": event["role_update"],
+                }
+            )
+        )
+
+    async def notify_team_member_kicked(self, event):
+        """Push a kick notification to the expelled member."""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "team_member_kicked",
+                    "kick": event["kick"],
+                }
+            )
+        )
+
 
 class GameConsumer(AsyncWebsocketConsumer):
     """WebSocket consumer for game rooms."""

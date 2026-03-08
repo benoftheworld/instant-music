@@ -9,7 +9,7 @@ export interface PendingFriendRequest {
 
 export interface SocialNotification {
   id: string;
-  type: 'friend_request_accepted' | 'team_join_request' | 'team_join_approved';
+  type: 'friend_request_accepted' | 'team_join_request' | 'team_join_approved' | 'team_join_rejected' | 'team_role_updated' | 'team_member_kicked';
   message: string;
   link?: string;
   created_at: string;

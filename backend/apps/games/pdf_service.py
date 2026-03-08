@@ -509,7 +509,7 @@ def generate_results_pdf(
     # 4 — DÉTAIL PAR ROUND
     # ════════════════════════════════════════════════════════════════════════
     if rounds:
-        elements.append(_section_header("Détail par round", S["sec"]))
+        elements.append(_section_header("Détail par manche", S["sec"]))
         elements.append(Spacer(1, 6))
 
         RW = [COL_W * w for w in (0.06, 0.25, 0.37, 0.14, 0.10, 0.08)]
@@ -542,7 +542,7 @@ def generate_results_pdf(
                 [
                     [
                         Paragraph(
-                            f"<b>Round {rnum}</b>  ·  {track}",
+                            f"<b>Manche {rnum}</b>  ·  {track}",
                             _s(
                                 f"rh{rnum}a",
                                 fontSize=9,
@@ -770,7 +770,7 @@ def generate_results_pdf(
         [
             Paragraph("<b>Bonus boutique</b>", S["bold_sm"]),
             Paragraph(
-                "Points x2 (double les points du prochain round correct)  |  "
+                "Points x2 (double les points de la prochaine manche correcte)  |  "
                 "Points max (garantit au moins 100 pts de base)  |  "
                 "Vol de pts (−100 pts au leader, si non protégé)  |  "
                 "Joker (mauvaise réponse comptabilisée comme correcte)",

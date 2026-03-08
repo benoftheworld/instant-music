@@ -213,22 +213,22 @@ function TeamCard({ team, currentUserId, onJoin, onLeave, isJoined, showLeave }:
 
   return (
     <div onClick={handleView} className="card border border-gray-200 cursor-pointer">
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-3 sm:gap-4">
         {team.avatar ? (
           <img
             src={getMediaUrl(team.avatar)}
             alt={team.name}
-            className="w-16 h-16 rounded-lg object-cover"
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover flex-shrink-0"
           />
         ) : (
-          <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-2xl font-bold">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
             {team.name.charAt(0).toUpperCase()}
           </div>
         )}
         
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold">{team.name}</h3>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-base sm:text-lg font-bold">{team.name}</h3>
             {isOwner && (
               <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">
                 Propriétaire
@@ -236,10 +236,10 @@ function TeamCard({ team, currentUserId, onJoin, onLeave, isJoined, showLeave }:
             )}
           </div>
           {team.description && (
-            <p className="text-sm text-gray-600 mt-1">{team.description}</p>
+            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{team.description}</p>
           )}
           
-          <div className="flex gap-4 mt-3 text-sm text-gray-500">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-xs sm:text-sm text-gray-500">
             <span>👥 {team.member_count} membres</span>
             <span>🎮 {team.total_games} parties</span>
             <span>🏆 {team.total_wins} victoires</span>
@@ -247,7 +247,7 @@ function TeamCard({ team, currentUserId, onJoin, onLeave, isJoined, showLeave }:
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 flex-shrink-0">
           {onJoin && !isJoined && (
             <button onClick={onJoin} className="btn-primary text-sm">
               Rejoindre

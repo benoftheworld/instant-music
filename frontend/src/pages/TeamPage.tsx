@@ -160,49 +160,69 @@ export default function TeamPage() {
   const isOwner = myMembership?.role === 'owner';
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-6 sm:py-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
-          {team.avatar ? (
-            <img src={getMediaUrl(team.avatar)} alt={team.name} className="w-20 h-20 rounded-lg object-cover" />
-          ) : (
-            <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-3xl font-bold">
-              {team.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <div>
-            <h1 className="text-2xl font-bold">{team.name}</h1>
-            {editing ? (
-              <form onSubmit={handleEditSubmit} className="space-y-2">
-                <textarea
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  className="input w-full"
-                  placeholder="Description de l'équipe"
-                  maxLength={500}
-                />
-                <div className="flex items-center gap-2">
-                  <input type="file" accept="image/*" onChange={(e) => setEditAvatarFile(e.target.files?.[0] || null)} />
-                  <button type="submit" disabled={processing} className="btn-primary">{processing ? 'Enregistrement...' : 'Enregistrer'}</button>
-                  <button type="button" onClick={() => setEditing(false)} className="text-sm text-gray-500">Annuler</button>
-                </div>
-              </form>
+        {/* Team header */}
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4 mb-6">
+          <div className="flex items-start gap-4">
+            {team.avatar ? (
+              <img src={getMediaUrl(team.avatar)} alt={team.name} className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover flex-shrink-0" />
             ) : (
-              <p className="text-sm text-gray-600">{team.description}</p>
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold flex-shrink-0">
+                {team.name.charAt(0).toUpperCase()}
+              </div>
             )}
-            <div className="flex gap-4 mt-2 text-sm text-gray-500">
-              <span>👥 {team.member_count} membres</span>
-              <span>🎮 {team.total_games} parties</span>
-              <span>🏆 {team.total_wins} victoires</span>
-              <span>⭐ {team.total_points} pts</span>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold">{team.name}</h1>
+              {!editing && (
+                <p className="text-sm text-gray-600 mt-1">{team.description}</p>
+              )}
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-xs sm:text-sm text-gray-500">
+                <span>👥 {team.member_count} membres</span>
+                <span>🎮 {team.total_games} parties</span>
+                <span>🏆 {team.total_wins} victoires</span>
+                <span>⭐ {team.total_points} pts</span>
+              </div>
             </div>
           </div>
           {canManage() && !editing && (
-            <div className="ml-auto">
-              <button onClick={() => setEditing(true)} className="btn-primary">Modifier l'équipe</button>
-            </div>
+            <button onClick={() => setEditing(true)} className="btn-primary sm:ml-auto self-start sm:self-auto text-sm">
+              Modifier l'équipe
+            </button>
           )}
         </div>
+
+        {/* Edit form */}
+        {editing && (
+          <div className="card mb-6">
+            <h2 className="text-lg font-bold mb-3">Modifier l'équipe</h2>
+            <form onSubmit={handleEditSubmit} className="space-y-3">
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                className="input w-full"
+                placeholder="Description de l'équipe"
+                maxLength={500}
+              />
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setEditAvatarFile(e.target.files?.[0] || null)}
+                  className="text-sm"
+                />
+                <div className="flex gap-2">
+                  <button type="submit" disabled={processing} className="btn-primary">
+                    {processing ? 'Enregistrement...' : 'Enregistrer'}
+                  </button>
+                  <button type="button" onClick={() => setEditing(false)} className="text-sm text-gray-500">
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        )}
 
         {message && (
           <div className={`mb-4 p-3 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
@@ -215,45 +235,47 @@ export default function TeamPage() {
           <h2 className="text-lg font-bold mb-4">Membres</h2>
           <div className="space-y-2">
             {team.members_list.map((m) => (
-              <div key={m.id} className="flex items-center justify-between p-2 border border-gray-100 rounded">
-                <div className="flex items-center gap-3">
+              <div key={m.id} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 border border-gray-100 rounded">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   {m.user.avatar ? (
-                    <img src={getMediaUrl(m.user.avatar)} alt={m.user.username} className="w-10 h-10 rounded-full object-cover" />
+                    <img src={getMediaUrl(m.user.avatar)} alt={m.user.username} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
                   ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold flex-shrink-0">
                       {m.user.username.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div>
-                    <div className="font-medium">{m.user.username}</div>
-                    <div className="text-xs text-gray-500">Points: {m.user.total_points ?? '—'} · Victoires: {m.user.total_wins ?? '—'}</div>
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{m.user.username}</div>
+                    <div className="text-xs text-gray-500">Pts: {m.user.total_points ?? '—'} · Victoires: {m.user.total_wins ?? '—'}</div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {canManage() ? (
                     <select
                       value={m.role}
                       onChange={(e) => handleChangeRole(m, e.target.value as TeamMemberRole)}
                       disabled={processing || (m.role === 'owner' && !isOwner)}
-                      className="input text-sm"
+                      className="input text-sm py-1"
                     >
                       <option value="member">Membre</option>
-                      <option value="admin">Administrateur</option>
-                      <option value="owner">Propriétaire</option>
+                      <option value="admin">Admin</option>
+                      <option value="owner">Proprio</option>
                     </select>
                   ) : (
                     <span className="text-sm text-gray-600">{roleLabel(m.role)}</span>
                   )}
 
                   {canManage() && m.role !== 'owner' && (
-                    <button onClick={() => handleRemove(m)} className="text-sm text-red-500">Supprimer</button>
+                    <button onClick={() => handleRemove(m)} className="text-sm text-red-500 whitespace-nowrap">
+                      Retirer
+                    </button>
                   )}
                 </div>
               </div>
             ))}
           </div>
-          </div>
+        </div>
 
           {canManage() && (
             <div className="card mt-4">
@@ -265,22 +287,22 @@ export default function TeamPage() {
               ) : (
                 <div className="space-y-2">
                   {joinRequests.map((r) => (
-                    <div key={r.id} className="flex items-center justify-between p-2 border border-gray-100 rounded">
-                      <div className="flex items-center gap-3">
+                    <div key={r.id} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 border border-gray-100 rounded">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
                         {r.user.avatar ? (
-                          <img src={getMediaUrl(r.user.avatar)} alt={r.user.username} className="w-10 h-10 rounded-full object-cover" />
+                          <img src={getMediaUrl(r.user.avatar)} alt={r.user.username} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold flex-shrink-0">
                             {r.user.username.charAt(0).toUpperCase()}
                           </div>
                         )}
-                        <div>
-                          <div className="font-medium">{r.user.username}</div>
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{r.user.username}</div>
                           <div className="text-xs text-gray-500">{r.message || ''}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => handleApproveRequest(r.id)} disabled={processing} className="btn-primary text-sm">Accepter</button>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button onClick={() => handleApproveRequest(r.id)} disabled={processing} className="btn-primary text-sm py-1">Accepter</button>
                         <button onClick={() => handleRejectRequest(r.id)} disabled={processing} className="text-sm text-red-500">Refuser</button>
                       </div>
                     </div>

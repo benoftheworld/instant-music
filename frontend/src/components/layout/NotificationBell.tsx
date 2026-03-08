@@ -209,6 +209,9 @@ export default function NotificationBell() {
                       {notif.type === 'friend_request_accepted' && 'Ami'}
                       {notif.type === 'team_join_request' && 'Équipe'}
                       {notif.type === 'team_join_approved' && 'Équipe'}
+                      {notif.type === 'team_join_rejected' && 'Équipe'}
+                      {notif.type === 'team_role_updated' && 'Équipe'}
+                      {notif.type === 'team_member_kicked' && 'Équipe'}
                     </p>
                     <p className="text-sm text-cream-100 leading-snug">{notif.message}</p>
                     {notif.link && (

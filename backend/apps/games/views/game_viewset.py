@@ -432,20 +432,20 @@ class GameViewSet(viewsets.ModelViewSet):
 
         if game.host != request.user:
             return Response(
-                {"error": "Seul l'hôte peut terminer le round."},
+                {"error": "Seul l'hôte peut terminer la manche."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         current = game_service.get_current_round(game)
         if not current:
             return Response(
-                {"error": "Aucun round actif."},
+                {"error": "Aucune manche active."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if current.ended_at:
             return Response(
-                {"message": "Round déjà terminé."},
+                {"message": "Manche déjà terminée."},
                 status=status.HTTP_200_OK,
             )
 
@@ -456,7 +456,7 @@ class GameViewSet(viewsets.ModelViewSet):
             broadcast_round_end(room_code, current, game)
             return Response(
                 {
-                    "message": "Round terminé.",
+                    "message": "Manche terminée.",
                     "correct_answer": current.correct_answer,
                 },
                 status=status.HTTP_200_OK,
@@ -464,7 +464,7 @@ class GameViewSet(viewsets.ModelViewSet):
         except Exception:
             logger.exception("Failed to end round")
             return Response(
-                {"error": "Erreur lors de la fin du round."},
+                {"error": "Erreur lors de la fin de la manche."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -475,7 +475,7 @@ class GameViewSet(viewsets.ModelViewSet):
 
         if game.host != request.user:
             return Response(
-                {"error": "Seul l'hôte peut passer au round suivant."},
+                {"error": "Seul l'hôte peut passer à la manche suivante."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 

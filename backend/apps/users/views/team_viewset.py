@@ -97,11 +97,7 @@ class TeamViewSet(viewsets.ModelViewSet):
                     {"error": "Une demande est déjà en cours."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            elif join_request.status == TeamJoinRequestStatus.APPROVED:
-                return Response(
-                    {"error": "Votre demande a déjà été approuvée."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            # APPROVED (user left) or REJECTED: reset to pending
             join_request.status = TeamJoinRequestStatus.PENDING
             join_request.save()
 
@@ -234,6 +230,19 @@ class TeamViewSet(viewsets.ModelViewSet):
         join_request.status = TeamJoinRequestStatus.REJECTED
         join_request.save()
 
+        # Notifier l'utilisateur que sa demande a été refusée
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"notifications_{join_request.user.id}",
+                {
+                    "type": "notify.team_join_rejected",
+                    "rejection": {"team": {"id": str(team.id), "name": team.name}},
+                },
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
         return Response({"message": "Demande refusée."})
 
     @action(detail=True, methods=["post"])
@@ -360,6 +369,7 @@ class TeamViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        old_role = member.role
         with transaction.atomic():
             if role == TeamMemberRole.OWNER:
                 TeamMember.objects.filter(team=team, role=TeamMemberRole.OWNER).update(
@@ -369,6 +379,23 @@ class TeamViewSet(viewsets.ModelViewSet):
                 team.save()
             member.role = role
             member.save()
+
+        # Notifier le membre du changement de rôle
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"notifications_{member.user_id}",
+                {
+                    "type": "notify.team_role_updated",
+                    "role_update": {
+                        "team": {"id": str(team.id), "name": team.name},
+                        "old_role": old_role,
+                        "new_role": role,
+                    },
+                },
+            )
+        except Exception:  # noqa: BLE001
+            pass
 
         return Response({"message": "Rôle mis à jour."})
 
@@ -400,7 +427,22 @@ class TeamViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        kicked_user_id = member.user_id
         member.delete()
+
+        # Notifier le membre expulsé
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"notifications_{kicked_user_id}",
+                {
+                    "type": "notify.team_member_kicked",
+                    "kick": {"team": {"id": str(team.id), "name": team.name}},
+                },
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
         return Response({"message": "Membre supprimé."})
 
     # ── Private helpers ──────────────────────────────────────────────────

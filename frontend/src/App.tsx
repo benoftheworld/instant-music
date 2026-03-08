@@ -156,12 +156,71 @@ function App() {
       }
     });
 
+    const unsubTeamJoinRejected = notificationWS.on('team_join_rejected', (data) => {
+      if (data.rejection) {
+        addSocialNotification({
+          id: `team-rejected-${data.rejection.team.id}-${Date.now()}`,
+          type: 'team_join_rejected',
+          message: `Votre demande pour rejoindre ${data.rejection.team.name} a été refusée.`,
+          link: `/teams`,
+          created_at: new Date().toISOString(),
+        });
+        if (Notification.permission === 'granted') {
+          new Notification(`Demande refusée`, {
+            body: `Votre demande pour rejoindre ${data.rejection.team.name} a été refusée.`,
+            icon: '/images/logo.png',
+          });
+        }
+      }
+    });
+
+    const unsubTeamRoleUpdated = notificationWS.on('team_role_updated', (data) => {
+      if (data.role_update) {
+        const roleLabels: Record<string, string> = { owner: 'Propriétaire', admin: 'Administrateur', member: 'Membre' };
+        const newLabel = roleLabels[data.role_update.new_role] || data.role_update.new_role;
+        addSocialNotification({
+          id: `team-role-${data.role_update.team.id}-${Date.now()}`,
+          type: 'team_role_updated',
+          message: `Votre rôle dans ${data.role_update.team.name} a été mis à jour : ${newLabel}.`,
+          link: `/teams/${data.role_update.team.id}`,
+          created_at: new Date().toISOString(),
+        });
+        if (Notification.permission === 'granted') {
+          new Notification(`Rôle mis à jour dans ${data.role_update.team.name}`, {
+            body: `Votre nouveau rôle : ${newLabel}.`,
+            icon: '/images/logo.png',
+          });
+        }
+      }
+    });
+
+    const unsubTeamMemberKicked = notificationWS.on('team_member_kicked', (data) => {
+      if (data.kick) {
+        addSocialNotification({
+          id: `team-kicked-${data.kick.team.id}-${Date.now()}`,
+          type: 'team_member_kicked',
+          message: `Vous avez été retiré de l'équipe ${data.kick.team.name}.`,
+          link: `/teams`,
+          created_at: new Date().toISOString(),
+        });
+        if (Notification.permission === 'granted') {
+          new Notification(`Retiré de ${data.kick.team.name}`, {
+            body: `Vous avez été retiré de l'équipe.`,
+            icon: '/images/logo.png',
+          });
+        }
+      }
+    });
+
     return () => {
       unsubInvite();
       unsubFriendRequest();
       unsubFriendAccepted();
       unsubTeamJoinRequest();
       unsubTeamJoinApproved();
+      unsubTeamJoinRejected();
+      unsubTeamRoleUpdated();
+      unsubTeamMemberKicked();
     };
   }, [isAuthenticated]);
 
