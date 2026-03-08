@@ -153,6 +153,19 @@ export default function TeamPage() {
     }
   };
 
+  const handleDissolve = async () => {
+    if (!team) return;
+    if (!confirm(`Dissoudre l'équipe "${team.name}" ? Tous les membres seront exclus et l'équipe sera supprimée définitivement.`)) return;
+    setProcessing(true);
+    try {
+      await teamService.dissolveTeam(team.id);
+      navigate('/teams');
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur lors de la dissolution.' });
+      setProcessing(false);
+    }
+  };
+
   if (loading) return <div className="container mx-auto px-4 py-8">Chargement...</div>;
   if (!team) return <div className="container mx-auto px-4 py-8">Équipe introuvable.</div>;
 
@@ -185,10 +198,23 @@ export default function TeamPage() {
               </div>
             </div>
           </div>
-          {canManage() && !editing && (
-            <button onClick={() => setEditing(true)} className="btn-primary sm:ml-auto self-start sm:self-auto text-sm">
-              Modifier l'équipe
-            </button>
+          {!editing && (
+            <div className="flex flex-col gap-2 sm:ml-auto self-start sm:self-auto">
+              {canManage() && (
+                <button onClick={() => setEditing(true)} className="btn-primary text-sm">
+                  Modifier l'équipe
+                </button>
+              )}
+              {isOwner && (
+                <button
+                  onClick={handleDissolve}
+                  disabled={processing}
+                  className="text-sm text-red-600 border border-red-300 rounded px-3 py-1.5 hover:bg-red-50 transition-colors"
+                >
+                  Dissoudre l'équipe
+                </button>
+              )}
+            </div>
           )}
         </div>
 

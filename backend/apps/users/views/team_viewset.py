@@ -22,6 +22,7 @@ from ..serializers import (
     TeamCreateSerializer,
     TeamJoinRequestCreateSerializer,
     TeamJoinRequestSerializer,
+    TeamJoinRequestWithTeamSerializer,
     TeamSerializer,
 )
 
@@ -112,7 +113,7 @@ class TeamViewSet(viewsets.ModelViewSet):
                 "id": str(join_request.id),
                 "team": {"id": str(team.id), "name": team.name},
                 "user": {
-                    "id": request.user.id,
+                    "id": str(request.user.id),
                     "username": request.user.username,
                     "avatar": request.user.avatar.url if getattr(request.user, "avatar", None) else None,
                 },
@@ -129,6 +130,21 @@ class TeamViewSet(viewsets.ModelViewSet):
             {"message": "Demande d'adhésion envoyée."},
             status=status.HTTP_201_CREATED,
         )
+
+    @action(detail=False, methods=["get"])
+    def my_pending_requests(self, request):
+        """Return all pending join requests for teams where the current user is owner/admin."""
+        admin_team_ids = TeamMember.objects.filter(
+            user=request.user,
+            role__in=[TeamMemberRole.OWNER, TeamMemberRole.ADMIN],
+        ).values_list("team_id", flat=True)
+
+        pending = TeamJoinRequest.objects.filter(
+            team_id__in=admin_team_ids,
+            status=TeamJoinRequestStatus.PENDING,
+        ).select_related("user", "team")
+
+        return Response(TeamJoinRequestWithTeamSerializer(pending, many=True).data)
 
     @action(detail=True, methods=["get"])
     def requests(self, request, pk=None):
@@ -244,6 +260,30 @@ class TeamViewSet(viewsets.ModelViewSet):
             pass
 
         return Response({"message": "Demande refusée."})
+
+    @action(detail=True, methods=["post"])
+    def dissolve(self, request, pk=None):
+        """Dissolve a team (owner only): remove all members and delete the team."""
+        team, membership = self._get_team_and_membership(request, pk)
+        if isinstance(team, Response):
+            return team
+
+        if membership.role != TeamMemberRole.OWNER:
+            return Response(
+                {"error": "Seul le propriétaire peut dissoudre l'équipe."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        with transaction.atomic():
+            team.memberships.all().delete()
+            team.delete()
+
+        logger.info(
+            "team_dissolved",
+            extra={"team_name": team.name, "owner_id": request.user.id},
+        )
+
+        return Response({"message": "Équipe dissoute avec succès."})
 
     @action(detail=True, methods=["post"])
     def leave(self, request, pk=None):

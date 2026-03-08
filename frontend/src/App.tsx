@@ -10,7 +10,7 @@ import { useAuthStore } from './store/authStore';
 import { notificationWS } from './services/notificationWebSocket';
 import { useNotificationStore } from './store/notificationStore';
 import { invitationService } from './services/invitationService';
-import { friendshipService } from './services/socialService';
+import { friendshipService, teamService } from './services/socialService';
 
 // ── Lazy-loaded pages (code splitting) ───────────────────────────────────
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
@@ -65,6 +65,19 @@ function App() {
     // Fetch pending friend requests on login/reload
     friendshipService.getPendingRequests().then((reqs) => {
       setFriendRequests(reqs.map((r) => ({ id: r.id, from_user: r.from_user, created_at: r.created_at })));
+    }).catch(() => {});
+
+    // Fetch pending team join requests for teams where user is owner/admin
+    teamService.getMyPendingTeamJoinRequests().then((requests) => {
+      requests.forEach((req) => {
+        addSocialNotification({
+          id: `team-join-req-${req.id}`,
+          type: 'team_join_request',
+          message: `${req.user.username} veut rejoindre ${req.team.name}.`,
+          link: `/teams/${req.team.id}`,
+          created_at: req.created_at,
+        });
+      });
     }).catch(() => {});
 
     // Open persistent WS for real-time notifications

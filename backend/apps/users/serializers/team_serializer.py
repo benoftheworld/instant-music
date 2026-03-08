@@ -81,6 +81,21 @@ class TeamJoinRequestSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "user", "status", "created_at"]
 
 
+class TeamJoinRequestWithTeamSerializer(serializers.ModelSerializer):
+    """Serializer for listing join requests with team info (for my_pending_requests)."""
+
+    user = UserMinimalSerializer(read_only=True)
+    team = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TeamJoinRequest
+        fields = ["id", "user", "team", "status", "created_at"]
+        read_only_fields = ["id", "user", "team", "status", "created_at"]
+
+    def get_team(self, obj):
+        return {"id": str(obj.team_id), "name": obj.team.name}
+
+
 class TeamJoinRequestCreateSerializer(serializers.Serializer):
     """Serializer to create a join request (no body required)."""
 

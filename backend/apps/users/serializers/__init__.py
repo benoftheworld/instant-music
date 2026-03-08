@@ -5,6 +5,7 @@ from .team_serializer import (
     TeamCreateSerializer,
     TeamJoinRequestCreateSerializer,
     TeamJoinRequestSerializer,
+    TeamJoinRequestWithTeamSerializer,
     TeamMemberSerializer,
     TeamSerializer,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "TeamCreateSerializer",
     "TeamJoinRequestCreateSerializer",
     "TeamJoinRequestSerializer",
+    "TeamJoinRequestWithTeamSerializer",
     "TeamMemberSerializer",
     "TeamSerializer",
     "UserMinimalSerializer",

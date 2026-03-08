@@ -174,4 +174,19 @@ export const teamService = {
     });
     return response.data;
   },
+
+  /**
+   * Get all pending join requests for teams where the current user is owner/admin
+   */
+  async getMyPendingTeamJoinRequests(): Promise<Array<{ id: string; user: { id: string; username: string; avatar?: string }; team: { id: string; name: string }; created_at: string }>> {
+    const response = await api.get('/users/teams/my_pending_requests/');
+    return response.data;
+  },
+
+  /**
+   * Dissolve a team (owner only): removes all members and deletes the team
+   */
+  async dissolveTeam(teamId: string): Promise<void> {
+    await api.post(`/users/teams/${teamId}/dissolve/`);
+  },
 };
