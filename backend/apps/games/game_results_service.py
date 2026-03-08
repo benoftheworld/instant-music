@@ -91,12 +91,17 @@ def build_rounds_detail(game: Game) -> tuple[list[dict], dict[str, int]]:
 
 
 def build_rankings(game: Game) -> list[dict]:
-    """Construit le classement des joueurs avec les informations d'équipe."""
+    """Construit le classement des joueurs avec les informations d'équipe.
+
+    En mode soirée, le présentateur (hôte) est exclu du classement.
+    """
     players = (
         game.players.order_by("-score")
         .select_related("user")
         .prefetch_related("user__team_memberships__team")
     )
+    if game.is_party_mode:
+        players = players.exclude(user=game.host)
 
     rankings = []
     for p in players:

@@ -2,6 +2,12 @@
 
 Recalculates denormalized user stats from the source of truth
 (GamePlayer records) instead of error-prone manual increments.
+
+Règles métier :
+- total_wins : exclut les parties solo (is_online=False)
+- total_points : exclut les parties solo sauf karaoké
+- Team stats : dédupliquées par partie (pas de double-comptage si
+  deux membres de la même équipe jouent ensemble)
 """
 
 from __future__ import annotations
@@ -9,8 +15,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from django.db.models import Sum
-from django.db.models.functions import Coalesce
+from django.db.models import Q, Sum
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -34,10 +39,17 @@ def update_player_stats_on_game_finish(
         )
 
         user.total_games_played = participations.count()
-        user.total_wins = (
-            participations.filter(rank=1).exclude(game__mode="karaoke").count()
+        # Victoires : uniquement les parties multijoueur (is_online=True)
+        user.total_wins = participations.filter(
+            rank=1, game__is_online=True
+        ).count()
+        # Points : exclure les parties solo sauf karaoké
+        user.total_points = (
+            participations.filter(
+                Q(game__is_online=True) | Q(game__mode="karaoke")
+            ).aggregate(s=Sum("score"))["s"]
+            or 0
         )
-        user.total_points = participations.aggregate(s=Sum("score"))["s"] or 0
         user.save(update_fields=["total_games_played", "total_wins", "total_points"])
 
 
@@ -45,7 +57,12 @@ def update_player_stats_on_game_finish(
 def update_team_stats_on_game_finish(
     sender: type, instance: Game, **kwargs: Any
 ) -> None:
-    """Recalculate team denormalized stats when a game finishes."""
+    """Recalculate team denormalized stats when a game finishes.
+
+    Les stats d'équipe sont calculées à partir des participations GamePlayer
+    (et non de la somme des stats dénormalisées des membres) afin d'éviter
+    le double-comptage quand deux membres jouent dans la même partie.
+    """
     if instance.status != GameStatus.FINISHED:
         return
 
@@ -60,14 +77,33 @@ def update_team_stats_on_game_finish(
     if not team_ids:
         return
 
-    # Recalculate stats for each affected team from source of truth
     for team in Team.objects.filter(id__in=team_ids):
-        aggregated = team.members.aggregate(
-            sum_games=Coalesce(Sum("total_games_played"), 0),
-            sum_wins=Coalesce(Sum("total_wins"), 0),
-            sum_points=Coalesce(Sum("total_points"), 0),
+        member_ids = set(team.members.values_list("id", flat=True))
+
+        all_participations = GamePlayer.objects.filter(
+            user_id__in=member_ids,
+            game__status=GameStatus.FINISHED,
         )
-        team.total_games = aggregated["sum_games"]
-        team.total_wins = aggregated["sum_wins"]
-        team.total_points = aggregated["sum_points"]
+
+        # Parties : nombre de parties distinctes avec au moins un membre
+        team.total_games = (
+            all_participations.values("game_id").distinct().count()
+        )
+
+        # Victoires : parties distinctes où un membre est 1er (hors solo)
+        team.total_wins = (
+            all_participations.filter(rank=1, game__is_online=True)
+            .values("game_id")
+            .distinct()
+            .count()
+        )
+
+        # Points : somme des scores des membres (hors solo non-karaoké)
+        team.total_points = (
+            all_participations.filter(
+                Q(game__is_online=True) | Q(game__mode="karaoke")
+            ).aggregate(s=Sum("score"))["s"]
+            or 0
+        )
+
         team.save(update_fields=["total_games", "total_wins", "total_points"])

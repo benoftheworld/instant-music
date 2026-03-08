@@ -4,7 +4,6 @@
 import logging
 
 from django.db.models import Avg, Count, Max, Q, Sum
-from django.db.models.functions import Coalesce
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -32,8 +31,15 @@ class UserDetailedStatsView(APIView):
         # Game stats from GamePlayer records
         game_players = GamePlayer.objects.filter(user=user, rank__isnull=False)
         total_games = game_players.count()
-        total_wins = game_players.filter(rank=1).count()
-        total_points = game_players.aggregate(s=Sum("score"))["s"] or 0
+        # Victoires : uniquement les parties multijoueur
+        total_wins = game_players.filter(rank=1, game__is_online=True).count()
+        # Points : exclure les parties solo sauf karaoké
+        total_points = (
+            game_players.filter(
+                Q(game__is_online=True) | Q(game__mode="karaoke")
+            ).aggregate(s=Sum("score"))["s"]
+            or 0
+        )
         best_score = game_players.aggregate(m=Max("score"))["m"] or 0
         avg_score = game_players.aggregate(a=Avg("score"))["a"] or 0.0
 
@@ -113,7 +119,7 @@ class LeaderboardByModeView(APIView):
             .annotate(
                 total_points=Sum("score"),
                 total_games=Count("id"),
-                total_wins=Count("id", filter=Q(rank=1)),
+                total_wins=Count("id", filter=Q(rank=1) & Q(game__is_online=True)),
             )
             .order_by("-total_points")
         )
@@ -165,23 +171,21 @@ class TeamLeaderboardView(APIView):
     def get(self, request):
         page, page_size, offset = parse_pagination_params(request)
 
-        # Aggregate member stats per team (sum of members' stats)
-        teams_qs = Team.objects.annotate(
-            sum_points=Coalesce(Sum("members__total_points"), 0),
-            sum_games=Coalesce(Sum("members__total_games_played"), 0),
-            sum_wins=Coalesce(Sum("members__total_wins"), 0),
-        ).order_by("-sum_points", "-sum_games")
+        # Utilise les stats dénormalisées (correctement dédupliquées par le signal)
+        teams_qs = Team.objects.filter(
+            total_games__gt=0
+        ).order_by("-total_points", "-total_games")
 
         total_count = teams_qs.count()
         teams = teams_qs[offset : offset + page_size]
 
         leaderboard = []
         for idx, team in enumerate(teams, offset + 1):
-            total_points = int(team.sum_points or 0)
-            total_games = int(team.sum_games or 0)
-            total_wins = int(team.sum_wins or 0)
             win_rate = round(
-                (total_wins / total_games * 100) if total_games > 0 else 0, 1
+                (team.total_wins / team.total_games * 100)
+                if team.total_games > 0
+                else 0,
+                1,
             )
 
             leaderboard.append(
@@ -192,9 +196,9 @@ class TeamLeaderboardView(APIView):
                     "avatar": team.avatar.url if team.avatar else None,
                     "owner_name": team.owner.username if team.owner else None,
                     "member_count": team.memberships.count(),
-                    "total_points": total_points,
-                    "total_games": total_games,
-                    "total_wins": total_wins,
+                    "total_points": team.total_points,
+                    "total_games": team.total_games,
+                    "total_wins": team.total_wins,
                     "win_rate": win_rate,
                 }
             )
@@ -282,8 +286,15 @@ class UserPublicStatsView(APIView):
         # Game stats from GamePlayer records
         game_players = GamePlayer.objects.filter(user=user, rank__isnull=False)
         total_games = game_players.count()
-        total_wins = game_players.filter(rank=1).count()
-        total_points = game_players.aggregate(s=Sum("score"))["s"] or 0
+        # Victoires : uniquement les parties multijoueur
+        total_wins = game_players.filter(rank=1, game__is_online=True).count()
+        # Points : exclure les parties solo sauf karaoké
+        total_points = (
+            game_players.filter(
+                Q(game__is_online=True) | Q(game__mode="karaoke")
+            ).aggregate(s=Sum("score"))["s"]
+            or 0
+        )
         best_score = game_players.aggregate(m=Max("score"))["m"] or 0
         avg_score = game_players.aggregate(a=Avg("score"))["a"] or 0.0
 

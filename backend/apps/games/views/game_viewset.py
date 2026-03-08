@@ -515,6 +515,9 @@ class GameViewSet(viewsets.ModelViewSet):
         rounds_detail, _ = build_rounds_detail(game)
 
         players = game.players.select_related("user").order_by("-score")
+        # En mode soirée, exclure le présentateur (hôte) du classement
+        if game.is_party_mode:
+            players = players.exclude(user=game.host)
 
         game_data = GameSerializer(game).data
         # Add user-friendly display fields (used by frontend)

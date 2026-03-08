@@ -3,7 +3,7 @@ Usage: python manage.py recalculate_user_stats
 """
 
 from django.core.management.base import BaseCommand
-from django.db.models import Sum
+from django.db.models import Q, Sum
 
 from apps.games.models import GamePlayer
 from apps.users.models import User
@@ -28,14 +28,23 @@ class Command(BaseCommand):
 
             # Calculate stats
             total_games = participations.count()
-            total_wins = participations.filter(rank=1).count()
-            total_points = participations.aggregate(total=Sum("score"))["total"] or 0
+            # Victoires : uniquement les parties multijoueur (is_online=True)
+            total_wins = participations.filter(rank=1, game__is_online=True).count()
+            # Points : exclure les parties solo sauf karaoké
+            total_points = (
+                participations.filter(
+                    Q(game__is_online=True) | Q(game__mode="karaoke")
+                ).aggregate(total=Sum("score"))["total"]
+                or 0
+            )
 
             # Update user
             user.total_games_played = total_games
             user.total_wins = total_wins
             user.total_points = total_points
-            user.save()
+            user.save(
+                update_fields=["total_games_played", "total_wins", "total_points"]
+            )
 
             updated_count += 1
 

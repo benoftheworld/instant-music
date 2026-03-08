@@ -68,7 +68,13 @@ def _build_player_scores(round_obj: GameRound) -> dict[str, dict[str, Any]]:
 
 
 def _build_updated_players(game: Game) -> list[dict[str, Any]]:
-    """Build ordered list of players with current totals."""
+    """Build ordered list of players with current totals.
+
+    En mode soirée, le présentateur (hôte) est exclu du classement.
+    """
+    players_qs = game.players.select_related("user").order_by("-score")
+    if game.is_party_mode:
+        players_qs = players_qs.exclude(user=game.host)
     return [
         {
             "id": str(p.id),
@@ -80,7 +86,7 @@ def _build_updated_players(game: Game) -> list[dict[str, Any]]:
             "is_connected": p.is_connected,
             "avatar": p.user.avatar.url if p.user.avatar else None,
         }
-        for p in game.players.select_related("user").order_by("-score")
+        for p in players_qs
     ]
 
 
