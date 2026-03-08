@@ -22,7 +22,7 @@ export default function RegisterPage() {
 
   // Validation regex (as requested by user)
   const usernameRegex = /^[a-zA-Z0-9\-_']*$/;
-  const emailRegex = /^[a-zA-Z0-9\-_@]*$/;
+  const emailRegex = /^((?!\.)[\w\-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$/;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
