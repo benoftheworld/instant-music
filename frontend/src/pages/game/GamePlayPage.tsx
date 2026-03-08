@@ -79,7 +79,7 @@ export default function GamePlayPage() {
         // Anti-triche : si le round est déjà démarré (reconnexion / rechargement),
         // calculer le temps écoulé et ajuster ou sauter l'écran de chargement.
         if (round.started_at) {
-          const elapsedMs = Date.now() - new Date(round.started_at).getTime();
+          const elapsedMs = Math.max(0, Date.now() - new Date(round.started_at).getTime());
           const countdownMs = (game?.timer_start_round || 5) * 1000;
 
           if (elapsedMs >= countdownMs) {

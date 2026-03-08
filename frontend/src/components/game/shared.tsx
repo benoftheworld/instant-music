@@ -418,7 +418,7 @@ export function OptionsGrid({
 
   return (
     <div
-      className={`grid grid-cols-2 gap-2 flex-1 min-h-0 transition-[filter] duration-1000${
+      className={`grid grid-cols-2 gap-2 transition-[filter] duration-1000${
         isBlurred ? ' blur-sm select-none' : ''
       }`}
     >
@@ -429,7 +429,7 @@ export function OptionsGrid({
           className={`p-2 rounded-lg text-left transition-all duration-200 min-h-0 overflow-hidden ${getStyle(option)}`}
           disabled={hasAnswered || showResults}
         >
-          <div className="flex items-center gap-2 h-full">
+          <div className="flex items-center gap-2">
             <div className="w-6 h-6 shrink-0 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs">
               {String.fromCharCode(65 + index)}
             </div>
