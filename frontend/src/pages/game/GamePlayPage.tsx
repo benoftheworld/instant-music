@@ -420,7 +420,7 @@ export default function GamePlayPage() {
               <p className="text-sm">
                 {isKaraoke
                   ? getModeLabel()
-                  : `Round ${currentRound.round_number} — ${getModeLabel()}`
+                  : `Manche ${currentRound.round_number} — ${getModeLabel()}`
                 }
               </p>
               {game?.answer_mode === 'text' && !isKaraoke && (
@@ -464,7 +464,7 @@ export default function GamePlayPage() {
             {renderQuestionComponent()}
           </div>
         ) : (
-          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Main quiz area */}
             <div className="lg:col-span-2 overflow-hidden min-h-0 flex flex-col">
               {renderQuestionComponent()}
