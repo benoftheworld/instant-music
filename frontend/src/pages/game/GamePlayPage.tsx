@@ -464,12 +464,11 @@ export default function GamePlayPage() {
             {renderQuestionComponent()}
           </div>
         ) : (
-          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
             {/* Main quiz area */}
             <div className="lg:col-span-2 overflow-hidden min-h-0 flex flex-col">
               {renderQuestionComponent()}
             </div>
-
             {/* Live scoreboard — hidden on mobile to free space for MCQ options */}
             <div className="hidden lg:block lg:col-span-1 overflow-y-auto min-h-0">
               <LiveScoreboard players={game?.players || []} />
