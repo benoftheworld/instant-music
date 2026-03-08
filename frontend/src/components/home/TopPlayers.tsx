@@ -86,7 +86,7 @@ export default function TopPlayers() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm ring-2 ring-dark/10">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm ring-2 ring-dark/10">
                   {player.username.charAt(0).toUpperCase()}
                 </div>
               )}
