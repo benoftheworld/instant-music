@@ -47,6 +47,7 @@ export default function GamePlayPage() {
     roundPhase,
     fogActive,
     fogActivator,
+    loadingDuration,
   } = state;
 
   // ── Refs (imperative / timing concerns) ────────────────────────────────
@@ -71,8 +72,26 @@ export default function GamePlayPage() {
       const response = await gameService.getCurrentRound(roomCode);
 
       if (response.current_round) {
-        dispatch({ type: 'START_ROUND', round: response.current_round });
+        const round = response.current_round;
+        dispatch({ type: 'START_ROUND', round });
         roundPlayingStartTimeRef.current = 0;
+
+        // Anti-triche : si le round est déjà démarré (reconnexion / rechargement),
+        // calculer le temps écoulé et ajuster ou sauter l'écran de chargement.
+        if (round.started_at) {
+          const elapsedMs = Date.now() - new Date(round.started_at).getTime();
+          const countdownMs = (game?.timer_start_round || 5) * 1000;
+
+          if (elapsedMs >= countdownMs) {
+            // Le compte à rebours est déjà terminé : passer directement en jeu
+            roundPlayingStartTimeRef.current = new Date(round.started_at).getTime() + countdownMs;
+            dispatch({ type: 'ENTER_PLAYING' });
+          } else {
+            // Le compte à rebours est en cours : ajuster la durée restante
+            const remainingSec = Math.max(1, Math.ceil((countdownMs - elapsedMs) / 1000));
+            dispatch({ type: 'SET_LOADING_DURATION', duration: remainingSec });
+          }
+        }
       } else if (response.message === 'Partie terminée') {
         navigate(`/game/${roomCode}/results`);
       }
@@ -81,7 +100,7 @@ export default function GamePlayPage() {
     } finally {
       dispatch({ type: 'LOADING_DONE' });
     }
-  }, [roomCode, navigate]);
+  }, [roomCode, navigate, game?.timer_start_round]);
 
   const loadGame = useCallback(async () => {
     if (!roomCode) return;
@@ -322,7 +341,7 @@ export default function GamePlayPage() {
       <RoundLoadingScreen
         roundNumber={currentRound.round_number}
         onComplete={handleLoadingComplete}
-        duration={game?.timer_start_round || 5}
+        duration={loadingDuration ?? game?.timer_start_round ?? 5}
       />
     );
   }
@@ -361,10 +380,15 @@ export default function GamePlayPage() {
 
   // Show results screen after round ends
   if (roundPhase === 'results' && roundResults) {
+    // En mode soirée, exclure le présentateur (hôte) du classement
+    const displayPlayers = game?.is_party_mode
+      ? (game?.players || []).filter(p => String(p.user) !== String(game.host))
+      : (game?.players || []);
+
     return (
       <RoundResultsScreen
         round={currentRound}
-        players={game?.players || []}
+        players={displayPlayers}
         correctAnswer={roundResults.correct_answer || currentRound.correct_answer || ''}
         myPointsEarned={myPointsEarned}
         myAnswer={selectedAnswer}
@@ -389,11 +413,11 @@ export default function GamePlayPage() {
 
       <div className={`flex-1 flex flex-col min-h-0 container mx-auto ${isKaraoke ? 'max-w-7xl' : 'max-w-6xl'}`}>
         {/* Header with room code and round number */}
-        <div className="flex justify-between items-center mb-3">
+        <div className="flex justify-between items-center mb-2 shrink-0">
           <div className="text-white">
-            <h1 className="text-2xl font-bold">Partie {roomCode}</h1>
+            <h1 className="text-xl font-bold">Partie {roomCode}</h1>
             <div className="flex items-center gap-2">
-              <p className="text-lg">
+              <p className="text-sm">
                 {isKaraoke
                   ? getModeLabel()
                   : `Round ${currentRound.round_number} — ${getModeLabel()}`
@@ -440,9 +464,9 @@ export default function GamePlayPage() {
             {renderQuestionComponent()}
           </div>
         ) : (
-          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
             {/* Main quiz area */}
-            <div className="lg:col-span-2 overflow-y-auto min-h-0">
+            <div className="lg:col-span-2 overflow-hidden min-h-0 flex flex-col">
               {renderQuestionComponent()}
             </div>
 

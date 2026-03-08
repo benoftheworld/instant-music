@@ -339,7 +339,7 @@ export function AudioPlayerUI({
   hideManualPlay?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center p-3 md:p-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg min-h-[80px] md:min-h-[120px]">
+    <div className="flex flex-col items-center justify-center p-2 md:p-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg min-h-[60px] md:min-h-[80px]">
       {playerError ? (
         <div className="text-white text-center">
           <div className="text-4xl mb-2">⚠️</div>
@@ -418,7 +418,7 @@ export function OptionsGrid({
 
   return (
     <div
-      className={`grid grid-cols-2 gap-2 md:gap-4 mb-4 md:mb-6 transition-[filter] duration-1000${
+      className={`grid grid-cols-2 gap-2 md:gap-3 flex-1 min-h-0 transition-[filter] duration-1000${
         isBlurred ? ' blur-sm select-none' : ''
       }`}
     >
@@ -426,14 +426,14 @@ export function OptionsGrid({
         <button
           key={index}
           onClick={() => { if (!hasAnswered && !showResults) { soundEffects.click(); onOptionClick(option); } }}
-          className={`p-3 md:p-4 rounded-lg text-left transition-all duration-200 ${getStyle(option)}`}
+          className={`p-2 md:p-3 rounded-lg text-left transition-all duration-200 min-h-0 overflow-hidden ${getStyle(option)}`}
           disabled={hasAnswered || showResults}
         >
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 md:w-8 md:h-8 shrink-0 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm md:text-base">
+          <div className="flex items-center gap-2 h-full">
+            <div className="w-6 h-6 md:w-7 md:h-7 shrink-0 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs md:text-sm">
               {String.fromCharCode(65 + index)}
             </div>
-            <span className="text-sm md:text-lg font-medium leading-tight">{option}</span>
+            <span className="text-sm md:text-base font-medium leading-tight line-clamp-2">{option}</span>
           </div>
         </button>
       ))}
@@ -456,21 +456,21 @@ export function ResultFooter({
   return (
     <>
       {hasAnswered && !showResults && (
-        <div className="text-center text-lg text-gray-600 animate-pulse">
+        <div className="text-center text-sm text-gray-600 animate-pulse mt-2 shrink-0">
           En attente des autres joueurs...
         </div>
       )}
       {showResults && roundResults && (
-        <div className="mt-6 p-4 rounded-lg bg-blue-50 border-2 border-blue-200">
-          <p className="text-lg">
+        <div className="mt-3 p-3 rounded-lg bg-blue-50 border-2 border-blue-200 shrink-0">
+          <p className="text-base">
             <span className="font-bold">Bonne réponse :</span> {roundResults.correct_answer}
           </p>
           {selectedAnswer === roundResults.correct_answer ? (
-            <p className="text-green-600 font-bold mt-2">
+            <p className="text-green-600 font-bold mt-1">
               ✓ Bravo ! +{roundResults.points_earned || 0} points
             </p>
           ) : (
-            <p className="text-red-600 font-bold mt-2">
+            <p className="text-red-600 font-bold mt-1">
               ✗ Dommage ! C&apos;était &quot;{roundResults.correct_answer}&quot;
             </p>
           )}

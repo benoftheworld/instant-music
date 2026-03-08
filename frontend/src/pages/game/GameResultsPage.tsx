@@ -34,6 +34,7 @@ interface GameResult {
   game: {
     id: string;
     room_code: string;
+    host: number;
     status: string;
     mode: string;
     mode_display: string;
@@ -42,6 +43,7 @@ interface GameResult {
     guess_target: string;
     guess_target_display: string;
     num_rounds: number;
+    is_party_mode: boolean;
   };
   rankings: GamePlayer[];
   rounds: RoundDetail[];
@@ -272,7 +274,13 @@ export default function GameResultsPage() {
     );
   }
 
-  const { rankings, rounds, game } = results;
+  const { rankings: rawRankings, rounds, game } = results;
+
+  // En mode soirée, exclure le présentateur (hôte) du classement
+  const rankings = game.is_party_mode
+    ? rawRankings.filter(p => String(p.user_id) !== String(game.host))
+    : rawRankings;
+
   const top3 = rankings.slice(0, 3);
   const others = rankings.slice(3);
   const winner = rankings[0];

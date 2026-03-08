@@ -393,7 +393,14 @@ class GameViewSet(viewsets.ModelViewSet):
                     id=round_obj.id
                 )
                 if not locked_round.ended_at:
-                    total_players = game.players.count()
+                    # En mode soirée, l'hôte est spectateur et ne répond pas :
+                    # ne compter que les joueurs non-hôte.
+                    if game.is_party_mode:
+                        total_players = game.players.exclude(
+                            user=game.host
+                        ).count()
+                    else:
+                        total_players = game.players.count()
                     answered_players = GameAnswer.objects.filter(
                         round=locked_round
                     ).count()
