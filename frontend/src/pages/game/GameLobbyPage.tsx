@@ -174,16 +174,12 @@ export default function GameLobbyPage() {
     }
 
     try {
-      // Call API to start the game (generates rounds)
+      // Call API to start the game (generates rounds).
+      // The backend broadcasts game_started to all connected clients,
+      // so non-host players navigate via the WebSocket handler above.
       await gameService.startGame(roomCode);
 
-      // Notify other players via WebSocket
-      sendMessage({
-        type: 'start_game',
-        room_code: roomCode
-      });
-
-      // Navigate to game play page
+      // Host navigates directly (no need to wait for WS echo).
       navigate(`/game/play/${roomCode}`);
     } catch (err: any) {
       console.error('Failed to start game:', err);

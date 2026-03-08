@@ -19,6 +19,7 @@ from apps.core.throttles import GameCreateThrottle, GameJoinThrottle
 
 from ..broadcast_service import (
     broadcast_game_finish,
+    broadcast_game_start,
     broadcast_game_update,
     broadcast_next_round,
     broadcast_player_join,
@@ -276,6 +277,10 @@ class GameViewSet(viewsets.ModelViewSet):
 
         try:
             game, rounds = game_service.start_game(game)
+
+            # Broadcast game_started FIRST so all clients navigate to play page,
+            # then broadcast round_started so they receive the first round data.
+            broadcast_game_start(room_code, game)
 
             if rounds:
                 broadcast_round_start(room_code, rounds[0], game)

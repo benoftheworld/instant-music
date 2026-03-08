@@ -418,7 +418,7 @@ export function OptionsGrid({
 
   return (
     <div
-      className={`grid grid-cols-2 gap-2 md:gap-3 flex-1 min-h-0 transition-[filter] duration-1000${
+      className={`grid grid-cols-2 gap-2 flex-1 min-h-0 transition-[filter] duration-1000${
         isBlurred ? ' blur-sm select-none' : ''
       }`}
     >
@@ -426,14 +426,14 @@ export function OptionsGrid({
         <button
           key={index}
           onClick={() => { if (!hasAnswered && !showResults) { soundEffects.click(); onOptionClick(option); } }}
-          className={`p-2 md:p-3 rounded-lg text-left transition-all duration-200 min-h-0 overflow-hidden ${getStyle(option)}`}
+          className={`p-2 rounded-lg text-left transition-all duration-200 min-h-0 overflow-hidden ${getStyle(option)}`}
           disabled={hasAnswered || showResults}
         >
           <div className="flex items-center gap-2 h-full">
-            <div className="w-6 h-6 md:w-7 md:h-7 shrink-0 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs md:text-sm">
+            <div className="w-6 h-6 shrink-0 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs">
               {String.fromCharCode(65 + index)}
             </div>
-            <span className="text-sm md:text-base font-medium leading-tight line-clamp-2">{option}</span>
+            <span className="text-sm font-medium leading-tight line-clamp-2">{option}</span>
           </div>
         </button>
       ))}

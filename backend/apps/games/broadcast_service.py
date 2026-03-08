@@ -128,6 +128,18 @@ def broadcast_game_update(room_code: str, game_data: dict) -> None:
     )
 
 
+def broadcast_game_start(room_code: str, game: Game) -> None:
+    """Broadcast that the game has started to all connected clients."""
+    game_data = _serialize_to_dict(GameSerializer(game))
+    _group_send(
+        room_code,
+        {
+            "type": "broadcast_game_start",
+            "game_data": game_data,
+        },
+    )
+
+
 def broadcast_round_start(room_code: str, round_obj: GameRound, game: Game) -> None:
     """Broadcast that a round has started with its data."""
     from django.utils import timezone
