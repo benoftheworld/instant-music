@@ -8,7 +8,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.token_blacklist.models import (
     BlacklistedToken,
@@ -19,6 +19,7 @@ from apps.achievements.models import UserAchievement
 from apps.games.models import GameAnswer
 from apps.shop.models import UserInventory
 
+from ..encryption import hash_email
 from ..models import User
 from ..models.team_member import TeamMember
 from ..serializers import (
@@ -116,6 +117,26 @@ class UserViewSet(viewsets.ModelViewSet):
 
         serializer = UserMinimalSerializer(users, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], permission_classes=[AllowAny], url_path="exists")
+    def exists(self, request):
+        """Check whether a username or email is already taken.
+
+        GET params: ?username=... or ?email=...
+        Returns: {"exists": true|false}
+        """
+        username = request.query_params.get("username", "").strip()
+        email = request.query_params.get("email", "").strip()
+
+        if username:
+            result = User.objects.filter(username__iexact=username).exists()
+            return Response({"exists": result})
+
+        if email:
+            result = User.objects.filter(email_hash=hash_email(email)).exists()
+            return Response({"exists": result})
+
+        return Response({"exists": False})
 
     @action(detail=False, methods=["get"])
     def export_data(self, request):

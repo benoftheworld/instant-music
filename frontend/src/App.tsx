@@ -4,6 +4,7 @@ import Layout from './components/layout/Layout';
 import ErrorBoundary from './components/layout/ErrorBoundary';
 import HomePage from './pages/HomePage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import GuestRoute from './components/auth/GuestRoute';
 import AchievementToastManager from './components/layout/AchievementToastManager';
 import { useAuthStore } from './store/authStore';
 import { notificationWS } from './services/notificationWebSocket';
@@ -87,9 +88,11 @@ function App() {
       <Routes>
       <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
-        <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        <Route element={<GuestRoute />}>
+          <Route path="login" element={<LoginPage />} />
+          <Route path="register" element={<RegisterPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        </Route>
         <Route path="reset-password/:uid/:token" element={<ResetPasswordPage />} />
         <Route path="privacy" element={<PrivacyPage />} />
         <Route path="legal" element={<LegalNoticePage />} />

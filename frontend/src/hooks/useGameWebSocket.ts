@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import type { Game, User } from '@/types';
 import type { GamePlayAction, RoundResults } from './useGamePlayReducer';
 import { soundEffects } from '@/services/soundEffects';
+import { gameService } from '@/services/gameService';
 import type { NavigateFunction } from 'react-router-dom';
 
 interface UseGameWebSocketParams {
@@ -62,7 +63,7 @@ export function useGameWebSocket({
           if (user && game && game.host === user.id) {
             gameService
               .endCurrentRound(roomCode!)
-              .catch((err) => console.error('Failed to end round early:', err));
+              .catch((err: any) => console.error('Failed to end round early:', err));
           }
           break;
 

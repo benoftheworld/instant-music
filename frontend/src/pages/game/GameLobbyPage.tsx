@@ -496,7 +496,7 @@ export default function GameLobbyPage() {
                 >
                   Quitter
                 </button>
-                {isHost && (
+                {isHost && !isSolo && (
                   <button
                     onClick={() => setShowInviteModal(true)}
                     className="btn-secondary flex items-center gap-2"

@@ -27,6 +27,7 @@ from apps.core.throttles import (
     TokenRefreshThrottle,
 )
 from apps.users.encryption import hash_email
+from apps.users.encryption import hash_email
 from apps.users.serializers import UserSerializer
 
 from .serializers import (
@@ -97,8 +98,21 @@ def login(request):
     serializer = LoginSerializer(data=request.data)
 
     if serializer.is_valid():
-        username = serializer.validated_data["username"]
+        identifier = serializer.validated_data["username"]
         password = serializer.validated_data["password"]
+
+        # Permettre la connexion par email : si l'identifiant contient '@',
+        # on résout d'abord l'email en nom d'utilisateur.
+        username = identifier
+        if "@" in identifier:
+            try:
+                target_user = User.objects.get(email_hash=hash_email(identifier))
+                username = target_user.username
+            except User.DoesNotExist:
+                return Response(
+                    {"error": "Identifiants invalides."},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
 
         user = authenticate(username=username, password=password)
 

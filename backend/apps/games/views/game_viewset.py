@@ -361,10 +361,16 @@ class GameViewSet(viewsets.ModelViewSet):
             )
 
         # Anti-triche : le serveur calcule le temps de réponse à partir du
-        # début du round au lieu de faire confiance au client.
+        # début du round côté joueur (après l'écran de chargement),
+        # pas depuis le signal backend qui inclut le timer_start_round.
         if round_obj.started_at:
             delta = (timezone.now() - round_obj.started_at).total_seconds()
-            response_time = max(0.0, min(delta, float(round_obj.duration)))
+            # Soustraire la durée de l'écran de chargement pré-round : le joueur
+            # ne peut répondre qu'après ce délai, donc son « temps de réponse »
+            # ne doit pas inclure ces secondes.
+            timer_offset = float(round_obj.game.timer_start_round)
+            effective_delta = max(0.0, delta - timer_offset)
+            response_time = max(0.0, min(effective_delta, float(round_obj.duration)))
         else:
             response_time = 0.0
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRegister } from '@/hooks/useAuth';
+import { userService } from '@/services/userService';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -12,8 +13,24 @@ export default function RegisterPage() {
   });
   const registerMutation = useRegister();
 
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+
+  // Validation regex (as requested by user)
+  const usernameRegex = /^[a-zA-Z0-9\-_']*$/;
+  const emailRegex = /^[a-zA-Z0-9\-_@]*$/;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Final client-side checks
+    if (usernameError || emailError) return;
+    if (usernameAvailable === false) return;
+    if (emailAvailable === false) return;
+
     registerMutation.mutate(formData);
   };
 
@@ -23,6 +40,57 @@ export default function RegisterPage() {
       ...formData,
       [e.target.name]: value,
     });
+
+    // Inline validation
+    if (e.target.name === 'username') {
+      setUsernameAvailable(null);
+      if (!usernameRegex.test(String(value))) {
+        setUsernameError("Nom d'utilisateur invalide : caractères non autorisés.");
+      } else {
+        setUsernameError(null);
+      }
+    }
+
+    if (e.target.name === 'email') {
+      setEmailAvailable(null);
+      if (!emailRegex.test(String(value))) {
+        setEmailError('Email invalide : caractères non autorisés.');
+      } else {
+        setEmailError(null);
+      }
+    }
+  };
+
+  const handleUsernameBlur = async () => {
+    const username = String(formData.username || '').trim();
+    if (!username || usernameError) return;
+
+    setCheckingUsername(true);
+    try {
+      const exists = await userService.usernameExists(username);
+      setUsernameAvailable(!exists);
+      if (exists) setUsernameError('Ce pseudonyme est déjà utilisé.');
+    } catch (err) {
+      // Ignore network errors here — backend will validate on submit
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
+  const handleEmailBlur = async () => {
+    const email = String(formData.email || '').trim();
+    if (!email || emailError) return;
+
+    setCheckingEmail(true);
+    try {
+      const exists = await userService.emailExists(email);
+      setEmailAvailable(!exists);
+      if (exists) setEmailError('Cette adresse email est déjà utilisée.');
+    } catch (err) {
+      // Ignore network errors here — backend will validate on submit
+    } finally {
+      setCheckingEmail(false);
+    }
   };
 
   return (
@@ -40,9 +108,19 @@ export default function RegisterPage() {
               name="username"
               value={formData.username}
               onChange={handleChange}
+              onBlur={handleUsernameBlur}
               className="input"
               required
             />
+            {usernameError && (
+              <p className="text-sm text-red-600 mt-1">{usernameError}</p>
+            )}
+            {usernameAvailable && (
+              <p className="text-sm text-green-600 mt-1">Pseudonyme disponible.</p>
+            )}
+            {checkingUsername && (
+              <p className="text-sm text-gray-500 mt-1">Vérification...</p>
+            )}
           </div>
 
           <div>
@@ -54,9 +132,19 @@ export default function RegisterPage() {
               name="email"
               value={formData.email}
               onChange={handleChange}
+              onBlur={handleEmailBlur}
               className="input"
               required
             />
+            {emailError && (
+              <p className="text-sm text-red-600 mt-1">{emailError}</p>
+            )}
+            {emailAvailable && (
+              <p className="text-sm text-green-600 mt-1">Email disponible.</p>
+            )}
+            {checkingEmail && (
+              <p className="text-sm text-gray-500 mt-1">Vérification...</p>
+            )}
           </div>
 
           <div>
@@ -126,7 +214,15 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            disabled={registerMutation.isPending}
+            disabled={
+              registerMutation.isPending ||
+              Boolean(usernameError) ||
+              Boolean(emailError) ||
+              usernameAvailable === false ||
+              emailAvailable === false ||
+              checkingUsername ||
+              checkingEmail
+            }
             className="btn-primary w-full"
           >
             {registerMutation.isPending ? 'Inscription...' : 'S\'inscrire'}

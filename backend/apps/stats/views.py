@@ -263,6 +263,10 @@ class UserPublicStatsView(APIView):
         except (User.DoesNotExist, ValueError):
             return Response({"error": "Utilisateur introuvable."}, status=404)
 
+        # Do not expose public profiles for superusers
+        if getattr(user, "is_superuser", False):
+            return Response({"error": "Utilisateur introuvable."}, status=404)
+
         # Game stats from GamePlayer records
         game_players = GamePlayer.objects.filter(user=user, rank__isnull=False)
         total_games = game_players.count()
