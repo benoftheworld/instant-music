@@ -42,20 +42,42 @@ CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 # CSRF trusted origins (must include scheme, e.g. https://example.com)
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
-# Logging : surcharge la config de base pour ajouter un handler fichier rotatif en prod
+# Logging : surcharge la config de base pour ajouter des handlers fichier rotatifs en prod
+# Fichier principal : tous les logs WARNING+ avec rotation par taille (10 MB × 10 = max 100 MB)
 LOGGING["handlers"]["file"] = {  # noqa: F405
     "class": "logging.handlers.RotatingFileHandler",
     "filename": BASE_DIR / "logs" / "django.log",  # noqa: F405
-    "maxBytes": 10 * 1024 * 1024,  # 10 MB
-    "backupCount": 5,
+    "maxBytes": 10 * 1024 * 1024,  # 10 MB par fichier
+    "backupCount": 10,              # 10 fichiers = 100 MB max
     "formatter": "json",
     "level": "WARNING",
+    "encoding": "utf-8",
+    "delay": True,                  # Ne crée le fichier qu'au premier log
 }
-LOGGING["root"]["handlers"] = ["console", "file"]  # noqa: F405
-LOGGING["loggers"]["django"]["handlers"] = ["console", "file"]  # noqa: F405
+# Fichier erreurs : ERROR+ uniquement avec rotation temporelle (1 fichier/jour × 30 jours)
+LOGGING["handlers"]["file_errors"] = {  # noqa: F405
+    "class": "logging.handlers.TimedRotatingFileHandler",
+    "filename": BASE_DIR / "logs" / "errors.log",  # noqa: F405
+    "when": "midnight",
+    "interval": 1,
+    "backupCount": 30,              # 30 jours d'historique des erreurs
+    "formatter": "json",
+    "level": "ERROR",
+    "encoding": "utf-8",
+    "delay": True,
+    "utc": True,
+}
+LOGGING["root"]["handlers"] = ["console", "file", "file_errors"]  # noqa: F405
+LOGGING["loggers"]["django"]["handlers"] = ["console", "file", "file_errors"]  # noqa: F405
 LOGGING["loggers"].setdefault("apps", {}).update(  # noqa: F405
-    {"handlers": ["console", "file"], "level": "INFO", "propagate": False}
+    {"handlers": ["console", "file", "file_errors"], "level": "INFO", "propagate": False}
 )
+# Exceptions DRF : toujours loggées dans les deux fichiers
+LOGGING["loggers"]["apps.core.exceptions"]["handlers"] = ["console", "file", "file_errors"]  # noqa: F405
+# HTTP structuré : warning+ dans le fichier, errors dans file_errors
+LOGGING["loggers"]["apps.core.http"]["handlers"] = ["console", "file", "file_errors"]  # noqa: F405
+# Celery en prod
+LOGGING["loggers"]["celery"]["handlers"] = ["console", "file", "file_errors"]  # noqa: F405
 
 # Handler Logstash (optionnel — activé si LOGSTASH_HOST est défini)
 # En production avec le monitoring actif : LOGSTASH_HOST=logstash dans .env.prod
@@ -73,6 +95,10 @@ if _logstash_host:
     LOGGING["root"]["handlers"].append("logstash")  # noqa: F405
     LOGGING["loggers"]["django"]["handlers"].append("logstash")  # noqa: F405
     LOGGING["loggers"]["apps"]["handlers"].append("logstash")  # noqa: F405
+    LOGGING["loggers"]["apps.core.exceptions"]["handlers"].append("logstash")  # noqa: F405
+    LOGGING["loggers"]["apps.core.http"]["handlers"].append("logstash")  # noqa: F405
+    LOGGING["loggers"]["celery"]["handlers"].append("logstash")  # noqa: F405
+    # file_errors n'est pas ajouté à logstash (déjà envoyé via les autres loggers)
 
 # Email configuration
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

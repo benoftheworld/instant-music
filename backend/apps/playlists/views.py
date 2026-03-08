@@ -1,6 +1,8 @@
 """Views for playlists app (Deezer + YouTube search helpers).
 """
 
+import logging
+
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -13,6 +15,8 @@ from apps.core.throttles import PlaylistSearchThrottle
 from .deezer_service import DeezerAPIError, deezer_service
 from .serializers import PlaylistSerializer
 from .youtube_service import YouTubeAPIError, youtube_service
+
+logger = logging.getLogger("apps.playlists.views")
 
 
 class PlaylistViewSet(viewsets.ViewSet):
@@ -64,6 +68,10 @@ class PlaylistViewSet(viewsets.ViewSet):
             serializer = PlaylistSerializer(playlists, many=True)
             return Response({"playlists": serializer.data, "source": "deezer"})
         except DeezerAPIError as e:
+            logger.error(
+                "deezer_search_error",
+                extra={"query": query, "error": str(e)},
+            )
             return Response(
                 {"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
@@ -77,6 +85,10 @@ class PlaylistViewSet(viewsets.ViewSet):
             ).inc()
             playlist = deezer_service.get_playlist(playlist_id)
             if not playlist:
+                logger.info(
+                    "deezer_playlist_not_found",
+                    extra={"playlist_id": playlist_id},
+                )
                 return Response(
                     {"error": "Playlist not found"},
                     status=status.HTTP_404_NOT_FOUND,
@@ -84,6 +96,10 @@ class PlaylistViewSet(viewsets.ViewSet):
             serializer = PlaylistSerializer(playlist)
             return Response(serializer.data)
         except DeezerAPIError as e:
+            logger.error(
+                "deezer_get_playlist_error",
+                extra={"playlist_id": playlist_id, "error": str(e)},
+            )
             return Response(
                 {"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
@@ -101,6 +117,10 @@ class PlaylistViewSet(viewsets.ViewSet):
             tracks = deezer_service.get_playlist_tracks(playlist_id, limit)
             return Response(tracks)
         except DeezerAPIError as e:
+            logger.error(
+                "deezer_get_tracks_error",
+                extra={"playlist_id": playlist_id, "error": str(e)},
+            )
             return Response(
                 {"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
@@ -120,6 +140,10 @@ class PlaylistViewSet(viewsets.ViewSet):
                 }
             )
         except Exception as e:
+            logger.warning(
+                "deezer_validate_playlist_error",
+                extra={"playlist_id": playlist_id, "error": str(e)},
+            )
             return Response(
                 {"accessible": False, "error": str(e), "source": "deezer"},
                 status=status.HTTP_200_OK,
@@ -150,6 +174,10 @@ class PlaylistViewSet(viewsets.ViewSet):
             tracks = youtube_service.search_music_videos(query.strip(), limit=limit)
             return Response({"tracks": tracks, "source": "youtube"})
         except YouTubeAPIError as e:
+            logger.error(
+                "youtube_search_error",
+                extra={"query": query.strip(), "error": str(e)},
+            )
             return Response(
                 {"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
             )

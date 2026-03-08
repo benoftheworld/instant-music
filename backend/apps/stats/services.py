@@ -5,7 +5,11 @@ Factorise la logique métier partagée entre les vues stats et le viewset games.
 
 from __future__ import annotations
 
+import logging
+
 from apps.users.models import User
+
+logger = logging.getLogger("apps.stats.services")
 
 
 def _build_leaderboard_entry(idx: int, user: User, extra: dict | None = None) -> dict:

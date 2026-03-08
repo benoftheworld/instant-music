@@ -76,6 +76,11 @@ def register(request):
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
 
+        logger.info(
+            "user_registered",
+            extra={"user_id": user.id, "username": user.username},
+        )
+
         return Response(
             {
                 "user": UserSerializer(user).data,
@@ -87,6 +92,10 @@ def register(request):
             status=status.HTTP_201_CREATED,
         )
 
+    logger.warning(
+        "register_validation_failed",
+        extra={"errors": serializer.errors},
+    )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -109,6 +118,10 @@ def login(request):
                 target_user = User.objects.get(email_hash=hash_email(identifier))
                 username = target_user.username
             except User.DoesNotExist:
+                logger.warning(
+                    "login_email_not_found",
+                    extra={"identifier_type": "email"},
+                )
                 return Response(
                     {"error": "Identifiants invalides."},
                     status=status.HTTP_401_UNAUTHORIZED,
@@ -143,6 +156,10 @@ def login(request):
                 }
             )
         else:
+            logger.warning(
+                "login_failed",
+                extra={"username": username},
+            )
             return Response(
                 {"error": "Identifiants invalides."},
                 status=status.HTTP_401_UNAUTHORIZED,

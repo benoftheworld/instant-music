@@ -1,5 +1,7 @@
 """ViewSet for teams."""
 
+import logging
+
 from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -20,6 +22,8 @@ from ..serializers import (
     TeamJoinRequestSerializer,
     TeamSerializer,
 )
+
+logger = logging.getLogger("apps.users.teams")
 
 
 class TeamViewSet(viewsets.ModelViewSet):
@@ -151,6 +155,14 @@ class TeamViewSet(viewsets.ModelViewSet):
                 role=TeamMemberRole.MEMBER,
             )
 
+        logger.info(
+            "team_join_approved",
+            extra={
+                "team_id": str(team.id),
+                "user_id": join_request.user.id,
+                "approved_by": request.user.id,
+            },
+        )
         return Response({"message": "Demande approuvée."})
 
     @action(detail=True, methods=["post"])

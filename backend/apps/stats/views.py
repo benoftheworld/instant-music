@@ -1,6 +1,8 @@
 """Views for stats.
 """
 
+import logging
+
 from django.db.models import Avg, Count, Max, Q, Sum
 from django.db.models.functions import Coalesce
 from rest_framework import permissions
@@ -15,6 +17,8 @@ from apps.users.models import Team, User
 
 from .serializers import UserDetailedStatsSerializer
 from .services import _build_leaderboard_entry, get_global_leaderboard
+
+logger = logging.getLogger("apps.stats.views")
 
 
 class UserDetailedStatsView(APIView):
@@ -91,6 +95,10 @@ class LeaderboardByModeView(APIView):
         # Validate mode
         valid_modes = [choice[0] for choice in GameMode.choices]
         if mode not in valid_modes:
+            logger.warning(
+                "leaderboard_invalid_mode",
+                extra={"mode": mode, "valid_modes": valid_modes},
+            )
             return Response({"error": "Mode invalide."}, status=400)
 
         # Aggregate scores by user for this mode
@@ -261,6 +269,10 @@ class UserPublicStatsView(APIView):
                 id=user_id
             )
         except (User.DoesNotExist, ValueError):
+            logger.info(
+                "public_stats_user_not_found",
+                extra={"user_id": user_id},
+            )
             return Response({"error": "Utilisateur introuvable."}, status=404)
 
         # Do not expose public profiles for superusers

@@ -1,6 +1,7 @@
 """ViewSet for User model."""
 
 import json
+import logging
 
 from django.contrib.auth import update_session_auth_hash
 from django.db import transaction
@@ -28,6 +29,8 @@ from ..serializers import (
     UserProfileUpdateSerializer,
     UserSerializer,
 )
+
+logger = logging.getLogger("apps.users.views")
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -57,9 +60,20 @@ class UserViewSet(viewsets.ModelViewSet):
         )
         if serializer.is_valid():
             serializer.save()
+            logger.info(
+                "user_profile_updated",
+                extra={"user_id": request.user.id},
+            )
             return Response(
                 UserSerializer(request.user, context={"request": request}).data
             )
+        logger.warning(
+            "user_profile_update_failed",
+            extra={
+                "user_id": request.user.id,
+                "errors": serializer.errors,
+            },
+        )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=["post"])
@@ -71,6 +85,10 @@ class UserViewSet(viewsets.ModelViewSet):
             user = request.user
 
             if not user.check_password(serializer.validated_data["old_password"]):
+                logger.warning(
+                    "password_change_wrong_old_password",
+                    extra={"user_id": user.id},
+                )
                 return Response(
                     {"old_password": "Mot de passe incorrect."},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -80,6 +98,10 @@ class UserViewSet(viewsets.ModelViewSet):
             user.save()
             update_session_auth_hash(request, user)
 
+            logger.info(
+                "password_changed",
+                extra={"user_id": user.id},
+            )
             return Response(
                 {"message": "Mot de passe modifié avec succès."},
                 status=status.HTTP_200_OK,
@@ -91,12 +113,21 @@ class UserViewSet(viewsets.ModelViewSet):
     def delete_account(self, request):
         """Delete user account and all associated data (GDPR)."""
         user = request.user
+        user_id = user.id
+        logger.info(
+            "account_deletion_started",
+            extra={"user_id": user_id},
+        )
         # Invalider tous les tokens avant suppression pour déconnecter les sessions actives
         for token in OutstandingToken.objects.filter(user=user):
             BlacklistedToken.objects.get_or_create(token=token)
         with transaction.atomic():
             user.delete()
 
+        logger.info(
+            "account_deleted",
+            extra={"user_id": user_id},
+        )
         return Response(
             {"message": "Compte supprimé avec succès."},
             status=status.HTTP_200_OK,
@@ -142,6 +173,10 @@ class UserViewSet(viewsets.ModelViewSet):
     def export_data(self, request):
         """Export toutes les données personnelles de l'utilisateur (RGPD art. 20)."""
         user = request.user
+        logger.info(
+            "gdpr_data_export",
+            extra={"user_id": user.id},
+        )
         data = {
             "exported_at": timezone.now().isoformat(),
             "profile": {

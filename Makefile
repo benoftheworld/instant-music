@@ -76,6 +76,31 @@ logs-nginx: ## Logs du service nginx (production)
 logs-dev: ## Logs en développement
 	@$(DC_DEV) logs -f --tail=100
 
+.PHONY: logs-size
+logs-size: ## Affiche l'espace disque utilisé par les logs Docker et fichiers
+	@echo "=== Logs Docker (containers) ==="
+	@docker system df --format "table {{.Type}}\t{{.Size}}\t{{.Reclaimable}}" 2>/dev/null || true
+	@echo ""
+	@echo "=== Logs Docker détaillés ==="
+	@du -sh /var/lib/docker/containers/ 2>/dev/null || true
+	@echo ""
+	@echo "=== Logs fichiers Django ==="
+	@du -sh backend/logs/ 2>/dev/null || echo "  backend/logs/ introuvable"
+
+.PHONY: logs-clean
+logs-clean: ## Supprime les logs Docker des containers arrêtés et les archives Django
+	@echo "Nettoyage des logs Docker (containers arrêtés)..."
+	@docker container prune -f 2>/dev/null || true
+	@echo "Nettoyage des images/volumes inutilisés..."
+	@docker image prune -f 2>/dev/null || true
+	@echo "Rotation forcée des logs Django (archives .log.*)..."
+	@find backend/logs -name "*.log.*" -mtime +30 -delete 2>/dev/null || true
+	@echo "Nettoyage terminé."
+
+.PHONY: logs-rotate
+logs-rotate: ## Force une rotation logrotate des logs fichier (nécessite logrotate installé)
+	@sudo logrotate -f _devops/script/logrotate.conf || echo "  logrotate indisponible — rotation gérée par Python RotatingFileHandler"
+
 .PHONY: monitoring-up
 monitoring-up: ## Lancer la stack de monitoring (ELK + Prometheus + Grafana) — DEV
 	@docker compose -f $(COMPOSE_DEV) -f $(COMPOSE_MON) $(COMPOSE_EXTRA) up -d
