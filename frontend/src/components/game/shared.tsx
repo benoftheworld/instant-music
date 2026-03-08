@@ -418,7 +418,7 @@ export function OptionsGrid({
 
   return (
     <div
-      className={`grid grid-cols-2 gap-2 transition-[filter] duration-1000${
+      className={`grid grid-cols-2 gap-2 md:gap-4 mb-4 md:mb-6 transition-[filter] duration-1000${
         isBlurred ? ' blur-sm select-none' : ''
       }`}
     >
