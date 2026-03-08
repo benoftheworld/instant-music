@@ -10,6 +10,7 @@ import { useAuthStore } from './store/authStore';
 import { notificationWS } from './services/notificationWebSocket';
 import { useNotificationStore } from './store/notificationStore';
 import { invitationService } from './services/invitationService';
+import { friendshipService } from './services/socialService';
 
 // ── Lazy-loaded pages (code splitting) ───────────────────────────────────
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
@@ -45,17 +46,26 @@ function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const addInvitation = useNotificationStore((state) => state.addInvitation);
   const setInvitations = useNotificationStore((state) => state.setInvitations);
-  const clearInvitations = useNotificationStore((state) => state.clearInvitations);
+  const clearAll = useNotificationStore((state) => state.clearAll);
+  const addFriendRequest = useNotificationStore((state) => state.addFriendRequest);
+  const setFriendRequests = useNotificationStore((state) => state.setFriendRequests);
+  const removeFriendRequest = useNotificationStore((state) => state.removeFriendRequest);
+  const addSocialNotification = useNotificationStore((state) => state.addSocialNotification);
 
   useEffect(() => {
     if (!isAuthenticated) {
       notificationWS.disconnect();
-      clearInvitations();
+      clearAll();
       return;
     }
 
     // Fetch existing pending invitations on login/reload
     invitationService.getMyInvitations().then(setInvitations).catch(() => {});
+
+    // Fetch pending friend requests on login/reload
+    friendshipService.getPendingRequests().then((reqs) => {
+      setFriendRequests(reqs.map((r) => ({ id: r.id, from_user: r.from_user, created_at: r.created_at })));
+    }).catch(() => {});
 
     // Open persistent WS for real-time notifications
     notificationWS.connect();
@@ -63,7 +73,6 @@ function App() {
     const unsubInvite = notificationWS.on('game_invitation', (data) => {
       if (data.invitation) {
         addInvitation(data.invitation);
-        // Native browser notification (if permission granted)
         if (Notification.permission === 'granted') {
           new Notification(
             `Invitation de ${data.invitation.sender.username}`,
@@ -76,8 +85,83 @@ function App() {
       }
     });
 
+    const unsubFriendRequest = notificationWS.on('friend_request', (data) => {
+      if (data.friendship) {
+        addFriendRequest({
+          id: data.friendship.id,
+          from_user: data.friendship.from_user,
+          created_at: data.friendship.created_at,
+        });
+        if (Notification.permission === 'granted') {
+          new Notification(`Demande d'ami de ${data.friendship.from_user.username}`, {
+            body: 'Vous avez une nouvelle demande d\'ami.',
+            icon: '/images/logo.png',
+          });
+        }
+      }
+    });
+
+    const unsubFriendAccepted = notificationWS.on('friend_request_accepted', (data) => {
+      if (data.friendship) {
+        const accepter = data.friendship.to_user;
+        // Remove the pending friend request from the bell (if this user sent it)
+        removeFriendRequest(data.friendship.id);
+        addSocialNotification({
+          id: `friend-accepted-${data.friendship.id}`,
+          type: 'friend_request_accepted',
+          message: `${accepter.username} a accepté votre demande d'ami.`,
+          link: '/friends',
+          created_at: data.friendship.updated_at || new Date().toISOString(),
+        });
+        if (Notification.permission === 'granted') {
+          new Notification(`${accepter.username} a accepté votre demande d'ami !`, {
+            icon: '/images/logo.png',
+          });
+        }
+      }
+    });
+
+    const unsubTeamJoinRequest = notificationWS.on('team_join_request', (data) => {
+      if (data.request) {
+        addSocialNotification({
+          id: `team-join-req-${data.request.id}`,
+          type: 'team_join_request',
+          message: `${data.request.user.username} veut rejoindre ${data.request.team.name}.`,
+          link: `/teams/${data.request.team.id}`,
+          created_at: new Date().toISOString(),
+        });
+        if (Notification.permission === 'granted') {
+          new Notification(`Demande d'adhésion à ${data.request.team.name}`, {
+            body: `${data.request.user.username} veut rejoindre votre équipe.`,
+            icon: '/images/logo.png',
+          });
+        }
+      }
+    });
+
+    const unsubTeamJoinApproved = notificationWS.on('team_join_approved', (data) => {
+      if (data.approval) {
+        addSocialNotification({
+          id: `team-joined-${data.approval.team.id}-${Date.now()}`,
+          type: 'team_join_approved',
+          message: `Votre demande pour rejoindre ${data.approval.team.name} a été approuvée !`,
+          link: `/teams/${data.approval.team.id}`,
+          created_at: new Date().toISOString(),
+        });
+        if (Notification.permission === 'granted') {
+          new Notification(`Bienvenue dans ${data.approval.team.name} !`, {
+            icon: '/images/logo.png',
+          });
+        }
+      }
+    });
+
     return () => {
       unsubInvite();
+      unsubFriendRequest();
+      unsubFriendAccepted();
+      unsubTeamJoinRequest();
+      unsubTeamJoinApproved();
     };
   }, [isAuthenticated]);
 

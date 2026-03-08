@@ -2,6 +2,8 @@
 
 import logging
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -103,6 +105,30 @@ class TeamViewSet(viewsets.ModelViewSet):
             join_request.status = TeamJoinRequestStatus.PENDING
             join_request.save()
 
+        # Notifier les admins/owner de l'équipe
+        try:
+            channel_layer = get_channel_layer()
+            admin_ids = TeamMember.objects.filter(
+                team=team,
+                role__in=[TeamMemberRole.OWNER, TeamMemberRole.ADMIN],
+            ).values_list("user_id", flat=True)
+            request_data = {
+                "id": str(join_request.id),
+                "team": {"id": str(team.id), "name": team.name},
+                "user": {
+                    "id": request.user.id,
+                    "username": request.user.username,
+                    "avatar": request.user.avatar.url if getattr(request.user, "avatar", None) else None,
+                },
+            }
+            for admin_id in admin_ids:
+                async_to_sync(channel_layer.group_send)(
+                    f"notifications_{admin_id}",
+                    {"type": "notify.team_join_request", "request": request_data},
+                )
+        except Exception:  # noqa: BLE001
+            pass
+
         return Response(
             {"message": "Demande d'adhésion envoyée."},
             status=status.HTTP_201_CREATED,
@@ -163,6 +189,20 @@ class TeamViewSet(viewsets.ModelViewSet):
                 "approved_by": request.user.id,
             },
         )
+
+        # Notifier l'utilisateur que sa demande a été approuvée
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"notifications_{join_request.user.id}",
+                {
+                    "type": "notify.team_join_approved",
+                    "approval": {"team": {"id": str(team.id), "name": team.name}},
+                },
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
         return Response({"message": "Demande approuvée."})
 
     @action(detail=True, methods=["post"])

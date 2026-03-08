@@ -160,6 +160,50 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             )
         )
 
+    async def notify_friend_request(self, event):
+        """Push a friend request notification to the recipient."""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "friend_request",
+                    "friendship": event["friendship"],
+                }
+            )
+        )
+
+    async def notify_friend_request_accepted(self, event):
+        """Push a friend request accepted notification to the sender."""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "friend_request_accepted",
+                    "friendship": event["friendship"],
+                }
+            )
+        )
+
+    async def notify_team_join_request(self, event):
+        """Push a team join request notification to admins/owner."""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "team_join_request",
+                    "request": event["request"],
+                }
+            )
+        )
+
+    async def notify_team_join_approved(self, event):
+        """Push a team join approved notification to the requester."""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "team_join_approved",
+                    "approval": event["approval"],
+                }
+            )
+        )
+
 
 class GameConsumer(AsyncWebsocketConsumer):
     """WebSocket consumer for game rooms."""

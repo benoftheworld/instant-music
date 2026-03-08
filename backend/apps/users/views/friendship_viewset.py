@@ -1,5 +1,7 @@
 """ViewSet for managing friendships."""
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.db.models import Q
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -108,6 +110,19 @@ class FriendshipViewSet(viewsets.ViewSet):
             status=FriendshipStatus.PENDING,
         )
 
+        # Notifier le destinataire en temps réel
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"notifications_{to_user.id}",
+                {
+                    "type": "notify.friend_request",
+                    "friendship": FriendshipSerializer(friendship).data,
+                },
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
         return Response(
             FriendshipSerializer(friendship).data,
             status=status.HTTP_201_CREATED,
@@ -138,6 +153,19 @@ class FriendshipViewSet(viewsets.ViewSet):
             for u in (friendship.from_user, friendship.to_user):
                 u.refresh_from_db()
                 achievement_service.check_and_award(u)
+        except Exception:  # noqa: BLE001
+            pass
+
+        # Notifier l'expéditeur que sa demande a été acceptée
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"notifications_{friendship.from_user.id}",
+                {
+                    "type": "notify.friend_request_accepted",
+                    "friendship": FriendshipSerializer(friendship).data,
+                },
+            )
         except Exception:  # noqa: BLE001
             pass
 
