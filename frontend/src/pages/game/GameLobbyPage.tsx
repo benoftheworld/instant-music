@@ -23,7 +23,7 @@ export default function GameLobbyPage() {
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
 
-  const { isConnected, sendMessage, onMessage } = useWebSocket(roomCode);
+  const { isConnected, onMessage } = useWebSocket(roomCode);
 
   useEffect(() => {
     const unsubscribe = onMessage('message', (data) => {
