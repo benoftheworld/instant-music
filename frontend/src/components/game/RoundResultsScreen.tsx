@@ -88,10 +88,10 @@ export default function RoundResultsScreen({
   const albumImage = round.extra_data?.album_image;
 
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-3 md:p-4 flex flex-col">
+    <div className="h-screen overflow-hidden bg-dark p-3 md:p-4 flex flex-col">
       <div className="flex-1 min-h-0 container mx-auto max-w-7xl flex flex-col">
         {/* Compact Header */}
-        <div className="bg-gradient-to-r from-green-500 to-teal-500 rounded-t-2xl px-6 py-3 flex items-center justify-between shrink-0">
+        <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-t-2xl px-6 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <span className="text-3xl">🎉</span>
             <div>
@@ -135,7 +135,7 @@ export default function RoundResultsScreen({
                   onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
               ) : (
-                <div className="w-28 h-28 rounded-lg bg-gradient-to-br from-purple-400 to-blue-500 shadow-md flex items-center justify-center shrink-0">
+                <div className="w-28 h-28 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 shadow-md flex items-center justify-center shrink-0">
                   <span className="text-white text-4xl">🎶</span>
                 </div>
               )}
@@ -178,8 +178,8 @@ export default function RoundResultsScreen({
 
             {/* Bonus Section */}
             {roundBonuses && roundBonuses.length > 0 && (
-              <div className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-lg p-3">
-                <p className="text-xs text-violet-600 font-semibold uppercase tracking-wide mb-2">
+              <div className="bg-primary-50 border border-primary-200 rounded-lg p-3">
+                <p className="text-xs text-primary-600 font-semibold uppercase tracking-wide mb-2">
                   ⚡ Bonus utilisés
                 </p>
                 <div className="space-y-1.5">
@@ -231,7 +231,7 @@ export default function RoundResultsScreen({
                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
                       {player.username.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -275,7 +275,7 @@ export default function RoundResultsScreen({
             {onContinue && (
               <button
                 onClick={onContinue}
-                className="w-full mt-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-4 px-6 rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg text-lg"
+                className="w-full mt-3 bg-primary-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-primary-700 transition-all shadow-lg text-lg"
               >
                 Continuer
               </button>

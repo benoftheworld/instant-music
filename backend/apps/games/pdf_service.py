@@ -49,18 +49,18 @@ _BONUS_LABELS: dict[str, str] = {
 }
 
 # ── Palette ──────────────────────────────────────────────────────────────────
-C_DARK = colors.HexColor("#1E1B4B")  # deep indigo — header band
-C_ACCENT = colors.HexColor("#7C3AED")  # violet      — accent bars
+C_DARK = colors.HexColor("#222222")  # brand dark  — header band
+C_ACCENT = colors.HexColor("#DC3842")  # brand red   — accent bars
 C_GOLD = colors.HexColor("#D4AF37")  # gold        — 1st / top scorer
 C_SILVER = colors.HexColor("#A8A9AD")  # silver      — 2nd
 C_BRONZE = colors.HexColor("#CD7F32")  # bronze      — 3rd
 C_WHITE = colors.white
-C_LIGHT_BG = colors.HexColor("#F5F3FF")  # pale violet — section bg
-C_ROW_ALT = colors.HexColor("#FAF9FF")  # alternating row
+C_LIGHT_BG = colors.HexColor("#F9EFE7")  # brand cream — section bg
+C_ROW_ALT = colors.HexColor("#FDFBF9")  # alternating row
 C_CORRECT = colors.HexColor("#D1FAE5")  # soft green  — correct answer
 C_WRONG = colors.HexColor("#FEE2E2")  # soft red    — wrong answer
 C_FASTEST = colors.HexColor("#FEF3C7")  # amber       — fastest player
-C_RULE = colors.HexColor("#DDD6FE")  # light purple rule
+C_RULE = colors.HexColor("#EDE3DA")  # brand cream rule
 C_GREY_TEXT = colors.HexColor("#6B7280")
 C_DARK_TEXT = colors.HexColor("#111827")
 
@@ -92,7 +92,7 @@ def _draw_page(canvas, doc, room_code: str, game_name: str) -> None:
     # Sub-label (game name or room code)
     label = game_name if game_name else f"Partie {room_code}"
     canvas.setFont("Helvetica", 8.5)
-    canvas.setFillColor(colors.HexColor("#C4B5FD"))
+    canvas.setFillColor(colors.HexColor("#F9EFE7"))
     canvas.drawString(MARGIN, PAGE_H - HEADER_H + 2.8 * mm, label)
     # Right: "Résultats de partie"
     canvas.setFont("Helvetica-Bold", 8.5)
@@ -247,8 +247,8 @@ def generate_results_pdf(
         "ko": _s("ko", fontSize=8, textColor=colors.HexColor("#991B1B")),
         "white": _s("wh", fontSize=9, textColor=C_WHITE),
         "white_sm": _s("whsm", fontSize=8, textColor=C_WHITE),
-        "lilac": _s("lilac", fontSize=8, textColor=colors.HexColor("#C4B5FD")),
-        "green_sm": _s("grsm", fontSize=8, textColor=colors.HexColor("#86EFAC")),
+        "lilac": _s("lilac", fontSize=8, textColor=colors.HexColor("#F9EFE7")),
+        "green_sm": _s("grsm", fontSize=8, textColor=colors.HexColor("#DC3842")),
         "center": _s("ctr", fontSize=9, textColor=C_DARK_TEXT, alignment=1),
         "center_w": _s(
             "ctrw",
@@ -389,7 +389,7 @@ def generate_results_pdf(
                             "BACKGROUND",
                             (0, 0),
                             (0, 1),
-                            colors.HexColor("#F9F8FF"),
+                            colors.HexColor("#FDFBF9"),
                         ),
                         ("BACKGROUND", (0, 2), (0, 2), col_color),
                         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
@@ -555,7 +555,7 @@ def generate_results_pdf(
                             _s(
                                 f"rh{rnum}b",
                                 fontSize=8,
-                                textColor=colors.HexColor("#C4B5FD"),
+                                textColor=colors.HexColor("#F9EFE7"),
                             ),
                         ),
                         Paragraph(
@@ -563,7 +563,7 @@ def generate_results_pdf(
                             _s(
                                 f"rh{rnum}c",
                                 fontSize=8,
-                                textColor=colors.HexColor("#86EFAC"),
+                                textColor=colors.HexColor("#DC3842"),
                             ),
                         ),
                     ]
@@ -605,13 +605,13 @@ def generate_results_pdf(
                 bonus_tbl.setStyle(
                     TableStyle(
                         [
-                            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFBEB")),
+                            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F9EFE7")),
                             ("TOPPADDING", (0, 0), (-1, -1), 3),
                             ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
                             ("LEFTPADDING", (0, 0), (-1, -1), 8),
                             ("RIGHTPADDING", (0, 0), (-1, -1), 6),
                             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                            ("LINEBELOW", (0, 0), (-1, -1), 0.5, colors.HexColor("#FDE68A")),
+                            ("LINEBELOW", (0, 0), (-1, -1), 0.5, colors.HexColor("#EDE3DA")),
                         ]
                     )
                 )
@@ -697,7 +697,7 @@ def generate_results_pdf(
                                 "BACKGROUND",
                                 (0, 0),
                                 (-1, 0),
-                                colors.HexColor("#EDE9FE"),
+                                colors.HexColor("#F9EFE7"),
                             ),
                             ("FONTSIZE", (0, 0), (-1, -1), 8),
                             ("TOPPADDING", (0, 0), (-1, -1), 3),

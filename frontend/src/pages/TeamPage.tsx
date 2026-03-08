@@ -166,7 +166,7 @@ export default function TeamPage() {
           {team.avatar ? (
             <img src={getMediaUrl(team.avatar)} alt={team.name} className="w-20 h-20 rounded-lg object-cover" />
           ) : (
-            <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white text-3xl font-bold">
+            <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-3xl font-bold">
               {team.name.charAt(0).toUpperCase()}
             </div>
           )}
@@ -220,7 +220,7 @@ export default function TeamPage() {
                   {m.user.avatar ? (
                     <img src={getMediaUrl(m.user.avatar)} alt={m.user.username} className="w-10 h-10 rounded-full object-cover" />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
                       {m.user.username.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -270,7 +270,7 @@ export default function TeamPage() {
                         {r.user.avatar ? (
                           <img src={getMediaUrl(r.user.avatar)} alt={r.user.username} className="w-10 h-10 rounded-full object-cover" />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
                             {r.user.username.charAt(0).toUpperCase()}
                           </div>
                         )}

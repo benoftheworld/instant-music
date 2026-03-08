@@ -8,7 +8,7 @@ interface Props {
 const DISMISSED_KEY = 'site_banner_dismissed';
 
 const COLOR_CLASSES: Record<SiteBannerData['color'], string> = {
-  info: 'bg-blue-600 text-white',
+  info: 'bg-primary-500 text-white',
   success: 'bg-green-600 text-white',
   warning: 'bg-amber-500 text-white',
   danger: 'bg-primary-600 text-white',

@@ -438,13 +438,13 @@ export default function ProfilePage() {
                   <span className="text-gray-500">victoires</span>
                 </span>
                 <span className="flex items-center gap-1.5 text-sm bg-white px-3 py-1 rounded-full border border-cream-300 shadow-sm">
-                  <span className="font-bold text-yellow-600">{user.total_points}</span>
+                  <span className="font-bold text-primary-600">{user.total_points}</span>
                   <span className="text-gray-500">points</span>
                 </span>
                 {user.coins_balance !== undefined && (
-                  <span className="flex items-center gap-1.5 text-sm bg-yellow-50 px-3 py-1 rounded-full border border-yellow-200">
+                  <span className="flex items-center gap-1.5 text-sm bg-primary-50 px-3 py-1 rounded-full border border-primary-200">
                     <span>🪙</span>
-                    <span className="font-bold text-yellow-700">{user.coins_balance}</span>
+                    <span className="font-bold text-primary-700">{user.coins_balance}</span>
                   </span>
                 )}
               </div>
@@ -454,10 +454,10 @@ export default function ProfilePage() {
             {detailedStats && (
               <button
                 onClick={() => setActiveTab('achievements')}
-                className="flex-shrink-0 text-center bg-yellow-50 hover:bg-yellow-100 rounded-xl p-4 border border-yellow-200 transition-colors"
+                className="flex-shrink-0 text-center bg-primary-50 hover:bg-primary-100 rounded-xl p-4 border border-primary-200 transition-colors"
               >
                 <div className="text-3xl mb-1">🏆</div>
-                <div className="text-xl font-bold text-yellow-700">
+                <div className="text-xl font-bold text-primary-700">
                   {detailedStats.achievements_unlocked}/{detailedStats.achievements_total}
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5">Succès</div>
@@ -489,9 +489,9 @@ export default function ProfilePage() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard icon="🎮" label="Parties jouées" value={user.total_games_played} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
-              <StatCard icon="🏆" label="Victoires" value={user.total_wins} textColor="text-green-600" bgClass="bg-green-50 border-green-200" />
-              <StatCard icon="📈" label="Taux de victoire" value={`${(user.win_rate ?? 0).toFixed(1)}%`} textColor="text-yellow-600" bgClass="bg-yellow-50 border-yellow-200" />
-              <StatCard icon="⭐" label="Points totaux" value={user.total_points} textColor="text-purple-600" bgClass="bg-purple-50 border-purple-200" />
+              <StatCard icon="🏆" label="Victoires" value={user.total_wins} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
+              <StatCard icon="📈" label="Taux de victoire" value={`${(user.win_rate ?? 0).toFixed(1)}%`} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
+              <StatCard icon="⭐" label="Points totaux" value={user.total_points} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
             </div>
 
             {detailedStats ? (
@@ -523,7 +523,7 @@ export default function ProfilePage() {
                     value={detailedStats.total_correct_answers}
                     max={detailedStats.total_answers || 1}
                     format={(v) => `${v} / ${detailedStats.total_answers}`}
-                    color="bg-blue-500"
+                    color="bg-primary-500"
                   />
                 </div>
               </div>
@@ -791,7 +791,7 @@ export default function ProfilePage() {
                 <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
                   {loading ? 'Modification…' : 'Changer le mot de passe'}
                 </button>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 text-sm text-primary-700">
                   Après le changement, vous restez connecté sur cet appareil.
                 </div>
               </form>

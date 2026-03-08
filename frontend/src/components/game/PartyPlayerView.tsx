@@ -73,7 +73,7 @@ export default function PartyPlayerView({
       selectedAnswer.toLowerCase().trim() === roundResults.correct_answer.toLowerCase().trim();
 
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-6 gap-6">
+      <div className="h-screen flex flex-col items-center justify-center bg-dark p-6 gap-6">
         <div className={`w-full max-w-sm rounded-2xl p-8 text-center shadow-2xl ${
           isCorrect ? 'bg-green-500' : selectedAnswer ? 'bg-red-500' : 'bg-gray-600'
         }`}>
@@ -101,7 +101,7 @@ export default function PartyPlayerView({
   // ── Réponse déjà envoyée ──────────────────────────────────────────────
   if (hasAnswered) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-6 gap-6">
+      <div className="h-screen flex flex-col items-center justify-center bg-dark p-6 gap-6">
         <div className="w-full max-w-sm rounded-2xl p-8 text-center bg-white/10 border-2 border-white/20 shadow-2xl">
           <div className="text-5xl mb-4">✔️</div>
           <p className="text-white text-xl font-bold mb-2">Réponse envoyée !</p>
@@ -133,7 +133,7 @@ export default function PartyPlayerView({
   // ── Mode QCM ──────────────────────────────────────────────────────────
   if (answerMode === 'mcq') {
     return (
-      <div className="h-screen flex flex-col bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 gap-3 overflow-hidden">
+      <div className="h-screen flex flex-col bg-dark p-4 gap-3 overflow-hidden">
         {/* Header : round + timer */}
         <div className="flex items-center justify-between px-2 shrink-0">
           <span className="text-white/70 text-sm font-semibold uppercase tracking-widest">
@@ -187,7 +187,7 @@ export default function PartyPlayerView({
 
   // ── Mode saisie libre ─────────────────────────────────────────────────
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 gap-4">
+    <div className="h-screen flex flex-col bg-dark p-4 gap-4">
       {/* Header */}
       <div className="flex items-center justify-between px-2">
         <span className="text-white/70 text-sm font-semibold uppercase tracking-widest">

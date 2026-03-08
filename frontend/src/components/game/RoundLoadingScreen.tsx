@@ -52,7 +52,7 @@ export default function RoundLoadingScreen({
   }, [duration]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-dark flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 text-center">
           {/* Round Number */}
@@ -63,7 +63,7 @@ export default function RoundLoadingScreen({
             <h2 className="text-4xl font-bold text-white mb-2">
               Préparez-vous !
             </h2>
-            <p className="text-purple-200 text-lg">
+            <p className="text-cream-300 text-lg">
               Le round va commencer...
             </p>
           </div>
@@ -75,13 +75,13 @@ export default function RoundLoadingScreen({
             }`}>
               {timeRemaining}
             </div>
-            <p className="text-purple-200 mt-2">secondes</p>
+            <p className="text-cream-300 mt-2">secondes</p>
           </div>
 
           {/* Progress Bar */}
           <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-r from-green-400 to-blue-500 transition-all duration-300 ease-linear rounded-full"
+              className="h-full bg-gradient-to-r from-primary-400 to-primary-500 transition-all duration-300 ease-linear rounded-full"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -91,7 +91,7 @@ export default function RoundLoadingScreen({
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className="w-4 h-4 bg-purple-400 rounded-full animate-bounce"
+                className="w-4 h-4 bg-primary-400 rounded-full animate-bounce"
                 style={{ animationDelay: `${i * 0.15}s` }}
               />
             ))}

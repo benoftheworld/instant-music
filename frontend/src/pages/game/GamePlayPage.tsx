@@ -321,7 +321,7 @@ export default function GamePlayPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+      <div className="min-h-screen bg-dark flex items-center justify-center">
         <div className="text-white text-2xl">Chargement...</div>
       </div>
     );
@@ -329,7 +329,7 @@ export default function GamePlayPage() {
 
   if (!currentRound) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+      <div className="min-h-screen bg-dark flex items-center justify-center">
         <div className="text-white text-2xl">En attente du prochain round...</div>
       </div>
     );
@@ -403,7 +403,7 @@ export default function GamePlayPage() {
   const isSolo = isKaraoke || !game?.is_online;
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
+    <div className="h-screen overflow-hidden flex flex-col bg-dark p-4">
       {/* Live region pour annoncer les transitions de jeu aux lecteurs d'écran */}
       <div aria-live="polite" className="sr-only">
         {roundPhase === 'playing' && currentRound &&

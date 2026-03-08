@@ -154,7 +154,7 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
           </div>
 
           {/* Info for search */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+          <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 text-sm text-primary-700">
             💡 Recherchez des playlists Deezer publiques. Les playlists privées ne sont pas accessibles.
           </div>
         </div>

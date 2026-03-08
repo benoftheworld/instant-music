@@ -324,9 +324,9 @@ export default function JoinGamePage() {
             </div>
 
             {/* Help Section */}
-            <div className="mt-8 card bg-blue-50">
-              <h3 className="font-semibold text-blue-900 mb-2">💡 Besoin d'aide ?</h3>
-              <ul className="text-sm text-blue-800 space-y-1">
+            <div className="mt-8 card bg-primary-50">
+              <h3 className="font-semibold text-primary-800 mb-2">💡 Besoin d'aide ?</h3>
+              <ul className="text-sm text-primary-700 space-y-1">
                 <li>• Demandez le code de salle à l'hôte de la partie</li>
                 <li>• Le code est composé de 6 caractères</li>
                 <li>• Assurez-vous que la partie n'a pas encore commencé</li>

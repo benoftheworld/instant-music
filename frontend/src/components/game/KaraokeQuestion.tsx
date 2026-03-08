@@ -323,7 +323,7 @@ const KaraokeQuestion = ({
   /* ── Results phase: show track info ── */
   if (showResults) {
     return (
-      <div className="bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 rounded-2xl shadow-2xl p-8 text-center">
+      <div className="bg-dark rounded-2xl shadow-2xl p-8 text-center">
         <div className="text-5xl mb-4">🎶</div>
         <p className="text-2xl font-bold text-white mb-1">{round.track_name}</p>
         <p className="text-lg text-gray-400">{round.artist_name}</p>

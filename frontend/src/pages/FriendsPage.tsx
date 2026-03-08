@@ -110,7 +110,7 @@ export default function FriendsPage() {
           <button
             onClick={() => setActiveTab('friends')}
             className={`px-4 py-2 rounded-lg font-medium ${
-              activeTab === 'friends' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700'
+              activeTab === 'friends' ? 'bg-primary-500 text-white' : 'bg-cream-200 text-dark-400 hover:bg-cream-300'
             }`}
           >
             Mes amis ({friends.length})
@@ -118,7 +118,7 @@ export default function FriendsPage() {
           <button
             onClick={() => setActiveTab('pending')}
             className={`px-4 py-2 rounded-lg font-medium ${
-              activeTab === 'pending' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700'
+              activeTab === 'pending' ? 'bg-primary-500 text-white' : 'bg-cream-200 text-dark-400 hover:bg-cream-300'
             }`}
           >
             En attente ({pendingRequests.length})
@@ -126,7 +126,7 @@ export default function FriendsPage() {
           <button
             onClick={() => setActiveTab('search')}
             className={`px-4 py-2 rounded-lg font-medium ${
-              activeTab === 'search' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700'
+              activeTab === 'search' ? 'bg-primary-500 text-white' : 'bg-cream-200 text-dark-400 hover:bg-cream-300'
             }`}
           >
             🔍 Rechercher
@@ -151,7 +151,7 @@ export default function FriendsPage() {
             ) : (
               <div className="space-y-3">
                 {friends.map((friend) => (
-                  <div key={friend.friendship_id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div key={friend.friendship_id} className="flex items-center gap-4 p-4 bg-cream-100 rounded-lg">
                     {friend.user.avatar ? (
                       <img
                         src={getMediaUrl(friend.user.avatar)}
@@ -159,7 +159,7 @@ export default function FriendsPage() {
                         className="w-12 h-12 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
                         {friend.user.username.charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -189,8 +189,8 @@ export default function FriendsPage() {
             ) : (
               <div className="space-y-3 mb-6">
                 {pendingRequests.map((request) => (
-                  <div key={request.id} className="flex items-center gap-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold">
+                  <div key={request.id} className="flex items-center gap-4 p-4 bg-primary-50 rounded-lg border border-primary-200">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
                       {request.from_user.username.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1">
@@ -201,13 +201,13 @@ export default function FriendsPage() {
                     </div>
                     <button
                       onClick={() => handleAccept(request.id)}
-                      className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600"
+                      className="px-3 py-1 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-500"
                     >
                       Accepter
                     </button>
                     <button
                       onClick={() => handleReject(request.id)}
-                      className="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300"
+                      className="px-3 py-1 bg-cream-300 text-dark-400 rounded-lg text-sm hover:bg-cream-400"
                     >
                       Refuser
                     </button>
@@ -222,14 +222,14 @@ export default function FriendsPage() {
             ) : (
               <div className="space-y-3">
                 {sentRequests.map((request) => (
-                  <div key={request.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold">
+                  <div key={request.id} className="flex items-center gap-4 p-4 bg-cream-100 rounded-lg">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
                       {request.to_user.username.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1">
                       <p className="font-bold">{request.to_user.username}</p>
                     </div>
-                    <span className="text-sm text-gray-400">En attente...</span>
+                    <span className="text-sm text-dark-300">En attente...</span>
                   </div>
                 ))}
               </div>
@@ -257,7 +257,7 @@ export default function FriendsPage() {
             {searchResults.length > 0 && (
               <div className="space-y-3">
                 {searchResults.map((user) => (
-                  <div key={user.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div key={user.id} className="flex items-center gap-4 p-4 bg-cream-100 rounded-lg">
                     {user.avatar ? (
                       <img
                         src={getMediaUrl(user.avatar)}
@@ -265,7 +265,7 @@ export default function FriendsPage() {
                         className="w-12 h-12 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
                         {user.username.charAt(0).toUpperCase()}
                       </div>
                     )}

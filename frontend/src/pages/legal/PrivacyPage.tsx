@@ -23,7 +23,7 @@ export default function PrivacyPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
-      <Link to="/" className="text-blue-600 hover:underline text-sm mb-6 block">
+      <Link to="/" className="text-primary-600 hover:underline text-sm mb-6 block">
         ← Retour à l'accueil
       </Link>
 

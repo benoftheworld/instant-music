@@ -32,13 +32,13 @@ function Avatar({
       <img
         src={getMediaUrl(avatar)}
         alt={name}
-        className={`${cls} rounded-full object-cover ring-2 ring-white/20`}
+        className={`${cls} rounded-full object-cover ring-2 ring-dark/10`}
       />
     );
   }
   return (
     <div
-      className={`${cls} rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white font-bold ring-2 ring-white/20`}
+      className={`${cls} rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold ring-2 ring-dark/10`}
     >
       {name.charAt(0).toUpperCase()}
     </div>
@@ -51,7 +51,7 @@ function Podium({ players }: { players: LeaderboardEntry[] }) {
   if (players.length < 3) return null;
 
   const positions = [
-    { player: players[1], col: 0, height: 'h-28', ring: 'ring-slate-400', bar: 'from-slate-600 to-slate-400' },
+    { player: players[1], col: 0, height: 'h-28', ring: 'ring-dark-200', bar: 'from-slate-500 to-slate-400' },
     { player: players[0], col: 1, height: 'h-40', ring: 'ring-yellow-400', bar: 'from-yellow-600 to-yellow-400' },
     { player: players[2], col: 2, height: 'h-20', ring: 'ring-orange-400', bar: 'from-orange-600 to-orange-400' },
   ];
@@ -66,12 +66,12 @@ function Podium({ players }: { players: LeaderboardEntry[] }) {
           </div>
           <Link
             to={`/profile/${player.user_id}`}
-            className={`font-bold truncate max-w-full hover:underline ${col === 1 ? 'text-yellow-300 text-base' : 'text-white/80 text-sm'}`}
+            className={`font-bold truncate max-w-full hover:underline ${col === 1 ? 'text-primary-600 text-base' : 'text-dark-500 text-sm'}`}
           >
             {player.username}
           </Link>
           {player.team_name && player.team_id && (
-            <Link to={`/teams/${player.team_id}`} className="text-[10px] text-white/40 hover:text-white/60 truncate max-w-full">
+            <Link to={`/teams/${player.team_id}`} className="text-[10px] text-dark-200 hover:text-dark-400 truncate max-w-full">
               {player.team_name}
             </Link>
           )}
@@ -101,10 +101,10 @@ function PlayerTable({
   if (players.length === 0) {
     return (
       <div className="text-center py-16">
-        <p className="text-white/40 text-lg mb-4">Aucun joueur dans le classement</p>
+        <p className="text-dark-400 text-lg mb-4">Aucun joueur dans le classement</p>
         <Link
           to="/game/create"
-          className="px-5 py-2.5 rounded-xl font-semibold bg-violet-600/80 hover:bg-violet-600 border border-violet-500/50 text-white transition-all"
+          className="px-5 py-2.5 rounded-xl font-semibold bg-primary-600 hover:bg-primary-500 border border-primary-500/50 text-white transition-all"
         >
           Créer une partie
         </Link>
@@ -113,10 +113,10 @@ function PlayerTable({
   }
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+    <div className="bg-white border border-cream-300 rounded-2xl overflow-hidden">
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-white/40 text-xs uppercase tracking-wider border-b border-white/10">
+          <tr className="text-dark-300 text-xs uppercase tracking-wider border-b border-cream-300">
             <th className="text-center px-3 py-3 w-14">#</th>
             <th className="text-left pr-3 py-3">Joueur</th>
             <th className="text-center pr-3 py-3 hidden sm:table-cell w-20">Parties</th>
@@ -132,19 +132,19 @@ function PlayerTable({
             return (
               <tr
                 key={player.user_id}
-                className={`border-t border-white/5 transition-colors ${
+                className={`border-t border-cream-200 transition-colors ${
                   isMe
-                    ? 'bg-violet-500/15 border-l-2 border-l-violet-400'
+                    ? 'bg-primary-100 border-l-2 border-l-primary-500'
                     : isTop3
-                    ? 'bg-white/[0.03]'
-                    : 'hover:bg-white/[0.03]'
+                    ? 'bg-cream-100'
+                    : 'hover:bg-cream-100'
                 }`}
               >
                 <td className="text-center px-3 py-3">
                   {isTop3 ? (
                     <span className="text-lg">{MEDAL[idx]}</span>
                   ) : (
-                    <span className="text-white/40 text-sm font-medium">{idx + 1}</span>
+                    <span className="text-dark-300 text-sm font-medium">{idx + 1}</span>
                   )}
                 </td>
                 <td className="pr-3 py-3">
@@ -154,12 +154,12 @@ function PlayerTable({
                       <div className="flex items-center gap-1.5">
                         <Link
                           to={`/profile/${player.user_id}`}
-                          className={`font-medium truncate hover:underline ${isMe ? 'text-violet-300' : 'text-white'}`}
+                          className={`font-medium truncate hover:underline ${isMe ? 'text-primary-600' : 'text-dark'}`}
                         >
                           {player.username}
                         </Link>
                         {isMe && (
-                          <span className="text-[10px] bg-violet-500/40 text-violet-200 px-1.5 py-0.5 rounded-full font-semibold shrink-0">
+                          <span className="text-[10px] bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded-full font-semibold shrink-0">
                             VOUS
                           </span>
                         )}
@@ -167,38 +167,38 @@ function PlayerTable({
                       {player.team_name && player.team_id && (
                         <Link
                           to={`/teams/${player.team_id}`}
-                          className="text-[11px] text-white/30 hover:text-white/50 truncate block"
+                          className="text-[11px] text-dark-200 hover:text-dark-400 truncate block"
                         >
                           {player.team_name}
                         </Link>
                       )}
                       {/* Mobile stats */}
-                      <p className="text-[11px] text-white/30 sm:hidden">
+                      <p className="text-[11px] text-dark-200 sm:hidden">
                         {player.total_games} parties · {player.total_wins} V · {player.win_rate}%
                       </p>
                     </div>
                   </div>
                 </td>
-                <td className="text-center pr-3 py-3 hidden sm:table-cell text-white/60">
+                <td className="text-center pr-3 py-3 hidden sm:table-cell text-dark-400">
                   {player.total_games}
                 </td>
-                <td className="text-center pr-3 py-3 hidden sm:table-cell text-white/60">
+                <td className="text-center pr-3 py-3 hidden sm:table-cell text-dark-400">
                   {player.total_wins}
                 </td>
                 <td className="text-center pr-3 py-3 hidden md:table-cell">
                   <span
                     className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       player.win_rate >= 50
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : 'bg-white/10 text-white/50'
+                        ? 'bg-primary-100 text-primary-600'
+                        : 'bg-cream-200 text-dark-300'
                     }`}
                   >
                     {player.win_rate}%
                   </span>
                 </td>
                 <td className="text-right pr-5 py-3">
-                  <span className="font-bold text-white">{player.total_points.toLocaleString()}</span>
-                  <span className="text-white/30 text-xs ml-1">pts</span>
+                  <span className="font-bold text-dark">{player.total_points.toLocaleString()}</span>
+                  <span className="text-dark-200 text-xs ml-1">pts</span>
                 </td>
               </tr>
             );
@@ -215,10 +215,10 @@ function TeamTable({ teams }: { teams: TeamLeaderboardEntry[] }) {
   if (teams.length === 0) {
     return (
       <div className="text-center py-16">
-        <p className="text-white/40 text-lg mb-4">Aucune équipe dans le classement</p>
+        <p className="text-dark-400 text-lg mb-4">Aucune équipe dans le classement</p>
         <Link
           to="/teams"
-          className="px-5 py-2.5 rounded-xl font-semibold bg-violet-600/80 hover:bg-violet-600 border border-violet-500/50 text-white transition-all"
+          className="px-5 py-2.5 rounded-xl font-semibold bg-primary-600 hover:bg-primary-500 border border-primary-500/50 text-white transition-all"
         >
           Créer une équipe
         </Link>
@@ -227,10 +227,10 @@ function TeamTable({ teams }: { teams: TeamLeaderboardEntry[] }) {
   }
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+    <div className="bg-white border border-cream-300 rounded-2xl overflow-hidden">
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-white/40 text-xs uppercase tracking-wider border-b border-white/10">
+          <tr className="text-dark-300 text-xs uppercase tracking-wider border-b border-cream-300">
             <th className="text-center px-3 py-3 w-14">#</th>
             <th className="text-left pr-3 py-3">Équipe</th>
             <th className="text-center pr-3 py-3 hidden sm:table-cell w-24">Membres</th>
@@ -246,15 +246,15 @@ function TeamTable({ teams }: { teams: TeamLeaderboardEntry[] }) {
             return (
               <tr
                 key={team.team_id}
-                className={`border-t border-white/5 transition-colors ${
-                  isTop3 ? 'bg-white/[0.03]' : 'hover:bg-white/[0.03]'
+                className={`border-t border-cream-200 transition-colors ${
+                  isTop3 ? 'bg-cream-100' : 'hover:bg-cream-100'
                 }`}
               >
                 <td className="text-center px-3 py-3">
                   {isTop3 ? (
                     <span className="text-lg">{MEDAL[idx]}</span>
                   ) : (
-                    <span className="text-white/40 text-sm font-medium">{idx + 1}</span>
+                    <span className="text-dark-300 text-sm font-medium">{idx + 1}</span>
                   )}
                 </td>
                 <td className="pr-3 py-3">
@@ -263,52 +263,52 @@ function TeamTable({ teams }: { teams: TeamLeaderboardEntry[] }) {
                       <img
                         src={getMediaUrl(team.avatar)}
                         alt={team.name}
-                        className="w-9 h-9 rounded-full object-cover ring-2 ring-white/20"
+                        className="w-9 h-9 rounded-full object-cover ring-2 ring-dark/10"
                       />
                     ) : (
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm ring-2 ring-white/20">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm ring-2 ring-dark/10">
                         {team.name.charAt(0).toUpperCase()}
                       </div>
                     )}
                     <div className="min-w-0">
                       <Link
                         to={`/teams/${team.team_id}`}
-                        className="font-medium text-white truncate hover:underline block"
+                        className="font-medium text-dark truncate hover:underline block"
                       >
                         {team.name}
                       </Link>
                       {team.owner_name && (
-                        <p className="text-[11px] text-white/30">👑 {team.owner_name}</p>
+                        <p className="text-[11px] text-dark-200">👑 {team.owner_name}</p>
                       )}
-                      <p className="text-[11px] text-white/30 sm:hidden">
+                      <p className="text-[11px] text-dark-200 sm:hidden">
                         {team.member_count} membres · {team.total_games} parties
                       </p>
                     </div>
                   </div>
                 </td>
-                <td className="text-center pr-3 py-3 hidden sm:table-cell text-white/60">
+                <td className="text-center pr-3 py-3 hidden sm:table-cell text-dark-400">
                   {team.member_count}
                 </td>
-                <td className="text-center pr-3 py-3 hidden sm:table-cell text-white/60">
+                <td className="text-center pr-3 py-3 hidden sm:table-cell text-dark-400">
                   {team.total_games}
                 </td>
-                <td className="text-center pr-3 py-3 hidden md:table-cell text-white/60">
+                <td className="text-center pr-3 py-3 hidden md:table-cell text-dark-400">
                   {team.total_wins}
                 </td>
                 <td className="text-center pr-3 py-3 hidden md:table-cell">
                   <span
                     className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       team.win_rate >= 50
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : 'bg-white/10 text-white/50'
+                        ? 'bg-primary-100 text-primary-600'
+                        : 'bg-cream-200 text-dark-300'
                     }`}
                   >
                     {team.win_rate}%
                   </span>
                 </td>
                 <td className="text-right pr-5 py-3">
-                  <span className="font-bold text-white">{team.total_points.toLocaleString()}</span>
-                  <span className="text-white/30 text-xs ml-1">pts</span>
+                  <span className="font-bold text-dark">{team.total_points.toLocaleString()}</span>
+                  <span className="text-dark-200 text-xs ml-1">pts</span>
                 </td>
               </tr>
             );
@@ -341,20 +341,20 @@ function Pagination({
       <button
         onClick={onPrev}
         disabled={page <= 1}
-        className={`px-4 py-2 rounded-xl text-sm font-medium border border-white/20 transition-all ${
-          page <= 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white/10 text-white/70 hover:text-white'
+        className={`px-4 py-2 rounded-xl text-sm font-medium border border-cream-300 transition-all ${
+          page <= 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-cream-200 text-dark-400 hover:text-dark'
         }`}
       >
         ← Précédent
       </button>
-      <span className="text-white/40 text-sm">
+      <span className="text-dark-300 text-sm">
         {page} / {totalPages}
       </span>
       <button
         onClick={onNext}
         disabled={page >= totalPages}
-        className={`px-4 py-2 rounded-xl text-sm font-medium border border-white/20 transition-all ${
-          page >= totalPages ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white/10 text-white/70 hover:text-white'
+        className={`px-4 py-2 rounded-xl text-sm font-medium border border-cream-300 transition-all ${
+          page >= totalPages ? 'opacity-30 cursor-not-allowed' : 'hover:bg-cream-200 text-dark-400 hover:text-dark'
         }`}
       >
         Suivant →
@@ -450,12 +450,12 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] text-white">
+    <div className="min-h-screen bg-cream-100 text-dark">
       <div className="container mx-auto max-w-5xl px-4 py-10 space-y-8">
-        {/* ── Header ─────────────────────────────────────────── */}
+        {/* ── Header ──────────────────────────────────────────── */}
         <div className="text-center space-y-2">
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">🏆 Classement</h1>
-          <p className="text-white/40 text-sm sm:text-base">
+          <p className="text-dark-300 text-sm sm:text-base">
             {subtitleMap[selectedMode] ?? ''}
           </p>
         </div>
@@ -470,8 +470,8 @@ export default function LeaderboardPage() {
                 onClick={() => setSelectedMode(tab.value)}
                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
                   selectedMode === tab.value
-                    ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/25'
-                    : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80 border border-white/10'
+                    ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                    : 'bg-cream-200 text-dark-400 hover:bg-cream-300 hover:text-dark border border-cream-300'
                 }`}
               >
                 <span className="mr-1.5">{tab.icon}</span>
@@ -488,8 +488,8 @@ export default function LeaderboardPage() {
                 onClick={() => setSelectedMode(tab.value)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   selectedMode === tab.value
-                    ? 'bg-violet-500/80 text-white'
-                    : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-cream-200 text-dark-300 hover:bg-cream-300 hover:text-dark-400'
                 }`}
               >
                 <span className="mr-1">{tab.icon}</span>
@@ -502,11 +502,11 @@ export default function LeaderboardPage() {
         {/* ── Content ────────────────────────────────────────── */}
         {loading ? (
           <div className="flex justify-center items-center py-24">
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-white/20 border-t-violet-400" />
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-cream-300 border-t-primary-500" />
           </div>
         ) : error ? (
           <div className="text-center py-16">
-            <p className="text-red-400">{error}</p>
+            <p className="text-red-600">{error}</p>
           </div>
         ) : selectedMode === 'teams' ? (
           <>

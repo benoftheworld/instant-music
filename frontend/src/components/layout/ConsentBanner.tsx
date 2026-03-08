@@ -20,7 +20,7 @@ export default function ConsentBanner() {
   };
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-50 bg-gray-900/95 backdrop-blur text-white px-4 py-4 shadow-lg">
+    <div className="fixed bottom-0 inset-x-0 z-50 bg-dark text-cream-100 px-4 py-4 shadow-lg">
       <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center gap-3 text-sm">
         <p className="flex-1 text-center sm:text-left">
           Ce site utilise des données locales pour fonctionner. En continuant, vous acceptez
@@ -33,7 +33,7 @@ export default function ConsentBanner() {
         <div className="flex gap-2 shrink-0">
           <Link
             to="/privacy"
-            className="px-3 py-1.5 text-xs border border-gray-500 rounded hover:bg-gray-700 transition"
+            className="px-3 py-1.5 text-xs border border-dark-400 rounded hover:bg-dark-600 transition"
           >
             En savoir plus
           </Link>

@@ -122,7 +122,7 @@ export default function VolumeControl({ variant = 'floating' }: VolumeControlPro
             <button
               onClick={handleMuteToggle}
               className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                !muted ? 'bg-purple-600' : 'bg-gray-300'
+                !muted ? 'bg-primary-500' : 'bg-gray-300'
               }`}
             >
               <span
@@ -193,7 +193,7 @@ export default function VolumeControl({ variant = 'floating' }: VolumeControlPro
             <button
               onClick={handleMuteToggle}
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                !muted ? 'bg-purple-600' : 'bg-gray-300'
+                !muted ? 'bg-primary-500' : 'bg-gray-300'
               }`}
             >
               <span

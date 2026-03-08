@@ -312,7 +312,7 @@ export default function CreateGamePage() {
             <div
               className={`flex gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
                 isPartyMode
-                  ? 'bg-violet-50 border-violet-400'
+                  ? 'bg-primary-50 border-primary-400'
                   : 'bg-gray-50 border-gray-200 hover:border-gray-300'
               }`}
               onClick={() => setIsPartyMode((v) => !v)}
@@ -322,7 +322,7 @@ export default function CreateGamePage() {
                 id="isPartyMode"
                 checked={isPartyMode}
                 onChange={(e) => setIsPartyMode(e.target.checked)}
-                className="w-5 h-5 text-violet-600 border-gray-300 rounded focus:ring-violet-500 mt-0.5 shrink-0"
+                className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500 mt-0.5 shrink-0"
                 onClick={(e) => e.stopPropagation()}
               />
               <div>

@@ -339,13 +339,13 @@ export function AudioPlayerUI({
   hideManualPlay?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center p-2 md:p-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg min-h-[60px] md:min-h-[80px]">
+    <div className="flex flex-col items-center justify-center p-2 md:p-4 bg-gradient-to-r from-primary-600 to-primary-400 rounded-lg min-h-[60px] md:min-h-[80px]">
       {playerError ? (
         <div className="text-white text-center">
           <div className="text-4xl mb-2">⚠️</div>
           <p className="text-sm mb-1">{playerError}</p>
           <button onClick={handlePlay}
-            className="mt-3 px-6 py-2 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition font-bold shadow">
+            className="mt-3 px-6 py-2 bg-white text-primary-600 rounded-lg hover:bg-cream-100 transition font-bold shadow">
             🔄 Réessayer
           </button>
         </div>
@@ -364,7 +364,7 @@ export function AudioPlayerUI({
           </p>
           {needsPlay && !hideManualPlay && (
             <button onClick={handlePlay}
-              className="px-8 py-4 bg-white text-purple-600 rounded-xl hover:bg-gray-100 transition font-bold text-lg shadow-lg">
+              className="px-8 py-4 bg-white text-primary-600 rounded-xl hover:bg-cream-100 transition font-bold text-lg shadow-lg">
               ▶️ Lancer la musique
             </button>
           )}
@@ -400,9 +400,9 @@ export function OptionsGrid({
 
   const getStyle = (option: string) => {
     if (!hasAnswered && !showResults)
-      return 'bg-white hover:bg-blue-100 border-2 border-gray-300 hover:border-blue-500 cursor-pointer';
+      return 'bg-white hover:bg-primary-100 border-2 border-cream-300 hover:border-primary-500 cursor-pointer';
     if (hasAnswered && !showResults) {
-      if (option === selectedAnswer) return 'bg-blue-500 text-white border-2 border-blue-700';
+      if (option === selectedAnswer) return 'bg-primary-500 text-white border-2 border-primary-700';
       return 'bg-gray-200 border-2 border-gray-300 cursor-not-allowed';
     }
     if (showResults && roundResults) {
@@ -430,7 +430,7 @@ export function OptionsGrid({
           disabled={hasAnswered || showResults}
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 shrink-0 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">
+            <div className="w-8 h-8 shrink-0 rounded-full bg-primary-500 text-white flex items-center justify-center font-bold text-sm">
               {String.fromCharCode(65 + index)}
             </div>
             <span className="text-base md:text-lg font-medium leading-tight line-clamp-2">{option}</span>
@@ -461,7 +461,7 @@ export function ResultFooter({
         </div>
       )}
       {showResults && roundResults && (
-        <div className="mt-3 p-3 rounded-lg bg-blue-50 border-2 border-blue-200 shrink-0">
+        <div className="mt-3 p-3 rounded-lg bg-primary-50 border-2 border-primary-200 shrink-0">
           <p className="text-base">
             <span className="font-bold">Bonne réponse :</span> {roundResults.correct_answer}
           </p>
@@ -483,7 +483,7 @@ export function ResultFooter({
 /* ───────────────────── Track info (results phase) ───────────────────── */
 export function TrackReveal({ round }: { round: GameRound }) {
   return (
-    <div className="mb-6 rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-purple-600 to-blue-600 p-6">
+    <div className="mb-6 rounded-lg overflow-hidden shadow-lg bg-primary-600 p-6">
       <div className="text-white text-center">
         <div className="text-4xl mb-2">🎶</div>
         <p className="text-lg font-bold">{round.track_name}</p>

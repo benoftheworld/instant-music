@@ -97,7 +97,7 @@ export default function TextAnswerInput({
         </div>
       ) : hasAnswered && !showResults ? (
         <div className="text-center py-4">
-          <div className="inline-block bg-blue-100 text-blue-800 px-6 py-3 rounded-xl text-lg font-semibold mb-2">
+          <div className="inline-block bg-primary-100 text-primary-700 px-6 py-3 rounded-xl text-lg font-semibold mb-2">
             « {getDisplayAnswer()} »
           </div>
           <div className="text-gray-500 animate-pulse mt-2">

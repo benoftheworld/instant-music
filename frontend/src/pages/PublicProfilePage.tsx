@@ -71,7 +71,7 @@ export default function PublicProfilePage() {
               className="w-20 h-20 rounded-full object-cover ring-4 ring-primary-100"
             />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white text-3xl font-bold ring-4 ring-primary-100">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-3xl font-bold ring-4 ring-primary-100">
               {profile.username.charAt(0).toUpperCase()}
             </div>
           )}
@@ -98,10 +98,10 @@ export default function PublicProfilePage() {
 
         {/* Main stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard icon="🎮" label="Parties jouées" value={stats.total_games_played} textColor="text-blue-600" bgClass="bg-blue-50 border-blue-200" />
-          <StatCard icon="🏆" label="Victoires" value={stats.total_wins} textColor="text-yellow-600" bgClass="bg-yellow-50 border-yellow-200" />
+          <StatCard icon="🎮" label="Parties jouées" value={stats.total_games_played} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
+          <StatCard icon="🏆" label="Victoires" value={stats.total_wins} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
           <StatCard icon="⭐" label="Points totaux" value={stats.total_points.toLocaleString()} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
-          <StatCard icon="📈" label="Taux de victoire" value={`${stats.win_rate}%`} textColor="text-green-600" bgClass="bg-green-50 border-green-200" />
+          <StatCard icon="📈" label="Taux de victoire" value={`${stats.win_rate}%`} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
         </div>
 
         {/* Detailed stats */}

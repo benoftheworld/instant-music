@@ -42,9 +42,9 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <footer className="bg-gray-800 text-white py-5 text-center">
+      <footer className="bg-dark text-cream-100 py-5 text-center">
         <p className="text-sm">&copy; 2026 InstantMusic. Tous droits réservés.</p>
-        <div className="flex justify-center gap-4 mt-2 text-xs text-gray-400">
+        <div className="flex justify-center gap-4 mt-2 text-xs text-cream-300">
           <Link to="/privacy" className="hover:text-white transition">
             Politique de confidentialité
           </Link>

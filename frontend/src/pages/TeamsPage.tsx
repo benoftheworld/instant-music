@@ -98,7 +98,7 @@ export default function TeamsPage() {
           <button
             onClick={() => setActiveTab('browse')}
             className={`px-4 py-2 rounded-lg font-medium ${
-              activeTab === 'browse' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700'
+              activeTab === 'browse' ? 'bg-primary-500 text-white' : 'bg-cream-200 text-dark-400 hover:bg-cream-300'
             }`}
           >
             Parcourir ({allTeams.length})
@@ -106,7 +106,7 @@ export default function TeamsPage() {
           <button
             onClick={() => setActiveTab('create')}
             className={`px-4 py-2 rounded-lg font-medium ${
-              activeTab === 'create' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700'
+              activeTab === 'create' ? 'bg-primary-500 text-white' : 'bg-cream-200 text-dark-400 hover:bg-cream-300'
             }`}
           >
             + Créer
@@ -221,7 +221,7 @@ function TeamCard({ team, currentUserId, onJoin, onLeave, isJoined, showLeave }:
             className="w-16 h-16 rounded-lg object-cover"
           />
         ) : (
-          <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white text-2xl font-bold">
+          <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-2xl font-bold">
             {team.name.charAt(0).toUpperCase()}
           </div>
         )}
@@ -230,7 +230,7 @@ function TeamCard({ team, currentUserId, onJoin, onLeave, isJoined, showLeave }:
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-bold">{team.name}</h3>
             {isOwner && (
-              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">
                 Propriétaire
               </span>
             )}

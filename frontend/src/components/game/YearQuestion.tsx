@@ -101,15 +101,15 @@ const YearQuestion = ({
                   value={yearInput}
                   onChange={(e) => setYearInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
-                  className="w-48 text-center text-4xl font-bold p-4 border-4 border-blue-300 rounded-xl
-                             focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-48 text-center text-4xl font-bold p-4 border-4 border-primary-300 rounded-xl
+                             focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
                   autoFocus
                 />
                 <button
                   onClick={handleSubmit}
                   disabled={!yearInput}
-                  className="px-8 py-3 bg-blue-600 text-white rounded-lg font-bold text-lg
-                             hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-8 py-3 bg-primary-600 text-white rounded-lg font-bold text-lg
+                             hover:bg-primary-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Valider
                 </button>
@@ -119,7 +119,7 @@ const YearQuestion = ({
               </div>
             ) : hasAnswered && !showResults ? (
               <div className="text-center">
-                <div className="text-4xl font-bold text-blue-600 mb-2">{selectedAnswer}</div>
+                <div className="text-4xl font-bold text-primary-600 mb-2">{selectedAnswer}</div>
                 <div className="text-lg text-gray-600 animate-pulse">
                   En attente des autres joueurs...
                 </div>
@@ -129,7 +129,7 @@ const YearQuestion = ({
 
           {/* Results for text mode */}
           {showResults && roundResults && (
-            <div className="mt-6 p-4 rounded-lg bg-blue-50 border-2 border-blue-200 text-center">
+            <div className="mt-6 p-4 rounded-lg bg-primary-50 border-2 border-primary-200 text-center">
               <p className="text-lg mb-1">
                 Votre réponse : <span className="font-bold">{selectedAnswer || '—'}</span>
               </p>

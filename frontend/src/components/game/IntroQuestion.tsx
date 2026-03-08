@@ -52,7 +52,7 @@ const IntroQuestion = ({
 
       {!showResults && (
         <div className="mb-2 md:mb-4 shrink-0">
-          <div className="flex flex-col items-center justify-center p-2 md:p-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg min-h-[60px] md:min-h-[80px]">
+          <div className="flex flex-col items-center justify-center p-2 md:p-4 bg-gradient-to-r from-primary-600 to-primary-400 rounded-lg min-h-[60px] md:min-h-[80px]">
             {playerError ? (
               <div className="text-white text-center">
                 <div className="text-4xl mb-2">⚠️</div>
