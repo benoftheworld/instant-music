@@ -426,7 +426,7 @@ export function OptionsGrid({
         <button
           key={index}
           onClick={() => { if (!hasAnswered && !showResults) { soundEffects.click(); onOptionClick(option); } }}
-          className={`p-2 rounded-lg text-left transition-all duration-200 min-h-0 overflow-hidden ${getStyle(option)}`}
+          className={`p-2 rounded-lg text-left transition-all duration-200 min-h-0 h-full overflow-hidden ${getStyle(option)}`}
           disabled={hasAnswered || showResults}
         >
           <div className="flex items-center gap-2">
