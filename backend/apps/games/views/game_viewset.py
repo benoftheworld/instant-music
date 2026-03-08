@@ -249,7 +249,15 @@ class GameViewSet(viewsets.ModelViewSet):
             )
 
         min_players = 1 if game.mode == "karaoke" or not game.is_online else 2
-        if game.players.count() < min_players:
+        if game.is_party_mode:
+            # En mode soirée, le présentateur (hôte) ne compte pas comme joueur
+            non_host_players = game.players.exclude(user=game.host).count()
+            if non_host_players < 1:
+                return Response(
+                    {"error": "Il faut au moins 1 joueur (hors présentateur) pour démarrer en mode soirée."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        elif game.players.count() < min_players:
             msg = (
                 "Au moins 1 joueur est nécessaire."
                 if game.mode == "karaoke" or not game.is_online

@@ -133,9 +133,9 @@ export default function PartyPlayerView({
   // ── Mode QCM ──────────────────────────────────────────────────────────
   if (answerMode === 'mcq') {
     return (
-      <div className="h-screen flex flex-col bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 gap-4">
+      <div className="h-screen flex flex-col bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 gap-3 overflow-hidden">
         {/* Header : round + timer */}
-        <div className="flex items-center justify-between px-2">
+        <div className="flex items-center justify-between px-2 shrink-0">
           <span className="text-white/70 text-sm font-semibold uppercase tracking-widest">
             Manche {round.round_number}
           </span>
@@ -145,7 +145,7 @@ export default function PartyPlayerView({
         </div>
 
         {/* Barre de progression */}
-        <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden shrink-0">
           <div
             className={`h-full rounded-full transition-all duration-500 ${timerColor}`}
             style={{ width: `${timerPercent}%` }}
@@ -153,7 +153,7 @@ export default function PartyPlayerView({
         </div>
 
         {/* Boutons de réponse en grille 2×2 */}
-        <div className="flex-1 grid grid-cols-2 gap-3 mt-2">
+        <div className="flex-1 min-h-0 grid grid-cols-2 gap-3">
           {availableOptions.map((option, idx) => {
             const style = OPTION_STYLES[idx % OPTION_STYLES.length];
             return (
@@ -161,15 +161,15 @@ export default function PartyPlayerView({
                 key={option}
                 onClick={() => onAnswerSubmit(option)}
                 className={`
-                  ${style.bg} text-white font-bold text-base md:text-lg
+                  ${style.bg} text-white font-bold text-base
                   rounded-2xl shadow-lg border-b-4 ${style.border}
-                  flex flex-col items-center justify-center gap-2
+                  flex flex-col items-center justify-center gap-1
                   transition-transform active:scale-95 active:border-b-0 active:translate-y-1
-                  p-4
+                  p-3 min-h-0 overflow-hidden
                 `}
               >
-                <span className="text-2xl opacity-80">{style.icon}</span>
-                <span className="text-center leading-tight line-clamp-3">{option}</span>
+                <span className="text-xl opacity-80 shrink-0">{style.icon}</span>
+                <span className="text-center leading-tight line-clamp-3 text-sm">{option}</span>
               </button>
             );
           })}

@@ -332,18 +332,30 @@ export default function GamePlayPage() {
   // et de l'interface complète lors des rounds. L'hôte (spectateur) continue normalement.
   if (game?.is_party_mode && user?.id !== game?.host) {
     return (
-      <PartyPlayerView
-        round={currentRound}
-        timeRemaining={timeRemaining}
-        hasAnswered={hasAnswered}
-        selectedAnswer={selectedAnswer}
-        showResults={roundPhase === 'results' && showResults}
-        roundResults={roundResults}
-        answerMode={game.answer_mode}
-        onAnswerSubmit={handleAnswerSubmit}
-        excludedOptions={excludedOptions}
-        myPointsEarned={myPointsEarned}
-      />
+      <>
+        <PartyPlayerView
+          round={currentRound}
+          timeRemaining={timeRemaining}
+          hasAnswered={hasAnswered}
+          selectedAnswer={selectedAnswer}
+          showResults={roundPhase === 'results' && showResults}
+          roundResults={roundResults}
+          answerMode={game.answer_mode}
+          onAnswerSubmit={handleAnswerSubmit}
+          excludedOptions={excludedOptions}
+          myPointsEarned={myPointsEarned}
+        />
+        {roomCode && (
+          <BonusActivator
+            roomCode={roomCode}
+            onBonusActivated={(_bonusType, extra) => {
+              if (extra.excludedOptions && extra.excludedOptions.length > 0) {
+                dispatch({ type: 'SET_EXCLUDED_OPTIONS', options: extra.excludedOptions });
+              }
+            }}
+          />
+        )}
+      </>
     );
   }
 

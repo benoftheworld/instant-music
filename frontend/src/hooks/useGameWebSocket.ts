@@ -56,6 +56,16 @@ export function useGameWebSocket({
           console.log('Player answered:', data.player);
           break;
 
+        case 'all_players_answered':
+          // En mode soirée : tous les joueurs non-hôte ont répondu.
+          // L'hôte termine le round immédiatement sans attendre le timer.
+          if (user && game && game.host === user.id) {
+            gameService
+              .endCurrentRound(roomCode!)
+              .catch((err) => console.error('Failed to end round early:', err));
+          }
+          break;
+
         case 'round_ended': {
           const myScoreData =
             data.results?.player_scores?.[user?.username || ''];

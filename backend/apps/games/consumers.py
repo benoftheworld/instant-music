@@ -486,6 +486,40 @@ class GameConsumer(AsyncWebsocketConsumer):
             room_code=self.room_code, host=self.scope["user"]
         ).exists()
 
+    @database_sync_to_async
+    def _check_all_party_players_answered(self) -> bool:
+        """En mode soirée : vérifie si tous les joueurs non-hôte ont soumis une réponse
+        pour le round en cours. Retourne False si la partie n'est pas en mode soirée,
+        si aucun round n'est actif, ou si aucun joueur non-hôte n'existe.
+        """
+        from .models import Game, GameAnswer, GamePlayer
+
+        try:
+            game = Game.objects.select_related("host").get(room_code=self.room_code)
+        except Game.DoesNotExist:
+            return False
+
+        if not game.is_party_mode:
+            return False
+
+        current_round = game.rounds.filter(
+            started_at__isnull=False, ended_at__isnull=True
+        ).first()
+        if current_round is None:
+            return False
+
+        non_host_count = GamePlayer.objects.filter(game=game).exclude(
+            user=game.host
+        ).count()
+        if non_host_count == 0:
+            return False
+
+        answered_count = GameAnswer.objects.filter(
+            game_round=current_round
+        ).exclude(player__user=game.host).count()
+
+        return answered_count >= non_host_count  # type: ignore[return-value]
+
     async def player_answer(self, data):
         """Handle player submitting an answer."""
         # On utilise l'identité authentifiée (scope) pour éviter l'usurpation.
@@ -500,6 +534,15 @@ class GameConsumer(AsyncWebsocketConsumer):
                 "answered": True,
             },
         )
+
+        # En mode soirée, si tous les joueurs (hors présentateur) ont répondu,
+        # déclencher immédiatement la fin du round sans attendre le timer.
+        all_answered = await self._check_all_party_players_answered()
+        if all_answered:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "broadcast_all_answered"},
+            )
 
     async def start_game(self, data):
         """Handle game start."""
@@ -789,6 +832,10 @@ class GameConsumer(AsyncWebsocketConsumer):
                 }
             )
         )
+
+    async def broadcast_all_answered(self, event):
+        """Notifie que tous les joueurs (hors présentateur) ont répondu — mode soirée."""
+        await self.send(text_data=json.dumps({"type": "all_players_answered"}))
 
     async def broadcast_game_start(self, event):
         """Send game start to WebSocket."""
