@@ -8,10 +8,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { shopService } from '@/services/shopService';
 import { BONUS_META } from '@/constants/bonuses';
-import type { BonusType, UserInventoryEntry } from '@/types';
+import type { BonusType, UserInventoryEntry, GamePlayer } from '@/types';
 
 interface Props {
   roomCode: string;
+  /** Si false, le panneau est masqué (bonus désactivés pour cette partie). */
+  bonusesEnabled?: boolean;
+  /** Liste des joueurs de la partie, pour détecter le leader (vol interdit). */
+  players?: GamePlayer[];
+  /** ID de l'utilisateur courant. */
+  currentUserId?: number | string;
   /** Callback quand un bonus est activé avec succès */
   onBonusActivated?: (bonusType: BonusType, extra: {
     excludedOptions?: string[];
@@ -20,7 +26,7 @@ interface Props {
   }) => void;
 }
 
-export default function BonusActivator({ roomCode, onBonusActivated }: Props) {
+export default function BonusActivator({ roomCode, bonusesEnabled = true, players, currentUserId, onBonusActivated }: Props) {
   const [inventory, setInventory] = useState<UserInventoryEntry[]>([]);
   const [activating, setActivating] = useState<BonusType | null>(null);
   const [notification, setNotification] = useState<{
@@ -55,6 +61,14 @@ export default function BonusActivator({ roomCode, onBonusActivated }: Props) {
 
   const availableBonuses = Object.entries(bonusCountMap);
 
+  // Détecter si l'utilisateur courant est 1er au classement (vol interdit)
+  const isLeader = (() => {
+    if (!players || !currentUserId || players.length < 2) return false;
+    const me = players.find((p) => String(p.user ?? p.id) === String(currentUserId));
+    if (!me) return false;
+    return !players.some((p) => String(p.user ?? p.id) !== String(currentUserId) && p.score > me.score);
+  })();
+
   const handleActivate = async (bonusType: BonusType) => {
     setActivating(bonusType);
     setNotification(null);
@@ -81,6 +95,7 @@ export default function BonusActivator({ roomCode, onBonusActivated }: Props) {
     }
   };
 
+  if (!bonusesEnabled) return null;
   if (availableBonuses.length === 0) return null;
 
   return (
@@ -117,17 +132,21 @@ export default function BonusActivator({ roomCode, onBonusActivated }: Props) {
             {availableBonuses.map(([bonusType, { count }]) => {
               const meta = BONUS_META[bonusType as BonusType];
               const isActivating = activating === bonusType;
+              const isStealDisabled = bonusType === 'steal' && isLeader;
+              const isDisabled = isActivating || isStealDisabled;
 
               return (
                 <button
                   key={bonusType}
-                  title={meta.description}
-                  disabled={isActivating}
-                  onClick={() => handleActivate(bonusType as BonusType)}
-                  className={`relative flex flex-col items-center gap-1 w-16 py-2 px-1 rounded-xl text-white text-xs font-bold shadow transition-all hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-wait ${meta.gradientClass}`}
+                  title={isStealDisabled ? 'Vous êtes 1er — le bonus Vol est indisponible.' : meta.description}
+                  disabled={isDisabled}
+                  onClick={() => !isDisabled && handleActivate(bonusType as BonusType)}
+                  className={`relative flex flex-col items-center gap-1 w-16 py-2 px-1 rounded-xl text-white text-xs font-bold shadow transition-all hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 ${meta.gradientClass}`}
                 >
                   <span className="text-xl leading-none">{isActivating ? '…' : meta.emoji}</span>
-                  <span className="text-[10px] leading-none text-center">{meta.shortLabel}</span>
+                  <span className="text-[10px] leading-none text-center">
+                    {isStealDisabled ? '🚫' : meta.shortLabel}
+                  </span>
                   {/* Badge quantité */}
                   <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-dark text-[10px] font-black rounded-full w-4 h-4 flex items-center justify-center shadow">
                     {count}

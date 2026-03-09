@@ -367,6 +367,9 @@ export default function GamePlayPage() {
         {roomCode && (
           <BonusActivator
             roomCode={roomCode}
+            bonusesEnabled={game?.bonuses_enabled !== false}
+            players={game?.players}
+            currentUserId={user?.id}
             onBonusActivated={(_bonusType, extra) => {
               if (extra.excludedOptions && extra.excludedOptions.length > 0) {
                 dispatch({ type: 'SET_EXCLUDED_OPTIONS', options: extra.excludedOptions });
@@ -487,6 +490,9 @@ export default function GamePlayPage() {
       {roomCode && !isSolo && (
         <BonusActivator
           roomCode={roomCode}
+          bonusesEnabled={game?.bonuses_enabled !== false}
+          players={game?.players}
+          currentUserId={user?.id}
           onBonusActivated={(_bonusType, extra) => {
             if (extra.excludedOptions && extra.excludedOptions.length > 0) {
               dispatch({ type: 'SET_EXCLUDED_OPTIONS', options: extra.excludedOptions });

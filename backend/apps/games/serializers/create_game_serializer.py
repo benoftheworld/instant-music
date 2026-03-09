@@ -30,6 +30,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
             "is_online",
             "is_public",
             "is_party_mode",
+            "bonuses_enabled",
             "answer_mode",
             "guess_target",
             "round_duration",
@@ -61,11 +62,12 @@ class CreateGameSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     "Le mode soirée nécessite une partie en ligne."
                 )
-            # Mode hors ligne (solo) : forcer 1 joueur max et partie privée
+            # Mode hors ligne (solo) : forcer 1 joueur max et partie privée, bonus désactivés
             if not data.get("is_online", True):
                 data["max_players"] = 1
                 data["is_public"] = False
                 data["is_party_mode"] = False
+                data["bonuses_enabled"] = False
 
         return data
 

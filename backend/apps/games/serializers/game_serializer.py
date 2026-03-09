@@ -36,6 +36,7 @@ class GameSerializer(serializers.ModelSerializer):
             "is_online",
             "is_public",
             "is_party_mode",
+            "bonuses_enabled",
             "answer_mode",
             "guess_target",
             "round_duration",

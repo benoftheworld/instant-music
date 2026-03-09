@@ -64,6 +64,7 @@ export interface Game {
   is_online: boolean;
   is_public: boolean;
   is_party_mode: boolean;
+  bonuses_enabled: boolean;
   answer_mode: AnswerMode;
   guess_target: GuessTarget;
   round_duration: number;
@@ -101,6 +102,7 @@ export interface CreateGameData {
   is_online: boolean;
   is_public: boolean;
   is_party_mode?: boolean;
+  bonuses_enabled?: boolean;
   answer_mode: AnswerMode;
   guess_target: GuessTarget;
   round_duration: number;

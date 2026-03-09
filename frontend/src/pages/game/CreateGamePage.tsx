@@ -64,6 +64,7 @@ export default function CreateGamePage() {
   const [isOnline, setIsOnline] = useState(true);
   const [isPublic, setIsPublic] = useState(false);
   const [isPartyMode, setIsPartyMode] = useState(false);
+  const [isBonusesEnabled, setIsBonusesEnabled] = useState(true);
 
   // Step 3: Playlist (non-karaoke) or karaoke song
   const [selectedPlaylist, setSelectedPlaylist] = useState<YouTubePlaylist | null>(null);
@@ -130,6 +131,7 @@ export default function CreateGamePage() {
         is_online: isKaraoke ? false : isOnline,
         is_public: isKaraoke ? false : isPublic,
         is_party_mode: isKaraoke ? false : (isOnline ? isPartyMode : false),
+        bonuses_enabled: isKaraoke ? false : (isOnline ? isBonusesEnabled : false),
         answer_mode: answerMode,
         guess_target: guessTarget,
         round_duration: roundDuration,
@@ -336,6 +338,33 @@ export default function CreateGamePage() {
               </div>
             </div>
           )}
+          {isOnline && (
+            <div
+              className={`flex gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                !isBonusesEnabled
+                  ? 'bg-orange-50 border-orange-400'
+                  : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => setIsBonusesEnabled((v) => !v)}
+            >
+              <input
+                type="checkbox"
+                id="isBonusesEnabled"
+                checked={isBonusesEnabled}
+                onChange={(e) => setIsBonusesEnabled(e.target.checked)}
+                className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500 mt-0.5 shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <div>
+                <label htmlFor="isBonusesEnabled" className="text-sm font-medium text-gray-700 cursor-pointer">
+                  ⚡ Bonus activés
+                </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  Décochez pour interdire l'utilisation des bonus durant cette partie.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right column */}
@@ -395,8 +424,10 @@ export default function CreateGamePage() {
                     if (e.target.checked) {
                       setIsPublic(false);
                       setMaxPlayers(1);
+                      setIsBonusesEnabled(false);
                     } else {
                       setMaxPlayers(8);
+                      setIsBonusesEnabled(true);
                     }
                   }}
                   className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
@@ -628,6 +659,9 @@ export default function CreateGamePage() {
                   )}
                   {isOnline && isPartyMode && (
                     <li><span className="text-gray-500">Mode Soirée :</span> <strong>🎉 Activé</strong></li>
+                  )}
+                  {isOnline && (
+                    <li><span className="text-gray-500">Bonus :</span> <strong>{isBonusesEnabled ? '⚡ Activés' : '🚫 Désactivés'}</strong></li>
                   )}
                 </>
               )}
