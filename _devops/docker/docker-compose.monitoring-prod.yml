@@ -150,6 +150,19 @@ services:
     container_name: instantmusic_redis_exporter_prod
     environment:
       - REDIS_ADDR=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Postgres Exporter ──────────────────────────────────────────────────────
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: instantmusic_postgres_exporter_prod
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+    expose:
+      - '9187'
     restart: unless-stopped
     networks:
       - app-network

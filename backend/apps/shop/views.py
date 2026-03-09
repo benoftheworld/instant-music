@@ -21,6 +21,7 @@ from .serializers import (
     UserInventorySerializer,
 )
 from .services import (
+    BonusActivationError,
     BonusAlreadyActiveError,
     InsufficientCoinsError,
     ItemNotAvailableError,
@@ -129,28 +130,15 @@ class InventoryViewSet(GenericViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Déterminer le round courant
-        current_round = game.rounds.filter(
-            started_at__isnull=False, ended_at__isnull=True
-        ).first()
-        round_number = current_round.round_number if current_round else None
-
-        # Le brouillard s'applique au round SUIVANT — refuser si aucun round actif
-        if bonus_type == "fog":
-            if current_round is None:
-                return Response(
-                    {"detail": "Aucun round en cours. Le brouillard s'applique au round suivant."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            round_number = current_round.round_number + 1
-
-        # Le joker s'applique au round EN COURS — refuser si aucun round actif
-        elif bonus_type == "joker":
-            if current_round is None:
-                return Response(
-                    {"detail": "Aucun round en cours. Le joker ne peut être activé que pendant un round."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        # Déterminer le round courant via le service partagé
+        try:
+            round_number, current_round = bonus_service.resolve_round_number(
+                game, bonus_type
+            )
+        except BonusActivationError as e:
+            return Response(
+                {"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         # Le bonus Vol ne peut pas être utilisé par le joueur en première position
         if bonus_type == "steal":

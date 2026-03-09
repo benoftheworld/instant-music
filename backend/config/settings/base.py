@@ -194,6 +194,8 @@ DATABASES = {
         "PASSWORD": env("POSTGRES_PASSWORD", default="postgres"),
         "HOST": env("POSTGRES_HOST", default="localhost"),
         "PORT": env("POSTGRES_PORT", default="5432"),
+        "CONN_MAX_AGE": 600,
+        "CONN_HEALTH_CHECKS": True,
     }
 }
 
@@ -268,7 +270,7 @@ REST_FRAMEWORK = {
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=24),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -281,31 +283,34 @@ SIMPLE_JWT = {
     "USER_ID_CLAIM": "user_id",
 }
 
-# Django Cache (Redis)
+# Django Cache (Redis) — DB 0
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/0"),
+        "LOCATION": env("REDIS_CACHE_URL", default=env("REDIS_URL", default="redis://localhost:6379/0")),
     }
 }
 
-# Channels (WebSocket)
+# Channels (WebSocket) — DB 1
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [env("REDIS_URL", default="redis://localhost:6379/0")],
+            "hosts": [env("REDIS_CHANNELS_URL", default=env("REDIS_URL", default="redis://localhost:6379/1"))],
         },
     },
 }
 
-# Celery Configuration
-CELERY_BROKER_URL = env("REDIS_URL", default="redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = env("REDIS_URL", default="redis://localhost:6379/0")
+# Celery Configuration — Broker DB 2, Result DB 3
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=env("REDIS_URL", default="redis://localhost:6379/2"))
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=env("REDIS_URL", default="redis://localhost:6379/3"))
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_TIME_LIMIT = 600
+CELERY_TASK_SOFT_TIME_LIMIT = 540
 
 # YouTube API
 YOUTUBE_API_KEY = env("YOUTUBE_API_KEY", default="")

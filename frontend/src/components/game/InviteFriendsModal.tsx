@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { friendshipService } from '@/services/socialService';
 import { invitationService } from '@/services/invitationService';
+import { getApiErrorMessage } from '@/utils/apiError';
 import type { Friend } from '@/types';
 
 interface Props {
@@ -77,9 +78,8 @@ export default function InviteFriendsModal({ roomCode, onClose }: Props) {
     try {
       await invitationService.invite(roomCode, friend.user.username);
       setInviteStates((s) => ({ ...s, [userId]: 'sent' }));
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.error || 'Erreur lors de l\'envoi de l\'invitation.';
+    } catch (err: unknown) {
+      const msg = getApiErrorMessage(err, 'Erreur lors de l\'envoi de l\'invitation.');
       setInviteStates((s) => ({ ...s, [userId]: 'error' }));
       setInviteErrors((e) => ({ ...e, [userId]: msg }));
     }

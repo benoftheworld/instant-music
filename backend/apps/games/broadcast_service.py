@@ -68,13 +68,8 @@ def _build_player_scores(round_obj: GameRound) -> dict[str, dict[str, Any]]:
 
 
 def _build_updated_players(game: Game) -> list[dict[str, Any]]:
-    """Build ordered list of players with current totals.
-
-    En mode soirée, le présentateur (hôte) est exclu du classement.
-    """
-    players_qs = game.players.select_related("user").order_by("-score")
-    if game.is_party_mode:
-        players_qs = players_qs.exclude(user=game.host)
+    """Build ordered list of competitive players with current totals."""
+    players_qs = game.competitive_players().select_related("user").order_by("-score")
     return [
         {
             "id": str(p.id),
@@ -140,40 +135,52 @@ def broadcast_game_start(room_code: str, game: Game) -> None:
     )
 
 
-def broadcast_round_start(room_code: str, round_obj: GameRound, game: Game) -> None:
-    """Broadcast that a round has started with its data."""
+def _check_and_consume_fog(game: Game, round_number: int, broadcast_label: str = "") -> tuple[bool, str | None]:
+    """Vérifie si un bonus brouillard est actif pour ce round, le consomme.
+
+    Returns:
+        (fog_active, activator_username)
+    """
     from django.utils import timezone
 
     from apps.shop.models import BonusType, GameBonus
 
-    round_data = _serialize_to_dict(GameRoundSerializer(round_obj))
-
-    # Vérifier si un brouillard est actif pour ce round et l'injecter dans les données
-    fog_bonus = (
+    bonus = (
         GameBonus.objects.filter(
             game=game,
             bonus_type=BonusType.FOG,
-            round_number=round_obj.round_number,
+            round_number=round_number,
             is_used=False,
         )
         .select_related("player__user")
         .first()
     )
-    if fog_bonus:
-        round_data["fog_active"] = True
-        round_data["fog_activator"] = fog_bonus.player.user.username
-        fog_bonus.is_used = True
-        fog_bonus.used_at = timezone.now()
-        fog_bonus.save(update_fields=["is_used", "used_at"])
+    if bonus:
+        username = bonus.player.user.username
+        bonus.is_used = True
+        bonus.used_at = timezone.now()
+        bonus.save(update_fields=["is_used", "used_at"])
         logger.info(
             "fog_bonus_consumed",
             extra={
-                "room_code": room_code,
-                "round_number": round_obj.round_number,
-                "activator": fog_bonus.player.user.username,
-                "broadcast": "round_start",
+                "room_code": str(game.room_code),
+                "round_number": round_number,
+                "activator": username,
+                "broadcast": broadcast_label,
             },
         )
+        return True, username
+    return False, None
+
+
+def broadcast_round_start(room_code: str, round_obj: GameRound, game: Game) -> None:
+    """Broadcast that a round has started with its data."""
+    round_data = _serialize_to_dict(GameRoundSerializer(round_obj))
+
+    fog_active, fog_activator = _check_and_consume_fog(game, round_obj.round_number, "round_start")
+    if fog_active:
+        round_data["fog_active"] = True
+        round_data["fog_activator"] = fog_activator
 
     _group_send(
         room_code,
@@ -231,38 +238,12 @@ def broadcast_round_end(room_code: str, round_obj: GameRound, game: Game) -> Non
 
 def broadcast_next_round(room_code: str, round_obj: GameRound, game: Game) -> None:
     """Broadcast that the game has moved to the next round."""
-    from django.utils import timezone
-
-    from apps.shop.models import BonusType, GameBonus
-
     round_data = _serialize_to_dict(GameRoundSerializer(round_obj))
 
-    # Vérifier si un brouillard est actif pour ce round et l'injecter dans les données
-    fog_bonus = (
-        GameBonus.objects.filter(
-            game=game,
-            bonus_type=BonusType.FOG,
-            round_number=round_obj.round_number,
-            is_used=False,
-        )
-        .select_related("player__user")
-        .first()
-    )
-    if fog_bonus:
+    fog_active, fog_activator = _check_and_consume_fog(game, round_obj.round_number, "next_round")
+    if fog_active:
         round_data["fog_active"] = True
-        round_data["fog_activator"] = fog_bonus.player.user.username
-        fog_bonus.is_used = True
-        fog_bonus.used_at = timezone.now()
-        fog_bonus.save(update_fields=["is_used", "used_at"])
-        logger.info(
-            "fog_bonus_consumed",
-            extra={
-                "room_code": room_code,
-                "round_number": round_obj.round_number,
-                "activator": fog_bonus.player.user.username,
-                "broadcast": "next_round",
-            },
-        )
+        round_data["fog_activator"] = fog_activator
 
     _group_send(
         room_code,

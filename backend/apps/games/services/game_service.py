@@ -3,12 +3,15 @@
 
 import json
 import logging
+from typing import Any
 
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
 from apps.achievements.tasks import check_achievements_async
+from apps.users.coin_service import add_coins as _add_coins
+from django.contrib.auth import get_user_model
 from apps.core.prometheus_metrics import (
     ANSWER_RESPONSE_TIME,
     ANSWERS_TOTAL,
@@ -44,6 +47,8 @@ from .scoring import (
     SCORE_TIME_PENALTY_PER_SEC,
     calculate_streak_bonus,
 )
+
+User = get_user_model()
 from .text_matching import fuzzy_match
 
 logger = logging.getLogger(__name__)
@@ -555,18 +560,43 @@ class GameService:
         game.status = GameStatus.FINISHED
         game.finished_at = timezone.now()
 
-        players = game.players.order_by("-score")
-        total_rounds = game.rounds.count()
-
         # 1. Attribuer les rangs et précalculer round_data par joueur
-        import datetime
+        player_round_data = self._compute_rankings(game)
+
+        # 2. Sauvegarder la partie : déclenche le signal qui met à jour
+        #    total_games_played / total_wins / total_points sur chaque User.
+        game.save()
+
+        # 3. Vérifier les achievements APRÈS la mise à jour des stats utilisateur.
+        for player, round_data in player_round_data:
+            check_achievements_async.delay(
+                str(player.user_id),
+                game_id=str(game.id),
+                round_data=round_data,
+            )
+
+        # 4. Attribuer les pièces de jeu.
+        self._distribute_coins(game, player_round_data)
+
+        # 5. Métriques Prometheus
+        GAMES_FINISHED_TOTAL.labels(mode=game.mode).inc()
+        GAMES_ACTIVE.dec()
+
+        return game
+
+    def _compute_rankings(
+        self, game: Game
+    ) -> list[tuple["GamePlayer", dict[str, Any]]]:
+        """Compute per-player rankings and achievement context data."""
+        import datetime  # noqa: F811
 
         from django.db.models import Max
 
+        players = game.players.order_by("-score")
+        total_rounds = game.rounds.count()
         players_list = list(players)
         player_round_data: list[tuple] = []
 
-        # Score du 2ème joueur pour le calcul "dominant_win"
         second_score = players_list[1].score if len(players_list) >= 2 else 0
 
         for rank, player in enumerate(players_list, start=1):
@@ -596,11 +626,9 @@ class GameService:
                 else:
                     cur = 0
 
-            # Temps de réponse max sur les bonnes réponses (pour all_fast_round)
             max_rt_result = correct_qs.aggregate(Max("response_time"))
             max_response_time = max_rt_result["response_time__max"] or 0.0
 
-            # Victoire dominante : 1er avec au moins 2× le score du 2ème
             dominant_win = (
                 rank == 1 and second_score > 0 and player.score >= 2 * second_score
             )
@@ -617,19 +645,15 @@ class GameService:
                 )
             )
 
-        # 2. Sauvegarder la partie : déclenche le signal qui met à jour
-        #    total_games_played / total_wins / total_points sur chaque User.
-        game.save()
+        return player_round_data
 
-        # 3. Vérifier les achievements APRÈS la mise à jour des stats utilisateur.
-        for player, round_data in player_round_data:
-            check_achievements_async.delay(
-                str(player.user_id),
-                game_id=str(game.id),
-                round_data=round_data,
-            )
-
-        # 4. Attribuer les pièces de jeu à chaque participant.
+    def _distribute_coins(
+        self,
+        game: Game,
+        player_round_data: list[tuple["GamePlayer", dict[str, Any]]],
+    ) -> None:
+        """Distribute coins to participants and the host."""
+        import datetime  # noqa: F811
 
         today = datetime.date.today()
 
@@ -650,13 +674,13 @@ class GameService:
 
             # Première partie du jour : bonus +3 pièces
             current_last = (
-                player.user.__class__.objects.filter(pk=player.user_id)
+                User.objects.filter(pk=player.user_id)
                 .values_list("last_daily_login", flat=True)
                 .first()
             )
             if current_last != today:
                 bonus_coins += 3
-                player.user.__class__.objects.filter(pk=player.user_id).update(
+                User.objects.filter(pk=player.user_id).update(
                     last_daily_login=today
                 )
 
@@ -669,31 +693,14 @@ class GameService:
             ).count()
             bonus_coins += fast_count * 2
 
-            player.user.__class__.objects.filter(pk=player.user_id).update(
-                coins_balance=F("coins_balance") + bonus_coins
-            )
-            logger.info(
-                "game_coins_awarded user=%s coins=%d (rank=%s)",
-                player.user.username,
+            _add_coins(
+                player.user_id,
                 bonus_coins,
-                player.rank,
+                f"game_finish:rank={player.rank}",
             )
 
-        # 5. Bonus créateur de partie : +5 pièces pour l'hôte.
-        game.host.__class__.objects.filter(pk=game.host_id).update(
-            coins_balance=F("coins_balance") + 5
-        )
-        logger.info(
-            "game_host_bonus_awarded host=%s game=%s",
-            game.host_id,
-            game.id,
-        )
-
-        # Métriques Prometheus
-        GAMES_FINISHED_TOTAL.labels(mode=game.mode).inc()
-        GAMES_ACTIVE.dec()
-
-        return game
+        # Bonus créateur de partie : +5 pièces pour l'hôte.
+        _add_coins(game.host_id, 5, f"game_host_bonus:{game.id}")
 
 
 # Singleton

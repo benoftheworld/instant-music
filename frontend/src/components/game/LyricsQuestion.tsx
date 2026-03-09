@@ -2,6 +2,7 @@ import {
   useAudioPlayerOnResults, AudioPlayerUI, OptionsGrid, ResultFooter, TrackReveal,
   type Props,
 } from './shared';
+import LyricsSnippet from './LyricsSnippet';
 
 /**
  * LyricsQuestion – A line of lyrics with a word blanked out.
@@ -50,20 +51,12 @@ const LyricsQuestion = ({
 
       {/* Lyrics snippet with blank */}
       {isLyricsMode && (
-        <div className="mb-2 md:mb-4 p-2 md:p-4 bg-gray-50 rounded-xl border-2 border-gray-200 text-center shrink-0">
-          <p className="text-sm md:text-lg leading-relaxed font-medium text-gray-800 italic">
-            &quot;{snippet.split('_____').map((part, i, arr) => (
-              <span key={i}>
-                {part}
-                {i < arr.length - 1 && (
-                  <span className="inline-block mx-1 px-3 py-1 bg-yellow-200 rounded font-bold text-yellow-800 not-italic">
-                    {showResults && roundResults ? roundResults.correct_answer : '???'}
-                  </span>
-                )}
-              </span>
-            ))}&quot;
-          </p>
-        </div>
+        <LyricsSnippet
+          snippet={snippet}
+          correctAnswer={roundResults?.correct_answer}
+          showAnswer={showResults && !!roundResults}
+          className="mb-2 md:mb-4"
+        />
       )}
 
       {/* Options */}

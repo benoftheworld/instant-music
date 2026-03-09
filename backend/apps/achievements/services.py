@@ -1,12 +1,14 @@
 """Service for checking and awarding achievements to users."""
 
 import logging
-from typing import Any
+from typing import Any, Callable
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
 from django.db import transaction
+
+from apps.users.coin_service import add_coins as _add_coins
 
 from .models import Achievement, UserAchievement
 
@@ -123,21 +125,12 @@ class AchievementService:
 
                 # Créditer les pièces de la boutique
                 if achievement.points > 0:
-                    user.coins_balance = (
-                        user.__class__.objects.filter(pk=user.pk)
-                        .values_list("coins_balance", flat=True)
-                        .first()
-                        or 0
-                    ) + achievement.points
-                    user.__class__.objects.filter(pk=user.pk).update(
-                        coins_balance=user.coins_balance
-                    )
-                    logger.info(
-                        "Credited %d coins to user '%s' (achievement: %s)",
+                    _add_coins(
+                        user.id,
                         achievement.points,
-                        user.username,
-                        achievement.name,
+                        f"achievement:{achievement.name}",
                     )
+                    user.refresh_from_db(fields=["coins_balance"])
 
                 _push_achievement_notification(user.id, achievement)
 
@@ -152,204 +145,275 @@ class AchievementService:
     ) -> bool:
         """Check if a user meets the condition for an achievement."""
         ctype = achievement.condition_type
-        cvalue = achievement.condition_value
-        cextra = achievement.condition_extra
-
-        if ctype == CONDITION_GAMES_PLAYED:
-            return user.total_games_played >= cvalue  # type: ignore[no-any-return]
-
-        elif ctype == CONDITION_WINS:
-            return user.total_wins >= cvalue  # type: ignore[no-any-return]
-
-        elif ctype == CONDITION_POINTS:
-            return user.total_points >= cvalue  # type: ignore[no-any-return]
-
-        elif ctype == CONDITION_PERFECT_ROUND:
-            # Perfect round: all answers correct in a single game
-            return bool(round_data and round_data.get("perfect_game"))
-
-        elif ctype == CONDITION_WIN_STREAK:
-            # Check consecutive wins from recent games
-            from apps.games.models import GamePlayer
-
-            recent_games = GamePlayer.objects.filter(user=user).order_by(
-                "-joined_at"
-            )[:cvalue]
-
-            if recent_games.count() < cvalue:
-                return False
-
-            return all(p.rank == 1 for p in recent_games)
-
-        elif ctype == CONDITION_FAST_ANSWERS:
-            # Nombre de bonnes réponses en moins de N secondes (cextra = seuil)
-            from apps.games.models import GameAnswer
-
-            threshold = float(cextra) if cextra else 5.0
-            count = GameAnswer.objects.filter(
-                player__user=user, is_correct=True, response_time__lt=threshold
-            ).count()
-            return count >= cvalue  # type: ignore[no-any-return]
-
-        elif ctype == CONDITION_ALL_FAST_ROUND:
-            # Partie parfaite avec toutes les réponses sous N secondes
-            if not (round_data and round_data.get("perfect_game")):
-                return False
-            max_rt = round_data.get("max_response_time", 999.0)
-            threshold = float(cextra) if cextra else 2.0
-            return max_rt < threshold  # type: ignore[no-any-return]
-
-        elif ctype == CONDITION_ACCURACY:
-            # Précision globale >= cvalue% sur au moins cextra parties
-            from apps.games.models import GameAnswer
-
-            min_games = int(cextra) if cextra else 20
-            if user.total_games_played < min_games:
-                return False
-            total = GameAnswer.objects.filter(player__user=user).count()
-            if total == 0:
-                return False
-            correct = GameAnswer.objects.filter(
-                player__user=user, is_correct=True
-            ).count()
-            return (correct / total * 100) >= cvalue  # type: ignore[no-any-return]
-
-        elif ctype == CONDITION_GLOBAL_STREAK:
-            # Streak max de bonnes réponses consécutives dans une même partie
-            if round_data:
-                return round_data.get("max_streak", 0) >= cvalue  # type: ignore[no-any-return]
-            # Fallback : cherche dans tout l'historique
-            from apps.games.models import GameAnswer, GamePlayer
-
-            player_ids = list(
-                GamePlayer.objects.filter(user=user).values_list("id", flat=True)
-            )
-            for pid in player_ids:
-                answers = list(
-                    GameAnswer.objects.filter(player_id=pid)
-                    .order_by("round__round_number")
-                    .values_list("is_correct", flat=True)
-                )
-                current = 0
-                for correct in answers:
-                    if correct:
-                        current += 1
-                        if current >= cvalue:
-                            return True
-                    else:
-                        current = 0
-            return False
-
-        elif ctype == CONDITION_SINGLE_GAME_SCORE:
-            from apps.games.models import GamePlayer
-
-            return GamePlayer.objects.filter(  # type: ignore[no-any-return]
-                user=user, score__gte=cvalue
-            ).exists()
-
-        elif ctype == CONDITION_GAMES_BY_MODE:
-            from apps.games.models import GamePlayer
-
-            return (  # type: ignore[no-any-return]
-                GamePlayer.objects.filter(
-                    user=user, game__mode=cextra, game__status="finished"
-                ).count()
-                >= cvalue
-            )
-
-        elif ctype == CONDITION_WINS_BY_MODE:
-            from apps.games.models import GamePlayer
-
-            return (  # type: ignore[no-any-return]
-                GamePlayer.objects.filter(
-                    user=user, 
-                    game__mode=cextra, 
-                    rank=1
-                ).count()
-                >= cvalue
-            )
-
-        elif ctype == CONDITION_ALL_MODES_PLAYED:
-            from apps.games.models import GamePlayer
-
-            played_modes = (
-                GamePlayer.objects.filter(user=user, game__status="finished")
-                .values_list("game__mode", flat=True)
-                .distinct()
-                .count()
-            )
-            return played_modes >= cvalue  # type: ignore[no-any-return]
-
-        elif ctype == CONDITION_FRIENDS_COUNT:
-            from django.db.models import Q
-
-            from apps.users.models import Friendship
-
-            count = Friendship.objects.filter(
-                Q(from_user=user) | Q(to_user=user), status="accepted"
-            ).count()
-            return count >= cvalue  # type: ignore[no-any-return]
-
-        elif ctype == CONDITION_GAMES_HOSTED:
-            from apps.games.models import Game
-
-            return (  # type: ignore[no-any-return]
-                Game.objects.filter(
-                    host=user, 
-                    status="finished"
-                ).count() >= cvalue
-            )
-
-        elif ctype == CONDITION_INVITATIONS_SENT:
-            from apps.games.models import GameInvitation
-
-            return GameInvitation.objects.filter(sender=user).count() >= cvalue  # type: ignore[no-any-return]
-
-        elif ctype == CONDITION_ITEMS_PURCHASED:
-            from apps.shop.models import UserInventory
-
-            distinct_items = (
-                UserInventory.objects.filter(user=user)
-                .values("item")
-                .distinct()
-                .count()
-            )
-            return distinct_items >= cvalue  # type: ignore[no-any-return]
-
-        elif ctype == CONDITION_BONUS_USED:
-            from apps.shop.models import GameBonus
-
-            return (  # type: ignore[no-any-return]
-                GameBonus.objects.filter(
-                    player__user=user, bonus_type=cextra, is_used=True
-                ).count()
-                >= cvalue
-            )
-
-        elif ctype == CONDITION_ALL_BONUSES_USED:
-            from apps.shop.models import BonusType, GameBonus
-
-            for btype in BonusType.values:
-                used = GameBonus.objects.filter(
-                    player__user=user, bonus_type=btype, is_used=True
-                ).exists()
-                if not used:
-                    return False
-            return True
-
-        elif ctype == CONDITION_IN_GAME_STREAK:
-            if round_data:
-                return round_data.get("max_streak", 0) >= cvalue  # type: ignore[no-any-return]
-            return False
-
-        elif ctype == CONDITION_DOMINANT_WIN:
-            if round_data:
-                return round_data.get("dominant_win", False)  # type: ignore[no-any-return]
-            return False
-
-        else:
+        checker = _CONDITION_CHECKERS.get(ctype)
+        if checker is None:
             logger.warning("Unknown achievement condition type: %s", ctype)
             return False
+        return checker(
+            user,
+            achievement.condition_value,
+            achievement.condition_extra,
+            game,
+            round_data,
+        )
+
+
+# ─── Condition checker functions ─────────────────────────────────────────────
+
+def _check_games_played(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    return user.total_games_played >= cvalue  # type: ignore[no-any-return]
+
+
+def _check_wins(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    return user.total_wins >= cvalue  # type: ignore[no-any-return]
+
+
+def _check_points(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    return user.total_points >= cvalue  # type: ignore[no-any-return]
+
+
+def _check_perfect_round(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    return bool(round_data and round_data.get("perfect_game"))
+
+
+def _check_win_streak(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    from apps.games.models import GamePlayer
+
+    recent_games = GamePlayer.objects.filter(user=user).order_by("-joined_at")[:cvalue]
+    if recent_games.count() < cvalue:
+        return False
+    return all(p.rank == 1 for p in recent_games)
+
+
+def _check_fast_answers(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    from apps.games.models import GameAnswer
+
+    threshold = float(cextra) if cextra else 5.0
+    count = GameAnswer.objects.filter(
+        player__user=user, is_correct=True, response_time__lt=threshold
+    ).count()
+    return count >= cvalue  # type: ignore[no-any-return]
+
+
+def _check_all_fast_round(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    if not (round_data and round_data.get("perfect_game")):
+        return False
+    max_rt = round_data.get("max_response_time", 999.0)
+    threshold = float(cextra) if cextra else 2.0
+    return max_rt < threshold  # type: ignore[no-any-return]
+
+
+def _check_accuracy(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    from apps.games.models import GameAnswer
+
+    min_games = int(cextra) if cextra else 20
+    if user.total_games_played < min_games:
+        return False
+    total = GameAnswer.objects.filter(player__user=user).count()
+    if total == 0:
+        return False
+    correct = GameAnswer.objects.filter(player__user=user, is_correct=True).count()
+    return (correct / total * 100) >= cvalue  # type: ignore[no-any-return]
+
+
+def _check_global_streak(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    if round_data:
+        return round_data.get("max_streak", 0) >= cvalue  # type: ignore[no-any-return]
+    from apps.games.models import GameAnswer, GamePlayer
+
+    player_ids = list(
+        GamePlayer.objects.filter(user=user).values_list("id", flat=True)
+    )
+    for pid in player_ids:
+        answers = list(
+            GameAnswer.objects.filter(player_id=pid)
+            .order_by("round__round_number")
+            .values_list("is_correct", flat=True)
+        )
+        current = 0
+        for correct in answers:
+            if correct:
+                current += 1
+                if current >= cvalue:
+                    return True
+            else:
+                current = 0
+    return False
+
+
+def _check_single_game_score(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    from apps.games.models import GamePlayer
+
+    return GamePlayer.objects.filter(user=user, score__gte=cvalue).exists()  # type: ignore[no-any-return]
+
+
+def _check_games_by_mode(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    from apps.games.models import GamePlayer
+
+    return (  # type: ignore[no-any-return]
+        GamePlayer.objects.filter(
+            user=user, game__mode=cextra, game__status="finished"
+        ).count()
+        >= cvalue
+    )
+
+
+def _check_wins_by_mode(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    from apps.games.models import GamePlayer
+
+    return (  # type: ignore[no-any-return]
+        GamePlayer.objects.filter(user=user, game__mode=cextra, rank=1).count()
+        >= cvalue
+    )
+
+
+def _check_all_modes_played(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    from apps.games.models import GamePlayer
+
+    played_modes = (
+        GamePlayer.objects.filter(user=user, game__status="finished")
+        .values_list("game__mode", flat=True)
+        .distinct()
+        .count()
+    )
+    return played_modes >= cvalue  # type: ignore[no-any-return]
+
+
+def _check_friends_count(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    from django.db.models import Q
+
+    from apps.users.models import Friendship
+
+    count = Friendship.objects.filter(
+        Q(from_user=user) | Q(to_user=user), status="accepted"
+    ).count()
+    return count >= cvalue  # type: ignore[no-any-return]
+
+
+def _check_games_hosted(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    from apps.games.models import Game
+
+    return Game.objects.filter(host=user, status="finished").count() >= cvalue  # type: ignore[no-any-return]
+
+
+def _check_invitations_sent(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    from apps.games.models import GameInvitation
+
+    return GameInvitation.objects.filter(sender=user).count() >= cvalue  # type: ignore[no-any-return]
+
+
+def _check_items_purchased(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    from apps.shop.models import UserInventory
+
+    distinct_items = (
+        UserInventory.objects.filter(user=user).values("item").distinct().count()
+    )
+    return distinct_items >= cvalue  # type: ignore[no-any-return]
+
+
+def _check_bonus_used(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    from apps.shop.models import GameBonus
+
+    return (  # type: ignore[no-any-return]
+        GameBonus.objects.filter(
+            player__user=user, bonus_type=cextra, is_used=True
+        ).count()
+        >= cvalue
+    )
+
+
+def _check_all_bonuses_used(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    from apps.shop.models import BonusType, GameBonus
+
+    for btype in BonusType.values:
+        used = GameBonus.objects.filter(
+            player__user=user, bonus_type=btype, is_used=True
+        ).exists()
+        if not used:
+            return False
+    return True
+
+
+def _check_in_game_streak(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    if round_data:
+        return round_data.get("max_streak", 0) >= cvalue  # type: ignore[no-any-return]
+    return False
+
+
+def _check_dominant_win(
+    user: Any, cvalue: int, cextra: str | None, game: Any, round_data: dict[str, Any] | None
+) -> bool:
+    if round_data:
+        return round_data.get("dominant_win", False)  # type: ignore[no-any-return]
+    return False
+
+
+_CONDITION_CHECKERS: dict[
+    str,
+    "Callable[[Any, int, str | None, Any, dict[str, Any] | None], bool]",
+] = {
+    CONDITION_GAMES_PLAYED: _check_games_played,
+    CONDITION_WINS: _check_wins,
+    CONDITION_POINTS: _check_points,
+    CONDITION_PERFECT_ROUND: _check_perfect_round,
+    CONDITION_WIN_STREAK: _check_win_streak,
+    CONDITION_FAST_ANSWERS: _check_fast_answers,
+    CONDITION_ALL_FAST_ROUND: _check_all_fast_round,
+    CONDITION_ACCURACY: _check_accuracy,
+    CONDITION_GLOBAL_STREAK: _check_global_streak,
+    CONDITION_SINGLE_GAME_SCORE: _check_single_game_score,
+    CONDITION_GAMES_BY_MODE: _check_games_by_mode,
+    CONDITION_WINS_BY_MODE: _check_wins_by_mode,
+    CONDITION_ALL_MODES_PLAYED: _check_all_modes_played,
+    CONDITION_FRIENDS_COUNT: _check_friends_count,
+    CONDITION_GAMES_HOSTED: _check_games_hosted,
+    CONDITION_INVITATIONS_SENT: _check_invitations_sent,
+    CONDITION_ITEMS_PURCHASED: _check_items_purchased,
+    CONDITION_BONUS_USED: _check_bonus_used,
+    CONDITION_ALL_BONUSES_USED: _check_all_bonuses_used,
+    CONDITION_IN_GAME_STREAK: _check_in_game_streak,
+    CONDITION_DOMINANT_WIN: _check_dominant_win,
+}
 
 
 # Singleton

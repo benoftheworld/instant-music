@@ -12,8 +12,13 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
-@shared_task(name="rgpd.purge_expired_invitations")
-def purge_expired_invitations():
+@shared_task(
+    name="rgpd.purge_expired_invitations",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=30,
+)
+def purge_expired_invitations(self):
     """Supprime les invitations de jeu expirées depuis plus de 7 jours."""
     from apps.games.models.game_invitation import GameInvitation
 
@@ -24,8 +29,13 @@ def purge_expired_invitations():
     return deleted
 
 
-@shared_task(name="rgpd.anonymize_old_game_data")
-def anonymize_old_game_data(retention_days: int = 365):
+@shared_task(
+    name="rgpd.anonymize_old_game_data",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+)
+def anonymize_old_game_data(self, retention_days: int = 365):
     """Anonymise les données de jeu plus anciennes que `retention_days` jours.
 
     Les parties sont conservées pour les statistiques globales mais les

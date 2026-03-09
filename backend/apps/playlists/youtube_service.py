@@ -27,6 +27,16 @@ _SUFFIX_RE = re.compile(
 _ISO_DURATION_RE = re.compile(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?")
 
 
+def _extract_thumbnail_url(snippet: dict[str, Any]) -> str:
+    """Extrait l'URL de la meilleure miniature (high > medium > default)."""
+    thumbnails = snippet.get("thumbnails", {})
+    return (
+        thumbnails.get("high", {}).get("url")
+        or thumbnails.get("medium", {}).get("url")
+        or thumbnails.get("default", {}).get("url", "")
+    )
+
+
 class YouTubeAPIError(Exception):
     """Custom exception for YouTube API errors."""
 
@@ -118,12 +128,7 @@ class YouTubeService:
             if not playlist_id:
                 continue
 
-            thumbnails = snippet.get("thumbnails", {})
-            image_url = (
-                thumbnails.get("high", {}).get("url")
-                or thumbnails.get("medium", {}).get("url")
-                or thumbnails.get("default", {}).get("url", "")
-            )
+            image_url = _extract_thumbnail_url(snippet)
 
             playlists.append(
                 {
@@ -171,12 +176,7 @@ class YouTubeService:
         item = items[0]
         snippet = item.get("snippet", {})
         content = item.get("contentDetails", {})
-        thumbnails = snippet.get("thumbnails", {})
-        image_url = (
-            thumbnails.get("high", {}).get("url")
-            or thumbnails.get("medium", {}).get("url")
-            or thumbnails.get("default", {}).get("url", "")
-        )
+        image_url = _extract_thumbnail_url(snippet)
 
         result = {
             "playlist_id": playlist_id,
@@ -258,12 +258,7 @@ class YouTubeService:
             if title in ("Deleted video", "Private video", ""):
                 continue
 
-            thumbnails = snippet.get("thumbnails", {})
-            image_url = (
-                thumbnails.get("high", {}).get("url")
-                or thumbnails.get("medium", {}).get("url")
-                or thumbnails.get("default", {}).get("url", "")
-            )
+            image_url = _extract_thumbnail_url(snippet)
 
             # Parse artist and title from video title
             artist, track_name = self._parse_video_title(title)
@@ -343,12 +338,7 @@ class YouTubeService:
             snippet = item.get("snippet", {})
             title = snippet.get("title", "")
 
-            thumbnails = snippet.get("thumbnails", {})
-            image_url = (
-                thumbnails.get("high", {}).get("url")
-                or thumbnails.get("medium", {}).get("url")
-                or thumbnails.get("default", {}).get("url", "")
-            )
+            image_url = _extract_thumbnail_url(snippet)
 
             artist, track_name = self._parse_video_title(title)
             details = video_details.get(vid_id, {})

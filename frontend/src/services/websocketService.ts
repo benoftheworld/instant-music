@@ -42,7 +42,6 @@ export class WebSocketService {
     const accessToken = tokenService.getAccessToken();
     const tokenParam = accessToken ? `?token=${accessToken}` : '';
     const url = `${WS_BASE_URL}/ws/game/${roomCode}/${tokenParam}`;
-    console.log('Connecting to WebSocket:', url);
 
     return new Promise((resolve, reject) => {
       try {

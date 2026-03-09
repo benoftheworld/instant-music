@@ -60,18 +60,15 @@ class ShopService:
 
         total_cost = item.cost * quantity
 
-        # Vérification du solde
-        if user.coins_balance < total_cost:
-            raise InsufficientCoinsError(
-                _(
-                    f"Solde insuffisant. Vous avez {user.coins_balance} pièces, "
-                    f"il en faut {total_cost}."
-                )
-            )
+        # Déduction atomique des pièces (lève InsufficientCoinsError si solde insuffisant)
+        from apps.users.coin_service import deduct_coins
+        from apps.users.coin_service import InsufficientCoinsError as _InsuffErr
 
-        # Déduction des pièces
-        user.coins_balance -= total_cost
-        user.save(update_fields=["coins_balance"])
+        try:
+            deduct_coins(user.id, total_cost, f"shop_purchase:{item.name}x{quantity}")
+        except _InsuffErr as exc:
+            raise InsufficientCoinsError(str(exc)) from exc
+        user.refresh_from_db(fields=["coins_balance"])
 
         # Mise à jour du stock
         if item.stock is not None:
@@ -128,8 +125,38 @@ class ShopService:
         return Achievement.objects.aggregate(total=models_Sum("points"))["total"] or 0
 
 
+class BonusActivationError(Exception):
+    """Exception levée quand la pré-validation d'un bonus échoue."""
+
+
 class BonusService:
     """Service d'activation et de vérification des bonus en partie."""
+
+    def resolve_round_number(self, game, bonus_type: str) -> tuple[int | None, "GameRound | None"]:
+        """Détermine le round_number effectif pour un bonus donné.
+
+        Retourne ``(round_number, current_round)``.
+        Lève :class:`BonusActivationError` si les conditions ne sont pas remplies.
+        """
+        current_round = game.rounds.filter(
+            started_at__isnull=False, ended_at__isnull=True
+        ).first()
+        round_number = current_round.round_number if current_round else None
+
+        if bonus_type == "fog":
+            if current_round is None:
+                raise BonusActivationError(
+                    "Aucun round en cours. Le brouillard s'applique au round suivant."
+                )
+            round_number = current_round.round_number + 1
+
+        elif bonus_type == "joker":
+            if current_round is None:
+                raise BonusActivationError(
+                    "Aucun round en cours. Le joker ne peut être activé que pendant un round."
+                )
+
+        return round_number, current_round
 
     # Bonus qui ne peuvent être actifs qu'une seule fois à la fois
     UNIQUE_BONUSES = {BonusType.SHIELD}

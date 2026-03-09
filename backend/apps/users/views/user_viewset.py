@@ -25,6 +25,7 @@ from ..models import User
 from ..models.team_member import TeamMember
 from ..serializers import (
     ChangePasswordSerializer,
+    PublicUserSerializer,
     UserMinimalSerializer,
     UserProfileUpdateSerializer,
     UserSerializer,
@@ -39,6 +40,12 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        """Utiliser PublicUserSerializer pour les vues publiques."""
+        if self.action in ("list", "retrieve"):
+            return PublicUserSerializer
+        return UserSerializer
 
     def get_queryset(self):
         """Filter queryset based on user."""

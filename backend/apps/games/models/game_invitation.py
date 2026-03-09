@@ -50,9 +50,10 @@ class GameInvitation(models.Model):
         max_length=20,
         choices=InvitationStatus.choices,
         default=InvitationStatus.PENDING,
+        db_index=True,
     )
     created_at = models.DateTimeField(_("créée le"), auto_now_add=True)
-    expires_at = models.DateTimeField(_("expire le"))
+    expires_at = models.DateTimeField(_("expire le"), db_index=True)
 
     class Meta:
         verbose_name = _("invitation de partie")

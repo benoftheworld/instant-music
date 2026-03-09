@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { teamService } from '@/services/socialService';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { getMediaUrl } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import type { Team, TeamMember, TeamMemberRole } from '@/types';
@@ -53,7 +54,7 @@ export default function TeamPage() {
     try {
       const data = await teamService.getJoinRequests(team.id);
       setJoinRequests(Array.isArray(data) ? data : (data as any)?.results || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // ignore for now
     } finally {
       setRequestsLoading(false);
@@ -81,8 +82,8 @@ export default function TeamPage() {
       await teamService.updateMemberRole(team.id, member.id, role);
       setMessage({ type: 'success', text: 'Rôle mis à jour.' });
       fetchTeam();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur.' });
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: getApiErrorMessage(err, 'Erreur.') });
     } finally {
       setProcessing(false);
     }
@@ -96,8 +97,8 @@ export default function TeamPage() {
       await teamService.removeMember(team.id, member.id);
       setMessage({ type: 'success', text: 'Membre supprimé.' });
       fetchTeam();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur.' });
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: getApiErrorMessage(err, 'Erreur.') });
     } finally {
       setProcessing(false);
     }
@@ -111,8 +112,8 @@ export default function TeamPage() {
       setMessage({ type: 'success', text: 'Demande approuvée.' });
       fetchTeam();
       fetchRequests();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur.' });
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: getApiErrorMessage(err, 'Erreur.') });
     } finally {
       setProcessing(false);
     }
@@ -126,8 +127,8 @@ export default function TeamPage() {
       await teamService.rejectJoinRequest(team.id, requestId);
       setMessage({ type: 'success', text: 'Demande refusée.' });
       fetchRequests();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur.' });
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: getApiErrorMessage(err, 'Erreur.') });
     } finally {
       setProcessing(false);
     }
@@ -146,8 +147,8 @@ export default function TeamPage() {
       setTeam(updated);
       setMessage({ type: 'success', text: 'Équipe mise à jour.' });
       setEditing(false);
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur lors de la mise à jour.' });
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: getApiErrorMessage(err, 'Erreur lors de la mise à jour.') });
     } finally {
       setProcessing(false);
     }
@@ -160,8 +161,8 @@ export default function TeamPage() {
     try {
       await teamService.dissolveTeam(team.id);
       navigate('/teams');
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur lors de la dissolution.' });
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: getApiErrorMessage(err, 'Erreur lors de la dissolution.') });
       setProcessing(false);
     }
   };

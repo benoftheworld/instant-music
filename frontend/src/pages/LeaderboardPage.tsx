@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { getMediaUrl } from '@/services/api';
 import { statsService } from '@/services/achievementService';
 import { LEADERBOARD_TABS } from '@/constants/gameModes';
@@ -367,67 +368,45 @@ function Pagination({
 
 export default function LeaderboardPage() {
   const user = useAuthStore((s) => s.user);
-  const [players, setPlayers] = useState<LeaderboardEntry[]>([]);
-  const [teams, setTeams] = useState<TeamLeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedMode, setSelectedMode] = useState<LeaderboardTab>('general');
   const [page, setPage] = useState<number>(1);
-  const [pageSize] = useState<number>(50);
-  const [totalCount, setTotalCount] = useState<number | null>(null);
+  const pageSize = 50;
 
-  const fetchLeaderboard = useCallback(
-    async (p: number) => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        if (selectedMode === 'teams') {
-          const data = await statsService.getTeamLeaderboard(p, pageSize);
-          setTeams(data.results ?? []);
-          setTotalCount(data.count ?? null);
-          setPlayers([]);
-        } else if (selectedMode === 'general') {
-          const data = await statsService.getLeaderboard(p, pageSize);
-          setPlayers(data.results ?? []);
-          setTotalCount(data.count ?? null);
-          setTeams([]);
-        } else {
-          const data = await statsService.getLeaderboardByMode(selectedMode, p, pageSize);
-          setPlayers(data.results ?? []);
-          setTotalCount(data.count ?? null);
-          setTeams([]);
-        }
-      } catch (err) {
-        console.error('Failed to fetch leaderboard:', err);
-        setError('Impossible de charger le classement');
-      } finally {
-        setLoading(false);
+  const { data, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['leaderboard', selectedMode, page, pageSize],
+    queryFn: async () => {
+      if (selectedMode === 'teams') {
+        const data = await statsService.getTeamLeaderboard(page, pageSize);
+        return { players: [] as LeaderboardEntry[], teams: data.results ?? [], totalCount: data.count ?? null };
+      } else if (selectedMode === 'general') {
+        const data = await statsService.getLeaderboard(page, pageSize);
+        return { players: data.results ?? [], teams: [] as TeamLeaderboardEntry[], totalCount: data.count ?? null };
+      } else {
+        const data = await statsService.getLeaderboardByMode(selectedMode, page, pageSize);
+        return { players: data.results ?? [], teams: [] as TeamLeaderboardEntry[], totalCount: data.count ?? null };
       }
     },
-    [selectedMode, pageSize],
-  );
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
+  const players = data?.players ?? [];
+  const teams = data?.teams ?? [];
+  const totalCount = data?.totalCount ?? null;
+  const error = queryError ? 'Impossible de charger le classement' : null;
+
+  const handleModeChange = (mode: LeaderboardTab) => {
+    setSelectedMode(mode);
     setPage(1);
-    fetchLeaderboard(1);
-  }, [selectedMode, fetchLeaderboard]);
+  };
 
   const handlePrev = () => {
-    if (page > 1) {
-      const next = page - 1;
-      setPage(next);
-      fetchLeaderboard(next);
-    }
+    if (page > 1) setPage(page - 1);
   };
   const handleNext = () => {
     if (totalCount === null) return;
     const totalPages = Math.ceil(totalCount / pageSize);
-    if (page < totalPages) {
-      const next = page + 1;
-      setPage(next);
-      fetchLeaderboard(next);
-    }
+    if (page < totalPages) setPage(page + 1);
   };
 
   /* ── Separate primary / mode tabs ───────────────────────────── */
@@ -467,7 +446,7 @@ export default function LeaderboardPage() {
             {primaryTabs.map((tab) => (
               <button
                 key={tab.value}
-                onClick={() => setSelectedMode(tab.value)}
+                onClick={() => handleModeChange(tab.value)}
                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
                   selectedMode === tab.value
                     ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
@@ -485,7 +464,7 @@ export default function LeaderboardPage() {
             {modeTabs.map((tab) => (
               <button
                 key={tab.value}
-                onClick={() => setSelectedMode(tab.value)}
+                onClick={() => handleModeChange(tab.value)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   selectedMode === tab.value
                     ? 'bg-primary-500 text-white'

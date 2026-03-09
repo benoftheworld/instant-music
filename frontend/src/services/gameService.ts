@@ -71,11 +71,6 @@ export const gameService = {
     return response.data;
   },
 
-  async getAvailableGames(): Promise<Game[]> {
-    const response = await api.get<Game[]>('/games/available/');
-    return response.data;
-  },
-
   async getPublicGames(search?: string): Promise<Game[]> {
     const params = search ? { search } : {};
     const response = await api.get<Game[]>('/games/public/', { params });

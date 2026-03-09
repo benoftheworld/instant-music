@@ -1,40 +1,40 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { friendshipService } from '@/services/socialService';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { getMediaUrl } from '@/services/api';
 import type { Friend, Friendship, UserMinimal } from '@/types';
 
 export default function FriendsPage() {
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<Friendship[]>([]);
-  const [sentRequests, setSentRequests] = useState<Friendship[]>([]);
-  const [searchResults, setSearchResults] = useState<UserMinimal[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'friends' | 'pending' | 'search'>('friends');
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
+  const { data: friendsData, isLoading: loading } = useQuery({
+    queryKey: ['friends', 'all'],
+    queryFn: async () => {
       const [friendsData, pendingData, sentData] = await Promise.all([
         friendshipService.getFriends(),
         friendshipService.getPendingRequests(),
         friendshipService.getSentRequests(),
       ]);
-      // Handle paginated or direct array response
-      setFriends(Array.isArray(friendsData) ? friendsData : (friendsData as any)?.results || []);
-      setPendingRequests(Array.isArray(pendingData) ? pendingData : (pendingData as any)?.results || []);
-      setSentRequests(Array.isArray(sentData) ? sentData : (sentData as any)?.results || []);
-    } catch (err) {
-      console.error('Failed to fetch friends data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return {
+        friends: (Array.isArray(friendsData) ? friendsData : (friendsData as any)?.results || []) as Friend[],
+        pendingRequests: (Array.isArray(pendingData) ? pendingData : (pendingData as any)?.results || []) as Friendship[],
+        sentRequests: (Array.isArray(sentData) ? sentData : (sentData as any)?.results || []) as Friendship[],
+      };
+    },
+    staleTime: 30_000,
+  });
+
+  const friends = friendsData?.friends ?? [];
+  const pendingRequests = friendsData?.pendingRequests ?? [];
+  const sentRequests = friendsData?.sentRequests ?? [];
+
+  const [searchResults, setSearchResults] = useState<UserMinimal[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'friends' | 'pending' | 'search'>('friends');
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const invalidateFriends = () => queryClient.invalidateQueries({ queryKey: ['friends', 'all'] });
 
   const handleSearch = async () => {
     if (searchQuery.length < 2) return;
@@ -51,9 +51,9 @@ export default function FriendsPage() {
       await friendshipService.sendRequest(username);
       setMessage({ type: 'success', text: `Demande envoyée à ${username}` });
       setSearchResults(searchResults.filter(u => u.username !== username));
-      fetchData();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur' });
+      invalidateFriends();
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: getApiErrorMessage(err, 'Erreur') });
     }
   };
 
@@ -61,7 +61,7 @@ export default function FriendsPage() {
     try {
       await friendshipService.acceptRequest(id);
       setMessage({ type: 'success', text: 'Demande acceptée !' });
-      fetchData();
+      invalidateFriends();
     } catch (err) {
       setMessage({ type: 'error', text: 'Erreur lors de l\'acceptation' });
     }
@@ -70,7 +70,7 @@ export default function FriendsPage() {
   const handleReject = async (id: number) => {
     try {
       await friendshipService.rejectRequest(id);
-      setPendingRequests(pendingRequests.filter(r => r.id !== id));
+      invalidateFriends();
     } catch (err) {
       setMessage({ type: 'error', text: 'Erreur lors du refus' });
     }
@@ -80,7 +80,7 @@ export default function FriendsPage() {
     if (!window.confirm('Supprimer cet ami ?')) return;
     try {
       await friendshipService.removeFriend(friendshipId);
-      setFriends(friends.filter(f => f.friendship_id !== friendshipId));
+      invalidateFriends();
     } catch (err) {
       setMessage({ type: 'error', text: 'Erreur lors de la suppression' });
     }

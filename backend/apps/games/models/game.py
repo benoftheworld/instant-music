@@ -140,9 +140,9 @@ class Game(models.Model):
         help_text=_("Morceau sélectionné depuis le catalogue administré"),
     )
 
-    created_at = models.DateTimeField(_("créé le"), auto_now_add=True)
+    created_at = models.DateTimeField(_("créé le"), auto_now_add=True, db_index=True)
     started_at = models.DateTimeField(_("démarré le"), null=True, blank=True)
-    finished_at = models.DateTimeField(_("terminé le"), null=True, blank=True)
+    finished_at = models.DateTimeField(_("terminé le"), null=True, blank=True, db_index=True)
 
     class Meta:
         verbose_name = _("partie")
@@ -151,6 +151,16 @@ class Game(models.Model):
 
     def __str__(self) -> str:
         return f"Game {self.room_code} - {self.get_mode_display()}"
+
+    def competitive_players(self):
+        """Joueurs éligibles au classement.
+
+        En mode soirée le présentateur (hôte) est exclu.
+        """
+        qs = self.players.all()
+        if self.is_party_mode:
+            qs = qs.exclude(user=self.host)
+        return qs
 
 
 # Audit log — traçabilité des modifications admin

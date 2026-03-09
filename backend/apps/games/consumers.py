@@ -127,115 +127,33 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
     # ── Broadcast handlers ────────────────────────────────────────────────────
 
-    async def notify_game_invitation(self, event):
-        """Push a game invitation notification to the connected user."""
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "game_invitation",
-                    "invitation": event["invitation"],
-                }
-            )
-        )
+    # Dispatch map: channel-layer type → (ws message type, event data key)
+    _NOTIFICATION_MAP: dict[str, tuple[str, str]] = {
+        "notify_game_invitation": ("game_invitation", "invitation"),
+        "notify_invitation_cancelled": ("invitation_cancelled", "invitation_id"),
+        "notify_achievement_unlocked": ("achievement_unlocked", "achievement"),
+        "notify_friend_request": ("friend_request", "friendship"),
+        "notify_friend_request_accepted": ("friend_request_accepted", "friendship"),
+        "notify_team_join_request": ("team_join_request", "request"),
+        "notify_team_join_approved": ("team_join_approved", "approval"),
+        "notify_team_join_rejected": ("team_join_rejected", "rejection"),
+        "notify_team_role_updated": ("team_role_updated", "role_update"),
+        "notify_team_member_kicked": ("team_member_kicked", "kick"),
+    }
 
-    async def notify_invitation_cancelled(self, event):
-        """Notify the recipient that an invitation was cancelled."""
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "invitation_cancelled",
-                    "invitation_id": event["invitation_id"],
-                }
-            )
-        )
+    def __getattr__(self, name: str):
+        """Generic handler for all notification types defined in _NOTIFICATION_MAP."""
+        entry = self._NOTIFICATION_MAP.get(name)
+        if entry is None:
+            raise AttributeError(name)
+        msg_type, data_key = entry
 
-    async def notify_achievement_unlocked(self, event):
-        """Push an achievement-unlocked notification to the connected user."""
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "achievement_unlocked",
-                    "achievement": event["achievement"],
-                }
+        async def _handler(event):
+            await self.send(
+                text_data=json.dumps({"type": msg_type, data_key: event[data_key]})
             )
-        )
 
-    async def notify_friend_request(self, event):
-        """Push a friend request notification to the recipient."""
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "friend_request",
-                    "friendship": event["friendship"],
-                }
-            )
-        )
-
-    async def notify_friend_request_accepted(self, event):
-        """Push a friend request accepted notification to the sender."""
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "friend_request_accepted",
-                    "friendship": event["friendship"],
-                }
-            )
-        )
-
-    async def notify_team_join_request(self, event):
-        """Push a team join request notification to admins/owner."""
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "team_join_request",
-                    "request": event["request"],
-                }
-            )
-        )
-
-    async def notify_team_join_approved(self, event):
-        """Push a team join approved notification to the requester."""
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "team_join_approved",
-                    "approval": event["approval"],
-                }
-            )
-        )
-
-    async def notify_team_join_rejected(self, event):
-        """Push a team join rejected notification to the requester."""
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "team_join_rejected",
-                    "rejection": event["rejection"],
-                }
-            )
-        )
-
-    async def notify_team_role_updated(self, event):
-        """Push a role-change notification to the affected member."""
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "team_role_updated",
-                    "role_update": event["role_update"],
-                }
-            )
-        )
-
-    async def notify_team_member_kicked(self, event):
-        """Push a kick notification to the expelled member."""
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "team_member_kicked",
-                    "kick": event["kick"],
-                }
-            )
-        )
+        return _handler
 
 
 class GameConsumer(AsyncWebsocketConsumer):
@@ -562,7 +480,27 @@ class GameConsumer(AsyncWebsocketConsumer):
         return Game.objects.filter(  # type: ignore[no-any-return]
             room_code=self.room_code, host=self.scope["user"]
         ).exists()
+    async def _require_host(self, action: str) -> bool:
+        \"\"\"Vérifie que l'utilisateur est l'hôte. Envoie une erreur et log si non.
 
+        Returns True si l'utilisateur est l'hôte, False sinon.
+        \"\"\"
+        if await self._is_host():
+            return True
+        logger.warning(
+            "ws_auth_forbidden",
+            extra={
+                "action": action,
+                "user_id": self.scope["user"].id,
+                "room_code": self.room_code,
+            },
+        )
+        await self.send(
+            text_data=json.dumps(
+                {"type": "error", "message": "Action réservée à l'hôte."}
+            )
+        )
+        return False
     @database_sync_to_async
     def _check_all_party_players_answered(self) -> bool:
         """En mode soirée : vérifie si tous les joueurs non-hôte ont soumis une réponse
@@ -592,7 +530,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             return False
 
         answered_count = GameAnswer.objects.filter(
-            game_round=current_round
+            round=current_round
         ).exclude(player__user=game.host).count()
 
         return answered_count >= non_host_count  # type: ignore[return-value]
@@ -623,20 +561,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def start_game(self, data):
         """Handle game start."""
-        if not await self._is_host():
-            logger.warning(
-                "ws_auth_forbidden",
-                extra={
-                    "action": "start_game",
-                    "user_id": self.scope["user"].id,
-                    "room_code": self.room_code,
-                },
-            )
-            await self.send(
-                text_data=json.dumps(
-                    {"type": "error", "message": "Action réservée à l'hôte."}
-                )
-            )
+        if not await self._require_host("start_game"):
             return
 
         # Get initial game data
@@ -649,20 +574,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def start_round(self, data):
         """Handle round start."""
-        if not await self._is_host():
-            logger.warning(
-                "ws_auth_forbidden",
-                extra={
-                    "action": "start_round",
-                    "user_id": self.scope["user"].id,
-                    "room_code": self.room_code,
-                },
-            )
-            await self.send(
-                text_data=json.dumps(
-                    {"type": "error", "message": "Action réservée à l'hôte."}
-                )
-            )
+        if not await self._require_host("start_round"):
             return
 
         round_data = data.get("round_data") or {}
@@ -683,20 +595,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def end_round(self, data):
         """Handle round end."""
-        if not await self._is_host():
-            logger.warning(
-                "ws_auth_forbidden",
-                extra={
-                    "action": "end_round",
-                    "user_id": self.scope["user"].id,
-                    "room_code": self.room_code,
-                },
-            )
-            await self.send(
-                text_data=json.dumps(
-                    {"type": "error", "message": "Action réservée à l'hôte."}
-                )
-            )
+        if not await self._require_host("end_round"):
             return
 
         round_results = data.get("results")
@@ -708,20 +607,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def next_round(self, data):
         """Handle next round."""
-        if not await self._is_host():
-            logger.warning(
-                "ws_auth_forbidden",
-                extra={
-                    "action": "next_round",
-                    "user_id": self.scope["user"].id,
-                    "room_code": self.room_code,
-                },
-            )
-            await self.send(
-                text_data=json.dumps(
-                    {"type": "error", "message": "Action réservée à l'hôte."}
-                )
-            )
+        if not await self._require_host("next_round"):
             return
 
         round_data = data.get("round_data") or {}
@@ -775,6 +661,7 @@ class GameConsumer(AsyncWebsocketConsumer):
     def _do_activate_bonus(self, user, bonus_type: str) -> dict:
         """Synchronous DB calls for bonus activation."""
         from apps.shop.services import (
+            BonusActivationError,
             BonusAlreadyActiveError,
             ItemNotAvailableError,
             bonus_service,
@@ -792,21 +679,10 @@ class GameConsumer(AsyncWebsocketConsumer):
                 "error": "Les bonus sont désactivés en mode hors ligne (solo)."
             }
 
-        current_round = game.rounds.filter(
-            started_at__isnull=False, ended_at__isnull=True
-        ).first()
-        round_number = current_round.round_number if current_round else None
-
-        # Le brouillard s’applique au round SUIVANT
-        if bonus_type == "fog":
-            if current_round is None:
-                return {"error": "Aucun round en cours. Le brouillard s’applique au round suivant."}
-            round_number = current_round.round_number + 1
-
-        # Le joker nécessite un round actif
-        elif bonus_type == "joker":
-            if current_round is None:
-                return {"error": "Aucun round en cours. Le joker ne peut être activé que pendant un round."}
+        try:
+            round_number, _ = bonus_service.resolve_round_number(game, bonus_type)
+        except BonusActivationError as e:
+            return {"error": str(e)}
 
         try:
             game_bonus = bonus_service.activate_bonus(
@@ -847,12 +723,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def finish_game(self, data):
         """Handle game finish."""
-        if not await self._is_host():
-            await self.send(
-                text_data=json.dumps(
-                    {"type": "error", "message": "Action réservée à l'hôte."}
-                )
-            )
+        if not await self._require_host("finish_game"):
             return
 
         results = data.get("results")

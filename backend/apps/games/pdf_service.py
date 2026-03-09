@@ -154,181 +154,168 @@ def _medal(rank: int) -> str:
 # ── Main generator ────────────────────────────────────────────────────────────
 
 
-def generate_results_pdf(
-    game_data: dict[str, Any],
-    rankings: list[dict[str, Any]],
-    rounds: list[dict[str, Any]],
-) -> bytes:
-    """Return a polished PDF (bytes) containing the full game results."""
-    room_code = game_data.get("room_code", "?")
-    game_name = game_data.get("name") or ""
-    mode_display = game_data.get("mode_display", game_data.get("mode", "?"))
-    answer_mode = game_data.get("answer_mode_display", "")
-    guess_target = game_data.get("guess_target_display", "")
-    num_rounds = game_data.get("num_rounds", "?")
-    game_mode = game_data.get("mode", "")
+class PdfBuilder:
+    """Chainable builder that assembles sections into a game results PDF."""
 
-    date_display = ""
-    date_val = game_data.get("finished_at") or game_data.get("started_at")
-    if date_val:
-        try:
-            dt = (
-                datetime.fromisoformat(date_val)
-                if isinstance(date_val, str)
-                else date_val
+    def __init__(
+        self,
+        game_data: dict[str, Any],
+        rankings: list[dict[str, Any]],
+        rounds: list[dict[str, Any]],
+    ) -> None:
+        self.game_data = game_data
+        self.rankings = rankings
+        self.rounds = rounds
+
+        self.room_code = game_data.get("room_code", "?")
+        self.game_name = game_data.get("name") or ""
+        self.mode_display = game_data.get("mode_display", game_data.get("mode", "?"))
+        self.answer_mode = game_data.get("answer_mode_display", "")
+        self.guess_target = game_data.get("guess_target_display", "")
+        self.num_rounds = game_data.get("num_rounds", "?")
+        self.game_mode = game_data.get("mode", "")
+
+        self.date_display = ""
+        date_val = game_data.get("finished_at") or game_data.get("started_at")
+        if date_val:
+            try:
+                dt = (
+                    datetime.fromisoformat(date_val)
+                    if isinstance(date_val, str)
+                    else date_val
+                )
+                self.date_display = dt.strftime("%d/%m/%Y à %H:%M")
+            except Exception:
+                pass
+
+        # Document + styles (initialised in build)
+        self.COL_W = PAGE_W - 2 * MARGIN
+        self._init_styles()
+        self.elements: list = []
+
+    # ── Styles ───────────────────────────────────────────────────────────────
+
+    def _init_styles(self) -> None:
+        base = getSampleStyleSheet()
+        _s = _sty_factory(base)
+        self._s = _s
+        self.S = {
+            "sec": _s("sec", fontSize=11, textColor=C_DARK, fontName="Helvetica-Bold"),
+            "title": _s(
+                "title",
+                fontSize=20,
+                textColor=C_DARK,
+                fontName="Helvetica-Bold",
+                spaceAfter=2,
+            ),
+            "sub": _s("sub", fontSize=10, textColor=C_GREY_TEXT, spaceAfter=8),
+            "body": _s("body", fontSize=9, textColor=C_DARK_TEXT),
+            "body_sm": _s("bsm", fontSize=8, textColor=C_DARK_TEXT),
+            "bold": _s(
+                "bold",
+                fontSize=9,
+                textColor=C_DARK_TEXT,
+                fontName="Helvetica-Bold",
+            ),
+            "bold_sm": _s(
+                "boldsm",
+                fontSize=8,
+                textColor=C_DARK_TEXT,
+                fontName="Helvetica-Bold",
+            ),
+            "grey": _s("grey", fontSize=8, textColor=C_GREY_TEXT),
+            "ok": _s("ok", fontSize=8, textColor=colors.HexColor("#065F46")),
+            "ko": _s("ko", fontSize=8, textColor=colors.HexColor("#991B1B")),
+            "white": _s("wh", fontSize=9, textColor=C_WHITE),
+            "white_sm": _s("whsm", fontSize=8, textColor=C_WHITE),
+            "lilac": _s("lilac", fontSize=8, textColor=colors.HexColor("#F9EFE7")),
+            "green_sm": _s("grsm", fontSize=8, textColor=colors.HexColor("#DC3842")),
+            "center": _s("ctr", fontSize=9, textColor=C_DARK_TEXT, alignment=1),
+            "center_w": _s(
+                "ctrw",
+                fontSize=9,
+                textColor=C_WHITE,
+                alignment=1,
+                fontName="Helvetica-Bold",
+            ),
+            "center_g": _s("ctrg", fontSize=8, textColor=C_GREY_TEXT, alignment=1),
+        }
+
+    # ── Section 1: Title + info card ─────────────────────────────────────────
+
+    def add_header(self) -> "PdfBuilder":
+        S = self.S
+        COL_W = self.COL_W
+
+        title_label = self.game_name if self.game_name else f"Partie {self.room_code}<br/><br/>"
+        self.elements.append(Paragraph(title_label, S["title"]))
+        sub_parts = [f"Salle <b>{self.room_code}</b>"]
+        if self.date_display:
+            sub_parts.append(self.date_display)
+        self.elements.append(Paragraph("  ·  ".join(sub_parts), S["sub"]))
+
+        meta_pairs: list[tuple[str, str]] = [
+            ("Mode", self.mode_display),
+            ("Rounds", str(self.num_rounds)),
+        ]
+        if self.answer_mode:
+            meta_pairs.append(("Réponses", self.answer_mode))
+        if self.guess_target and self.game_mode in ("classique", "rapide"):
+            meta_pairs.append(("Cible", self.guess_target))
+        meta_pairs.append(("Joueurs", str(len(self.rankings))))
+        if self.date_display:
+            meta_pairs.append(("Date", self.date_display))
+
+        meta_rows = []
+        for i in range(0, len(meta_pairs), 2):
+            row: list = []
+            for k, v in meta_pairs[i : i + 2]:
+                row.append(Paragraph(f"<font color='#6B7280'>{k}</font>", S["body_sm"]))
+                row.append(Paragraph(f"<b>{v}</b>", S["bold_sm"]))
+            while len(row) < 4:
+                row.append("")
+            meta_rows.append(row)
+
+        if meta_rows:
+            mt = Table(
+                meta_rows,
+                colWidths=[COL_W * 0.16, COL_W * 0.34, COL_W * 0.16, COL_W * 0.34],
             )
-            date_display = dt.strftime("%d/%m/%Y à %H:%M")
-        except Exception:
-            pass
-
-    # ── Document setup ──────────────────────────────────────────────────────
-    buf = io.BytesIO()
-    COL_W = PAGE_W - 2 * MARGIN
-
-    content_y0 = FOOTER_H + 4 * mm
-    content_top = PAGE_H - HEADER_H - 5 * mm
-    frame = Frame(
-        MARGIN,
-        content_y0,
-        COL_W,
-        content_top - content_y0,
-        leftPadding=0,
-        rightPadding=0,
-        topPadding=0,
-        bottomPadding=0,
-    )
-
-    def on_page(c, d):
-        _draw_page(c, d, room_code, game_name)
-
-    template = PageTemplate(id="main", frames=[frame], onPage=on_page)
-    doc = BaseDocTemplate(
-        buf,
-        pagesize=A4,
-        pageTemplates=[template],
-        title="InstantMusic — Résultats",
-        author="InstantMusic",
-        leftMargin=MARGIN,
-        rightMargin=MARGIN,
-        topMargin=HEADER_H + 5 * mm,
-        bottomMargin=FOOTER_H + 4 * mm,
-    )
-
-    # ── Styles ──────────────────────────────────────────────────────────────
-    base = getSampleStyleSheet()
-    _s = _sty_factory(base)
-
-    S = {
-        "sec": _s("sec", fontSize=11, textColor=C_DARK, fontName="Helvetica-Bold"),
-        "title": _s(
-            "title",
-            fontSize=20,
-            textColor=C_DARK,
-            fontName="Helvetica-Bold",
-            spaceAfter=2,
-        ),
-        "sub": _s("sub", fontSize=10, textColor=C_GREY_TEXT, spaceAfter=8),
-        "body": _s("body", fontSize=9, textColor=C_DARK_TEXT),
-        "body_sm": _s("bsm", fontSize=8, textColor=C_DARK_TEXT),
-        "bold": _s(
-            "bold",
-            fontSize=9,
-            textColor=C_DARK_TEXT,
-            fontName="Helvetica-Bold",
-        ),
-        "bold_sm": _s(
-            "boldsm",
-            fontSize=8,
-            textColor=C_DARK_TEXT,
-            fontName="Helvetica-Bold",
-        ),
-        "grey": _s("grey", fontSize=8, textColor=C_GREY_TEXT),
-        "ok": _s("ok", fontSize=8, textColor=colors.HexColor("#065F46")),
-        "ko": _s("ko", fontSize=8, textColor=colors.HexColor("#991B1B")),
-        "white": _s("wh", fontSize=9, textColor=C_WHITE),
-        "white_sm": _s("whsm", fontSize=8, textColor=C_WHITE),
-        "lilac": _s("lilac", fontSize=8, textColor=colors.HexColor("#F9EFE7")),
-        "green_sm": _s("grsm", fontSize=8, textColor=colors.HexColor("#DC3842")),
-        "center": _s("ctr", fontSize=9, textColor=C_DARK_TEXT, alignment=1),
-        "center_w": _s(
-            "ctrw",
-            fontSize=9,
-            textColor=C_WHITE,
-            alignment=1,
-            fontName="Helvetica-Bold",
-        ),
-        "center_g": _s("ctrg", fontSize=8, textColor=C_GREY_TEXT, alignment=1),
-    }
-
-    elements: list = []
-
-    # ════════════════════════════════════════════════════════════════════════
-    # 1 — TITRE + FICHE INFO
-    # ════════════════════════════════════════════════════════════════════════
-    title_label = game_name if game_name else f"Partie {room_code}<br/><br/>"
-    elements.append(Paragraph(title_label, S["title"]))
-    sub_parts = [f"Salle <b>{room_code}</b>"]
-    if date_display:
-        sub_parts.append(date_display)
-    elements.append(Paragraph("  ·  ".join(sub_parts), S["sub"]))
-
-    # Info grid (2 columns)
-    meta_pairs: list[tuple[str, str]] = [
-        ("Mode", mode_display),
-        ("Rounds", str(num_rounds)),
-    ]
-    if answer_mode:
-        meta_pairs.append(("Réponses", answer_mode))
-    if guess_target and game_mode in ("classique", "rapide"):
-        meta_pairs.append(("Cible", guess_target))
-    meta_pairs.append(("Joueurs", str(len(rankings))))
-    if date_display:
-        meta_pairs.append(("Date", date_display))
-
-    meta_rows = []
-    for i in range(0, len(meta_pairs), 2):
-        row: list = []
-        for k, v in meta_pairs[i : i + 2]:
-            row.append(Paragraph(f"<font color='#6B7280'>{k}</font>", S["body_sm"]))
-            row.append(Paragraph(f"<b>{v}</b>", S["bold_sm"]))
-        while len(row) < 4:
-            row.append("")
-        meta_rows.append(row)
-
-    if meta_rows:
-        mt = Table(
-            meta_rows,
-            colWidths=[COL_W * 0.16, COL_W * 0.34, COL_W * 0.16, COL_W * 0.34],
-        )
-        mt.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, -1), C_LIGHT_BG),
-                    ("TOPPADDING", (0, 0), (-1, -1), 5),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                    ("LINEBELOW", (0, -1), (-1, -1), 1.5, C_ACCENT),
-                ]
+            mt.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, -1), C_LIGHT_BG),
+                        ("TOPPADDING", (0, 0), (-1, -1), 5),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("LINEBELOW", (0, -1), (-1, -1), 1.5, C_ACCENT),
+                    ]
+                )
             )
-        )
-        elements.append(mt)
+            self.elements.append(mt)
 
-    elements.append(Spacer(1, 10))
+        self.elements.append(Spacer(1, 10))
+        return self
 
-    # ════════════════════════════════════════════════════════════════════════
-    # 2 — PODIUM
-    # ════════════════════════════════════════════════════════════════════════
-    top3_by_rank = {p.get("rank"): p for p in rankings if p.get("rank", 99) <= 3}
+    # ── Section 2: Podium ────────────────────────────────────────────────────
 
-    if top3_by_rank:
-        elements.append(_section_header("Podium", S["sec"]))
-        elements.append(Spacer(1, 6))
+    def add_podium(self) -> "PdfBuilder":
+        S = self.S
+        COL_W = self.COL_W
+        _s = self._s
+
+        top3_by_rank = {p.get("rank"): p for p in self.rankings if p.get("rank", 99) <= 3}
+        if not top3_by_rank:
+            return self
+
+        self.elements.append(_section_header("Podium", S["sec"]))
+        self.elements.append(Spacer(1, 6))
 
         podium_order = [2, 1, 3]
         podium_colors = [C_SILVER, C_GOLD, C_BRONZE]
-        bar_heights = [20, 30, 16]  # mm
+        bar_heights = [20, 30, 16]
         cells = []
 
         for col_idx, rank in enumerate(podium_order):
@@ -413,23 +400,28 @@ def generate_results_pdf(
                 ]
             )
         )
-        elements.append(pt)
-        elements.append(Spacer(1, 10))
+        self.elements.append(pt)
+        self.elements.append(Spacer(1, 10))
+        return self
 
-    # ════════════════════════════════════════════════════════════════════════
-    # 3 — CLASSEMENT COMPLET (trié par score desc, podium 1/2/3 coloré)
-    # ════════════════════════════════════════════════════════════════════════
-    if rankings:
-        elements.append(_section_header("Classement complet", S["sec"]))
-        elements.append(Spacer(1, 4))
+    # ── Section 3: Full ranking table ────────────────────────────────────────
 
-        # Sort by score descending, then username alphabetically as tiebreaker
+    def add_ranking_table(self) -> "PdfBuilder":
+        S = self.S
+        COL_W = self.COL_W
+        _s = self._s
+
+        if not self.rankings:
+            return self
+
+        self.elements.append(_section_header("Classement complet", S["sec"]))
+        self.elements.append(Spacer(1, 4))
+
         sorted_list = sorted(
-            rankings,
+            self.rankings,
             key=lambda p: (-p.get("score", 0), p.get("username", "").lower()),
         )
 
-        # Per-rank display config: (bg_color, border_color, medal_text_color)
         RANK_STYLE = {
             1: (colors.HexColor("#FEF9C3"), C_GOLD, C_GOLD),
             2: (colors.HexColor("#F1F5F9"), C_SILVER, C_SILVER),
@@ -443,7 +435,7 @@ def generate_results_pdf(
             Paragraph("<b>Équipe</b>", S["white_sm"]),
         ]
         rk_rows: list = [rk_header]
-        podium_rows: dict[int, int] = {}  # row_index → rank (1/2/3)
+        podium_rows: dict[int, int] = {}
 
         for i, p in enumerate(sorted_list, start=1):
             rank = p.get("rank", "—")
@@ -501,20 +493,27 @@ def generate_results_pdf(
                 ("LINEBELOW", (0, row_idx), (-1, row_idx), 1.5, border),
             ]
         rk_table.setStyle(TableStyle(rk_cmds))
-        elements.append(rk_table)
-        elements.append(Spacer(1, 3))
-        elements.append(Spacer(1, 12))
+        self.elements.append(rk_table)
+        self.elements.append(Spacer(1, 3))
+        self.elements.append(Spacer(1, 12))
+        return self
 
-    # ════════════════════════════════════════════════════════════════════════
-    # 4 — DÉTAIL PAR ROUND
-    # ════════════════════════════════════════════════════════════════════════
-    if rounds:
-        elements.append(_section_header("Détail par manche", S["sec"]))
-        elements.append(Spacer(1, 6))
+    # ── Section 4: Round-by-round detail ─────────────────────────────────────
+
+    def add_round_details(self) -> "PdfBuilder":
+        S = self.S
+        COL_W = self.COL_W
+        _s = self._s
+
+        if not self.rounds:
+            return self
+
+        self.elements.append(_section_header("Détail par manche", S["sec"]))
+        self.elements.append(Spacer(1, 6))
 
         RW = [COL_W * w for w in (0.06, 0.25, 0.37, 0.14, 0.10, 0.08)]
 
-        for rd in rounds:
+        for rd in self.rounds:
             rnum = rd.get("round_number", "?")
             track = rd.get("track_name", "?")
             artist = rd.get("artist_name", "?")
@@ -537,7 +536,6 @@ def generate_results_pdf(
             except Exception:
                 min_time = None
 
-            # Round card header
             hdr = Table(
                 [
                     [
@@ -586,7 +584,6 @@ def generate_results_pdf(
 
             block = [hdr]
 
-            # Bonus utilisés ce round
             round_bonuses = rd.get("bonuses", [])
             if round_bonuses:
                 bonus_parts = [
@@ -651,7 +648,6 @@ def generate_results_pdf(
                     streak_s = f"x{streak_n}" if streak_n > 1 else "-"
 
                     txt_sty = S["ok"] if is_ok else S["ko"]
-                    # Truncate very long answers
                     if len(ans_text) > 55:
                         ans_text = ans_text[:52] + "…"
 
@@ -728,71 +724,131 @@ def generate_results_pdf(
                 )
                 block.append(empty_tbl)
 
-            elements.append(KeepTogether(block))
-            elements.append(Spacer(1, 8))
+            self.elements.append(KeepTogether(block))
+            self.elements.append(Spacer(1, 8))
 
-    # ════════════════════════════════════════════════════════════════════════
-    # 5 — SYSTÈME DE SCORE (compact)
-    # ════════════════════════════════════════════════════════════════════════
-    elements.append(_section_header("Système de score", S["sec"]))
-    elements.append(Spacer(1, 4))
+        return self
 
-    first_bonus = RANK_BONUS.get(0, 0)
-    score_lines = [
-        [
-            Paragraph("<b>Base</b>", S["bold_sm"]),
-            Paragraph(
-                f"max({SCORE_MIN_CORRECT}, {SCORE_BASE_POINTS} − temps × {SCORE_TIME_PENALTY_PER_SEC})",
-                S["body_sm"],
-            ),
-        ],
-        [
-            Paragraph("<b>Précision</b>", S["bold_sm"]),
-            Paragraph(
-                "× facteur d'exactitude (0.0 → 1.0 selon le mode)",
-                S["body_sm"],
-            ),
-        ],
-        [
-            Paragraph("<b>Bonus rang</b>", S["bold_sm"]),
-            Paragraph(
-                f"+{first_bonus} pts pour le 1er joueur à répondre correctement, 5 pts pour le 2e, 3 pts pour le 3e",
-                S["body_sm"],
-            ),
-        ],
-        [
-            Paragraph("<b>Bonus série</b>", S["bold_sm"]),
-            Paragraph(
-                "Points croissants selon le nombre de bonnes réponses consécutives",
-                S["body_sm"],
-            ),
-        ],
-        [
-            Paragraph("<b>Bonus boutique</b>", S["bold_sm"]),
-            Paragraph(
-                "Points x2 (double les points de la prochaine manche correcte)  |  "
-                "Points max (garantit au moins 100 pts de base)  |  "
-                "Vol de pts (−100 pts au leader, si non protégé)  |  "
-                "Joker (mauvaise réponse comptabilisée comme correcte)",
-                S["body_sm"],
-            ),
-        ],
-    ]
-    st = Table(score_lines, colWidths=[COL_W * 0.22, COL_W * 0.78])
-    st.setStyle(
-        TableStyle(
+    # ── Section 5: Score system ──────────────────────────────────────────────
+
+    def add_score_chart(self) -> "PdfBuilder":
+        S = self.S
+        COL_W = self.COL_W
+
+        self.elements.append(_section_header("Système de score", S["sec"]))
+        self.elements.append(Spacer(1, 4))
+
+        first_bonus = RANK_BONUS.get(0, 0)
+        score_lines = [
             [
-                ("BACKGROUND", (0, 0), (-1, -1), C_LIGHT_BG),
-                ("LINEBELOW", (0, 0), (-1, -1), 0.3, C_RULE),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ]
+                Paragraph("<b>Base</b>", S["bold_sm"]),
+                Paragraph(
+                    f"max({SCORE_MIN_CORRECT}, {SCORE_BASE_POINTS} − temps × {SCORE_TIME_PENALTY_PER_SEC})",
+                    S["body_sm"],
+                ),
+            ],
+            [
+                Paragraph("<b>Précision</b>", S["bold_sm"]),
+                Paragraph(
+                    "× facteur d'exactitude (0.0 → 1.0 selon le mode)",
+                    S["body_sm"],
+                ),
+            ],
+            [
+                Paragraph("<b>Bonus rang</b>", S["bold_sm"]),
+                Paragraph(
+                    f"+{first_bonus} pts pour le 1er joueur à répondre correctement, 5 pts pour le 2e, 3 pts pour le 3e",
+                    S["body_sm"],
+                ),
+            ],
+            [
+                Paragraph("<b>Bonus série</b>", S["bold_sm"]),
+                Paragraph(
+                    "Points croissants selon le nombre de bonnes réponses consécutives",
+                    S["body_sm"],
+                ),
+            ],
+            [
+                Paragraph("<b>Bonus boutique</b>", S["bold_sm"]),
+                Paragraph(
+                    "Points x2 (double les points de la prochaine manche correcte)  |  "
+                    "Points max (garantit au moins 100 pts de base)  |  "
+                    "Vol de pts (−100 pts au leader, si non protégé)  |  "
+                    "Joker (mauvaise réponse comptabilisée comme correcte)",
+                    S["body_sm"],
+                ),
+            ],
+        ]
+        st = Table(score_lines, colWidths=[COL_W * 0.22, COL_W * 0.78])
+        st.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), C_LIGHT_BG),
+                    ("LINEBELOW", (0, 0), (-1, -1), 0.3, C_RULE),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ]
+            )
         )
-    )
-    elements.append(st)
+        self.elements.append(st)
+        return self
 
-    doc.build(elements)
-    return buf.getvalue()
+    # ── Build ────────────────────────────────────────────────────────────────
+
+    def build(self) -> bytes:
+        """Assemble all sections and return the PDF as bytes."""
+        buf = io.BytesIO()
+        content_y0 = FOOTER_H + 4 * mm
+        content_top = PAGE_H - HEADER_H - 5 * mm
+        frame = Frame(
+            MARGIN,
+            content_y0,
+            self.COL_W,
+            content_top - content_y0,
+            leftPadding=0,
+            rightPadding=0,
+            topPadding=0,
+            bottomPadding=0,
+        )
+
+        room_code = self.room_code
+        game_name = self.game_name
+
+        def on_page(c, d):
+            _draw_page(c, d, room_code, game_name)
+
+        template = PageTemplate(id="main", frames=[frame], onPage=on_page)
+        doc = BaseDocTemplate(
+            buf,
+            pagesize=A4,
+            pageTemplates=[template],
+            title="InstantMusic — Résultats",
+            author="InstantMusic",
+            leftMargin=MARGIN,
+            rightMargin=MARGIN,
+            topMargin=HEADER_H + 5 * mm,
+            bottomMargin=FOOTER_H + 4 * mm,
+        )
+
+        doc.build(self.elements)
+        return buf.getvalue()
+
+
+def generate_results_pdf(
+    game_data: dict[str, Any],
+    rankings: list[dict[str, Any]],
+    rounds: list[dict[str, Any]],
+) -> bytes:
+    """Return a polished PDF (bytes) containing the full game results."""
+    return (
+        PdfBuilder(game_data, rankings, rounds)
+        .add_header()
+        .add_podium()
+        .add_ranking_table()
+        .add_round_details()
+        .add_score_chart()
+        .build()
+    )

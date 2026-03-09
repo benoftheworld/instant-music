@@ -11,6 +11,7 @@ from .team_serializer import (
 )
 from .user_serializer import (
     ChangePasswordSerializer,
+    PublicUserSerializer,
     UserMinimalSerializer,
     UserProfileUpdateSerializer,
     UserSerializer,
@@ -20,6 +21,7 @@ __all__ = [
     "ChangePasswordSerializer",
     "FriendshipCreateSerializer",
     "FriendshipSerializer",
+    "PublicUserSerializer",
     "TeamCreateSerializer",
     "TeamJoinRequestCreateSerializer",
     "TeamJoinRequestSerializer",

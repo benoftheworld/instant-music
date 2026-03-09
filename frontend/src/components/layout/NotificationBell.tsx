@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '@/store/notificationStore';
 import { invitationService } from '@/services/invitationService';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { friendshipService } from '@/services/socialService';
 import { getModeLabel } from '@/constants/gameModes';
 import type { GameInvitation } from '@/types';
@@ -45,8 +46,8 @@ export default function NotificationBell() {
       removeInvitation(invitation.id);
       setOpen(false);
       navigate(`/game/lobby/${room_code}`);
-    } catch (err: any) {
-      alert(err?.response?.data?.error || 'Erreur lors de l\'acceptation.');
+    } catch (err: unknown) {
+      alert(getApiErrorMessage(err, 'Erreur lors de l\'acceptation.'));
     } finally {
       setLoading(null);
     }
@@ -69,8 +70,8 @@ export default function NotificationBell() {
     try {
       await friendshipService.acceptRequest(req.id);
       removeFriendRequest(req.id);
-    } catch (err: any) {
-      alert(err?.response?.data?.error || 'Erreur lors de l\'acceptation.');
+    } catch (err: unknown) {
+      alert(getApiErrorMessage(err, 'Erreur lors de l\'acceptation.'));
     } finally {
       setLoading(null);
     }

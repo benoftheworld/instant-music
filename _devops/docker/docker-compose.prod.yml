@@ -23,7 +23,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: instantmusic_redis_prod
-    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set} --maxmemory 512mb --maxmemory-policy allkeys-lru
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
@@ -41,6 +41,7 @@ services:
     build:
       context: ../../backend
       dockerfile: Dockerfile.prod
+    image: instantmusic-backend:latest
     command: >
       gunicorn config.asgi:application
       -k uvicorn.workers.UvicornWorker
@@ -78,9 +79,7 @@ services:
   # Scalable horizontalement : docker compose up --scale celery=2
   # Concurrence contrôlée par CELERY_CONCURRENCY (défaut: 4)
   celery:
-    build:
-      context: ../../backend
-      dockerfile: Dockerfile.prod
+    image: instantmusic-backend:latest
     command: celery -A config worker -l info --concurrency=${CELERY_CONCURRENCY:-4}
     volumes:
       - media_volume:/app/media
@@ -108,9 +107,7 @@ services:
 
   # Celery Beat (Scheduled Tasks) — une seule instance
   celery-beat:
-    build:
-      context: ../../backend
-      dockerfile: Dockerfile.prod
+    image: instantmusic-backend:latest
     container_name: instantmusic_celery_beat_prod
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler --pidfile=/app/celerybeat.pid
     volumes:

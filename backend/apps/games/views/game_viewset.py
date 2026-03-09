@@ -252,7 +252,7 @@ class GameViewSet(viewsets.ModelViewSet):
         min_players = 1 if game.mode == "karaoke" or not game.is_online else 2
         if game.is_party_mode:
             # En mode soirée, le présentateur (hôte) ne compte pas comme joueur
-            non_host_players = game.players.exclude(user=game.host).count()
+            non_host_players = game.competitive_players().count()
             if non_host_players < 1:
                 return Response(
                     {"error": "Il faut au moins 1 joueur (hors présentateur) pour démarrer en mode soirée."},
@@ -398,14 +398,7 @@ class GameViewSet(viewsets.ModelViewSet):
                     id=round_obj.id
                 )
                 if not locked_round.ended_at:
-                    # En mode soirée, l'hôte est spectateur et ne répond pas :
-                    # ne compter que les joueurs non-hôte.
-                    if game.is_party_mode:
-                        total_players = game.players.exclude(
-                            user=game.host
-                        ).count()
-                    else:
-                        total_players = game.players.count()
+                    total_players = game.competitive_players().count()
                     answered_players = GameAnswer.objects.filter(
                         round=locked_round
                     ).count()
@@ -519,10 +512,7 @@ class GameViewSet(viewsets.ModelViewSet):
         # Précharger rounds + answers via le service partagé
         rounds_detail, _ = build_rounds_detail(game)
 
-        players = game.players.select_related("user").order_by("-score")
-        # En mode soirée, exclure le présentateur (hôte) du classement
-        if game.is_party_mode:
-            players = players.exclude(user=game.host)
+        players = game.competitive_players().select_related("user").order_by("-score")
 
         game_data = GameSerializer(game).data
         # Add user-friendly display fields (used by frontend)
@@ -574,13 +564,6 @@ class GameViewSet(viewsets.ModelViewSet):
             f'attachment; filename="instantmusic_resultats_{room_code}.pdf"'
         )
         return response
-
-    @action(detail=False, methods=["get"])
-    def available(self, request):
-        """Get list of available games to join (public games only)."""
-        games = Game.objects.filter(status="waiting", is_online=True, is_public=True)
-        serializer = GameSerializer(games, many=True)
-        return Response(serializer.data)
 
     @action(detail=False, methods=["get"], url_path="public")
     def public_games(self, request):

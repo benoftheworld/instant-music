@@ -31,6 +31,7 @@ class TeamJoinRequest(models.Model):
         max_length=20,
         choices=TeamJoinRequestStatus.choices,
         default=TeamJoinRequestStatus.PENDING,
+        db_index=True,
     )
     created_at = models.DateTimeField(_("créé le"), auto_now_add=True)
     updated_at = models.DateTimeField(_("modifié le"), auto_now=True)

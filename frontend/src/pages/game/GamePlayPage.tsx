@@ -4,6 +4,7 @@ import { gameService } from '../../services/gameService';
 import { soundEffects } from '../../services/soundEffects';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAuthStore } from '../../store/authStore';
+import { getModeIcon, getModeLabel } from '../../constants/gameModes';
 import {
   gamePlayReducer,
   initialGamePlayState,
@@ -305,18 +306,6 @@ export default function GamePlayPage() {
     }
   };
 
-  // ─── Mode display name for header ───
-  const getModeLabel = () => {
-    switch (game?.mode) {
-      case 'classique': return '🎵 Classique';
-      case 'rapide': return '⚡ Rapide';
-      case 'generation': return '📅 Génération';
-      case 'paroles': return '📝 Paroles';
-      case 'karaoke': return '🎤 Karaoké';
-      default: return '🎵 Classique';
-    }
-  };
-
   // ── Render ─────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -410,7 +399,7 @@ export default function GamePlayPage() {
       {/* Live region pour annoncer les transitions de jeu aux lecteurs d'écran */}
       <div aria-live="polite" className="sr-only">
         {roundPhase === 'playing' && currentRound &&
-          `Manche ${currentRound.round_number} — ${getModeLabel()} — ${timeRemaining} secondes`}
+          `Manche ${currentRound.round_number} — ${getModeIcon(game?.mode || '')} ${getModeLabel(game?.mode || '')} — ${timeRemaining} secondes`}
         {roundPhase === 'results' && roundResults &&
           `Résultats : la bonne réponse était ${roundResults.correct_answer}`}
       </div>
@@ -423,8 +412,8 @@ export default function GamePlayPage() {
             <div className="flex items-center gap-2">
               <p className="text-sm">
                 {isKaraoke
-                  ? getModeLabel()
-                  : `Manche ${currentRound.round_number} — ${getModeLabel()}`
+                  ? `${getModeIcon(game?.mode || '')} ${getModeLabel(game?.mode || '')}`
+                  : `Manche ${currentRound.round_number} — ${getModeIcon(game?.mode || '')} ${getModeLabel(game?.mode || '')}`
                 }
               </p>
               {game?.answer_mode === 'text' && !isKaraoke && (

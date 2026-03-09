@@ -6,6 +6,7 @@ import {
   type Props,
 } from './shared';
 import TextAnswerInput from './TextAnswerInput';
+import LyricsSnippet from './LyricsSnippet';
 
 interface TextModeQuestionProps extends Props {
   /** Placeholder text for the input field */
@@ -111,20 +112,12 @@ export default function TextModeQuestion({
 
       {/* Lyrics snippet for lyrics mode */}
       {round.question_type === 'lyrics' && round.extra_data?.lyrics_snippet && (
-        <div className="mb-6 p-6 bg-gray-50 rounded-xl border-2 border-gray-200 text-center">
-          <p className="text-xl leading-relaxed font-medium text-gray-800 italic">
-            &quot;{round.extra_data.lyrics_snippet.split('_____').map((part: string, i: number, arr: string[]) => (
-              <span key={i}>
-                {part}
-                {i < arr.length - 1 && (
-                  <span className="inline-block mx-1 px-3 py-1 bg-yellow-200 rounded font-bold text-yellow-800 not-italic">
-                    {showResults && roundResults ? roundResults.correct_answer : '???'}
-                  </span>
-                )}
-              </span>
-            ))}&quot;
-          </p>
-        </div>
+        <LyricsSnippet
+          snippet={round.extra_data.lyrics_snippet}
+          correctAnswer={roundResults?.correct_answer}
+          showAnswer={showResults && !!roundResults}
+          className="mb-6"
+        />
       )}
 
       {/* Text answer input */}

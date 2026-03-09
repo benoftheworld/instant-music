@@ -20,6 +20,12 @@ for _var_name, _insecure_value in _INSECURE_DEFAULTS.items():
             f"Définissez {_var_name} dans votre fichier .env.prod."
         )
 
+if not env("JWT_SIGNING_KEY", default=None):
+    raise ImproperlyConfigured(
+        "JWT_SIGNING_KEY doit être défini en production. "
+        "Ajoutez JWT_SIGNING_KEY dans votre fichier .env.prod."
+    )
+
 # Security settings
 # SECURE_SSL_REDIRECT doit rester False si Nginx gère déjà la redirection HTTP→HTTPS.
 # Mettre True UNIQUEMENT si Django est exposé directement sans reverse proxy.

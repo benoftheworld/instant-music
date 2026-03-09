@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { teamService } from '@/services/socialService';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { getMediaUrl } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import type { Team } from '@/types';
 
 export default function TeamsPage() {
   const user = useAuthStore((state) => state.user);
-  const [allTeams, setAllTeams] = useState<Team[]>([]);
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'browse' | 'create'>('browse');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
@@ -18,21 +18,14 @@ export default function TeamsPage() {
   const [newTeamDescription, setNewTeamDescription] = useState('');
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
+  const { data: allTeams = [], isLoading: loading } = useQuery<Team[]>({
+    queryKey: ['teams', 'browse'],
+    queryFn: async () => {
       const allData = await teamService.browseTeams();
-      setAllTeams(Array.isArray(allData) ? allData : (allData as any)?.results || []);
-    } catch (err) {
-      console.error('Failed to fetch teams:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return Array.isArray(allData) ? allData : (allData as any)?.results || [];
+    },
+    staleTime: 30_000,
+  });
 
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,8 +42,8 @@ export default function TeamsPage() {
       setMessage({ type: 'success', text: `Équipe "${team.name}" créée !` });
       // navigate to the created team's page
       navigate(`/teams/${team.id}`);
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.name?.[0] || 'Erreur lors de la création' });
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: getApiErrorMessage(err, 'Erreur lors de la création') });
     } finally {
       setCreating(false);
     }
@@ -60,8 +53,8 @@ export default function TeamsPage() {
     try {
       await teamService.joinTeam(teamId);
       setMessage({ type: 'success', text: `Demande d'adhésion envoyée.` });
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.error || 'Erreur' });
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: getApiErrorMessage(err, 'Erreur') });
     }
   };
 

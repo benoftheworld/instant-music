@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { api, getMediaUrl } from '@/services/api';
@@ -216,9 +217,17 @@ export default function ProfilePage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [achievementsLoading, setAchievementsLoading] = useState(true);
-  const [detailedStats, setDetailedStats] = useState<UserDetailedStats | null>(null);
+  const { data: achievements = [], isLoading: achievementsLoading } = useQuery<Achievement[]>({
+    queryKey: ['profile', 'achievements'],
+    queryFn: () => achievementService.getAll(),
+    staleTime: 60_000,
+  });
+
+  const { data: detailedStats = null } = useQuery<UserDetailedStats | null>({
+    queryKey: ['profile', 'stats'],
+    queryFn: () => statsService.getMyStats(),
+    staleTime: 60_000,
+  });
 
   const [showDeleteZone, setShowDeleteZone] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -238,31 +247,7 @@ export default function ProfilePage() {
         console.error('Failed to refresh user data:', err);
       }
     };
-
-    const fetchAchievements = async () => {
-      try {
-        setAchievementsLoading(true);
-        const data = await achievementService.getAll();
-        setAchievements(data);
-      } catch (err) {
-        console.error('Failed to load achievements:', err);
-      } finally {
-        setAchievementsLoading(false);
-      }
-    };
-
-    const fetchStats = async () => {
-      try {
-        const data = await statsService.getMyStats();
-        setDetailedStats(data);
-      } catch (err) {
-        console.error('Failed to load detailed stats:', err);
-      }
-    };
-
     refreshUser();
-    fetchAchievements();
-    fetchStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

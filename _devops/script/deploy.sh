@@ -298,7 +298,7 @@ fi
 
 log_section "Build des images Docker"
 BUILD_FLAGS="--progress=auto"
-if [[ "$ENV" == "production" || "$OPT_NO_CACHE" == "true" ]]; then
+if [[ "$OPT_NO_CACHE" == "true" ]]; then
     BUILD_FLAGS="$BUILD_FLAGS --no-cache"
 fi
 # shellcheck disable=SC2086
