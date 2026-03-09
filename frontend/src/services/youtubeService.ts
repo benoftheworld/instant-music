@@ -37,7 +37,16 @@ class YouTubeService {
   async getPlaylist(youtubeId: string): Promise<YouTubePlaylist> {
     try {
       const response = await api.get(`/playlists/${youtubeId}/`);
-      return response.data;
+      const p = response.data;
+      return {
+        youtube_id: p.playlist_id || p.youtube_id,
+        name: p.name,
+        description: p.description || '',
+        image_url: p.image_url || '',
+        total_tracks: p.total_tracks || 0,
+        owner: p.owner || '',
+        external_url: p.external_url || '',
+      };
     } catch (error) {
       console.error('Failed to get playlist:', error);
       throw error;

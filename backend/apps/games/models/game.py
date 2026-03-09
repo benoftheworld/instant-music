@@ -115,6 +115,11 @@ class Game(models.Model):
         default=3,
         help_text=_("Nombre de mots à deviner dans le mode Paroles (2-10)"),
     )
+    bonuses_enabled = models.BooleanField(
+        _("bonus activés"),
+        default=True,
+        help_text=_("Si désactivé, les joueurs ne peuvent pas utiliser de bonus pendant la partie"),
+    )
     karaoke_track = models.JSONField(
         _("morceau karaoké (legacy)"),
         null=True,

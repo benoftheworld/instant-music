@@ -43,7 +43,7 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
     const searchTerm = query || searchQuery;
     
     if (!searchTerm.trim()) {
-      setError('Veuillez entrer un terme de recherche');
+      setError('Veuillez entrer un terme de recherche ou un ID Deezer');
       return;
     }
 
@@ -51,7 +51,17 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
     setError(null);
 
     try {
-      const results = await youtubeService.searchPlaylists(searchTerm, 20);
+      // Détection d'un ID Deezer (chaîne purement numérique)
+      const isDeezerID = /^\d+$/.test(searchTerm.trim());
+      let results: YouTubePlaylist[];
+
+      if (isDeezerID) {
+        const playlist = await youtubeService.getPlaylist(searchTerm.trim());
+        results = [playlist];
+      } else {
+        results = await youtubeService.searchPlaylists(searchTerm, 20);
+      }
+
       setPlaylists(results);
       
       if (results.length === 0) {
@@ -124,7 +134,7 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher une playlist Deezer..."
+              placeholder="Rechercher une playlist ou saisir un ID Deezer..."
               className="input flex-1"
             />
             <button
@@ -155,7 +165,7 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
 
           {/* Info for search */}
           <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 text-sm text-primary-700">
-            💡 Recherchez des playlists Deezer publiques. Les playlists privées ne sont pas accessibles.
+            💡 Recherchez des playlists Deezer publiques, ou collez directement un ID numérique Deezer (ex : <strong>1234567890</strong>).
           </div>
         </div>
       )}

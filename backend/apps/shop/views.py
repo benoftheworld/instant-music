@@ -122,6 +122,13 @@ class InventoryViewSet(GenericViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        # Vérifier si les bonus sont activés pour cette partie
+        if not game.bonuses_enabled:
+            return Response(
+                {"detail": "Les bonus sont désactivés pour cette partie."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         # Déterminer le round courant
         current_round = game.rounds.filter(
             started_at__isnull=False, ended_at__isnull=True
@@ -144,6 +151,28 @@ class InventoryViewSet(GenericViewSet):
                     {"detail": "Aucun round en cours. Le joker ne peut être activé que pendant un round."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+
+        # Le bonus Vol ne peut pas être utilisé par le joueur en première position
+        if bonus_type == "steal":
+            from apps.games.models import GamePlayer as GP
+
+            try:
+                activating_player = GP.objects.get(game=game, user=request.user)
+                is_first = not GP.objects.filter(game=game).exclude(
+                    id=activating_player.id
+                ).filter(score__gt=activating_player.score).exists()
+                if is_first:
+                    return Response(
+                        {
+                            "detail": (
+                                "Vous êtes en première position. "
+                                "Le bonus Vol ne peut pas être utilisé par le meneur."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            except GP.DoesNotExist:
+                pass
 
         try:
             game_bonus = bonus_service.activate_bonus(
