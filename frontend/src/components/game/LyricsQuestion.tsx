@@ -1,5 +1,5 @@
 import {
-  useAudioPlayerOnResults, AudioPlayerUI, QuestionHeader, OptionsGrid, ResultFooter, TrackReveal,
+  useAudioPlayerOnResults, AudioPlayerUI, QuestionHeader, OptionsGrid, ResultFooter,
   type Props,
 } from './shared';
 import LyricsSnippet from './LyricsSnippet';
@@ -34,8 +34,6 @@ const LyricsQuestion = ({
         subtitle={`${round.track_name} — ${round.artist_name}`}
         audioStatus={showResults ? <AudioPlayerUI compact {...audio} /> : undefined}
       />
-
-      {showResults && <TrackReveal round={round} />}
 
       {/* Lyrics snippet with blank */}
       {isLyricsMode && (

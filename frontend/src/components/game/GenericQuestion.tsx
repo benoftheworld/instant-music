@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  useAudioPlayer, AudioPlayerUI, QuestionHeader, OptionsGrid, ResultFooter, TrackReveal,
+  useAudioPlayer, AudioPlayerUI, QuestionHeader, OptionsGrid, ResultFooter,
   type Props,
 } from './shared';
 
@@ -38,8 +38,6 @@ const GenericQuestion = ({
         subtitle={subtitle}
         audioStatus={!showResults ? <AudioPlayerUI compact {...audio} label={audioLabel} /> : undefined}
       />
-
-      {showResults && <TrackReveal round={round} />}
 
       <OptionsGrid
         options={round.options}

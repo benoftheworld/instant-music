@@ -1,5 +1,5 @@
 import {
-  useAudioPlayer, AudioPlayerUI, QuestionHeader, OptionsGrid, ResultFooter, TrackReveal,
+  useAudioPlayer, AudioPlayerUI, QuestionHeader, OptionsGrid, ResultFooter,
   type Props,
 } from './shared';
 
@@ -30,8 +30,6 @@ const BlindTestInverse = ({
         gradientTo="to-orange-500"
         audioStatus={!showResults ? <AudioPlayerUI compact {...audio} /> : undefined}
       />
-
-      {showResults && <TrackReveal round={round} />}
 
       <OptionsGrid
         options={round.options}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  useAudioPlayer, AudioPlayerUI, QuestionHeader, TrackReveal, OptionsGrid, ResultFooter,
+  useAudioPlayer, AudioPlayerUI, QuestionHeader, OptionsGrid, ResultFooter,
   type Props,
 } from './shared';
 
@@ -55,8 +55,6 @@ const YearQuestion = ({
         title={round.question_text || 'En quelle année est sorti ce morceau ?'}
         audioStatus={!showResults ? <AudioPlayerUI compact {...audio} /> : undefined}
       />
-
-      {showResults && <TrackReveal round={round} />}
 
       {/* MCQ mode: show year options as buttons */}
       {isMcqMode ? (
