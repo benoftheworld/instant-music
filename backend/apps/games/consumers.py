@@ -481,10 +481,10 @@ class GameConsumer(AsyncWebsocketConsumer):
             room_code=self.room_code, host=self.scope["user"]
         ).exists()
     async def _require_host(self, action: str) -> bool:
-        \"\"\"Vérifie que l'utilisateur est l'hôte. Envoie une erreur et log si non.
+        """Vérifie que l'utilisateur est l'hôte. Envoie une erreur et log si non.
 
         Returns True si l'utilisateur est l'hôte, False sinon.
-        \"\"\"
+        """
         if await self._is_host():
             return True
         logger.warning(
