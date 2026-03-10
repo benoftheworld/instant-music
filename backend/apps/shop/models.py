@@ -148,6 +148,7 @@ class GameBonus(models.Model):
         _("type de bonus"),
         max_length=30,
         choices=BonusType.choices,
+        db_index=True,
     )
 
     # Round cible (null = prochain round disponible)
@@ -155,10 +156,11 @@ class GameBonus(models.Model):
         _("numéro du round ciblé"),
         null=True,
         blank=True,
+        db_index=True,
     )
 
     activated_at = models.DateTimeField(_("activé le"), auto_now_add=True)
-    is_used = models.BooleanField(_("consommé"), default=False)
+    is_used = models.BooleanField(_("consommé"), default=False, db_index=True)
     used_at = models.DateTimeField(_("consommé le"), null=True, blank=True)
 
     class Meta:

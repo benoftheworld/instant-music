@@ -22,11 +22,15 @@ def purge_expired_invitations(self):
     """Supprime les invitations de jeu expirées depuis plus de 7 jours."""
     from apps.games.models.game_invitation import GameInvitation
 
-    cutoff = timezone.now() - timedelta(days=7)
-    deleted, _ = GameInvitation.objects.filter(expires_at__lt=cutoff).delete()
-    if deleted:
-        logger.info("purge_expired_invitations: %d invitations supprimées", deleted)
-    return deleted
+    try:
+        cutoff = timezone.now() - timedelta(days=7)
+        deleted, _ = GameInvitation.objects.filter(expires_at__lt=cutoff).delete()
+        if deleted:
+            logger.info("purge_expired_invitations: %d invitations supprimées", deleted)
+        return deleted
+    except Exception as exc:
+        logger.exception("purge_expired_invitations failed")
+        raise self.retry(exc=exc)
 
 
 @shared_task(
@@ -45,12 +49,18 @@ def anonymize_old_game_data(self, retention_days: int = 365):
 
     cutoff = timezone.now() - timedelta(days=retention_days)
 
-    # Supprime les réponses individuelles des parties anciennes terminées
-    old_answers = GameAnswer.objects.filter(
+    # Supprime les réponses individuelles des parties anciennes terminées (en chunks)
+    old_answers_qs = GameAnswer.objects.filter(
         round__game__finished_at__lt=cutoff,
         round__game__status="finished",
     )
-    deleted_count, _ = old_answers.delete()
+    deleted_count = 0
+    while True:
+        batch_ids = list(old_answers_qs.values_list("id", flat=True)[:1000])
+        if not batch_ids:
+            break
+        count, _ = GameAnswer.objects.filter(id__in=batch_ids).delete()
+        deleted_count += count
 
     if deleted_count:
         logger.info(

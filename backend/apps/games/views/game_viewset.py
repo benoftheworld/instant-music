@@ -16,6 +16,7 @@ from rest_framework.response import Response
 
 from apps.core.pagination import paginated_response, parse_pagination_params
 from apps.core.throttles import GameCreateThrottle, GameJoinThrottle
+from ..permissions import IsGameHost
 
 from ..broadcast_service import (
     broadcast_game_finish,
@@ -104,6 +105,17 @@ class GameViewSet(viewsets.ModelViewSet):
             return CreateGameSerializer
         return GameSerializer
 
+    def _broadcast_player_join(self, game, player, room_code, request):
+        """Refresh game, serialize, and broadcast a player_join event."""
+        game.refresh_from_db()
+        game_serializer = GameSerializer(game, context={"request": request})
+        player_serializer = GamePlayerSerializer(player, context={"request": request})
+        broadcast_player_join(
+            room_code,
+            player_data=player_serializer.data,
+            game_data=game_serializer.data,
+        )
+
     def create(self, request):
         """Create a new game."""
         if maint := _maintenance_response_if_needed(request.user):
@@ -161,16 +173,9 @@ class GameViewSet(viewsets.ModelViewSet):
 
         player = GamePlayer.objects.create(game=game, user=request.user)
 
-        game.refresh_from_db()
-        game_serializer = GameSerializer(game, context={"request": request})
+        self._broadcast_player_join(game, player, room_code, request)
+
         player_serializer = GamePlayerSerializer(player, context={"request": request})
-
-        broadcast_player_join(
-            room_code,
-            player_data=player_serializer.data,
-            game_data=game_serializer.data,
-        )
-
         return Response(player_serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"])
@@ -224,16 +229,10 @@ class GameViewSet(viewsets.ModelViewSet):
 
         return Response({"message": "Vous avez quitté la partie."})
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsGameHost])
     def start(self, request, room_code=None):
         """Start a game and generate rounds."""
         game = self.get_object()
-
-        if game.host != request.user:
-            return Response(
-                {"error": "Seul l'hôte peut démarrer la partie."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         if game.status == "in_progress":
             existing_rounds = game.rounds.all().order_by("round_number")
@@ -418,16 +417,10 @@ class GameViewSet(viewsets.ModelViewSet):
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=["post"], url_path="end-round")
+    @action(detail=True, methods=["post"], url_path="end-round", permission_classes=[IsAuthenticated, IsGameHost])
     def end_current_round(self, request, room_code=None):
         """End the current round and broadcast results (host only)."""
         game = self.get_object()
-
-        if game.host != request.user:
-            return Response(
-                {"error": "Seul l'hôte peut terminer la manche."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         current = game_service.get_current_round(game)
         if not current:
@@ -461,16 +454,10 @@ class GameViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @action(detail=True, methods=["post"], url_path="next-round")
+    @action(detail=True, methods=["post"], url_path="next-round", permission_classes=[IsAuthenticated, IsGameHost])
     def next_round(self, request, room_code=None):
         """Move to the next round (host only)."""
         game = self.get_object()
-
-        if game.host != request.user:
-            return Response(
-                {"error": "Seul l'hôte peut passer à la manche suivante."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         current = game_service.get_current_round(game)
         if current:
@@ -568,6 +555,7 @@ class GameViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="public")
     def public_games(self, request):
         """Get list of public games waiting for players."""
+        page, page_size, offset = parse_pagination_params(request)
         games = (
             Game.objects.filter(status="waiting", is_public=True, is_online=True)
             .select_related("host")
@@ -585,8 +573,10 @@ class GameViewSet(viewsets.ModelViewSet):
                 | Q(playlist_name__icontains=search)
                 | Q(host__username__icontains=search)
             )
-        serializer = GameSerializer(games, many=True)
-        return Response(serializer.data)
+        total_count = games.count()
+        page_games = games[offset : offset + page_size]
+        serializer = GameSerializer(page_games, many=True)
+        return Response(paginated_response(serializer.data, total_count, page, page_size))
 
     @action(
         detail=False,
@@ -642,16 +632,10 @@ class GameViewSet(viewsets.ModelViewSet):
 
     # ── Invitation actions ────────────────────────────────────────────────────
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsGameHost])
     def invite(self, request, room_code=None):
         """Invite a friend to the current lobby (host only)."""
         game = self.get_object()
-
-        if game.host != request.user:
-            return Response(
-                {"error": "Seul l'hôte peut inviter des joueurs."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         if game.status != "waiting":
             return Response(
@@ -806,16 +790,7 @@ class GameViewSet(viewsets.ModelViewSet):
         )
 
         if created:
-            game.refresh_from_db()
-            game_serializer = GameSerializer(game, context={"request": request})
-            player_serializer = GamePlayerSerializer(
-                _player, context={"request": request}
-            )
-            broadcast_player_join(
-                game.room_code,
-                player_data=player_serializer.data,
-                game_data=game_serializer.data,
-            )
+            self._broadcast_player_join(game, _player, game.room_code, request)
 
         return Response(
             {

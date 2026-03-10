@@ -3,7 +3,10 @@
 
 import logging
 
-from django.db.models import Avg, Count, Max, Q, Sum
+from django.db.models import Avg, Count, Max, Q, Sum, Window
+from django.db.models.functions import Rank
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -83,6 +86,7 @@ class LeaderboardView(APIView):
     authentication_classes = []
     throttle_classes = [LeaderboardThrottle]
 
+    @method_decorator(cache_page(300))
     def get(self, request):
         page, page_size, offset = parse_pagination_params(request)
         leaderboard, total_count = get_global_leaderboard(offset, page_size)
@@ -168,12 +172,15 @@ class TeamLeaderboardView(APIView):
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
+    @method_decorator(cache_page(300))
     def get(self, request):
         page, page_size, offset = parse_pagination_params(request)
 
         # Utilise les stats dénormalisées (correctement dédupliquées par le signal)
         teams_qs = Team.objects.filter(
             total_games__gt=0
+        ).select_related("owner").annotate(
+            _member_count=Count("memberships")
         ).order_by("-total_points", "-total_games")
 
         total_count = teams_qs.count()
@@ -195,7 +202,7 @@ class TeamLeaderboardView(APIView):
                     "name": team.name,
                     "avatar": team.avatar.url if team.avatar else None,
                     "owner_name": team.owner.username if team.owner else None,
-                    "member_count": team.memberships.count(),
+                    "member_count": team._member_count,
                     "total_points": team.total_points,
                     "total_games": team.total_games,
                     "total_wins": team.total_wins,
@@ -226,31 +233,30 @@ class MyRankView(APIView):
             total_games_played__gt=0, is_superuser=False
         ).count()
 
-        # Rank by mode
-        mode_ranks = {}
-        for mode_value, mode_label in GameMode.choices:
-            user_points = (
-                GamePlayer.objects.filter(
-                    user=user, game__mode=mode_value, game__status="finished"
-                ).aggregate(total=Sum("score"))["total"]
-                or 0
-            )
-
-            if user_points > 0:
-                higher_ranked = (
-                    GamePlayer.objects.filter(
-                        game__mode=mode_value, game__status="finished"
-                    )
-                    .values("user")
-                    .annotate(total=Sum("score"))
-                    .filter(total__gt=user_points)
-                    .count()
+        # Rank by mode — single query with Window function
+        mode_rankings = (
+            GamePlayer.objects.filter(game__status="finished")
+            .values("user", "game__mode")
+            .annotate(total=Sum("score"))
+            .annotate(
+                rank=Window(
+                    expression=Rank(),
+                    partition_by="game__mode",
+                    order_by=Sum("score").desc(),
                 )
+            )
+            .filter(user=user)
+        )
 
-                mode_ranks[mode_value] = {
-                    "rank": higher_ranked + 1,
-                    "points": user_points,
-                    "label": mode_label,
+        mode_labels = dict(GameMode.choices)
+        mode_ranks = {}
+        for row in mode_rankings:
+            mode_val = row["game__mode"]
+            if row["total"] > 0:
+                mode_ranks[mode_val] = {
+                    "rank": row["rank"],
+                    "points": row["total"],
+                    "label": mode_labels.get(mode_val, mode_val),
                 }
 
         return Response(

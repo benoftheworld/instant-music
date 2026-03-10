@@ -34,4 +34,10 @@ def check_achievements_async(self, user_id, game_id=None, round_data=None):
                 "check_achievements_async: game %s not found", game_id
             )
 
-    achievement_service.check_and_award(user, game=game, round_data=round_data)
+    try:
+        achievement_service.check_and_award(user, game=game, round_data=round_data)
+    except Exception as exc:
+        logger.exception(
+            "check_achievements_async: error for user %s", user_id
+        )
+        raise self.retry(exc=exc, countdown=10)

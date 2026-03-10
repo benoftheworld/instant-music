@@ -110,6 +110,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
         help_text=_("Date d'acceptation de la politique de confidentialité."),
     )
+    cookie_consent_given_at = models.DateTimeField(
+        _("consentement cookies donné le"),
+        null=True,
+        blank=True,
+        help_text=_("Date d'acceptation du bandeau de cookies."),
+    )
     # Timestamps
     created_at = models.DateTimeField(_("créé le"), auto_now_add=True)
     updated_at = models.DateTimeField(_("modifié le"), auto_now=True)

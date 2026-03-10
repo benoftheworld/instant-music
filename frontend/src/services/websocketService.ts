@@ -20,6 +20,7 @@ export class WebSocketService {
   private intentionalDisconnect = false;
   private connectId = 0; // Track connect generation to ignore stale callbacks
   private hasConnectedOnce = false; // True after the first successful connection
+  private pingInterval: ReturnType<typeof setInterval> | null = null;
 
   getRoomCode(): string | null {
     return this.roomCode;
@@ -60,6 +61,9 @@ export class WebSocketService {
 
         console.log('WebSocket connected to room:', roomCode);
         this.reconnectAttempts = 0;
+
+        // Start heartbeat ping every 30s to detect dead connections
+        this._startPing();
 
         // Emit 'reconnected' on every connection that follows the initial one
         // so subscribers can resync state after a network drop
@@ -128,6 +132,7 @@ export class WebSocketService {
   }
 
   private _cleanupSocket() {
+    this._stopPing();
     if (this.socket) {
       // Detach handlers to prevent ghost events from old sockets
       this.socket.onopen = null;
@@ -212,6 +217,22 @@ export class WebSocketService {
 
   isConnected(): boolean {
     return this.socket !== null && this.socket.readyState === WebSocket.OPEN;
+  }
+
+  private _startPing(): void {
+    this._stopPing();
+    this.pingInterval = setInterval(() => {
+      if (this.socket?.readyState === WebSocket.OPEN) {
+        this.socket.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 30_000);
+  }
+
+  private _stopPing(): void {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
   }
 }
 

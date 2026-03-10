@@ -89,18 +89,31 @@ class SiteConfiguration(models.Model):
                 _("Il ne peut exister qu'une seule configuration du site.")
             )
 
-    def save(self, *args, **kwargs) -> None:
-        self.pk = 1  # Force singleton
-        super().save(*args, **kwargs)
-
     def delete(self, *args, **kwargs):
         pass  # Prevent deletion
 
     @classmethod
     def get_solo(cls) -> "SiteConfiguration":
-        """Return the singleton instance, creating it with defaults if needed."""
-        obj, _ = cls.objects.get_or_create(pk=1)
+        """Return the singleton instance, creating it with defaults if needed.
+
+        Results are cached for 5 minutes to avoid repeated DB queries.
+        """
+        from django.core.cache import cache
+
+        cache_key = "site_configuration_solo"
+        obj = cache.get(cache_key)
+        if obj is None:
+            obj, _ = cls.objects.get_or_create(pk=1)
+            cache.set(cache_key, obj, 300)
         return obj  # type: ignore[no-any-return]
+
+    def save(self, *args, **kwargs) -> None:
+        self.pk = 1  # Force singleton
+        super().save(*args, **kwargs)
+        # Invalider le cache lors de la modification
+        from django.core.cache import cache
+
+        cache.delete("site_configuration_solo")
 
 
 class LegalPage(models.Model):

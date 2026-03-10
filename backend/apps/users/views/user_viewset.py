@@ -40,6 +40,9 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+    # Désactiver les actions génériques de modification/suppression.
+    # Les modifications passent par /me (PATCH) et la suppression par /delete_account.
+    http_method_names = ["get", "head", "options"]
 
     def get_serializer_class(self):
         """Utiliser PublicUserSerializer pour les vues publiques."""
@@ -223,7 +226,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 }
                 for ans in GameAnswer.objects.filter(player__user=user)
                 .select_related("round__game")
-                .order_by("-answered_at")[:500]
+                .order_by("-answered_at")
             ],
             "achievements": [
                 {
@@ -253,7 +256,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     if hasattr(inv, "acquired_at")
                     else None,
                 }
-                for inv in UserInventory.objects.filter(user=user)
+                for inv in UserInventory.objects.filter(user=user).select_related("item")
             ],
             "friends": [
                 {
@@ -282,3 +285,12 @@ class UserViewSet(viewsets.ModelViewSet):
             'attachment; filename="mes-donnees-instantmusic.json"'
         )
         return response
+
+    @action(detail=False, methods=["post"])
+    def cookie_consent(self, request):
+        """Enregistre le consentement cookies côté serveur (RGPD art. 7)."""
+        user = request.user
+        if not user.cookie_consent_given_at:
+            user.cookie_consent_given_at = timezone.now()
+            user.save(update_fields=["cookie_consent_given_at"])
+        return Response({"consented_at": user.cookie_consent_given_at.isoformat()})

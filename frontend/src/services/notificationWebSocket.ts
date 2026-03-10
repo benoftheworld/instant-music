@@ -17,6 +17,7 @@ class NotificationWebSocketService {
   private maxReconnectAttempts = 10;
   private reconnectDelay = 3000;
   private intentionalDisconnect = false;
+  private pingInterval: ReturnType<typeof setInterval> | null = null;
 
   connect(): void {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
@@ -37,6 +38,7 @@ class NotificationWebSocketService {
     this.socket.onopen = () => {
       console.log('[NotificationWS] Connected');
       this.reconnectAttempts = 0;
+      this._startPing();
     };
 
     this.socket.onmessage = (event) => {
@@ -61,6 +63,7 @@ class NotificationWebSocketService {
 
   disconnect(): void {
     this.intentionalDisconnect = true;
+    this._stopPing();
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
@@ -86,6 +89,7 @@ class NotificationWebSocketService {
   }
 
   private _scheduleReconnect(): void {
+    this._stopPing();
     if (this.reconnectAttempts >= this.maxReconnectAttempts) return;
     this.reconnectAttempts++;
     const delay = Math.min(this.reconnectDelay * this.reconnectAttempts, 30_000);
@@ -93,6 +97,22 @@ class NotificationWebSocketService {
       console.log(`[NotificationWS] Reconnecting (attempt ${this.reconnectAttempts})…`);
       this.connect();
     }, delay);
+  }
+
+  private _startPing(): void {
+    this._stopPing();
+    this.pingInterval = setInterval(() => {
+      if (this.socket?.readyState === WebSocket.OPEN) {
+        this.socket.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 30_000);
+  }
+
+  private _stopPing(): void {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
   }
 }
 

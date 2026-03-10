@@ -32,6 +32,7 @@ function loadYouTubeApi(): Promise<void> {
       const tag = document.createElement('script');
       tag.id = 'yt-iframe-api';
       tag.src = 'https://www.youtube.com/iframe_api';
+      tag.crossOrigin = 'anonymous';
       document.head.appendChild(tag);
     }
   });
@@ -72,7 +73,7 @@ function useYouTubePlayer(
       if (playerRef.current?.getCurrentTime) {
         setCurrentTimeMs(playerRef.current.getCurrentTime() * 1000);
       }
-    }, 80);
+    }, 250);
   }, []);
 
   const stopPoll = useCallback(() => {

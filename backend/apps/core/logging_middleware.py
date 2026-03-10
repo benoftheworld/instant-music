@@ -36,7 +36,6 @@ class StructuredLoggingMiddleware:
             "path": request.path,
             "status_code": status_code,
             "duration_ms": duration_ms,
-            "query_string": request.META.get("QUERY_STRING", ""),
         }
 
         # Inclure le body de la réponse d'erreur pour les 4xx et 5xx

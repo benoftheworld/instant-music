@@ -26,7 +26,7 @@ class GamePlayer(models.Model):
         related_name="game_participations",
         verbose_name=_("joueur"),
     )
-    score = models.IntegerField(_("score"), default=0)
+    score = models.IntegerField(_("score"), default=0, db_index=True)
     rank = models.IntegerField(_("classement"), null=True, blank=True)
     consecutive_correct = models.IntegerField(
         _("série en cours"),

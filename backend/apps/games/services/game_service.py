@@ -587,11 +587,11 @@ class GameService:
     def _compute_rankings(
         self, game: Game
     ) -> list[tuple["GamePlayer", dict[str, Any]]]:
-        """Compute per-player rankings and achievement context data."""
-        import datetime  # noqa: F811
+        """Compute per-player rankings and achievement context data.
 
-        from django.db.models import Max
-
+        Optimized: pre-loads all answers in a single query and computes
+        stats in Python to avoid N+1 queries.
+        """
         players = game.players.order_by("-score")
         total_rounds = game.rounds.count()
         players_list = list(players)
@@ -599,35 +599,42 @@ class GameService:
 
         second_score = players_list[1].score if len(players_list) >= 2 else 0
 
+        # Pre-load ALL answers for this game in one query
+        all_answers = list(
+            GameAnswer.objects.filter(round__game=game)
+            .order_by("round__round_number")
+            .values_list("player_id", "is_correct", "response_time")
+        )
+
+        # Group answers by player_id
+        answers_by_player: dict[Any, list[tuple[bool, float]]] = {}
+        for player_id, is_correct, response_time in all_answers:
+            answers_by_player.setdefault(player_id, []).append(
+                (is_correct, response_time)
+            )
+
+        # Bulk-save ranks
         for rank, player in enumerate(players_list, start=1):
             player.rank = rank
-            player.save()
 
-            correct_qs = GameAnswer.objects.filter(
-                player=player,
-                round__game=game,
-                is_correct=True,
-            )
-            correct_answers = correct_qs.count()
+            player_answers = answers_by_player.get(player.pk, [])
+            correct_answers = sum(1 for c, _ in player_answers if c)
             perfect_game = total_rounds > 0 and correct_answers == total_rounds
 
             # Streak max de bonnes réponses consécutives dans cette partie
-            all_correctness = list(
-                GameAnswer.objects.filter(player=player, round__game=game)
-                .order_by("round__round_number")
-                .values_list("is_correct", flat=True)
-            )
             max_streak = cur = 0
-            for c in all_correctness:
-                if c:
+            for is_correct, _ in player_answers:
+                if is_correct:
                     cur += 1
                     if cur > max_streak:
                         max_streak = cur
                 else:
                     cur = 0
 
-            max_rt_result = correct_qs.aggregate(Max("response_time"))
-            max_response_time = max_rt_result["response_time__max"] or 0.0
+            max_response_time = max(
+                (rt for c, rt in player_answers if c and rt is not None),
+                default=0.0,
+            )
 
             dominant_win = (
                 rank == 1 and second_score > 0 and player.score >= 2 * second_score
@@ -645,6 +652,9 @@ class GameService:
                 )
             )
 
+        # Bulk update ranks in a single query
+        GamePlayer.objects.bulk_update(players_list, ["rank"])
+
         return player_round_data
 
     def _distribute_coins(
@@ -652,10 +662,42 @@ class GameService:
         game: Game,
         player_round_data: list[tuple["GamePlayer", dict[str, Any]]],
     ) -> None:
-        """Distribute coins to participants and the host."""
+        """Distribute coins to participants and the host.
+
+        Optimized: pre-loads daily login dates and fast-answer counts in bulk
+        instead of querying per-player.
+        """
         import datetime  # noqa: F811
 
         today = datetime.date.today()
+
+        player_ids = [p.user_id for p, _ in player_round_data]
+        player_pks = [p.pk for p, _ in player_round_data]
+
+        # Batch-fetch last_daily_login for all players (1 query)
+        daily_logins = dict(
+            User.objects.filter(pk__in=player_ids).values_list(
+                "pk", "last_daily_login"
+            )
+        )
+
+        # Batch-count fast correct answers per player (1 query)
+        from django.db.models import Count, Q
+
+        fast_counts_qs = (
+            GameAnswer.objects.filter(
+                player_id__in=player_pks,
+                round__game=game,
+                is_correct=True,
+                response_time__lt=5.0,
+            )
+            .values("player_id")
+            .annotate(fast=Count("id"))
+        )
+        fast_counts = {row["player_id"]: row["fast"] for row in fast_counts_qs}
+
+        # Users that need last_daily_login update
+        daily_update_ids = []
 
         for player, rd in player_round_data:
             bonus_coins = 1  # 1 pièce de participation
@@ -673,30 +715,24 @@ class GameService:
                 bonus_coins += 5  # Partie longue (≥ 15 rounds)
 
             # Première partie du jour : bonus +3 pièces
-            current_last = (
-                User.objects.filter(pk=player.user_id)
-                .values_list("last_daily_login", flat=True)
-                .first()
-            )
-            if current_last != today:
+            if daily_logins.get(player.user_id) != today:
                 bonus_coins += 3
-                User.objects.filter(pk=player.user_id).update(
-                    last_daily_login=today
-                )
+                daily_update_ids.append(player.user_id)
 
             # Réponses rapides (<5 s) : +2 pièces par réponse
-            fast_count = GameAnswer.objects.filter(
-                player=player,
-                round__game=game,
-                is_correct=True,
-                response_time__lt=5.0,
-            ).count()
+            fast_count = fast_counts.get(player.pk, 0)
             bonus_coins += fast_count * 2
 
             _add_coins(
                 player.user_id,
                 bonus_coins,
                 f"game_finish:rank={player.rank}",
+            )
+
+        # Batch update last_daily_login (1 query)
+        if daily_update_ids:
+            User.objects.filter(pk__in=daily_update_ids).update(
+                last_daily_login=today
             )
 
         # Bonus créateur de partie : +5 pièces pour l'hôte.

@@ -67,6 +67,7 @@ def _get_ws_redis() -> aioredis.Redis:
 # ── Schéma de validation des messages WebSocket entrants ─────────────────────
 # Chaque type de message définit ses champs obligatoires et optionnels.
 WS_MESSAGE_SCHEMAS: dict[str, dict] = {
+    "ping": {"required": set(), "optional": set()},
     "player_join": {"required": set(), "optional": {"player"}},
     "player_answer": {
         "required": set(),
@@ -124,6 +125,16 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         if hasattr(self, "group_name"):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+    async def receive(self, text_data=None, bytes_data=None):
+        """Handle incoming messages (heartbeat ping)."""
+        if text_data:
+            try:
+                data = json.loads(text_data)
+                if data.get("type") == "ping":
+                    await self.send(text_data=json.dumps({"type": "pong"}))
+            except (json.JSONDecodeError, TypeError):
+                pass
 
     # ── Broadcast handlers ────────────────────────────────────────────────────
 
@@ -277,6 +288,11 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
         message_type = data["type"]
+
+        # Heartbeat : répondre immédiatement sans rate-limiting ni routing
+        if message_type == "ping":
+            await self.send(text_data=json.dumps({"type": "pong"}))
+            return
 
         # Métrique : message entrant
         WS_MESSAGES_TOTAL.labels(direction="inbound", message_type=message_type).inc()
@@ -506,6 +522,8 @@ class GameConsumer(AsyncWebsocketConsumer):
         """En mode soirée : vérifie si tous les joueurs non-hôte ont soumis une réponse
         pour le round en cours. Retourne False si la partie n'est pas en mode soirée,
         si aucun round n'est actif, ou si aucun joueur non-hôte n'existe.
+
+        Optimized: uses a single query with subquery instead of multiple counts.
         """
         from .models import Game, GameAnswer, GamePlayer
 
@@ -523,15 +541,16 @@ class GameConsumer(AsyncWebsocketConsumer):
         if current_round is None:
             return False
 
-        non_host_count = GamePlayer.objects.filter(game=game).exclude(
+        non_host_players = GamePlayer.objects.filter(game=game).exclude(
             user=game.host
-        ).count()
+        )
+        non_host_count = non_host_players.count()
         if non_host_count == 0:
             return False
 
         answered_count = GameAnswer.objects.filter(
-            round=current_round
-        ).exclude(player__user=game.host).count()
+            round=current_round, player__in=non_host_players
+        ).count()
 
         return answered_count >= non_host_count  # type: ignore[return-value]
 
@@ -577,16 +596,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         if not await self._require_host("start_round"):
             return
 
-        round_data = data.get("round_data") or {}
-
-        # Vérifier si un brouillard est actif pour ce round et l'injecter dans les données
-        round_number = round_data.get("round_number") if round_data else None
-        if round_number is not None:
-            fog_active, fog_activator = await self._check_and_consume_fog(round_number)
-            if fog_active:
-                round_data = dict(round_data)
-                round_data["fog_active"] = True
-                round_data["fog_activator"] = fog_activator
+        round_data = await self._enrich_round_data_with_fog(data.get("round_data") or {})
 
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -610,16 +620,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         if not await self._require_host("next_round"):
             return
 
-        round_data = data.get("round_data") or {}
-
-        # Vérifier si un brouillard est actif pour ce round et l'injecter dans les données
-        round_number = round_data.get("round_number") if round_data else None
-        if round_number is not None:
-            fog_active, fog_activator = await self._check_and_consume_fog(round_number)
-            if fog_active:
-                round_data = dict(round_data)
-                round_data["fog_active"] = True
-                round_data["fog_activator"] = fog_activator
+        round_data = await self._enrich_round_data_with_fog(data.get("round_data") or {})
 
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -693,6 +694,17 @@ class GameConsumer(AsyncWebsocketConsumer):
             return {"error": str(e)}
         except BonusAlreadyActiveError as e:
             return {"error": str(e)}
+
+    async def _enrich_round_data_with_fog(self, round_data: dict) -> dict:
+        """Injecte les données de brouillard dans round_data si un bonus fog est actif."""
+        round_number = round_data.get("round_number") if round_data else None
+        if round_number is not None:
+            fog_active, fog_activator = await self._check_and_consume_fog(round_number)
+            if fog_active:
+                round_data = dict(round_data)
+                round_data["fog_active"] = True
+                round_data["fog_activator"] = fog_activator
+        return round_data
 
     @database_sync_to_async
     def _check_and_consume_fog(self, round_number: int) -> tuple[bool, str | None]:

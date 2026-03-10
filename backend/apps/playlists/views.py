@@ -12,7 +12,8 @@ from rest_framework.response import Response
 from apps.core.prometheus_metrics import EXTERNAL_API_REQUESTS_TOTAL
 from apps.core.throttles import PlaylistSearchThrottle
 
-from .deezer_service import DeezerAPIError, deezer_service
+from .decorators import handle_deezer_call
+from .deezer_service import deezer_service
 from .serializers import PlaylistSerializer
 from .youtube_service import YouTubeAPIError, youtube_service
 
@@ -47,6 +48,7 @@ class PlaylistViewSet(viewsets.ViewSet):
         responses={200: PlaylistSerializer(many=True)},
     )
     @action(detail=False, methods=["get"])
+    @handle_deezer_call("search_playlists")
     def search(self, request):
         query = request.query_params.get("query", "")
         if not query:
@@ -60,77 +62,41 @@ class PlaylistViewSet(viewsets.ViewSet):
         except ValueError:
             limit = 20
 
-        try:
-            EXTERNAL_API_REQUESTS_TOTAL.labels(
-                service="deezer", endpoint="search_playlists"
-            ).inc()
-            playlists = deezer_service.search_playlists(query, limit)
-            serializer = PlaylistSerializer(playlists, many=True)
-            return Response({"playlists": serializer.data, "source": "deezer"})
-        except DeezerAPIError as e:
-            logger.error(
-                "deezer_search_error",
-                extra={"query": query, "error": str(e)},
-            )
-            return Response(
-                {"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
-            )
+        playlists = deezer_service.search_playlists(query, limit)
+        serializer = PlaylistSerializer(playlists, many=True)
+        return Response({"playlists": serializer.data, "source": "deezer"})
 
     @extend_schema(responses={200: PlaylistSerializer})
     @action(detail=False, methods=["get"], url_path=r"(?P<playlist_id>\d+)")
+    @handle_deezer_call("get_playlist")
     def get_playlist(self, request, playlist_id=None):
-        try:
-            EXTERNAL_API_REQUESTS_TOTAL.labels(
-                service="deezer", endpoint="get_playlist"
-            ).inc()
-            playlist = deezer_service.get_playlist(playlist_id)
-            if not playlist:
-                logger.info(
-                    "deezer_playlist_not_found",
-                    extra={"playlist_id": playlist_id},
-                )
-                return Response(
-                    {"error": "Playlist not found"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            serializer = PlaylistSerializer(playlist)
-            return Response(serializer.data)
-        except DeezerAPIError as e:
-            logger.error(
-                "deezer_get_playlist_error",
-                extra={"playlist_id": playlist_id, "error": str(e)},
+        playlist = deezer_service.get_playlist(playlist_id)
+        if not playlist:
+            logger.info(
+                "deezer_playlist_not_found",
+                extra={"playlist_id": playlist_id},
             )
             return Response(
-                {"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
+                {"error": "Playlist not found"},
+                status=status.HTTP_404_NOT_FOUND,
             )
+        serializer = PlaylistSerializer(playlist)
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"], url_path=r"(?P<playlist_id>\d+)/tracks")
+    @handle_deezer_call("get_playlist_tracks")
     def get_playlist_tracks(self, request, playlist_id=None):
         try:
             limit = int(request.query_params.get("limit", 50))
         except ValueError:
             limit = 50
-        try:
-            EXTERNAL_API_REQUESTS_TOTAL.labels(
-                service="deezer", endpoint="get_playlist_tracks"
-            ).inc()
-            tracks = deezer_service.get_playlist_tracks(playlist_id, limit)
-            return Response(tracks)
-        except DeezerAPIError as e:
-            logger.error(
-                "deezer_get_tracks_error",
-                extra={"playlist_id": playlist_id, "error": str(e)},
-            )
-            return Response(
-                {"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
-            )
+        tracks = deezer_service.get_playlist_tracks(playlist_id, limit)
+        return Response(tracks)
 
     @action(detail=False, methods=["get"], url_path=r"(?P<playlist_id>\d+)/validate")
+    @handle_deezer_call("get_playlist_tracks")
     def validate_playlist_access(self, request, playlist_id=None):
         try:
-            EXTERNAL_API_REQUESTS_TOTAL.labels(
-                service="deezer", endpoint="get_playlist_tracks"
-            ).inc()
             tracks = deezer_service.get_playlist_tracks(playlist_id, limit=5)
             return Response(
                 {

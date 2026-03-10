@@ -52,7 +52,7 @@ export function useGameTimer({
     dispatch({ type: 'TICK', time: remaining });
     let lastSecond = remaining;
 
-    // Update every 250ms for smooth countdown (reduced from 100ms to limit re-renders)
+    // Update every 1000ms — we display whole seconds so sub-second precision is unnecessary
     const interval = setInterval(() => {
       const newRemaining = calculateTimeRemaining();
       dispatch({ type: 'TICK', time: newRemaining });
@@ -96,7 +96,7 @@ export function useGameTimer({
         }
         // Non-hosts: wait for round_ended message from WebSocket
       }
-    }, 250);
+    }, 1000);
 
     return () => {
       clearInterval(interval);
