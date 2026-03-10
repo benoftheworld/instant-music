@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  useAudioPlayer, AudioPlayerUI, OptionsGrid, ResultFooter, TrackReveal,
+  useAudioPlayer, AudioPlayerUI, OptionsGrid, ResultFooter,
   type Props,
 } from './shared';
 
@@ -13,7 +13,6 @@ interface GenericQuestionProps extends Props {
 }
 
 const GenericQuestion = ({
-  icon,
   defaultTitle,
   subtitle,
   audioLabel,
