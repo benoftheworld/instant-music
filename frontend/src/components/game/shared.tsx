@@ -338,20 +338,20 @@ export function QuestionHeader({
   gradientTo?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 mb-3 md:mb-4 shrink-0">
-      <div className={`w-11 h-11 md:w-12 md:h-12 shrink-0 rounded-lg bg-gradient-to-br ${gradientFrom} ${gradientTo} flex items-center justify-center shadow`}>
-        <span className="text-xl md:text-2xl">{icon}</span>
-      </div>
-      <div className="flex-1 min-w-0">
-        <h2 className="text-sm md:text-base font-bold text-gray-800 leading-tight">
-          {title}
-        </h2>
-        {subtitle && (
+    <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-t-2xl px-6 py-3 flex items-center justify-between shrink-0">
+      <div className="flex items-center gap-3">
+        <span className="text-3xl">🎉</span>
+        <div>
+          <h2 className="text-xl font-bold text-white">
+            {title}
+          </h2>
           <p className="text-gray-400 text-xs mt-0.5 truncate">{subtitle}</p>
-        )}
+        </div>
         {badge}
       </div>
-      {audioStatus}
+      <div className="flex items-center gap-2">
+        {audioStatus}
+      </div>
     </div>
   );
 }
