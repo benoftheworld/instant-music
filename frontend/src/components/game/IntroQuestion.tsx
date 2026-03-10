@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import {
-  useAudioPlayer, OptionsGrid, ResultFooter, TrackReveal,
+  useAudioPlayer, OptionsGrid, ResultFooter,
   type Props,
 } from './shared';
 
@@ -74,8 +74,6 @@ const IntroQuestion = ({
           </div>
         </div>
       )}
-
-      {showResults && <TrackReveal round={round} />}
 
       <OptionsGrid
         options={round.options}
