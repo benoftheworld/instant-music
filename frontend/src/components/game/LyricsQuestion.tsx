@@ -1,5 +1,5 @@
 import {
-  useAudioPlayerOnResults, AudioPlayerUI, OptionsGrid, ResultFooter, TrackReveal,
+  useAudioPlayerOnResults, AudioPlayerUI, QuestionHeader, OptionsGrid, ResultFooter, TrackReveal,
   type Props,
 } from './shared';
 import LyricsSnippet from './LyricsSnippet';
@@ -28,23 +28,13 @@ const LyricsQuestion = ({
 
   return (
     <div className="bg-white rounded-xl shadow-xl p-4 md:p-6 flex flex-col flex-1 min-h-0">
-      {/* Compact header row */}
-      <div className="flex items-center gap-3 mb-3 md:mb-4 shrink-0">
-        <div className="w-12 h-12 shrink-0 rounded-lg bg-gradient-to-br from-primary-600 to-primary-400 flex items-center justify-center shadow">
-          <span className="text-2xl">📝</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-sm md:text-base font-bold text-gray-800 leading-tight">
-            {round.question_text || 'Complétez les paroles'}
-          </h2>
-          <p className="text-gray-400 text-xs truncate">
-            <span className="font-semibold">{round.track_name}</span> — {round.artist_name}
-          </p>
-        </div>
-        {showResults && <AudioPlayerUI compact {...audio} />}
-      </div>
+      <QuestionHeader
+        icon="📝"
+        title={round.question_text || 'Complétez les paroles'}
+        subtitle={`${round.track_name} — ${round.artist_name}`}
+        audioStatus={showResults ? <AudioPlayerUI compact {...audio} /> : undefined}
+      />
 
-      {/* Show track reveal when results are shown */}
       {showResults && <TrackReveal round={round} />}
 
       {/* Lyrics snippet with blank */}

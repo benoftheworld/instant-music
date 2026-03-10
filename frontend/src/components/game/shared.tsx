@@ -319,6 +319,43 @@ export function AudioPlayerUI({
   );
 }
 
+/* ───────────────────── Shared Question Header ───────────────────── */
+export function QuestionHeader({
+  icon,
+  title,
+  subtitle,
+  badge,
+  audioStatus,
+  gradientFrom = 'from-primary-600',
+  gradientTo = 'to-primary-400',
+}: {
+  icon: string;
+  title: string;
+  subtitle?: string;
+  badge?: React.ReactNode;
+  audioStatus?: React.ReactNode;
+  gradientFrom?: string;
+  gradientTo?: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 mb-3 md:mb-4 shrink-0">
+      <div className={`w-11 h-11 md:w-12 md:h-12 shrink-0 rounded-lg bg-gradient-to-br ${gradientFrom} ${gradientTo} flex items-center justify-center shadow`}>
+        <span className="text-xl md:text-2xl">{icon}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <h2 className="text-sm md:text-base font-bold text-gray-800 leading-tight">
+          {title}
+        </h2>
+        {subtitle && (
+          <p className="text-gray-400 text-xs mt-0.5 truncate">{subtitle}</p>
+        )}
+        {badge}
+      </div>
+      {audioStatus}
+    </div>
+  );
+}
+
 /* ───────────────────── Shared MCQ Options grid ───────────────────── */
 export function OptionsGrid({
   options,
@@ -363,7 +400,7 @@ export function OptionsGrid({
 
   return (
     <div
-      className={`grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6 transition-[filter] duration-1000${
+      className={`grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 mb-4 md:mb-6 transition-[filter] duration-1000${
         isBlurred ? ' blur-sm select-none' : ''
       }`}
     >
@@ -371,14 +408,14 @@ export function OptionsGrid({
         <button
           key={index}
           onClick={() => { if (!hasAnswered && !showResults) { soundEffects.click(); onOptionClick(option); } }}
-          className={`p-6 md:p-4 rounded-xl text-left transition-all duration-300 ${getStyle(option)}`}
+          className={`p-3 md:p-5 rounded-xl text-left transition-all duration-300 ${getStyle(option)}`}
           disabled={hasAnswered || showResults}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 shrink-0 rounded-full bg-primary-500 text-white flex items-center justify-center font-bold text-sm">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-7 h-7 md:w-8 md:h-8 shrink-0 rounded-full bg-primary-500 text-white flex items-center justify-center font-bold text-xs md:text-sm">
               {String.fromCharCode(65 + index)}
             </div>
-            <span className="text-base md:text-lg font-medium leading-tight line-clamp-2">{option}</span>
+            <span className="text-sm md:text-lg font-medium leading-tight break-words">{option}</span>
           </div>
         </button>
       ))}
@@ -422,19 +459,6 @@ export function ResultFooter({
         </div>
       )}
     </>
-  );
-}
-
-/* ───────────────────── Track info (results phase) ───────────────────── */
-export function TrackReveal({ round }: { round: GameRound }) {
-  return (
-    <div className="mb-6 rounded-lg overflow-hidden shadow-lg bg-primary-600 p-6">
-      <div className="text-white text-center">
-        <div className="text-4xl mb-2">🎶</div>
-        <p className="text-lg font-bold">{round.track_name}</p>
-        <p className="text-sm opacity-80">{round.artist_name}</p>
-      </div>
-    </div>
   );
 }
 

@@ -1,5 +1,5 @@
 import {
-  useAudioPlayer, AudioPlayerUI, OptionsGrid, ResultFooter, TrackReveal,
+  useAudioPlayer, AudioPlayerUI, QuestionHeader, OptionsGrid, ResultFooter, TrackReveal,
   type Props,
 } from './shared';
 
@@ -22,18 +22,14 @@ const BlindTestInverse = ({
 
   return (
     <div className="bg-white rounded-xl shadow-xl p-4 md:p-6 flex flex-col flex-1 min-h-0">
-      <div className="flex items-center gap-3 mb-3 md:mb-4 shrink-0">
-        <div className="w-12 h-12 shrink-0 rounded-lg bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center shadow">
-          <span className="text-2xl">🎤</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold text-orange-500 truncate">{round.artist_name}</p>
-          <h2 className="text-sm md:text-base font-bold text-gray-800 leading-tight">
-            {round.question_text || 'Quel est le titre de ce morceau ?'}
-          </h2>
-        </div>
-        {!showResults && <AudioPlayerUI compact {...audio} />}
-      </div>
+      <QuestionHeader
+        icon="🎤"
+        title={round.question_text || 'Quel est le titre de ce morceau ?'}
+        subtitle={round.artist_name}
+        gradientFrom="from-yellow-400"
+        gradientTo="to-orange-500"
+        audioStatus={!showResults ? <AudioPlayerUI compact {...audio} /> : undefined}
+      />
 
       {showResults && <TrackReveal round={round} />}
 
