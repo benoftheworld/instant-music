@@ -195,13 +195,7 @@ DATABASES = {
         "HOST": env("POSTGRES_HOST", default="localhost"),
         "PORT": env("POSTGRES_PORT", default="5432"),
         "CONN_MAX_AGE": 0,
-        "OPTIONS": {
-            "pool": {
-                "min_size": env.int("DB_POOL_MIN_SIZE", default=2),
-                "max_size": env.int("DB_POOL_MAX_SIZE", default=4),
-                "timeout": 10,
-            },
-        },
+        "OPTIONS": {},
     }
 }
 

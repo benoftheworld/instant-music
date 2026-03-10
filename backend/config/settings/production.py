@@ -129,6 +129,16 @@ if _s3_bucket:
     AWS_QUERYSTRING_AUTH = False
     AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
 
+# ── Connection pool (psycopg3) ───────────────────────────────────────
+# CONN_MAX_AGE must be 0 when using psycopg3 built-in pool.
+DATABASES["default"]["OPTIONS"] = {  # noqa: F405
+    "pool": {
+        "min_size": env.int("DB_POOL_MIN_SIZE", default=2),
+        "max_size": env.int("DB_POOL_MAX_SIZE", default=4),
+        "timeout": 10,
+    },
+}
+
 # ── Read replica PostgreSQL (optionnel) ──────────────────────────────
 # Activé si DB_REPLICA_HOST est défini.
 _replica_host = env("DB_REPLICA_HOST", default="")
