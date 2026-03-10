@@ -321,13 +321,10 @@ export function AudioPlayerUI({
 
 /* ───────────────────── Shared Question Header ───────────────────── */
 export function QuestionHeader({
-  icon,
   title,
   subtitle,
   badge,
   audioStatus,
-  gradientFrom = 'from-primary-600',
-  gradientTo = 'to-primary-400',
 }: {
   icon: string;
   title: string;
