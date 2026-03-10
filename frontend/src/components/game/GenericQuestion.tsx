@@ -31,7 +31,7 @@ const GenericQuestion = ({
 
   return (
     <div className="bg-white rounded-xl shadow-xl p-4 md:p-6 flex flex-col flex-1 min-h-0">
-      <div className="mb-6 rounded-lg overflow-hidden shadow-lg bg-primary-600 p-6">
+      <div className="mb-6 rounded-lg overflow-hidden shadow-lg bg-primary-600 p-8 flex items-center justify-center">
         <div className="text-white text-center">
           {!showResults && (
             <AudioPlayerUI compact {...audio} label={audioLabel} />

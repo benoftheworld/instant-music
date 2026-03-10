@@ -273,7 +273,7 @@ export function AudioPlayerUI({
             ▶️ Écouter
           </button>
         ) : isPlaying ? (
-          <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+          <span className="flex items-center gap-1 text-xs text-white-600 font-medium">
             <span className="animate-pulse">🎵</span> En écoute
           </span>
         ) : (
@@ -371,7 +371,7 @@ export function OptionsGrid({
         <button
           key={index}
           onClick={() => { if (!hasAnswered && !showResults) { soundEffects.click(); onOptionClick(option); } }}
-          className={`p-3 md:p-4 rounded-xl text-left transition-all duration-300 ${getStyle(option)}`}
+          className={`p-6 md:p-4 rounded-xl text-left transition-all duration-300 ${getStyle(option)}`}
           disabled={hasAnswered || showResults}
         >
           <div className="flex items-center gap-3">
