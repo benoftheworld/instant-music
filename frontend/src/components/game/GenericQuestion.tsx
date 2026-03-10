@@ -31,7 +31,7 @@ const GenericQuestion = ({
   const audio = useAudioPlayer(round, showResults, undefined, seekOffsetMs, playbackRate);
 
   return (
-    <div className="bg-white rounded-xl shadow-xl p-4 md:p-6 flex flex-col flex-1 min-h-0">
+    <div className="rounded-xl shadow-xl p-4 md:p-6 flex flex-col flex-1 min-h-0">
       <QuestionHeader
         icon={showResults ? '🎶' : icon}
         title={round.question_text || defaultTitle}
