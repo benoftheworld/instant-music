@@ -245,6 +245,7 @@ export function AudioPlayerUI({
   handlePlay,
   label,
   hideManualPlay = false,
+  compact = false,
 }: {
   isPlaying: boolean;
   needsPlay: boolean;
@@ -252,7 +253,36 @@ export function AudioPlayerUI({
   handlePlay: () => void;
   label?: string;
   hideManualPlay?: boolean;
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <div className="shrink-0">
+        {playerError ? (
+          <button
+            onClick={handlePlay}
+            className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-lg"
+          >
+            ⚠️ Réessayer
+          </button>
+        ) : needsPlay ? (
+          <button
+            onClick={handlePlay}
+            className="flex items-center gap-1 px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-bold shadow"
+          >
+            ▶️ Écouter
+          </button>
+        ) : isPlaying ? (
+          <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+            <span className="animate-pulse">🎵</span> En écoute
+          </span>
+        ) : (
+          <span className="text-xs text-gray-400">Chargement…</span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center p-2 md:p-4 bg-gradient-to-r from-primary-600 to-primary-400 rounded-lg min-h-[60px] md:min-h-[80px]">
       {playerError ? (
@@ -333,7 +363,7 @@ export function OptionsGrid({
 
   return (
     <div
-      className={`grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6 flex-1 transition-[filter] duration-1000${
+      className={`grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6 transition-[filter] duration-1000${
         isBlurred ? ' blur-sm select-none' : ''
       }`}
     >

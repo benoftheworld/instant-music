@@ -27,27 +27,25 @@ const LyricsQuestion = ({
   const isLyricsMode = !!snippet;
 
   return (
-    <div className="bg-white rounded-xl shadow-xl p-4 md:p-8 flex flex-col flex-1 min-h-0">
-      {/* Header */}
-      <div className="mb-2 md:mb-4 text-center shrink-0">
-        <div className="text-xl md:text-3xl mb-1">📝</div>
-        <h2 className="text-lg md:text-2xl font-bold text-gray-800">
-          {round.question_text || 'Complétez les paroles'}
-        </h2>
-        <p className="text-gray-600 text-xs md:text-sm">
-          <span className="font-semibold">{round.track_name}</span> — {round.artist_name}
-        </p>
+    <div className="bg-white rounded-xl shadow-xl p-4 md:p-6 flex flex-col flex-1 min-h-0">
+      {/* Compact header row */}
+      <div className="flex items-center gap-3 mb-3 md:mb-4 shrink-0">
+        <div className="w-12 h-12 shrink-0 rounded-lg bg-gradient-to-br from-primary-600 to-primary-400 flex items-center justify-center shadow">
+          <span className="text-2xl">📝</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm md:text-base font-bold text-gray-800 leading-tight">
+            {round.question_text || 'Complétez les paroles'}
+          </h2>
+          <p className="text-gray-400 text-xs truncate">
+            <span className="font-semibold">{round.track_name}</span> — {round.artist_name}
+          </p>
+        </div>
+        {showResults && <AudioPlayerUI compact {...audio} />}
       </div>
 
-      {/* Show track reveal AND audio player when results are shown */}
-      {showResults && (
-        <>
-          <TrackReveal round={round} />
-          <div className="mb-3 md:mb-6">
-            <AudioPlayerUI {...audio} label="Écoutez la chanson..." />
-          </div>
-        </>
-      )}
+      {/* Show track reveal when results are shown */}
+      {showResults && <TrackReveal round={round} />}
 
       {/* Lyrics snippet with blank */}
       {isLyricsMode && (

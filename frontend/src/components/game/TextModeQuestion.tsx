@@ -67,48 +67,39 @@ export default function TextModeQuestion({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-xl p-8" onClick={handleCardClick}>
-      {/* Question header */}
-      <div className="mb-6 text-center">
-        <div className="text-4xl mb-3">{getModeIcon()}</div>
-        <h2 className="text-2xl font-bold text-gray-800">
-          {round.question_text}
-        </h2>
-        {round.question_type === 'blind_inverse' && (
-          <div className="inline-block bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-3 rounded-full text-lg font-bold mt-3 shadow-lg">
-            🎤 {round.artist_name}
-          </div>
-        )}
-        {round.question_type === 'guess_artist' && (
-          <p className="text-gray-600 mt-2">
-            Titre : <span className="font-semibold">{round.track_name}</span>
-          </p>
-        )}
-        {round.question_type === 'lyrics' && (
-          <p className="text-gray-600 mt-1">
-            <span className="font-semibold">{round.track_name}</span> — {round.artist_name}
-          </p>
-        )}
-        {isIntro && (
-          <div className="inline-block bg-gradient-to-r from-yellow-400 to-red-500 text-white px-4 py-1 rounded-full text-sm font-bold mt-3 shadow">
-            ⚡ {audioDuration} secondes d&apos;écoute
-          </div>
+    <div className="bg-white rounded-xl shadow-xl p-4 md:p-6" onClick={handleCardClick}>
+      {/* Compact header row */}
+      <div className="flex items-center gap-3 mb-4 shrink-0">
+        <div className="w-12 h-12 shrink-0 rounded-lg bg-gradient-to-br from-primary-600 to-primary-400 flex items-center justify-center shadow">
+          <span className={`text-2xl${!showResults && audio.isPlaying ? ' animate-pulse' : ''}`}>
+            {getModeIcon()}
+          </span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm md:text-base font-bold text-gray-800 leading-tight">
+            {round.question_text}
+          </h2>
+          {round.question_type === 'blind_inverse' && (
+            <p className="text-xs font-bold text-orange-500 truncate">{round.artist_name}</p>
+          )}
+          {round.question_type === 'guess_artist' && (
+            <p className="text-gray-400 text-xs truncate">Titre : <span className="font-semibold">{round.track_name}</span></p>
+          )}
+          {round.question_type === 'lyrics' && (
+            <p className="text-gray-400 text-xs truncate">
+              <span className="font-semibold">{round.track_name}</span> — {round.artist_name}
+            </p>
+          )}
+          {isIntro && (
+            <span className="inline-block bg-gradient-to-r from-yellow-400 to-red-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">
+              ⚡ {audioDuration}s
+            </span>
+          )}
+        </div>
+        {((!isLyrics && !showResults) || (isLyrics && showResults)) && (
+          <AudioPlayerUI compact {...audio} hideManualPlay={isIntro} />
         )}
       </div>
-
-      {/* Audio player (during round for non-lyrics, after results for lyrics) */}
-      {!isLyrics && !showResults && (
-        <div className="mb-6">
-          <AudioPlayerUI {...audio} hideManualPlay={isIntro} />
-        </div>
-      )}
-
-      {/* Lyrics: show audio on results */}
-      {isLyrics && showResults && (
-        <div className="mb-6">
-          <AudioPlayerUI {...audio} label="Écoutez la chanson..." />
-        </div>
-      )}
 
       {/* Lyrics snippet for lyrics mode */}
       {round.question_type === 'lyrics' && round.extra_data?.lyrics_snippet && (

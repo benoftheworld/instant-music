@@ -49,21 +49,18 @@ const YearQuestion = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-xl p-8">
-      {/* Question header */}
-      <div className="mb-6 text-center">
-        <div className="text-4xl mb-3">📅</div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
-          {round.question_text || 'En quelle année est sorti ce morceau ?'}
-        </h2>
-      </div>
-
-      {/* Audio player */}
-      {!showResults && (
-        <div className="mb-6">
-          <AudioPlayerUI {...audio} />
+    <div className="bg-white rounded-xl shadow-xl p-4 md:p-6 flex flex-col flex-1 min-h-0">
+      <div className="flex items-center gap-3 mb-3 md:mb-4 shrink-0">
+        <div className="w-12 h-12 shrink-0 rounded-lg bg-gradient-to-br from-primary-600 to-primary-400 flex items-center justify-center shadow">
+          <span className={`text-2xl${!showResults && audio.isPlaying ? ' animate-pulse' : ''}`}>📅</span>
         </div>
-      )}
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm md:text-base font-bold text-gray-800 leading-tight">
+            {round.question_text || 'En quelle année est sorti ce morceau ?'}
+          </h2>
+        </div>
+        {!showResults && <AudioPlayerUI compact {...audio} />}
+      </div>
 
       {showResults && <TrackReveal round={round} />}
 

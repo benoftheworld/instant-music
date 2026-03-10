@@ -21,22 +21,19 @@ const BlindTestInverse = ({
   const audio = useAudioPlayer(round, showResults, undefined, seekOffsetMs);
 
   return (
-    <div className="bg-white rounded-lg shadow-xl p-8">
-      {/* Prominent artist display */}
-      <div className="mb-6 text-center">
-        <div className="inline-block bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-3 rounded-full text-lg font-bold mb-3 shadow-lg">
-          🎤 {round.artist_name}
+    <div className="bg-white rounded-xl shadow-xl p-4 md:p-6 flex flex-col flex-1 min-h-0">
+      <div className="flex items-center gap-3 mb-3 md:mb-4 shrink-0">
+        <div className="w-12 h-12 shrink-0 rounded-lg bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center shadow">
+          <span className="text-2xl">🎤</span>
         </div>
-        <h2 className="text-2xl font-bold text-gray-800">
-          {round.question_text || 'Quel est le titre de ce morceau ?'}
-        </h2>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold text-orange-500 truncate">{round.artist_name}</p>
+          <h2 className="text-sm md:text-base font-bold text-gray-800 leading-tight">
+            {round.question_text || 'Quel est le titre de ce morceau ?'}
+          </h2>
+        </div>
+        {!showResults && <AudioPlayerUI compact {...audio} />}
       </div>
-
-      {!showResults && (
-        <div className="mb-6">
-          <AudioPlayerUI {...audio} />
-        </div>
-      )}
 
       {showResults && <TrackReveal round={round} />}
 
