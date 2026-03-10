@@ -131,6 +131,7 @@ if _s3_bucket:
 
 # ── Connection pool (psycopg3) ───────────────────────────────────────
 # CONN_MAX_AGE must be 0 when using psycopg3 built-in pool.
+DATABASES["default"]["CONN_MAX_AGE"] = 0  # noqa: F405
 DATABASES["default"]["OPTIONS"] = {  # noqa: F405
     "pool": {
         "min_size": env.int("DB_POOL_MIN_SIZE", default=2),
