@@ -364,7 +364,7 @@ export default function GameResultsPage() {
           <div className="bg-white border border-cream-300 rounded-2xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-dark-300 text-xs uppercase tracking-wider border-b border-cream-300">
+                <tr className="bg-gradient-to-r from-primary-600 to-primary-500 text-light-300 text-xs uppercase tracking-wider border-b border-cream-300">
                   <th className="text-center pl-5 pr-3 py-3 w-12">#</th>
                   <th className="text-left pr-3 py-3">Joueur</th>
                   <th className="text-right pr-5 py-3">Score</th>
