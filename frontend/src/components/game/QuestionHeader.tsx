@@ -18,7 +18,7 @@ export function QuestionHeader({
   return (
     <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-t-2xl px-6 py-3 flex items-center justify-between shrink-0 mb-4 md:mb-6">
       <div className="flex items-center gap-3">
-        <div className={`w-11 h-11 md:w-12 md:h-12 shrink-0 rounded-lg flex items-center justify-center shadow`}>
+        <div className={`w-11 h-11 md:w-12 md:h-12 shrink-0 flex items-center justify-center`}>
           <span className="text-xl md:text-2xl">{icon}</span>
         </div>
         <div>
