@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api, getMediaUrl } from '@/services/api';
 import { getModeIcon, LEADERBOARD_TABS } from '@/constants/gameModes';
-import { PageLoader, EmptyState, Button } from '@/components/ui';
+import { PageLoader, EmptyState } from '@/components/ui';
 import type { GameHistory } from '@/types';
 import { Link } from 'react-router-dom';
 

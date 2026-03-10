@@ -1,4 +1,3 @@
-import { getMediaUrl } from '@/services/api';
 import { formatAnswer } from '@/utils/formatAnswer';
 import { useAudioPlayerOnResults } from './shared';
 import { BONUS_META } from '@/constants/bonuses';

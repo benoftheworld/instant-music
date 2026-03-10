@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { api, getMediaUrl } from '@/services/api';
+import { api } from '@/services/api';
 import { Avatar, LoadingState, EmptyState } from '@/components/ui';
 import type { LeaderboardEntry } from '@/types';
 import { Link } from 'react-router-dom';
