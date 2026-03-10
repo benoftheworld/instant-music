@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { gameService } from '../../services/gameService';
-import { getMediaUrl } from '../../services/api';
 import { BONUS_META } from '../../constants/bonuses';
+import { Avatar } from '@/components/ui';
 import type { BonusType, GamePlayer } from '@/types';
 
 interface RoundAnswer {
@@ -55,18 +55,6 @@ const RANK_COLORS = [
   'from-cream-200 to-cream-100 border-dark-200',
   'from-orange-100 to-orange-50 border-orange-400',
 ];
-
-function Avatar({ username, avatar, size = 'md' }: { username: string; avatar?: string; size?: 'sm' | 'md' | 'lg' }) {
-  const cls = size === 'lg' ? 'w-24 h-24 text-3xl' : size === 'sm' ? 'w-8 h-8 text-xs' : 'w-11 h-11 text-base';
-  if (avatar) {
-    return <img src={getMediaUrl(avatar)} alt={username} className={`${cls} rounded-full object-cover ring-2 ring-white/20`} />;
-  }
-  return (
-    <div className={`${cls} rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold ring-2 ring-dark/10`}>
-      {username.charAt(0).toUpperCase()}
-    </div>
-  );
-}
 
 function RoundRow({ round, players }: { round: RoundDetail; players: GamePlayer[] }) {
   const [expanded, setExpanded] = useState(false);
@@ -145,7 +133,7 @@ function RoundRow({ round, players }: { round: RoundDetail; players: GamePlayer[
                     <td className="pl-5 pr-3 py-2.5 text-xl w-12">{MEDAL[i]}</td>
                     <td className="pr-3 py-2.5">
                       <div className="flex items-center gap-2">
-                        <Avatar username={ans.username} avatar={playerAvatar(ans.username)} size="sm" />
+                        <Avatar username={ans.username} src={playerAvatar(ans.username)} size="sm" />
                         <span className="text-dark font-medium">
                           {playerUserId(ans.username) ? (
                             <Link to={`/profile/${playerUserId(ans.username)}`} className="hover:underline transition-colors">
@@ -182,7 +170,7 @@ function RoundRow({ round, players }: { round: RoundDetail; players: GamePlayer[
                     <td className="pl-5 pr-3 py-2.5 text-dark-300 text-sm">{i + 4}.</td>
                     <td className="pr-3 py-2.5">
                       <div className="flex items-center gap-2">
-                        <Avatar username={ans.username} avatar={playerAvatar(ans.username)} size="sm" />
+                        <Avatar username={ans.username} src={playerAvatar(ans.username)} size="sm" />
                         <span className="text-dark-500 font-medium">
                           {playerUserId(ans.username) ? (
                             <Link to={`/profile/${playerUserId(ans.username)}`} className="hover:underline transition-colors">
@@ -339,7 +327,7 @@ export default function GameResultsPage() {
                 return (
                   <div key={player.id} className="flex flex-col items-center gap-1">
                     <span className="text-3xl sm:text-4xl">{isWinner ? '👑' : MEDAL[pos]}</span>
-                    <Avatar username={player.username} avatar={player.avatar} size={isWinner ? 'lg' : 'md'} />
+                    <Avatar username={player.username} src={player.avatar} size={isWinner ? 'lg' : 'md'} />
                     <p className={`font-bold mt-1 ${isWinner ? 'text-lg text-primary-600' : 'text-sm text-dark-500'}`}>
                       {player.user_id ? (
                         <Link to={`/profile/${player.user_id}`} className="hover:underline transition-colors">
@@ -392,7 +380,7 @@ export default function GameResultsPage() {
                       </td>
                       <td className="pr-3 py-3">
                         <div className="flex items-center gap-2.5">
-                          <Avatar username={player.username} avatar={player.avatar} size="sm" />
+                          <Avatar username={player.username} src={player.avatar} size="sm" />
                           <span className={`font-medium ${isWinner ? 'text-primary-600' : 'text-dark'}`}>
                             {player.user_id ? (
                               <Link to={`/profile/${player.user_id}`} className="hover:underline transition-colors">

@@ -7,6 +7,7 @@ import { authService } from '@/services/authService';
 import { achievementService } from '@/services/achievementService';
 import { statsService } from '@/services/statsService';
 import VolumeControl from '@/components/game/VolumeControl';
+import { Alert } from '@/components/ui';
 import type { Achievement, UserDetailedStats } from '@/types';
 
 interface PasswordData {
@@ -57,20 +58,6 @@ function SectionTitle({ icon, title }: { icon: string; title: string }) {
       <span>{icon}</span>
       {title}
     </h2>
-  );
-}
-
-function Alert({ type, text }: { type: 'success' | 'error'; text: string }) {
-  const styles = {
-    success: 'bg-green-50 text-green-800 border border-green-200',
-    error: 'bg-red-50 text-red-800 border border-red-200',
-  };
-  const icons = { success: '✅', error: '❌' };
-  return (
-    <div className={`flex items-start gap-2 p-3 rounded-lg text-sm ${styles[type]}`}>
-      <span className="flex-shrink-0">{icons[type]}</span>
-      <span>{text}</span>
-    </div>
   );
 }
 
@@ -636,7 +623,7 @@ export default function ProfilePage() {
               <SectionTitle icon="👤" title="Informations du profil" />
               {message && (
                 <div className="mt-4">
-                  <Alert type={message.type} text={message.text} />
+                  <Alert variant={message.type}>{message.text}</Alert>
                 </div>
               )}
               <form onSubmit={handleProfileUpdate} className="space-y-5 mt-5">
@@ -719,7 +706,7 @@ export default function ProfilePage() {
               <SectionTitle icon="🔑" title="Changer le mot de passe" />
               {passwordMessage && (
                 <div className="mt-4">
-                  <Alert type={passwordMessage.type} text={passwordMessage.text} />
+                  <Alert variant={passwordMessage.type}>{passwordMessage.text}</Alert>
                 </div>
               )}
               <form onSubmit={handlePasswordChange} className="space-y-4 mt-5">

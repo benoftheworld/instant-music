@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api, getMediaUrl } from '@/services/api';
+import { Avatar, LoadingState, EmptyState } from '@/components/ui';
 import type { LeaderboardEntry } from '@/types';
 import { Link } from 'react-router-dom';
 
@@ -41,19 +42,11 @@ export default function TopPlayers() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (players.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        <p>Aucun joueur pour le moment</p>
-      </div>
-    );
+    return <EmptyState title="Aucun joueur pour le moment" />;
   }
 
   return (
@@ -78,19 +71,7 @@ export default function TopPlayers() {
             </div>
 
             {/* Avatar */}
-            <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
-              {player.avatar ? (
-                <img
-                  src={getMediaUrl(player.avatar)}
-                  alt={player.username}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm ring-2 ring-dark/10">
-                  {player.username.charAt(0).toUpperCase()}
-                </div>
-              )}
-            </div>
+            <Avatar username={player.username} src={player.avatar} size="md" className="flex-shrink-0" />
 
             {/* Player Info */}
             <div className="flex-1 min-w-0">

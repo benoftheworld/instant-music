@@ -194,8 +194,15 @@ DATABASES = {
         "PASSWORD": env("POSTGRES_PASSWORD", default="postgres"),
         "HOST": env("POSTGRES_HOST", default="localhost"),
         "PORT": env("POSTGRES_PORT", default="5432"),
-        "CONN_MAX_AGE": 600,
+        "CONN_MAX_AGE": env.int("DB_CONN_MAX_AGE", default=600),
         "CONN_HEALTH_CHECKS": True,
+        "OPTIONS": {
+            "pool": {
+                "min_size": env.int("DB_POOL_MIN_SIZE", default=2),
+                "max_size": env.int("DB_POOL_MAX_SIZE", default=4),
+                "timeout": 10,
+            },
+        },
     }
 }
 

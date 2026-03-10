@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRegister } from '@/hooks/useAuth';
 import { userService } from '@/services/userService';
+import { Button, Alert, FormField } from '@/components/ui';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -99,81 +100,47 @@ export default function RegisterPage() {
         <h1 className="text-3xl font-bold mb-6 text-center">Inscription</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Nom d'utilisateur
-            </label>
-            <input
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              onBlur={handleUsernameBlur}
-              className="input"
-              required
-            />
-            {usernameError && (
-              <p className="text-sm text-red-600 mt-1">{usernameError}</p>
-            )}
-            {usernameAvailable && (
-              <p className="text-sm text-green-600 mt-1">Pseudonyme disponible.</p>
-            )}
-            {checkingUsername && (
-              <p className="text-sm text-gray-500 mt-1">Vérification...</p>
-            )}
-          </div>
+          <FormField
+            label="Nom d'utilisateur"
+            type="text"
+            name="username"
+            value={formData.username}
+            onChange={handleChange}
+            onBlur={handleUsernameBlur}
+            required
+            error={usernameError ?? undefined}
+            hint={usernameAvailable ? 'Pseudonyme disponible.' : checkingUsername ? 'Vérification...' : undefined}
+          />
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              onBlur={handleEmailBlur}
-              className="input"
-              required
-            />
-            {emailError && (
-              <p className="text-sm text-red-600 mt-1">{emailError}</p>
-            )}
-            {emailAvailable && (
-              <p className="text-sm text-green-600 mt-1">Email disponible.</p>
-            )}
-            {checkingEmail && (
-              <p className="text-sm text-gray-500 mt-1">Vérification...</p>
-            )}
-          </div>
+          <FormField
+            label="Email"
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            onBlur={handleEmailBlur}
+            required
+            error={emailError ?? undefined}
+            hint={emailAvailable ? 'Email disponible.' : checkingEmail ? 'Vérification...' : undefined}
+          />
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Mot de passe
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="input"
-              required
-            />
-          </div>
+          <FormField
+            label="Mot de passe"
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+          />
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Confirmer le mot de passe
-            </label>
-            <input
-              type="password"
-              name="password2"
-              value={formData.password2}
-              onChange={handleChange}
-              className="input"
-              required
-            />
-          </div>
+          <FormField
+            label="Confirmer le mot de passe"
+            type="password"
+            name="password2"
+            value={formData.password2}
+            onChange={handleChange}
+            required
+          />
 
           <div className="flex items-start gap-2">
             <input
@@ -194,14 +161,13 @@ export default function RegisterPage() {
           </div>
 
           {registerMutation.isError && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <Alert variant="error">
               <p className="font-semibold">Erreur lors de l'inscription</p>
               <div className="mt-2 text-sm">
                 {(() => {
                   const err = (registerMutation.error as any)?.response?.data;
                   if (!err) return <div>Erreur inconnue</div>;
                   if (typeof err === 'string') return <div>{err}</div>;
-                  // err is likely an object with field arrays
                   return Object.entries(err).map(([k, v]) => (
                     <div key={k}>
                       <strong>{k}:</strong> {Array.isArray(v) ? v.join(' ') : String(v)}
@@ -209,13 +175,13 @@ export default function RegisterPage() {
                   ));
                 })()}
               </div>
-            </div>
+            </Alert>
           )}
 
-          <button
+          <Button
             type="submit"
+            loading={registerMutation.isPending}
             disabled={
-              registerMutation.isPending ||
               Boolean(usernameError) ||
               Boolean(emailError) ||
               usernameAvailable === false ||
@@ -223,10 +189,10 @@ export default function RegisterPage() {
               checkingUsername ||
               checkingEmail
             }
-            className="btn-primary w-full"
+            className="w-full"
           >
-            {registerMutation.isPending ? 'Inscription...' : 'S\'inscrire'}
-          </button>
+            S'inscrire
+          </Button>
         </form>
 
         <p className="text-center mt-4 text-gray-600">

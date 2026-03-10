@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { statsService } from '@/services/statsService';
 import { getMediaUrl } from '@/services/api';
+import { PageLoader, Avatar } from '@/components/ui';
 import type { UserPublicProfile } from '@/types';
 
 export default function PublicProfilePage() {
@@ -40,8 +41,8 @@ export default function PublicProfilePage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8 flex justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="container mx-auto px-4 py-8">
+        <PageLoader />
       </div>
     );
   }
@@ -71,9 +72,7 @@ export default function PublicProfilePage() {
               className="w-20 h-20 rounded-full object-cover ring-4 ring-primary-100"
             />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-3xl font-bold ring-4 ring-primary-100">
-              {profile.username.charAt(0).toUpperCase()}
-            </div>
+            <Avatar src={null} username={profile.username} size="xl" className="ring-4 ring-primary-100" />
           )}
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold truncate">{profile.username}</h1>

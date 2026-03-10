@@ -2,6 +2,7 @@ import { getMediaUrl } from '@/services/api';
 import { formatAnswer } from '@/utils/formatAnswer';
 import { useAudioPlayerOnResults } from './shared';
 import { BONUS_META } from '@/constants/bonuses';
+import { Avatar } from '@/components/ui';
 import type { GameRound, GamePlayer, BonusType } from '@/types';
 
 /** Per-player score data for the current round (from backend round_ended event) */
@@ -223,18 +224,7 @@ export default function RoundResultsScreen({
                   </div>
 
                   {/* Avatar */}
-                  {player.avatar ? (
-                    <img
-                      src={getMediaUrl(player.avatar) ?? player.avatar}
-                      alt={player.username}
-                      className="w-10 h-10 rounded-full object-cover shrink-0"
-                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                      {player.username.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar username={player.username} src={player.avatar} size="sm" className="shrink-0" />
 
                   {/* Player Info */}
                   <div className="flex-1 min-w-0">

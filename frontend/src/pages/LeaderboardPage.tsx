@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { getMediaUrl } from '@/services/api';
 import { statsService } from '@/services/achievementService';
 import { LEADERBOARD_TABS } from '@/constants/gameModes';
 import { useAuthStore } from '@/store/authStore';
+import { Avatar, LoadingState } from '@/components/ui';
 import type { LeaderboardEntry, TeamLeaderboardEntry, GameMode } from '@/types';
 import { Link } from 'react-router-dom';
 
@@ -12,39 +12,6 @@ type LeaderboardTab = GameMode | 'general' | 'teams';
 /* ── Helpers ───────────────────────────────────────────────────────── */
 
 const MEDAL = ['🥇', '🥈', '🥉'];
-
-function Avatar({
-  name,
-  avatar,
-  size = 'md',
-}: {
-  name: string;
-  avatar?: string | null;
-  size?: 'sm' | 'md' | 'lg';
-}) {
-  const cls =
-    size === 'lg'
-      ? 'w-20 h-20 text-2xl'
-      : size === 'sm'
-      ? 'w-9 h-9 text-sm'
-      : 'w-12 h-12 text-base';
-  if (avatar) {
-    return (
-      <img
-        src={getMediaUrl(avatar)}
-        alt={name}
-        className={`${cls} rounded-full object-cover ring-2 ring-dark/10`}
-      />
-    );
-  }
-  return (
-    <div
-      className={`${cls} rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold ring-2 ring-dark/10`}
-    >
-      {name.charAt(0).toUpperCase()}
-    </div>
-  );
-}
 
 /* ── Podium ────────────────────────────────────────────────────────── */
 
@@ -63,7 +30,7 @@ function Podium({ players }: { players: LeaderboardEntry[] }) {
         <div key={col} className="flex flex-col items-center gap-1 w-28 sm:w-36">
           <span className="text-2xl sm:text-3xl">{col === 1 ? '👑' : MEDAL[col === 0 ? 1 : 2]}</span>
           <div className={`ring-2 ${ring} rounded-full`}>
-            <Avatar name={player.username} avatar={player.avatar} size={col === 1 ? 'lg' : 'md'} />
+            <Avatar username={player.username} src={player.avatar} size={col === 1 ? 'lg' : 'md'} />
           </div>
           <Link
             to={`/profile/${player.user_id}`}
@@ -150,7 +117,7 @@ function PlayerTable({
                 </td>
                 <td className="pr-3 py-3">
                   <div className="flex items-center gap-2.5">
-                    <Avatar name={player.username} avatar={player.avatar} size="sm" />
+                    <Avatar username={player.username} src={player.avatar} size="sm" />
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <Link
@@ -260,17 +227,7 @@ function TeamTable({ teams }: { teams: TeamLeaderboardEntry[] }) {
                 </td>
                 <td className="pr-3 py-3">
                   <div className="flex items-center gap-2.5">
-                    {team.avatar ? (
-                      <img
-                        src={getMediaUrl(team.avatar)}
-                        alt={team.name}
-                        className="w-9 h-9 rounded-full object-cover ring-2 ring-dark/10"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm ring-2 ring-dark/10">
-                        {team.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <Avatar username={team.name} src={team.avatar} size="sm" />
                     <div className="min-w-0">
                       <Link
                         to={`/teams/${team.team_id}`}
@@ -480,9 +437,7 @@ export default function LeaderboardPage() {
 
         {/* ── Content ────────────────────────────────────────── */}
         {loading ? (
-          <div className="flex justify-center items-center py-24">
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-cream-300 border-t-primary-500" />
-          </div>
+          <LoadingState message="Chargement du classement..." />
         ) : error ? (
           <div className="text-center py-16">
             <p className="text-red-600">{error}</p>

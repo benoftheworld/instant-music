@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api, getMediaUrl } from '@/services/api';
 import { getModeIcon } from '@/constants/gameModes';
+import { LoadingState, EmptyState } from '@/components/ui';
 import type { GameHistory } from '@/types';
 import { Link } from 'react-router-dom';
 
@@ -33,19 +34,11 @@ export default function RecentGames() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (games.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        <p>Aucune partie récente</p>
-      </div>
-    );
+    return <EmptyState title="Aucune partie récente" />;
   }
 
   return (

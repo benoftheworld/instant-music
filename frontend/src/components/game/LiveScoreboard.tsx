@@ -1,4 +1,4 @@
-import { getMediaUrl } from '@/services/api';
+import { Avatar, Badge, EmptyState } from '@/components/ui';
 import type { GamePlayer } from '@/types';
 
 interface LiveScoreboardProps {
@@ -46,26 +46,16 @@ const LiveScoreboard = ({ players }: LiveScoreboardProps) => {
               </div>
 
               {/* Avatar */}
-              {player.avatar ? (
-                <img
-                  src={getMediaUrl(player.avatar)}
-                  alt={player.username}
-                  className="w-10 h-10 rounded-full"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
-                  {player.username.charAt(0).toUpperCase()}
-                </div>
-              )}
+              <Avatar src={player.avatar} username={player.username} />
 
               {/* Username */}
               <div>
                 <p className="font-semibold text-dark flex items-center gap-1">
                   {player.username}
                   {(player.consecutive_correct ?? 0) >= 2 && (
-                    <span className="text-xs font-bold text-primary-500">
-                      🔥×{player.consecutive_correct}
-                    </span>
+                    <Badge variant="primary" size="sm" icon="🔥">
+                      ×{player.consecutive_correct}
+                    </Badge>
                   )}
                 </p>
                 {!player.is_connected && (
@@ -84,9 +74,7 @@ const LiveScoreboard = ({ players }: LiveScoreboardProps) => {
       </div>
 
       {players.length === 0 && (
-        <div className="text-center text-dark-300 py-8">
-          Aucun joueur
-        </div>
+        <EmptyState title="Aucun joueur" />
       )}
     </div>
   );

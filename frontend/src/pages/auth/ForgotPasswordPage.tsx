@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { authService } from '@/services/authService';
+import { Button, Alert, FormField } from '@/components/ui';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -25,9 +26,9 @@ export default function ForgotPasswordPage() {
 
         {submitted ? (
           <div className="space-y-4">
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+            <Alert variant="success">
               Si un compte existe avec cette adresse, un lien de réinitialisation vous a été envoyé.
-            </div>
+            </Alert>
             <p className="text-center text-gray-600">
               <Link to="/login" className="text-primary-600 hover:underline">
                 Retour à la connexion
@@ -41,27 +42,18 @@ export default function ForgotPasswordPage() {
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Adresse email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input"
-                  required
-                  autoComplete="email"
-                />
-              </div>
+              <FormField
+                label="Adresse email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+              />
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="btn-primary w-full"
-              >
-                {isLoading ? 'Envoi...' : 'Envoyer le lien'}
-              </button>
+              <Button type="submit" loading={isLoading} className="w-full">
+                Envoyer le lien
+              </Button>
             </form>
 
             <p className="text-center mt-4 text-gray-600">

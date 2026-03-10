@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { youtubeService } from '../../services/youtubeService';
+import { Spinner, EmptyState } from '@/components/ui';
 import type { YouTubeTrack, KaraokeTrack } from '../../types';
 
 interface YouTubeSongSearchProps {
@@ -137,7 +138,7 @@ export default function YouTubeSongSearch({
         </svg>
         {loading && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600" />
+            <Spinner size="sm" />
           </div>
         )}
       </div>
@@ -177,10 +178,10 @@ export default function YouTubeSongSearch({
       )}
 
       {searched && !loading && results.length === 0 && !error && (
-        <div className="text-center py-6 text-gray-500">
-          <p className="text-sm">Aucun résultat trouvé pour « {query} »</p>
-          <p className="text-xs mt-1">Essayez avec d'autres mots-clés</p>
-        </div>
+        <EmptyState
+          title={`Aucun résultat trouvé pour « ${query} »`}
+          description="Essayez avec d'autres mots-clés"
+        />
       )}
 
       {!searched && (

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { friendshipService } from '@/services/socialService';
 import { getApiErrorMessage } from '@/utils/apiError';
-import { getMediaUrl } from '@/services/api';
+import { Avatar, Alert, Button, EmptyState, LoadingState } from '@/components/ui';
 import type { Friend, Friendship, UserMinimal } from '@/types';
 
 export default function FriendsPage() {
@@ -97,12 +97,13 @@ export default function FriendsPage() {
 
         {/* Message */}
         {message && (
-          <div className={`mb-4 p-3 rounded-lg ${
-            message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-          }`}>
+          <Alert
+            variant={message.type}
+            onClose={() => setMessage(null)}
+            className="mb-4"
+          >
             {message.text}
-            <button onClick={() => setMessage(null)} className="float-right">&times;</button>
-          </div>
+          </Alert>
         )}
 
         {/* Tabs */}
@@ -137,32 +138,19 @@ export default function FriendsPage() {
         {activeTab === 'friends' && (
           <div className="card">
             {loading ? (
-              <div className="text-center py-8 text-gray-400">Chargement...</div>
+              <LoadingState message="Chargement..." />
             ) : friends.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
-                <p>Aucun ami pour le moment</p>
-                <button
-                  onClick={() => setActiveTab('search')}
-                  className="btn-primary mt-4"
-                >
-                  Ajouter des amis
-                </button>
-              </div>
+              <EmptyState
+                title="Aucun ami pour le moment"
+                action={
+                  <Button onClick={() => setActiveTab('search')}>Ajouter des amis</Button>
+                }
+              />
             ) : (
               <div className="space-y-3">
                 {friends.map((friend) => (
                   <div key={friend.friendship_id} className="flex items-center gap-4 p-4 bg-cream-100 rounded-lg">
-                    {friend.user.avatar ? (
-                      <img
-                        src={getMediaUrl(friend.user.avatar)}
-                        alt={friend.user.username}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
-                        {friend.user.username.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <Avatar src={friend.user.avatar} username={friend.user.username} size="lg" />
                     <div className="flex-1">
                       <p className="font-bold">{friend.user.username}</p>
                       <p className="text-sm text-gray-500">{friend.user.total_points} points</p>
@@ -190,9 +178,7 @@ export default function FriendsPage() {
               <div className="space-y-3 mb-6">
                 {pendingRequests.map((request) => (
                   <div key={request.id} className="flex items-center gap-4 p-4 bg-primary-50 rounded-lg border border-primary-200">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
-                      {request.from_user.username.charAt(0).toUpperCase()}
-                    </div>
+                    <Avatar src={null} username={request.from_user.username} />
                     <div className="flex-1">
                       <p className="font-bold">{request.from_user.username}</p>
                       <p className="text-xs text-gray-500">
@@ -223,9 +209,7 @@ export default function FriendsPage() {
               <div className="space-y-3">
                 {sentRequests.map((request) => (
                   <div key={request.id} className="flex items-center gap-4 p-4 bg-cream-100 rounded-lg">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
-                      {request.to_user.username.charAt(0).toUpperCase()}
-                    </div>
+                    <Avatar src={null} username={request.to_user.username} />
                     <div className="flex-1">
                       <p className="font-bold">{request.to_user.username}</p>
                     </div>
@@ -258,17 +242,7 @@ export default function FriendsPage() {
               <div className="space-y-3">
                 {searchResults.map((user) => (
                   <div key={user.id} className="flex items-center gap-4 p-4 bg-cream-100 rounded-lg">
-                    {user.avatar ? (
-                      <img
-                        src={getMediaUrl(user.avatar)}
-                        alt={user.username}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
-                        {user.username.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <Avatar src={user.avatar} username={user.username} size="lg" />
                     <div className="flex-1">
                       <p className="font-bold">{user.username}</p>
                       <p className="text-sm text-gray-500">{user.total_points} points</p>

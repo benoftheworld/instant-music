@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { YouTubePlaylist } from '../../types';
 import { youtubeService } from '../../services/youtubeService';
 import { DEFAULT_PLAYLISTS, PLAYLIST_CATEGORIES } from '../../constants/defaultPlaylists';
+import { Alert, LoadingState, EmptyState, Button } from '@/components/ui';
 
 interface PlaylistSelectorProps {
   onSelectPlaylist: (playlist: YouTubePlaylist) => void;
@@ -83,17 +84,12 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
   return (
     <div className="space-y-4">
       {/* Info Banner */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
-        <div className="flex items-start gap-2">
-          <span className="text-2xl flex-shrink-0 mt-0.5">🎵</span>
-          <div>
-            <p className="text-green-900 font-medium">🎶 Playlists Deezer recommandées</p>
-            <p className="text-green-700 mt-1">
-              Sélectionnez une playlist ci-dessous ou recherchez-en une sur Deezer.
-            </p>
-          </div>
-        </div>
-      </div>
+      <Alert variant="success" icon="🎶">
+        <p className="font-medium">🎶 Playlists Deezer recommandées</p>
+        <p className="mt-1">
+          Sélectionnez une playlist ci-dessous ou recherchez-en une sur Deezer.
+        </p>
+      </Alert>
 
       {/* Category Filter */}
       <div>
@@ -137,13 +133,12 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
               placeholder="Rechercher une playlist ou saisir un ID Deezer..."
               className="input flex-1"
             />
-            <button
+            <Button
               type="submit"
-              disabled={loading}
-              className="btn-primary"
+              loading={loading}
             >
-              {loading ? 'Recherche...' : 'Rechercher'}
-            </button>
+              Rechercher
+            </Button>
           </form>
 
           {/* Popular Searches */}
@@ -164,25 +159,20 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
           </div>
 
           {/* Info for search */}
-          <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 text-sm text-primary-700">
-            💡 Recherchez des playlists Deezer publiques, ou collez directement un ID numérique Deezer (ex : <strong>1234567890</strong>).
-          </div>
+          <Alert variant="info" icon="💡">
+            Recherchez des playlists Deezer publiques, ou collez directement un ID numérique Deezer (ex : <strong>1234567890</strong>).
+          </Alert>
         </div>
       )}
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
-          {error}
-        </div>
+        <Alert variant="error">{error}</Alert>
       )}
 
       {/* Loading State */}
       {loading && (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          <p className="mt-2 text-gray-600">Recherche en cours...</p>
-        </div>
+        <LoadingState message="Recherche en cours..." />
       )}
 
       {/* Playlist Grid */}
@@ -244,16 +234,12 @@ export default function PlaylistSelector({ onSelectPlaylist, selectedPlaylistId 
 
       {/* Empty State for defaults */}
       {!loading && !showSearch && defaultPlaylists.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          Aucune playlist dans cette catégorie
-        </div>
+        <EmptyState title="Aucune playlist dans cette catégorie" />
       )}
 
       {/* Empty State for search */}
       {!loading && showSearch && playlists.length === 0 && !error && (
-        <div className="text-center py-8 text-gray-500">
-          Recherchez une playlist ou retournez aux recommandations
-        </div>
+        <EmptyState title="Recherchez une playlist ou retournez aux recommandations" />
       )}
     </div>
   );

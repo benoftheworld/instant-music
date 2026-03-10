@@ -5,6 +5,7 @@ import { teamService } from '@/services/socialService';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { getMediaUrl } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
+import { Alert, Button, EmptyState, LoadingState } from '@/components/ui';
 import type { Team } from '@/types';
 
 export default function TeamsPage() {
@@ -78,12 +79,13 @@ export default function TeamsPage() {
 
         {/* Message */}
         {message && (
-          <div className={`mb-4 p-3 rounded-lg ${
-            message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-          }`}>
+          <Alert
+            variant={message.type}
+            onClose={() => setMessage(null)}
+            className="mb-4"
+          >
             {message.text}
-            <button onClick={() => setMessage(null)} className="float-right">&times;</button>
-          </div>
+          </Alert>
         )}
 
         {/* Tabs */}
@@ -113,17 +115,14 @@ export default function TeamsPage() {
         {activeTab === 'browse' && (
           <div className="space-y-4">
             {loading ? (
-              <div className="text-center py-8 text-gray-400">Chargement...</div>
+              <LoadingState message="Chargement..." />
             ) : allTeams.length === 0 ? (
-              <div className="card text-center py-8">
-                <p className="text-gray-400 mb-4">Aucune équipe disponible</p>
-                <button
-                  onClick={() => setActiveTab('create')}
-                  className="btn-primary"
-                >
-                  Créer la première équipe
-                </button>
-              </div>
+              <EmptyState
+                title="Aucune équipe disponible"
+                action={
+                  <Button onClick={() => setActiveTab('create')}>Créer la première équipe</Button>
+                }
+              />
             ) : (
               allTeams.map((team) => (
                 <TeamCard
@@ -169,13 +168,14 @@ export default function TeamsPage() {
                   maxLength={500}
                 />
               </div>
-              <button
+              <Button
                 type="submit"
-                disabled={creating || !newTeamName.trim()}
-                className="btn-primary w-full"
+                loading={creating}
+                disabled={!newTeamName.trim()}
+                className="w-full"
               >
-                {creating ? 'Création...' : 'Créer l\'équipe'}
-              </button>
+                Créer l'\u00e9quipe
+              </Button>
             </form>
           </div>
         )}

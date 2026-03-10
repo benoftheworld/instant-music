@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api, getMediaUrl } from '@/services/api';
 import { getModeIcon, LEADERBOARD_TABS } from '@/constants/gameModes';
+import { PageLoader, EmptyState, Button } from '@/components/ui';
 import type { GameHistory } from '@/types';
 import { Link } from 'react-router-dom';
 
@@ -69,9 +70,7 @@ export default function GameHistoryPage() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center items-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
+        <PageLoader />
       </div>
     );
   }
@@ -123,12 +122,10 @@ export default function GameHistoryPage() {
           </div>
 
           {games.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg mb-4">Aucune partie terminée pour le moment</p>
-          <Link to="/game/create" className="btn-primary">
-            Créer une partie
-          </Link>
-        </div>
+        <EmptyState
+          title="Aucune partie terminée pour le moment"
+          action={<Link to="/game/create" className="btn-primary">Créer une partie</Link>}
+        />
       ) : (
         <div className="space-y-4">
           {games.map((game) => (

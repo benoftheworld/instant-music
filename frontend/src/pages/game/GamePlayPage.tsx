@@ -311,7 +311,7 @@ export default function GamePlayPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
-        <div className="text-white text-2xl">Chargement...</div>
+        <div className="text-white text-2xl animate-pulse">Chargement...</div>
       </div>
     );
   }

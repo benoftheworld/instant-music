@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { authService } from '@/services/authService';
+import { Button, Alert, FormField } from '@/components/ui';
 
 export default function ResetPasswordPage() {
   const { uid, token } = useParams<{ uid: string; token: string }>();
@@ -44,47 +45,29 @@ export default function ResetPasswordPage() {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Nouveau mot de passe
-            </label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="input"
-              required
-              autoComplete="new-password"
-            />
-          </div>
+          <FormField
+            label="Nouveau mot de passe"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+            autoComplete="new-password"
+          />
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Confirmer le mot de passe
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="input"
-              required
-              autoComplete="new-password"
-            />
-          </div>
+          <FormField
+            label="Confirmer le mot de passe"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            autoComplete="new-password"
+          />
 
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
+          {error && <Alert variant="error">{error}</Alert>}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="btn-primary w-full"
-          >
-            {isLoading ? 'Enregistrement...' : 'Réinitialiser le mot de passe'}
-          </button>
+          <Button type="submit" loading={isLoading} className="w-full">
+            Réinitialiser le mot de passe
+          </Button>
         </form>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { teamService } from '@/services/socialService';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { getMediaUrl } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
+import { Alert, Avatar, PageLoader } from '@/components/ui';
 import type { Team, TeamMember, TeamMemberRole } from '@/types';
 
 export default function TeamPage() {
@@ -167,7 +168,7 @@ export default function TeamPage() {
     }
   };
 
-  if (loading) return <div className="container mx-auto px-4 py-8">Chargement...</div>;
+  if (loading) return <PageLoader message="Chargement de l'équipe..." />;
   if (!team) return <div className="container mx-auto px-4 py-8">Équipe introuvable.</div>;
 
   const myMembership = team.members_list.find(m => m.user.id === user?.id);
@@ -252,10 +253,13 @@ export default function TeamPage() {
         )}
 
         {message && (
-          <div className={`mb-4 p-3 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+          <Alert
+            variant={message.type}
+            onClose={() => setMessage(null)}
+            className="mb-4"
+          >
             {message.text}
-            <button onClick={() => setMessage(null)} className="float-right">&times;</button>
-          </div>
+          </Alert>
         )}
 
         <div className="card">
@@ -267,9 +271,7 @@ export default function TeamPage() {
                   {m.user.avatar ? (
                     <img src={getMediaUrl(m.user.avatar)} alt={m.user.username} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" />
                   ) : (
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold flex-shrink-0">
-                      {m.user.username.charAt(0).toUpperCase()}
-                    </div>
+                    <Avatar username={m.user.username} size="sm" className="flex-shrink-0" />
                   )}
                   <div className="min-w-0">
                     <div className="font-medium truncate">{m.user.username}</div>
@@ -319,9 +321,7 @@ export default function TeamPage() {
                         {r.user.avatar ? (
                           <img src={getMediaUrl(r.user.avatar)} alt={r.user.username} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                         ) : (
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold flex-shrink-0">
-                            {r.user.username.charAt(0).toUpperCase()}
-                          </div>
+                          <Avatar username={r.user.username} size="sm" className="flex-shrink-0" />
                         )}
                         <div className="min-w-0">
                           <div className="font-medium truncate">{r.user.username}</div>
