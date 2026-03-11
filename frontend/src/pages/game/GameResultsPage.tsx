@@ -75,7 +75,7 @@ function RoundRow({ round, players }: { round: RoundDetail; players: GamePlayer[
   return (
     <div className="bg-white border border-cream-300 rounded-2xl overflow-hidden">
       {/* Round header */}
-      <div className="flex items-center justify-between px-5 py-3 bg-cream-200 border-b border-cream-300">
+      <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-primary-600 to-primary-500 border-b border-cream-300 text-white">
         <div className="flex items-center gap-3">
           <span className="bg-primary-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
             Round {round.round_number}
