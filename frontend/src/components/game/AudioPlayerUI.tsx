@@ -33,7 +33,7 @@ export function AudioPlayerUI({
             ▶️ Écouter
           </button>
         ) : isPlaying ? (
-          <span className="flex items-center gap-1 text-xs text-white-600 font-medium">
+          <span className="flex items-center gap-1 text-xs font-medium text-white">
             <span className="animate-pulse">🎵</span> En écoute
           </span>
         ) : (

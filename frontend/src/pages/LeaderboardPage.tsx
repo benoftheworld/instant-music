@@ -84,7 +84,7 @@ function PlayerTable({
     <div className="bg-white border border-cream-300 rounded-2xl overflow-hidden">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-gradient-to-r from-primary-600 to-primary-500 text-light-300 text-xs uppercase tracking-wider border-b border-cream-300">
+          <tr className="bg-gradient-to-r from-primary-600 to-primary-500 text-xs uppercase tracking-wider border-b border-cream-300 text-white">
             <th className="text-center px-3 py-3 w-14">#</th>
             <th className="text-left pr-3 py-3">Joueur</th>
             <th className="text-center pr-3 py-3 hidden sm:table-cell w-20">Parties</th>
@@ -198,7 +198,7 @@ function TeamTable({ teams }: { teams: TeamLeaderboardEntry[] }) {
     <div className="bg-white border border-cream-300 rounded-2xl overflow-hidden">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-gradient-to-r from-primary-600 to-primary-500 text-light-300 text-xs uppercase tracking-wider border-b border-cream-300">
+          <tr className="bg-gradient-to-r from-primary-600 to-primary-500 text-xs uppercase tracking-wider border-b border-cream-300 text-white">
             <th className="text-center px-3 py-3 w-14">#</th>
             <th className="text-left pr-3 py-3">Équipe</th>
             <th className="text-center pr-3 py-3 hidden sm:table-cell w-24">Membres</th>
