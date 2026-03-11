@@ -1,13 +1,7 @@
-import { useState } from 'react';
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { statsService } from '@/services/achievementService';
-import { LEADERBOARD_TABS } from '@/constants/gameModes';
-import { useAuthStore } from '@/store/authStore';
 import { Avatar, LoadingState } from '@/components/ui';
-import type { LeaderboardEntry, TeamLeaderboardEntry, GameMode } from '@/types';
+import type { LeaderboardEntry, TeamLeaderboardEntry } from '@/types';
 import { Link } from 'react-router-dom';
-
-type LeaderboardTab = GameMode | 'general' | 'teams';
+import { useLeaderboardPage } from '@/hooks/pages/useLeaderboardPage';
 
 /* ── Helpers ───────────────────────────────────────────────────────── */
 
@@ -324,66 +318,23 @@ function Pagination({
 /* ── Main page ─────────────────────────────────────────────────────── */
 
 export default function LeaderboardPage() {
-  const user = useAuthStore((s) => s.user);
-  const [selectedMode, setSelectedMode] = useState<LeaderboardTab>('general');
-  const [page, setPage] = useState<number>(1);
-  const pageSize = 50;
-
-  const { data, isLoading: loading, error: queryError } = useQuery({
-    queryKey: ['leaderboard', selectedMode, page, pageSize],
-    queryFn: async () => {
-      if (selectedMode === 'teams') {
-        const data = await statsService.getTeamLeaderboard(page, pageSize);
-        return { players: [] as LeaderboardEntry[], teams: data.results ?? [], totalCount: data.count ?? null };
-      } else if (selectedMode === 'general') {
-        const data = await statsService.getLeaderboard(page, pageSize);
-        return { players: data.results ?? [], teams: [] as TeamLeaderboardEntry[], totalCount: data.count ?? null };
-      } else {
-        const data = await statsService.getLeaderboardByMode(selectedMode, page, pageSize);
-        return { players: data.results ?? [], teams: [] as TeamLeaderboardEntry[], totalCount: data.count ?? null };
-      }
-    },
-    placeholderData: keepPreviousData,
-    staleTime: 30_000,
-  });
-
-  const players = data?.players ?? [];
-  const teams = data?.teams ?? [];
-  const totalCount = data?.totalCount ?? null;
-  const error = queryError ? 'Impossible de charger le classement' : null;
-
-  const handleModeChange = (mode: LeaderboardTab) => {
-    setSelectedMode(mode);
-    setPage(1);
-  };
-
-  const handlePrev = () => {
-    if (page > 1) setPage(page - 1);
-  };
-  const handleNext = () => {
-    if (totalCount === null) return;
-    const totalPages = Math.ceil(totalCount / pageSize);
-    if (page < totalPages) setPage(page + 1);
-  };
-
-  /* ── Separate primary / mode tabs ───────────────────────────── */
-  const primaryTabs = LEADERBOARD_TABS.filter(
-    (t) => t.value === 'general' || t.value === 'teams',
-  );
-  const modeTabs = LEADERBOARD_TABS.filter(
-    (t) => t.value !== 'general' && t.value !== 'teams',
-  );
-
-  const subtitleMap: Record<string, string> = {
-    general: 'Les meilleurs joueurs de tous les temps',
-    teams: 'Les meilleures équipes — stats dédupliquées par partie',
-    classique: 'Classement par points en mode Classique',
-    rapide: 'Classement par points en mode Rapide',
-    generation: 'Classement par points en mode Génération',
-    paroles: 'Classement par points en mode Paroles',
-    karaoke: 'Classement par points en mode Karaoké',
-    mollo: 'Classement par points en mode Mollo',
-  };
+  const {
+    user,
+    selectedMode,
+    page,
+    pageSize,
+    goNext,
+    goPrev,
+    players,
+    teams,
+    totalCount,
+    loading,
+    error,
+    handleModeChange,
+    primaryTabs,
+    modeTabs,
+    subtitleMap,
+  } = useLeaderboardPage();
 
   return (
     <div className="min-h-screen bg-cream-100 text-dark">
@@ -449,8 +400,8 @@ export default function LeaderboardPage() {
               page={page}
               totalCount={totalCount}
               pageSize={pageSize}
-              onPrev={handlePrev}
-              onNext={handleNext}
+              onPrev={goPrev}
+              onNext={goNext}
             />
           </>
         ) : (
@@ -461,8 +412,8 @@ export default function LeaderboardPage() {
               page={page}
               totalCount={totalCount}
               pageSize={pageSize}
-              onPrev={handlePrev}
-              onNext={handleNext}
+              onPrev={goPrev}
+              onNext={goNext}
             />
           </>
         )}

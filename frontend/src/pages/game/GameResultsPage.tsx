@@ -1,53 +1,9 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { gameService } from '../../services/gameService';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { BONUS_META } from '../../constants/bonuses';
 import { Avatar } from '@/components/ui';
 import type { BonusType, GamePlayer } from '@/types';
-
-interface RoundAnswer {
-  username: string;
-  answer: string;
-  is_correct: boolean;
-  points_earned: number;
-  response_time: number;
-  consecutive_correct?: number;
-  streak_bonus?: number;
-}
-
-interface RoundBonus {
-  username: string;
-  bonus_type: string;
-}
-
-interface RoundDetail {
-  round_number: number;
-  track_name: string;
-  artist_name: string;
-  correct_answer: string;
-  track_id: string;
-  answers: RoundAnswer[];
-  bonuses: RoundBonus[];
-}
-
-interface GameResult {
-  game: {
-    id: string;
-    room_code: string;
-    host: number;
-    status: string;
-    mode: string;
-    mode_display: string;
-    answer_mode: string;
-    answer_mode_display: string;
-    guess_target: string;
-    guess_target_display: string;
-    num_rounds: number;
-    is_party_mode: boolean;
-  };
-  rankings: GamePlayer[];
-  rounds: RoundDetail[];
-}
+import { useGameResultsPage, type RoundDetail } from '../../hooks/pages/useGameResultsPage';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
 const RANK_COLORS = [
@@ -223,28 +179,23 @@ function RoundRow({ round, players }: { round: RoundDetail; players: GamePlayer[
 }
 
 export default function GameResultsPage() {
-  const { roomCode } = useParams<{ roomCode: string }>();
-  const navigate = useNavigate();
-
-  const [results, setResults] = useState<GameResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [showFullRanking, setShowFullRanking] = useState(false);
-
-  useEffect(() => {
-    const loadResults = async () => {
-      if (!roomCode) return;
-      try {
-        const data = await gameService.getResults(roomCode);
-        setResults(data as unknown as GameResult);
-      } catch (error) {
-        console.error('Failed to load results:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadResults();
-  }, [roomCode]);
+  const {
+    roomCode,
+    navigate,
+    results,
+    loading,
+    downloadingPdf,
+    showFullRanking,
+    setShowFullRanking,
+    handleDownloadPdf,
+    game,
+    rankings,
+    rounds,
+    top3,
+    others,
+    winner,
+    podiumOrder,
+  } = useGameResultsPage();
 
   if (loading) {
     return (
@@ -254,7 +205,7 @@ export default function GameResultsPage() {
     );
   }
 
-  if (!results) {
+  if (!results || !game) {
     return (
       <div className="min-h-screen bg-cream-100 flex items-center justify-center">
         <div className="text-dark-400 text-xl">Résultats introuvables</div>
@@ -262,24 +213,8 @@ export default function GameResultsPage() {
     );
   }
 
-  const { rankings: rawRankings, rounds, game } = results;
-
-  // En mode soirée, exclure le présentateur (hôte) du classement
-  const rankings = game.is_party_mode
-    ? rawRankings.filter(p => String(p.user_id) !== String(game.host))
-    : rawRankings;
-
-  const top3 = rankings.slice(0, 3);
-  const others = rankings.slice(3);
-  const winner = rankings[0];
-
-  const podiumOrder = [
-    top3[1] ?? null,  // 2nd — left
-    top3[0] ?? null,  // 1st — center
-    top3[2] ?? null,  // 3rd — right
-  ];
   const podiumHeights = ['h-32', 'h-48', 'h-24'];
-  const podiumPos = [1, 0, 2]; // index into top3
+  const podiumPos = [1, 0, 2];
 
   return (
     <div className="min-h-screen bg-cream-100 text-dark">
@@ -447,17 +382,7 @@ export default function GameResultsPage() {
             ← Accueil
           </button>
           <button
-            onClick={async () => {
-              if (!roomCode) return;
-              setDownloadingPdf(true);
-              try {
-                await gameService.downloadResultsPdf(roomCode);
-              } catch (e) {
-                console.error('PDF download failed:', e);
-              } finally {
-                setDownloadingPdf(false);
-              }
-            }}
+            onClick={handleDownloadPdf}
             disabled={downloadingPdf}
             className="px-6 py-2.5 rounded-xl font-semibold bg-primary-600 hover:bg-primary-700 border border-primary-500 transition-all text-white disabled:opacity-50 flex items-center gap-2"
           >

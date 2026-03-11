@@ -1,71 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
-import { api, getMediaUrl } from '@/services/api';
+import { getMediaUrl } from '@/services/api';
 import { getModeIcon, LEADERBOARD_TABS } from '@/constants/gameModes';
 import { PageLoader, EmptyState } from '@/components/ui';
-import type { GameHistory } from '@/types';
 import { Link } from 'react-router-dom';
+import { useGameHistoryPage } from '@/hooks/pages/useGameHistoryPage';
 
 export default function GameHistoryPage() {
-  const [games, setGames] = useState<GameHistory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState<number>(1);
-  const [pageSize] = useState<number>(20);
-  const [totalCount, setTotalCount] = useState<number | null>(null);
-  const [selectedMode, setSelectedMode] = useState<string | null>(null);
-
-  const fetchGameHistory = useCallback(async (p: number, mode?: string) => {
-    try {
-      setLoading(true);
-      const params: Record<string, any> = { page: p, page_size: pageSize };
-      if (mode) params.mode = mode;
-      const response = await api.get('/games/history/', { params });
-      const data = response.data;
-      const results = Array.isArray(data) ? data : data.results ?? [];
-      setGames(results);
-      setTotalCount(!Array.isArray(data) ? data.count ?? null : null);
-    } catch (err) {
-      console.error('Failed to fetch game history:', err);
-      setError('Impossible de charger l\'historique des parties');
-    } finally {
-      setLoading(false);
-    }
-  }, [pageSize]);
-
-  useEffect(() => {
-    setPage(1);
-    fetchGameHistory(1, selectedMode ?? undefined);
-  }, [selectedMode, fetchGameHistory]);
-
-  const handlePrev = () => {
-    if (page > 1) {
-      const nextPage = page - 1;
-      setPage(nextPage);
-      fetchGameHistory(nextPage, selectedMode ?? undefined);
-    }
-  };
-
-  const handleNext = () => {
-    if (totalCount === null) return;
-    const totalPages = Math.ceil(totalCount / pageSize);
-    if (page < totalPages) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchGameHistory(nextPage, selectedMode ?? undefined);
-    }
-  };
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const {
+    games,
+    selectedMode,
+    setSelectedMode,
+    loading,
+    error,
+    page,
+    pageSize,
+    totalCount,
+    hasNext,
+    hasPrev,
+    handlePrev,
+    handleNext,
+    formatDate,
+  } = useGameHistoryPage();
 
   if (loading) {
     return (
@@ -216,16 +170,18 @@ export default function GameHistoryPage() {
         <div className="flex items-center justify-center gap-4 mt-6">
           <button
             onClick={handlePrev}
-            disabled={page <= 1}
-            className={`px-3 py-2 rounded-lg border ${page <= 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+            disabled={!hasPrev}
+            className={`px-3 py-2 rounded-lg border ${!hasPrev ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
           >
             Précédent
           </button>
-          <div className="text-sm text-gray-600">Page {page} / {Math.max(1, Math.ceil(totalCount / pageSize))}</div>
+          <div className="text-sm text-gray-600">
+            Page {page} / {Math.max(1, Math.ceil(totalCount / pageSize))}
+          </div>
           <button
             onClick={handleNext}
-            disabled={page >= Math.ceil(totalCount / pageSize)}
-            className={`px-3 py-2 rounded-lg border ${page >= Math.ceil(totalCount / pageSize) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+            disabled={!hasNext}
+            className={`px-3 py-2 rounded-lg border ${!hasNext ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
           >
             Suivant
           </button>

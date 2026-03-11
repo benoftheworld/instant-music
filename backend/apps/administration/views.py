@@ -6,7 +6,11 @@ GET /api/administration/status/
 """
 
 from django.views.decorators.cache import never_cache
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+)
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -54,8 +58,20 @@ def site_status(request):
 @authentication_classes([])
 @permission_classes([AllowAny])
 def legal_page(request, page_type: str):
-    """Return the content of a legal page (privacy policy or legal notices).
-    No authentication required — accessible to all visitors.
+    """Retourne le contenu d'une page légale. 
+    
+    Args:
+        request: HTTP request
+        page_type: type de la page légale ("privacy", "terms", etc.)
+    
+    Response:
+        200: {
+            "page_type": "privacy",
+            "title": "Politique de confidentialité",
+            "content": "...",
+            "updated_at": "2024-01-01T12:00:00Z"
+        }
+        404: {"detail": "Page introuvable."}
     """
     try:
         page = LegalPage.objects.get(page_type=page_type)

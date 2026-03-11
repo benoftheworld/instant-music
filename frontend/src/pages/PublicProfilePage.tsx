@@ -1,44 +1,11 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useAuthStore } from '@/store/authStore';
-import { statsService } from '@/services/statsService';
+import { Link } from 'react-router-dom';
 import { getMediaUrl } from '@/services/api';
 import { PageLoader, Avatar } from '@/components/ui';
 import { StatCard, MiniStat } from '@/components/ui/StatCard';
-import type { UserPublicProfile } from '@/types';
+import { usePublicProfilePage } from '@/hooks/pages/usePublicProfilePage';
 
 export default function PublicProfilePage() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const currentUser = useAuthStore((s) => s.user);
-  const [profile, setProfile] = useState<UserPublicProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Redirect to own profile page if viewing self
-  useEffect(() => {
-    if (id && currentUser && id === String(currentUser.id)) {
-      navigate('/profile', { replace: true });
-    }
-  }, [id, currentUser, navigate]);
-
-  useEffect(() => {
-    if (!id) return;
-
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const profileData = await statsService.getUserStats(id);
-        setProfile(profileData);
-      } catch {
-        setError('Impossible de charger le profil.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [id]);
+  const { navigate, profile, loading, error } = usePublicProfilePage();
 
   if (loading) {
     return (

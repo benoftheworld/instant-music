@@ -1,102 +1,24 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { gameService } from '../../services/gameService';
 import { GAME_MODE_CONFIG } from '@/constants/gameModes';
-import type { Game, GameMode } from '../../types';
+import type { GameMode } from '../../types';
+import { useJoinGamePage } from '../../hooks/pages/useJoinGamePage';
 
 export default function JoinGamePage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [roomCode, setRoomCode] = useState(searchParams.get('code') || '');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Public games
-  const [publicGames, setPublicGames] = useState<Game[]>([]);
-  const [publicLoading, setPublicLoading] = useState(true);
-  const [publicSearch, setPublicSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<'code' | 'public'>('public');
-
-  const loadPublicGames = useCallback(async () => {
-    setPublicLoading(true);
-    try {
-      const games = await gameService.getPublicGames(publicSearch || undefined);
-      setPublicGames(games);
-    } catch (err) {
-      console.error('Failed to load public games:', err);
-    } finally {
-      setPublicLoading(false);
-    }
-  }, [publicSearch]);
-
-  useEffect(() => {
-    loadPublicGames();
-    // Refresh every 15 seconds
-    const interval = setInterval(loadPublicGames, 15000);
-    return () => clearInterval(interval);
-  }, [loadPublicGames]);
-
-  // Debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      loadPublicGames();
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [publicSearch, loadPublicGames]);
-
-  const handleJoinGame = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!roomCode.trim()) {
-      setError('Veuillez entrer un code de salle');
-      return;
-    }
-
-    await joinByCode(roomCode.trim().toUpperCase());
-  };
-
-  const joinByCode = async (code: string) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const game = await gameService.getGame(code);
-
-      if (game.status === 'finished') {
-        setError('Cette partie est terminée');
-        return;
-      }
-
-      if (game.status === 'in_progress') {
-        setError('Cette partie est déjà en cours');
-        return;
-      }
-
-      if (game.player_count >= game.max_players) {
-        setError('Cette partie est complète');
-        return;
-      }
-
-      await gameService.joinGame(game.room_code);
-      navigate(`/game/lobby/${game.room_code}`);
-    } catch (err) {
-      console.error('Failed to join game:', err);
-      if (err && typeof err === 'object' && 'response' in err) {
-        const error = err as { response?: { status?: number; data?: { error?: string } } };
-        if (error.response?.status === 404) {
-          setError('Partie introuvable. Vérifiez le code et réessayez.');
-        } else if (error.response?.data?.error) {
-          setError(error.response.data.error);
-        } else {
-          setError('Erreur lors de la tentative de rejoindre la partie');
-        }
-      } else {
-        setError('Erreur lors de la tentative de rejoindre la partie');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    navigate,
+    roomCode,
+    setRoomCode,
+    publicGames,
+    publicLoading,
+    publicSearch,
+    setPublicSearch,
+    activeTab,
+    setActiveTab,
+    loading,
+    error,
+    setError,
+    joinByCode,
+    handleJoinGame,
+  } = useJoinGamePage();
 
   return (
     <div className="container mx-auto px-4 py-8">

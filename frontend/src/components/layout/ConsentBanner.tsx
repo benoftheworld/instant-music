@@ -1,28 +1,21 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/services/api';
+import useLocalStorage from '@/hooks/useLocalStorage';
 
 const CONSENT_KEY = 'rgpd_consent';
 
 export default function ConsentBanner() {
-  const [visible, setVisible] = useState(false);
+  const [consentDate, setConsentDate] = useLocalStorage<string | null>(CONSENT_KEY, null);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
-  useEffect(() => {
-    if (!localStorage.getItem(CONSENT_KEY)) {
-      setVisible(true);
-    }
-  }, []);
-
-  if (!visible) return null;
+  if (consentDate !== null) return null;
 
   const accept = () => {
-    localStorage.setItem(CONSENT_KEY, new Date().toISOString());
+    setConsentDate(new Date().toISOString());
     if (isAuthenticated) {
       api.post('/users/cookie_consent/').catch(() => {});
     }
-    setVisible(false);
   };
 
   return (
