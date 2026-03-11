@@ -6,7 +6,9 @@
 import type { WebSocketMessage } from '@/types';
 import { tokenService } from './tokenService';
 
-const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://127.0.0.1:8000';
+const WS_BASE_URL =
+  import.meta.env.VITE_WS_URL ||
+  `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
 
 type MessageCallback = (data: WebSocketMessage) => void;
 
