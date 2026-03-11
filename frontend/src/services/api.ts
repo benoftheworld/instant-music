@@ -5,7 +5,7 @@ import { tokenService } from './tokenService';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // Queue pour éviter plusieurs appels refresh simultanés (race condition).
-// Quand un refresh est déjà en cours, les requêtes 401 suivantes attendent
+// Quand un refresh est déjà en cours, les requêtes suivantes attendent
 // sa résolution avant d'être rejouées avec le nouveau token.
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -24,6 +24,42 @@ function processQueue(error: unknown, token: string | null = null): void {
   failedQueue = [];
 }
 
+/**
+ * Rafraîchit le token d'accès de façon centralisée.
+ * Si un refresh est déjà en cours, met en file d'attente et attend le résultat.
+ * En cas d'échec, déconnecte l'utilisateur et redirige vers /login.
+ */
+async function refreshAccessToken(): Promise<string> {
+  if (isRefreshing) {
+    return new Promise<string>((resolve, reject) => {
+      failedQueue.push({ resolve, reject });
+    });
+  }
+
+  isRefreshing = true;
+  try {
+    const refreshToken = tokenService.getRefreshToken();
+    if (!refreshToken) throw new Error('No refresh token available');
+
+    const response = await axios.post(`${API_URL}/api/auth/token/refresh/`, {
+      refresh: refreshToken,
+    });
+    const { access, refresh: newRefresh } = response.data;
+    tokenService.setAccessToken(access);
+    if (newRefresh) tokenService.setRefreshToken(newRefresh);
+
+    processQueue(null, access);
+    return access;
+  } catch (error) {
+    processQueue(error);
+    useAuthStore.getState().logout();
+    window.location.href = '/login';
+    throw error;
+  } finally {
+    isRefreshing = false;
+  }
+}
+
 class ApiService {
   private api: AxiosInstance;
 
@@ -35,67 +71,40 @@ class ApiService {
       },
     });
 
-    // Request interceptor to add auth token
+    // Intercepteur de requête : refresh proactif si le token est expiré ou
+    // sur le point de l'être (marge de 30 s). Évite que le backend reçoive
+    // des requêtes avec un token déjà invalide et logue des 401.
     this.api.interceptors.request.use(
-      (config) => {
+      async (config) => {
         const token = tokenService.getAccessToken();
         if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+          if (tokenService.isTokenExpired(token)) {
+            const freshToken = await refreshAccessToken();
+            config.headers.Authorization = `Bearer ${freshToken}`;
+          } else {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
         }
         return config;
       },
       (error) => Promise.reject(error)
     );
 
-    // Response interceptor for token refresh
+    // Intercepteur de réponse : filet de sécurité pour les 401 résiduels
+    // (token expiré entre l'envoi et la réception, ou endpoint hors axios).
     this.api.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
         const originalRequest = error.config as any;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
-          // Un refresh est déjà en cours : on met la requête en file d'attente
-          // pour éviter plusieurs appels concurrents à /token/refresh/.
-          if (isRefreshing) {
-            return new Promise<string>((resolve, reject) => {
-              failedQueue.push({ resolve, reject });
-            })
-              .then((token) => {
-                originalRequest.headers.Authorization = `Bearer ${token}`;
-                return this.api(originalRequest);
-              })
-              .catch((err) => Promise.reject(err));
-          }
-
           originalRequest._retry = true;
-          isRefreshing = true;
-
           try {
-            const refreshToken = tokenService.getRefreshToken();
-            if (refreshToken) {
-              const response = await axios.post(`${API_URL}/api/auth/token/refresh/`, {
-                refresh: refreshToken,
-              });
-
-              const { access, refresh: newRefresh } = response.data;
-              tokenService.setAccessToken(access);
-              if (newRefresh) {
-                tokenService.setRefreshToken(newRefresh);
-              }
-
-              processQueue(null, access);
-              originalRequest.headers.Authorization = `Bearer ${access}`;
-              return this.api(originalRequest);
-            }
+            const token = await refreshAccessToken();
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return this.api(originalRequest);
           } catch (refreshError) {
-            // Le refresh a échoué — on rejette toutes les requêtes en attente
-            // puis on vide le store et on redirige vers /login.
-            processQueue(refreshError);
-            useAuthStore.getState().logout();
-            window.location.href = '/login';
             return Promise.reject(refreshError);
-          } finally {
-            isRefreshing = false;
           }
         }
 

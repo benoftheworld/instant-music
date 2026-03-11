@@ -34,4 +34,18 @@ export const tokenService = {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
   },
+
+  /**
+   * Vérifie si un token JWT est expiré ou sur le point de l'être.
+   * @param token - Le JWT à vérifier
+   * @param bufferSeconds - Marge tampon avant l'expiration réelle (défaut : 30 s)
+   */
+  isTokenExpired(token: string, bufferSeconds = 30): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.exp * 1000 < Date.now() + bufferSeconds * 1000;
+    } catch {
+      return true;
+    }
+  },
 };
