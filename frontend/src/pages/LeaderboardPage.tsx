@@ -104,8 +104,8 @@ function PlayerTable({
                   isMe
                     ? 'bg-primary-100 border-l-2 border-l-primary-500'
                     : isTop3
-                    ? 'bg-cream-100'
-                    : 'hover:bg-cream-100'
+                    ? 'bg-cream-200'
+                    : 'hover:bg-cream-200'
                 }`}
               >
                 <td className="text-center px-3 py-3">
@@ -215,7 +215,7 @@ function TeamTable({ teams }: { teams: TeamLeaderboardEntry[] }) {
               <tr
                 key={team.team_id}
                 className={`border-t border-cream-200 transition-colors ${
-                  isTop3 ? 'bg-cream-100' : 'hover:bg-cream-100'
+                  isTop3 ? 'bg-cream-200' : 'hover:bg-cream-200'
                 }`}
               >
                 <td className="text-center px-3 py-3">
