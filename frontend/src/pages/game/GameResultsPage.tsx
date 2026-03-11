@@ -78,14 +78,14 @@ function RoundRow({ round, players }: { round: RoundDetail; players: GamePlayer[
       <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-primary-600 to-primary-500 border-b border-cream-300 text-white">
         <div className="flex items-center gap-3">
           <span className="bg-primary-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
-            Round {round.round_number}
+            Manche {round.round_number}
           </span>
-          <span className="text-dark font-semibold truncate max-w-xs">
+          <span className="text-light font-semibold truncate max-w-xs">
             {round.track_name}
           </span>
-          <span className="text-dark-300 text-sm hidden sm:inline">— {round.artist_name}</span>
+          <span className="text-light-300 text-sm hidden sm:inline">— {round.artist_name}</span>
         </div>
-        <span className="text-primary-600 text-sm font-medium shrink-0">
+        <span className="text-sm font-medium shrink-0">
           ✅ {round.correct_answer}
         </span>
       </div>
@@ -93,7 +93,7 @@ function RoundRow({ round, players }: { round: RoundDetail; players: GamePlayer[
       {/* Bonus utilisés ce round */}
       {round.bonuses && round.bonuses.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 px-5 py-2 bg-cream-100 border-b border-cream-200">
-          <span className="text-dark-300 text-xs uppercase tracking-wider shrink-0">Bonus&nbsp;:</span>
+          <span className="text-light-300 text-xs uppercase tracking-wider shrink-0">Bonus&nbsp;:</span>
           {round.bonuses.map((b, i) => {
             const meta = BONUS_META[b.bonus_type as BonusType];
             return (
@@ -303,7 +303,7 @@ export default function GameResultsPage() {
               </span>
             )}
             <span className="px-3 py-1 rounded-full text-xs font-semibold bg-cream-300 border border-cream-400 text-dark-400">
-              {game.num_rounds} rounds
+              {game.num_rounds} manches
             </span>
           </div>
         </div>
@@ -426,10 +426,10 @@ export default function GameResultsPage() {
           )}
         </div>
 
-        {/* ── Détail par round ───────────────────────────────────── */}
+        {/* ── Détail par manche ───────────────────────────────────── */}
         {rounds.length > 0 && (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-dark-500">🎵 Détail par round</h2>
+            <h2 className="text-xl font-bold text-dark-500">🎵 Détail par manche</h2>
             <div className="space-y-3">
               {rounds.map((round) => (
                 <RoundRow key={round.round_number} round={round} players={rankings} />
