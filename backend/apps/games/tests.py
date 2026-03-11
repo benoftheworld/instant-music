@@ -343,7 +343,8 @@ class TestPublicGamesAndHistory:
         _make_game(host, is_public=True, is_online=True)
         response = self.client.get("/api/games/public/")
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) >= 1
+        assert response.data["count"] >= 1
+        assert len(response.data["results"]) >= 1
 
     def test_private_games_not_listed(self):
         host = User.objects.create_user(
@@ -354,7 +355,7 @@ class TestPublicGamesAndHistory:
         _make_game(host, is_public=False, is_online=True)
         response = self.client.get("/api/games/public/")
         assert response.status_code == status.HTTP_200_OK
-        codes = [g["room_code"] for g in response.data]
+        codes = [g["room_code"] for g in response.data["results"]]
         assert not any(
             Game.objects.filter(room_code=c, is_public=False).exists() for c in codes
         )

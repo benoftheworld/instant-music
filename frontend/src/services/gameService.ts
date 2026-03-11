@@ -73,8 +73,8 @@ export const gameService = {
 
   async getPublicGames(search?: string): Promise<Game[]> {
     const params = search ? { search } : {};
-    const response = await api.get<Game[]>('/games/public/', { params });
-    return response.data;
+    const response = await api.get<{ results: Game[] }>('/games/public/', { params });
+    return response.data.results;
   },
 
   async getCurrentRound(roomCode: string): Promise<CurrentRoundResponse> {
