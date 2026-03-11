@@ -209,7 +209,7 @@ function RoundRow({ round, players }: { round: RoundDetail; players: GamePlayer[
       {rest.length > 0 && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full py-2.5 text-dark-300 hover:text-dark text-xs font-medium border-t border-cream-200 transition-colors hover:bg-cream-200 flex items-center justify-center gap-1"
+          className="w-full py-2.5 text-dark-300 hover:text-dark text-xs font-medium border-t border-cream-200 transition-colors hover:bg-cream-100 flex items-center justify-center gap-1"
         >
           {expanded ? (
             <><span>↑ Masquer</span></>
@@ -401,7 +401,7 @@ export default function GameResultsPage() {
             {!showFullRanking && others.length > 0 && (
               <button
                 onClick={() => setShowFullRanking(true)}
-                className="w-full py-3 text-dark-300 hover:text-dark text-xs font-medium border-t border-cream-200 transition-colors hover:bg-cream-200"
+                className="w-full py-3 text-dark-300 hover:text-dark text-xs font-medium border-t border-cream-200 transition-colors hover:bg-cream-100"
               >
                 ↓ + {others.length} autre{others.length > 1 ? 's' : ''} joueur{others.length > 1 ? 's' : ''}
               </button>
