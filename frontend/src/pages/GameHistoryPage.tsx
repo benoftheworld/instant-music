@@ -201,7 +201,7 @@ export default function GameHistoryPage() {
                 <div className="md:col-span-1 text-right">
                   <Link
                     to={`/game/${game.room_code}/results`}
-                    className="btn-secondary text-sm inline-block"
+                    className="btn-primary text-sm text-light inline-block"
                   >
                     Détails
                   </Link>
