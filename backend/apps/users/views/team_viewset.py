@@ -46,8 +46,7 @@ class TeamViewSet(viewsets.ModelViewSet):
     def create(self, request):
         """Create a new team."""
         serializer = TeamCreateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
         with transaction.atomic():
             team = Team.objects.create(
@@ -83,8 +82,7 @@ class TeamViewSet(viewsets.ModelViewSet):
             data=request.data,
             context={"request": request, "team": team},
         )
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
         join_request, created = TeamJoinRequest.objects.get_or_create(
             team=team,

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/authService';
 import { shopService } from '@/services/shopService';
+import { QUERY_KEYS } from '@/constants/queryKeys';
 import type { ShopItem, ShopSummary, UserInventoryEntry } from '@/types';
 
 export function useShopPage() {
@@ -15,17 +16,17 @@ export function useShopPage() {
   const [activeTab, setActiveTab] = useState<'bonus' | 'physical' | 'inventory'>('bonus');
 
   const { data: items = [], isLoading: itemsLoading } = useQuery<ShopItem[]>({
-    queryKey: ['shop', 'items'],
+    queryKey: QUERY_KEYS.shopItems(),
     queryFn: () => shopService.getItems(),
   });
 
   const { data: summary = null } = useQuery<ShopSummary | null>({
-    queryKey: ['shop', 'summary'],
+    queryKey: QUERY_KEYS.shopSummary(),
     queryFn: () => shopService.getSummary(),
   });
 
   const { data: inventory = [], isLoading: inventoryLoading } = useQuery<UserInventoryEntry[]>({
-    queryKey: ['shop', 'inventory'],
+    queryKey: QUERY_KEYS.shopInventory(),
     queryFn: () => shopService.getInventory(),
   });
 
@@ -42,7 +43,7 @@ export function useShopPage() {
     onSuccess: async (_data, item) => {
       const freshUser = await authService.getCurrentUser();
       updateUser(freshUser);
-      await queryClient.invalidateQueries({ queryKey: ['shop'] });
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.shop() });
 
       setNotification({
         type: 'success',

@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { gameService } from '@/services/gameService';
 import { Avatar, LoadingState, EmptyState } from '@/components/ui';
+import { QUERY_KEYS } from '@/constants/queryKeys';
 import type { LeaderboardEntry } from '@/types';
 import { Link } from 'react-router-dom';
 
 export default function TopPlayers() {
   const { data: players = [], isLoading: loading } = useQuery<LeaderboardEntry[]>({
-    queryKey: ['topPlayers'],
+    queryKey: QUERY_KEYS.topPlayers(),
     queryFn: () => gameService.getTopPlayers(5),
     staleTime: 60_000,
   });

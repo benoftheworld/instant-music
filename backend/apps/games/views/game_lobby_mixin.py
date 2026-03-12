@@ -50,20 +50,16 @@ class GameLobbyMixin:
             return maint
 
         serializer = CreateGameSerializer(data=request.data)
-
-        if serializer.is_valid():
-            game = serializer.save(host=request.user, room_code=generate_room_code())
-            GamePlayer.objects.create(game=game, user=request.user)
-            return Response(GameSerializer(game).data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        game = serializer.save(host=request.user, room_code=generate_room_code())
+        GamePlayer.objects.create(game=game, user=request.user)
+        return Response(GameSerializer(game).data, status=status.HTTP_201_CREATED)
 
     def partial_update(self, request, room_code=None):
         """PATCH a game and broadcast the update to all lobby clients."""
         game = self.get_object()
         serializer = GameSerializer(game, data=request.data, partial=True)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
         serializer.save()
         game.refresh_from_db()
         game_data = GameSerializer(game, context={"request": request}).data

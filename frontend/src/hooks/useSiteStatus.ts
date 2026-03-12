@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { adminService, type SiteStatus } from '@/services/adminService';
+import { QUERY_KEYS } from '@/constants/queryKeys';
 
 const FALLBACK: SiteStatus = {
   maintenance: false,
@@ -14,7 +15,7 @@ const FALLBACK: SiteStatus = {
  */
 export function useSiteStatus() {
   const { data } = useQuery<SiteStatus>({
-    queryKey: ['site-status'],
+    queryKey: QUERY_KEYS.siteStatus(),
     queryFn: adminService.getStatus,
     staleTime: 10_000,
     refetchInterval: 30_000,

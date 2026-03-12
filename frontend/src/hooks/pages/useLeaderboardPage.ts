@@ -3,6 +3,7 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import usePagination from '@/hooks/usePagination';
 import { statsService } from '@/services/achievementService';
 import { LEADERBOARD_TABS } from '@/constants/gameModes';
+import { QUERY_KEYS } from '@/constants/queryKeys';
 import { useAuthStore } from '@/store/authStore';
 import type { LeaderboardEntry, TeamLeaderboardEntry, GameMode } from '@/types';
 
@@ -14,7 +15,7 @@ export function useLeaderboardPage() {
   const { page, pageSize, goNext, goPrev, setPage } = usePagination(50);
 
   const { data, isLoading: loading, error: queryError } = useQuery({
-    queryKey: ['leaderboard', selectedMode, page, pageSize],
+    queryKey: QUERY_KEYS.leaderboard(selectedMode, page, pageSize),
     queryFn: async () => {
       if (selectedMode === 'teams') {
         const data = await statsService.getTeamLeaderboard(page, pageSize);

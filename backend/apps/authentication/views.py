@@ -69,34 +69,27 @@ def logout(request):
 def register(request):
     """Register a new user."""
     serializer = RegisterSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user = serializer.save()
 
-    if serializer.is_valid():
-        user = serializer.save()
+    # Generate JWT tokens
+    refresh = RefreshToken.for_user(user)
 
-        # Generate JWT tokens
-        refresh = RefreshToken.for_user(user)
-
-        logger.info(
-            "user_registered",
-            extra={"user_id": user.id, "username": user.username},
-        )
-
-        return Response(
-            {
-                "user": UserSerializer(user).data,
-                "tokens": {
-                    "refresh": str(refresh),
-                    "access": str(refresh.access_token),
-                },
-            },
-            status=status.HTTP_201_CREATED,
-        )
-
-    logger.warning(
-        "register_validation_failed",
-        extra={"errors": serializer.errors},
+    logger.info(
+        "user_registered",
+        extra={"user_id": user.id, "username": user.username},
     )
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response(
+        {
+            "user": UserSerializer(user).data,
+            "tokens": {
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+            },
+        },
+        status=status.HTTP_201_CREATED,
+    )
 
 
 @api_view(["POST"])
@@ -105,67 +98,64 @@ def register(request):
 def login(request):
     """Login user."""
     serializer = LoginSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    identifier = serializer.validated_data["username"]
+    password = serializer.validated_data["password"]
 
-    if serializer.is_valid():
-        identifier = serializer.validated_data["username"]
-        password = serializer.validated_data["password"]
-
-        # Permettre la connexion par email : si l'identifiant contient '@',
-        # on résout d'abord l'email en nom d'utilisateur.
-        username = identifier
-        if "@" in identifier:
-            try:
-                target_user = User.objects.get(email_hash=hash_email(identifier))
-                username = target_user.username
-            except User.DoesNotExist:
-                logger.warning(
-                    "login_email_not_found",
-                    extra={"identifier_type": "email"},
-                )
-                return Response(
-                    {"error": "Identifiants invalides."},
-                    status=status.HTTP_401_UNAUTHORIZED,
-                )
-
-        user = authenticate(username=username, password=password)
-
-        if user is not None:
-            # Generate JWT tokens
-            refresh = RefreshToken.for_user(user)
-
-            # Bonus connexion quotidienne : +2 pièces par jour
-            import datetime
-
-            from django.db.models import F as _F
-
-            today = datetime.date.today()
-            if user.last_daily_login != today:
-                user.__class__.objects.filter(pk=user.pk).update(
-                    last_daily_login=today,
-                    coins_balance=_F("coins_balance") + 2,
-                )
-                user.refresh_from_db()
-
-            return Response(
-                {
-                    "user": UserSerializer(user).data,
-                    "tokens": {
-                        "refresh": str(refresh),
-                        "access": str(refresh.access_token),
-                    },
-                }
-            )
-        else:
+    # Permettre la connexion par email : si l'identifiant contient '@',
+    # on résout d'abord l'email en nom d'utilisateur.
+    username = identifier
+    if "@" in identifier:
+        try:
+            target_user = User.objects.get(email_hash=hash_email(identifier))
+            username = target_user.username
+        except User.DoesNotExist:
             logger.warning(
-                "login_failed",
-                extra={"username": username},
+                "login_email_not_found",
+                extra={"identifier_type": "email"},
             )
             return Response(
                 {"error": "Identifiants invalides."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    user = authenticate(username=username, password=password)
+
+    if user is not None:
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+
+        # Bonus connexion quotidienne : +2 pièces par jour
+        import datetime
+
+        from django.db.models import F as _F
+
+        today = datetime.date.today()
+        if user.last_daily_login != today:
+            user.__class__.objects.filter(pk=user.pk).update(
+                last_daily_login=today,
+                coins_balance=_F("coins_balance") + 2,
+            )
+            user.refresh_from_db()
+
+        return Response(
+            {
+                "user": UserSerializer(user).data,
+                "tokens": {
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                },
+            }
+        )
+
+    logger.warning(
+        "login_failed",
+        extra={"username": username},
+    )
+    return Response(
+        {"error": "Identifiants invalides."},
+        status=status.HTTP_401_UNAUTHORIZED,
+    )
 
 
 @api_view(["POST"])
@@ -178,8 +168,7 @@ def password_reset_request(request):
     Retourne toujours 200 pour éviter l'énumération d'adresses email.
     """
     serializer = PasswordResetRequestSerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.is_valid(raise_exception=True)
 
     email = serializer.validated_data["email"]
     success_response = Response(
@@ -236,8 +225,7 @@ def password_reset_confirm(request):
     Valide le token reçu par email et met à jour le mot de passe.
     """
     serializer = PasswordResetConfirmSerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.is_valid(raise_exception=True)
 
     uid = serializer.validated_data["uid"]
     token = serializer.validated_data["token"]

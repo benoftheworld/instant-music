@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { friendshipService } from '@/services/socialService';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { QUERY_KEYS } from '@/constants/queryKeys';
 import type { Friend, Friendship, UserMinimal } from '@/types';
 
 export function useFriendsPage() {
   const queryClient = useQueryClient();
 
   const { data: friendsData, isLoading: loading } = useQuery({
-    queryKey: ['friends', 'all'],
+    queryKey: QUERY_KEYS.friends(),
     queryFn: async () => {
       const [friendsData, pendingData, sentData] = await Promise.all([
         friendshipService.getFriends(),
@@ -33,7 +34,7 @@ export function useFriendsPage() {
   const [activeTab, setActiveTab] = useState<'friends' | 'pending' | 'search'>('friends');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const invalidateFriends = () => queryClient.invalidateQueries({ queryKey: ['friends', 'all'] });
+  const invalidateFriends = () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.friends() });
 
   const handleSearch = async () => {
     if (searchQuery.length < 2) return;

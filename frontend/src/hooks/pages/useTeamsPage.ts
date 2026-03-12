@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { teamService } from '@/services/socialService';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { QUERY_KEYS } from '@/constants/queryKeys';
 import { useAuthStore } from '@/store/authStore';
 import type { Team } from '@/types';
 
@@ -18,7 +19,7 @@ export function useTeamsPage() {
   const [creating, setCreating] = useState(false);
 
   const { data: allTeams = [], isLoading: loading } = useQuery<Team[]>({
-    queryKey: ['teams', 'browse'],
+    queryKey: QUERY_KEYS.teamsAll(),
     queryFn: async () => {
       const allData = await teamService.browseTeams();
       return Array.isArray(allData) ? allData : (allData as any)?.results || [];

@@ -6,6 +6,7 @@ import { api, getMediaUrl } from '@/services/api';
 import { authService } from '@/services/authService';
 import { achievementService } from '@/services/achievementService';
 import { statsService } from '@/services/statsService';
+import { QUERY_KEYS } from '@/constants/queryKeys';
 import type { Achievement, UserDetailedStats } from '@/types';
 
 interface PasswordData {
@@ -53,13 +54,13 @@ export function useProfilePage() {
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const { data: achievements = [], isLoading: achievementsLoading } = useQuery<Achievement[]>({
-    queryKey: ['profile', 'achievements'],
+    queryKey: QUERY_KEYS.profileAchievements(),
     queryFn: () => achievementService.getAll(),
     staleTime: 60_000,
   });
 
   const { data: detailedStats = null } = useQuery<UserDetailedStats | null>({
-    queryKey: ['profile', 'stats'],
+    queryKey: QUERY_KEYS.profileStats(),
     queryFn: () => statsService.getMyStats(),
     staleTime: 60_000,
   });

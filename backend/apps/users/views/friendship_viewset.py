@@ -69,8 +69,7 @@ class FriendshipViewSet(viewsets.ViewSet):
     def send_request(self, request):
         """Send a friend request. Cannot send to superusers."""
         serializer = FriendshipCreateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
         username = serializer.validated_data["username"]
         to_user = User.objects.get(username=username)

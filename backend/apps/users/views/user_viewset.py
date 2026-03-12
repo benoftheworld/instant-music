@@ -68,56 +68,45 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = UserProfileUpdateSerializer(
             request.user, data=request.data, partial=True
         )
-        if serializer.is_valid():
-            serializer.save()
-            logger.info(
-                "user_profile_updated",
-                extra={"user_id": request.user.id},
-            )
-            return Response(
-                UserSerializer(request.user, context={"request": request}).data
-            )
-        logger.warning(
-            "user_profile_update_failed",
-            extra={
-                "user_id": request.user.id,
-                "errors": serializer.errors,
-            },
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        logger.info(
+            "user_profile_updated",
+            extra={"user_id": request.user.id},
         )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            UserSerializer(request.user, context={"request": request}).data
+        )
 
     @action(detail=False, methods=["post"])
     def change_password(self, request):
         """Change user password."""
         serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
 
-        if serializer.is_valid():
-            user = request.user
-
-            if not user.check_password(serializer.validated_data["old_password"]):
-                logger.warning(
-                    "password_change_wrong_old_password",
-                    extra={"user_id": user.id},
-                )
-                return Response(
-                    {"old_password": "Mot de passe incorrect."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            user.set_password(serializer.validated_data["new_password"])
-            user.save()
-            update_session_auth_hash(request, user)
-
-            logger.info(
-                "password_changed",
+        if not user.check_password(serializer.validated_data["old_password"]):
+            logger.warning(
+                "password_change_wrong_old_password",
                 extra={"user_id": user.id},
             )
             return Response(
-                {"message": "Mot de passe modifié avec succès."},
-                status=status.HTTP_200_OK,
+                {"old_password": "Mot de passe incorrect."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user.set_password(serializer.validated_data["new_password"])
+        user.save()
+        update_session_auth_hash(request, user)
+
+        logger.info(
+            "password_changed",
+            extra={"user_id": user.id},
+        )
+        return Response(
+            {"message": "Mot de passe modifié avec succès."},
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=False, methods=["delete"])
     def delete_account(self, request):

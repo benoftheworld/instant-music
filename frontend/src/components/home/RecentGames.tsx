@@ -4,12 +4,13 @@ import { gameService } from '@/services/gameService';
 import { getModeIcon } from '@/constants/gameModes';
 import { LoadingState, EmptyState } from '@/components/ui';
 import { formatDate } from '@/utils/format';
+import { QUERY_KEYS } from '@/constants/queryKeys';
 import type { GameHistory } from '@/types';
 import { Link } from 'react-router-dom';
 
 export default function RecentGames() {
   const { data: games = [], isLoading: loading } = useQuery<GameHistory[]>({
-    queryKey: ['recentGames'],
+    queryKey: QUERY_KEYS.recentGames(),
     queryFn: () => gameService.getRecentGames(5),
     staleTime: 30_000,
   });
