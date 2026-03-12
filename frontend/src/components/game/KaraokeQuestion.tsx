@@ -32,7 +32,6 @@ function loadYouTubeApi(): Promise<void> {
       const tag = document.createElement('script');
       tag.id = 'yt-iframe-api';
       tag.src = 'https://www.youtube.com/iframe_api';
-      tag.crossOrigin = 'anonymous';
       document.head.appendChild(tag);
     }
   });
@@ -334,7 +333,7 @@ const KaraokeQuestion = ({
 
   /* ── Playing phase: YouTube + lyrics + score ── */
   return (
-    <div className="bg-gradient-to-br from-gray-900 via-purple-950 to-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+    <div className="bg-dark-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
       {/* Top bar: video + track info + score */}
       <div className="flex items-start gap-4 p-4">
         {/* YouTube player (visible, min 200×200 per ToS) */}

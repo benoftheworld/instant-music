@@ -147,7 +147,7 @@ export default function VolumeControl({ variant = 'floating' }: VolumeControlPro
               value={effectsVolume}
               onChange={(e) => handleEffectsVolumeChange(parseFloat(e.target.value))}
               disabled={muted}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600 disabled:opacity-50"
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500 disabled:opacity-50"
             />
           </div>
 
@@ -164,7 +164,7 @@ export default function VolumeControl({ variant = 'floating' }: VolumeControlPro
               step="0.05"
               value={musicVolume}
               onChange={(e) => handleMusicVolumeChange(parseFloat(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
             />
           </div>
         </div>
@@ -215,7 +215,7 @@ export default function VolumeControl({ variant = 'floating' }: VolumeControlPro
               value={effectsVolume}
               onChange={(e) => handleEffectsVolumeChange(parseFloat(e.target.value))}
               disabled={muted}
-              className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600 disabled:opacity-50"
+              className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500 disabled:opacity-50"
             />
           </div>
 
@@ -229,7 +229,7 @@ export default function VolumeControl({ variant = 'floating' }: VolumeControlPro
               type="range" min="0" max="1" step="0.05"
               value={musicVolume}
               onChange={(e) => handleMusicVolumeChange(parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+              className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
             />
           </div>
         </div>
