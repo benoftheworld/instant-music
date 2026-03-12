@@ -8,16 +8,17 @@ import logging
 import re
 from typing import Any
 
-import requests
 from django.core.cache import cache
+
+from .base_api_service import BaseAPIService
 
 logger = logging.getLogger(__name__)
 
 # ─── Constants ───────────────────────────────────────────────────────
 
-API_TIMEOUT: int = 10  # seconds for Deezer API requests
-CACHE_TTL_SEARCH: int = 1800  # 30 min for search results
-CACHE_TTL_DETAIL: int = 3600  # 1 hour for playlist / track details
+CACHE_TTL_SEARCH: int = 1800   # 30 min for search results
+CACHE_TTL_DETAIL: int = 3600   # 1 hour for playlist / track details
+CACHE_TTL_PREVIEW: int = 4 * 3600  # 4 hours for track details / preview URLs
 
 # ─── Title cleaning ──────────────────────────────────────────────────
 
@@ -78,7 +79,7 @@ class DeezerAPIError(Exception):
     pass
 
 
-class DeezerService:
+class DeezerService(BaseAPIService):
     """Service to interact with the Deezer public API.
 
     Provides playlist search, track search, and playlist track listing.
@@ -86,6 +87,7 @@ class DeezerService:
     """
 
     BASE_URL = "https://api.deezer.com"
+    _error_class = DeezerAPIError
 
     def _make_request(self, endpoint: str, params: dict | None = None) -> dict:
         """Make a GET request to the Deezer API.
@@ -102,24 +104,14 @@ class DeezerService:
 
         """
         url = f"{self.BASE_URL}{endpoint}"
+        data = self._get_json(url, params)
 
-        try:
-            response = requests.get(url, params=params or {}, timeout=API_TIMEOUT)
-            response.raise_for_status()
-            data = response.json()
+        # Deezer returns API-level errors in the JSON body
+        if "error" in data:
+            error_msg = data["error"].get("message", "Unknown Deezer error")
+            raise DeezerAPIError(f"Deezer API error: {error_msg}")
 
-            # Deezer returns errors in the JSON body
-            if "error" in data:
-                error_msg = data["error"].get("message", "Unknown Deezer error")
-                raise DeezerAPIError(f"Deezer API error: {error_msg}")
-
-            return data  # type: ignore[no-any-return]
-        except requests.exceptions.HTTPError as e:
-            logger.error("Deezer API HTTP error on %s: %s", endpoint, e)
-            raise DeezerAPIError(f"Deezer API HTTP error: {e}")
-        except requests.exceptions.RequestException as e:
-            logger.error("Deezer API request failed: %s", e)
-            raise DeezerAPIError(f"Deezer API request failed: {e}")
+        return data
 
     # ── Playlist operations ──────────────────────────────────────────
 
@@ -241,7 +233,7 @@ class DeezerService:
         tracks = tracks[:limit]
 
         if tracks:
-            cache.set(cache_key, tracks, CACHE_TTL_SEARCH)  # cache 30 min
+            cache.set(cache_key, tracks, CACHE_TTL_PREVIEW)
 
         return tracks
 
@@ -301,7 +293,7 @@ class DeezerService:
         if track:
             # Deezer exposes release_date on the track endpoint
             track["release_date"] = data.get("release_date", "")
-            cache.set(cache_key, track, CACHE_TTL_DETAIL)
+            cache.set(cache_key, track, CACHE_TTL_PREVIEW)
 
         return track
 

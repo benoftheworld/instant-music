@@ -14,6 +14,12 @@ export interface SiteStatus {
   banner: SiteBannerData;
 }
 
+export interface LegalPageData {
+  title: string;
+  content: string;
+  updated_at: string;
+}
+
 export const adminService = {
   /**
    * Retourne l'état du site (maintenance + bannière).
@@ -21,6 +27,12 @@ export const adminService = {
    */
   async getStatus(): Promise<SiteStatus> {
     const response = await api.get<SiteStatus>('/administration/status/');
+    return response.data;
+  },
+
+  /** Récupère le contenu d'une page légale (mentions ou politique de confidentialité). */
+  async getLegalPage(type: 'legal' | 'privacy'): Promise<LegalPageData> {
+    const response = await api.get<LegalPageData>(`/administration/legal/${type}/`);
     return response.data;
   },
 };

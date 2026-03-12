@@ -10,11 +10,12 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
+from .base_api_service import BaseAPIService
+
 logger = logging.getLogger(__name__)
 
 # ─── Constants ───────────────────────────────────────────────────────
 
-API_TIMEOUT: int = 10  # seconds for YouTube API requests
 CACHE_TTL_SEARCH: int = 1800  # 30 min for search results
 CACHE_TTL_DETAIL: int = 3600  # 1 hour for playlist / track details
 
@@ -43,7 +44,7 @@ class YouTubeAPIError(Exception):
     pass
 
 
-class YouTubeService:
+class YouTubeService(BaseAPIService):
     """Service to interact with YouTube Data API v3.
 
     Uses API key authentication (no OAuth needed).
@@ -51,9 +52,17 @@ class YouTubeService:
     """
 
     BASE_URL = "https://www.googleapis.com/youtube/v3"
+    _error_class = YouTubeAPIError
 
     def __init__(self) -> None:
         self.api_key = getattr(settings, "YOUTUBE_API_KEY", "")
+
+    def _extract_http_error_message(self, e: requests.exceptions.HTTPError) -> str:
+        """Extrait les détails d'erreur du corps JSON de la réponse YouTube."""
+        try:
+            return e.response.json().get("error", {}).get("message", "") or str(e)
+        except Exception:
+            return str(e)
 
     def _make_request(self, endpoint: str, params: dict) -> dict:
         """Make a request to the YouTube Data API.
@@ -76,22 +85,7 @@ class YouTubeService:
 
         params["key"] = self.api_key
         url = f"{self.BASE_URL}/{endpoint}"
-
-        try:
-            response = requests.get(url, params=params, timeout=API_TIMEOUT)
-            response.raise_for_status()
-            return response.json()  # type: ignore[no-any-return]
-        except requests.exceptions.HTTPError as e:
-            error_body = ""
-            try:
-                error_body = e.response.json().get("error", {}).get("message", "")
-            except Exception:
-                error_body = str(e)
-            logger.error("YouTube API error on %s: %s - %s", endpoint, e, error_body)
-            raise YouTubeAPIError(f"YouTube API error: {error_body or str(e)}")
-        except requests.exceptions.RequestException as e:
-            logger.error("YouTube API request failed: %s", e)
-            raise YouTubeAPIError(f"YouTube API request failed: {e}")
+        return self._get_json(url, params)
 
     def search_playlists(self, query: str, limit: int = 20) -> list[dict]:
         """Search for music playlists on YouTube.

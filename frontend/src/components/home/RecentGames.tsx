@@ -1,37 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
-import { api, getMediaUrl } from '@/services/api';
+import { getMediaUrl } from '@/services/api';
+import { gameService } from '@/services/gameService';
 import { getModeIcon } from '@/constants/gameModes';
 import { LoadingState, EmptyState } from '@/components/ui';
+import { formatDate } from '@/utils/format';
 import type { GameHistory } from '@/types';
 import { Link } from 'react-router-dom';
 
 export default function RecentGames() {
   const { data: games = [], isLoading: loading } = useQuery<GameHistory[]>({
     queryKey: ['recentGames'],
-    queryFn: async () => {
-      const response = await api.get('/games/history/', { params: { page: 1, page_size: 5 } });
-      const data = response.data;
-      return Array.isArray(data) ? data : data.results ?? [];
-    },
+    queryFn: () => gameService.getRecentGames(5),
     staleTime: 30_000,
   });
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'À l\'instant';
-    if (diffMins < 60) return `Il y a ${diffMins} min`;
-    if (diffHours < 24) return `Il y a ${diffHours}h`;
-    if (diffDays < 7) return `Il y a ${diffDays}j`;
-
-    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-  };
 
   if (loading) {
     return <LoadingState />;

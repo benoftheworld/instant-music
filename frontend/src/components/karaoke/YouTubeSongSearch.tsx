@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { youtubeService } from '../../services/youtubeService';
 import { Spinner, EmptyState } from '@/components/ui';
+import { formatDuration } from '@/utils/format';
 import type { YouTubeTrack, KaraokeTrack } from '../../types';
 
 interface YouTubeSongSearchProps {
@@ -56,14 +57,6 @@ export default function YouTubeSongSearch({
       album_image: track.album_image,
     };
     onSelectTrack(karaokeTrack);
-  };
-
-  const formatDuration = (ms: number): string => {
-    if (!ms) return '--:--';
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   // If a track is selected, show it with a remove button

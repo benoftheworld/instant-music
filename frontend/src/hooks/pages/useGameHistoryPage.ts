@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api } from '@/services/api';
+import { gameService } from '@/services/gameService';
+import { formatFullDate } from '@/utils/format';
 import type { GameHistory } from '@/types';
 import useAsyncAction from '@/hooks/useAsyncAction';
 import usePagination from '@/hooks/usePagination';
@@ -15,13 +16,9 @@ export function useGameHistoryPage() {
   const fetchGameHistory = useCallback(
     (p: number, mode?: string) =>
       run(async () => {
-        const params: Record<string, unknown> = { page: p, page_size: pageSize };
-        if (mode) params.mode = mode;
-        const response = await api.get('/games/history/', { params });
-        const data = response.data;
-        const results = Array.isArray(data) ? data : data.results ?? [];
+        const { results, count } = await gameService.getGameHistory(p, pageSize, mode);
         setGames(results);
-        setTotalCount(!Array.isArray(data) ? (data.count ?? null) : null);
+        setTotalCount(count ?? null);
       }, () => "Impossible de charger l'historique des parties"),
     [run, pageSize, setTotalCount],
   );
@@ -40,18 +37,6 @@ export function useGameHistoryPage() {
   const handlePrev = () => { goPrev(); };
   const handleNext = () => { goNext(); };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   return {
     games,
     selectedMode,
@@ -65,6 +50,6 @@ export function useGameHistoryPage() {
     hasPrev,
     handlePrev,
     handleNext,
-    formatDate,
+    formatDate: formatFullDate,
   };
 }

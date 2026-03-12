@@ -1,5 +1,6 @@
 import { Avatar, Alert, Button, EmptyState, LoadingState } from '@/components/ui';
 import { useFriendsPage } from '@/hooks/pages/useFriendsPage';
+import { formatLocalDate } from '@/utils/format';
 
 export default function FriendsPage() {
   const {
@@ -117,7 +118,7 @@ export default function FriendsPage() {
                     <div className="flex-1">
                       <p className="font-bold">{request.from_user.username}</p>
                       <p className="text-xs text-gray-500">
-                        {new Date(request.created_at).toLocaleDateString('fr-FR')}
+                        {formatLocalDate(request.created_at)}
                       </p>
                     </div>
                     <button

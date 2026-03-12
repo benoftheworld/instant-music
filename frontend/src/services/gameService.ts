@@ -1,5 +1,6 @@
 import { api } from './api';
-import type { Game, CreateGameData, GamePlayer, GameRound, KaraokeSong } from '@/types';
+import type { Game, CreateGameData, GameHistory, GamePlayer, GameRound, KaraokeSong } from '@/types';
+import type { LeaderboardEntry } from '@/types';
 
 // ── Response types for game API endpoints ────────────────────────────────
 
@@ -42,6 +43,38 @@ export interface GameResults {
 }
 
 export const gameService = {
+  /** Fetch game history with optional mode filter. */
+  async getGameHistory(
+    page = 1,
+    pageSize = 20,
+    mode?: string,
+  ): Promise<{ results: GameHistory[]; count?: number }> {
+    const params: Record<string, unknown> = { page, page_size: pageSize };
+    if (mode) params.mode = mode;
+    const response = await api.get('/games/history/', { params });
+    const data = response.data;
+    return {
+      results: Array.isArray(data) ? data : (data.results ?? []),
+      count: !Array.isArray(data) ? data.count : undefined,
+    };
+  },
+
+  /** Fetch the most recent games (for the homepage widget). */
+  async getRecentGames(pageSize = 5): Promise<GameHistory[]> {
+    const { results } = await gameService.getGameHistory(1, pageSize);
+    return results;
+  },
+
+  /** Fetch top players from the games leaderboard. */
+  async getTopPlayers(limit = 5): Promise<LeaderboardEntry[]> {
+    const response = await api.get<LeaderboardEntry[] | { results: LeaderboardEntry[] }>(
+      '/games/leaderboard/',
+      { params: { limit } },
+    );
+    const data = response.data;
+    return Array.isArray(data) ? data : (data.results ?? []);
+  },
+
   async createGame(data: CreateGameData): Promise<Game> {
     const response = await api.post<Game>('/games/', data);
     return response.data;

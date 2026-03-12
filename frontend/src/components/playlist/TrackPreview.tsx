@@ -4,7 +4,7 @@
  */
 import { useState, useRef, useEffect } from 'react';
 import { YouTubeTrack } from '../../types';
-import { youtubeService } from '../../services/youtubeService';
+import { formatTime, formatDuration } from '@/utils/format';
 
 interface TrackPreviewProps {
   track: YouTubeTrack;
@@ -66,12 +66,6 @@ export default function TrackPreview({ track, autoPlay = false, showControls = t
       audioRef.current.currentTime = time;
       setCurrentTime(time);
     }
-  };
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -158,7 +152,7 @@ export default function TrackPreview({ track, autoPlay = false, showControls = t
 
       {/* Duration Badge */}
       <div className="flex-shrink-0 text-xs text-gray-500">
-        {youtubeService.formatDuration(track.duration_ms)}
+        {formatDuration(track.duration_ms)}
       </div>
     </div>
   );

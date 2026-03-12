@@ -2,6 +2,7 @@ import VolumeControl from '@/components/game/VolumeControl';
 import { Alert } from '@/components/ui';
 import { StatCard, MiniStat } from '@/components/ui/StatCard';
 import { useProfilePage, type TabId } from '@/hooks/pages/useProfilePage';
+import { formatLocalDate } from '@/utils/format';
 
 const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: 'stats', label: 'Statistiques', icon: '📊' },
@@ -181,10 +182,7 @@ export default function ProfilePage() {
               <h1 className="text-3xl font-bold text-dark">{user.username}</h1>
               <p className="text-gray-500 text-sm mt-1">
                 Membre depuis{' '}
-                {new Date(user.created_at).toLocaleDateString('fr-FR', {
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                {formatLocalDate(user.created_at, { month: 'long', year: 'numeric' })}
               </p>
               <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
                 <span className="flex items-center gap-1.5 text-sm bg-white px-3 py-1 rounded-full border border-cream-300 shadow-sm">
@@ -378,7 +376,7 @@ export default function ProfilePage() {
                             </span>
                             {achievement.unlocked && achievement.unlocked_at ? (
                               <span className="text-xs text-gray-400">
-                                {new Date(achievement.unlocked_at).toLocaleDateString('fr-FR')}
+                                {formatLocalDate(achievement.unlocked_at)}
                               </span>
                             ) : progressLabel ? (
                               <span className="text-xs text-gray-400">{progressLabel}</span>

@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '@/services/api';
-
-interface LegalPageData {
-  title: string;
-  content: string;
-  updated_at: string;
-}
+import { adminService, type LegalPageData } from '@/services/adminService';
+import { formatLocalDate } from '@/utils/format';
 
 export default function LegalNoticePage() {
   const [page, setPage] = useState<LegalPageData | null>(null);
@@ -14,9 +9,9 @@ export default function LegalNoticePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api
-      .get('/administration/legal/legal/')
-      .then((r) => setPage(r.data))
+    adminService
+      .getLegalPage('legal')
+      .then((data) => setPage(data))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
@@ -38,7 +33,7 @@ export default function LegalNoticePage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{page.title}</h1>
           <p className="text-xs text-gray-400 mb-8">
             Dernière mise à jour :{' '}
-            {new Date(page.updated_at).toLocaleDateString('fr-FR')}
+            {formatLocalDate(page.updated_at)}
           </p>
           <div className="space-y-4">
             {page.content.split('\n\n').map((para, i) => (

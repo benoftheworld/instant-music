@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { api } from '@/services/api';
+import { userService } from '@/services/userService';
 import useLocalStorage from '@/hooks/useLocalStorage';
 
 const CONSENT_KEY = 'rgpd_consent';
@@ -14,7 +14,7 @@ export default function ConsentBanner() {
   const accept = () => {
     setConsentDate(new Date().toISOString());
     if (isAuthenticated) {
-      api.post('/users/cookie_consent/').catch(() => {});
+      userService.recordCookieConsent().catch(() => {});
     }
   };
 

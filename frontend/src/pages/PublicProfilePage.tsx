@@ -3,6 +3,7 @@ import { getMediaUrl } from '@/services/api';
 import { PageLoader, Avatar } from '@/components/ui';
 import { StatCard, MiniStat } from '@/components/ui/StatCard';
 import { usePublicProfilePage } from '@/hooks/pages/usePublicProfilePage';
+import { formatLocalDate } from '@/utils/format';
 
 export default function PublicProfilePage() {
   const { navigate, profile, loading, error } = usePublicProfilePage();
@@ -53,7 +54,7 @@ export default function PublicProfilePage() {
               </Link>
             )}
             <p className="text-sm text-gray-400 mt-1">
-              Membre depuis le {new Date(profile.date_joined).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}
+              Membre depuis le {formatLocalDate(profile.date_joined, { year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
         </div>

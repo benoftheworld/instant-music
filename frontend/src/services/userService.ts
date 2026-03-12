@@ -10,6 +10,10 @@ export const userService = {
     const response = await api.get('/users/exists/', { params: { email } });
     return response.data?.exists || false;
   },
+
+  async recordCookieConsent(): Promise<void> {
+    await api.post('/users/cookie_consent/');
+  },
 };
 
 export default userService;

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/services/api';
+import { gameService } from '@/services/gameService';
 import { Avatar, LoadingState, EmptyState } from '@/components/ui';
 import type { LeaderboardEntry } from '@/types';
 import { Link } from 'react-router-dom';
@@ -7,11 +7,7 @@ import { Link } from 'react-router-dom';
 export default function TopPlayers() {
   const { data: players = [], isLoading: loading } = useQuery<LeaderboardEntry[]>({
     queryKey: ['topPlayers'],
-    queryFn: async () => {
-      const response = await api.get('/games/leaderboard/', { params: { limit: 5 } });
-      const data = response.data;
-      return Array.isArray(data) ? data : data.results ?? [];
-    },
+    queryFn: () => gameService.getTopPlayers(5),
     staleTime: 60_000,
   });
 
