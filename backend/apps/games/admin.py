@@ -663,8 +663,8 @@ class KaraokeSongAdmin(admin.ModelAdmin):
                 elif isinstance(raw, list):
                     results = []
                     for item in raw:
-                        dur_ms = item.get("duration", 0) or 0
-                        total_s = dur_ms // 1000
+                        dur_s = item.get("duration", 0) or 0
+                        total_s = int(dur_s)
                         mins = total_s // 60
                         secs = total_s % 60
                         results.append(
@@ -674,7 +674,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
                                 "artist_name": item.get("artistName", "—"),
                                 "album_name": item.get("albumName", ""),
                                 "duration_display": (
-                                    f"{mins}:{secs:02d}" if dur_ms else "—"
+                                    f"{mins}:{secs:02d}" if dur_s else "—"
                                 ),
                                 "has_synced": bool(item.get("syncedLyrics")),
                             }
