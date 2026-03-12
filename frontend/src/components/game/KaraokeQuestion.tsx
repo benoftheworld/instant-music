@@ -333,7 +333,7 @@ const KaraokeQuestion = ({
 
   /* ── Playing phase: YouTube + lyrics + score ── */
   return (
-    <div className="bg-dark-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+    <div className="overflow-hidden flex flex-col">
       {/* Top bar: video + track info + score */}
       <div className="flex items-start gap-4 p-4">
         {/* YouTube player (visible, min 200×200 per ToS) */}
@@ -386,18 +386,6 @@ const KaraokeQuestion = ({
       <div className="px-4 pb-4">
         <KaraokeLyricsDisplay lines={syncedLines} activeIndex={activeIndex} />
       </div>
-
-      {/* Skip button */}
-      {onSkipSong && (
-        <div className="px-4 pb-4 text-center">
-          <button
-            onClick={onSkipSong}
-            className="px-6 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-xl transition-all text-sm font-medium border border-gray-700"
-          >
-            ⏭️ Chanson suivante
-          </button>
-        </div>
-      )}
     </div>
   );
 };
