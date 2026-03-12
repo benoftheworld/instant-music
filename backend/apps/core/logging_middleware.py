@@ -7,8 +7,34 @@ afin de faciliter le diagnostic dans Kibana.
 """
 
 import logging
+import re
 import time
 import uuid
+
+# Paramètres de query string sensibles à masquer dans les logs d'accès.
+# Utilisé notamment pour les connexions WebSocket authentifiées par token.
+_SENSITIVE_PARAMS = re.compile(
+    r"([\?&](?:token|access_token|api_key|secret)=)[^&\s\"]+",
+    re.IGNORECASE,
+)
+
+
+class RedactSensitiveParamsFilter(logging.Filter):
+    """Filtre de logging qui masque les tokens/clés dans les URLs des logs.
+
+    À appliquer sur le logger ``uvicorn.access`` pour éviter que les JWT
+    transmis en query string n'apparaissent en clair dans les journaux.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:  # noqa: A003
+        if record.args:
+            record.args = tuple(
+                _SENSITIVE_PARAMS.sub(r"\1[REDACTED]", arg) if isinstance(arg, str) else arg
+                for arg in record.args
+            )
+        if isinstance(record.msg, str):
+            record.msg = _SENSITIVE_PARAMS.sub(r"\1[REDACTED]", record.msg)
+        return True
 
 logger = logging.getLogger("apps.core.http")
 

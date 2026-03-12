@@ -56,6 +56,7 @@ LOGGING["handlers"]["file"] = {  # noqa: F405
     "maxBytes": 10 * 1024 * 1024,  # 10 MB par fichier
     "backupCount": 10,              # 10 fichiers = 100 MB max
     "formatter": "json",
+    "filters": ["redact_sensitive_params"],
     "level": "WARNING",
     "encoding": "utf-8",
     "delay": True,                  # Ne crée le fichier qu'au premier log
@@ -68,6 +69,7 @@ LOGGING["handlers"]["file_errors"] = {  # noqa: F405
     "interval": 1,
     "backupCount": 30,              # 30 jours d'historique des erreurs
     "formatter": "json",
+    "filters": ["redact_sensitive_params"],
     "level": "ERROR",
     "encoding": "utf-8",
     "delay": True,

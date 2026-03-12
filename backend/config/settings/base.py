@@ -346,6 +346,13 @@ SPECTACULAR_SETTINGS = {
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {
+        # Masque les tokens JWT et autres secrets présents en query string
+        # dans les logs d'accès uvicorn (ex: /ws/notifications/?token=...).
+        "redact_sensitive_params": {
+            "()": "apps.core.logging_middleware.RedactSensitiveParamsFilter",
+        },
+    },
     "formatters": {
         "json": {
             "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
@@ -399,6 +406,14 @@ LOGGING = {
         },
         "django.channels": {
             "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        # Logger d'accès uvicorn : les tokens en query string sont masqués
+        # par le filtre redact_sensitive_params.
+        "uvicorn.access": {
+            "handlers": ["console"],
+            "filters": ["redact_sensitive_params"],
             "level": "INFO",
             "propagate": False,
         },
