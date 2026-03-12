@@ -40,9 +40,9 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
-    # Désactiver les actions génériques de modification/suppression.
-    # Les modifications passent par /me (PATCH) et la suppression par /delete_account.
-    http_method_names = ["get", "head", "options"]
+    # Désactiver PUT qui n'est pas utilisé ; toutes les autres méthodes
+    # nécessaires aux @action personnalisées (POST, PATCH, DELETE) sont autorisées.
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_serializer_class(self):
         """Utiliser PublicUserSerializer pour les vues publiques."""
