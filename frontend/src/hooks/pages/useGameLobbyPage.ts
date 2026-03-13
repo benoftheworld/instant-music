@@ -76,13 +76,19 @@ export function useGameLobbyPage() {
           } catch (joinError: any) {
             const errorMessage = joinError?.response?.data?.error;
             if (!errorMessage?.includes('déjà dans cette partie')) {
-              setError('Impossible de rejoindre la partie');
+              setError(
+                'Impossible de rejoindre la partie' + 
+                (getApiErrorMessage(joinError, '') ? ': ' + getApiErrorMessage(joinError, '') : '')
+              );
             }
           }
         }
       }
     } catch (err) {
-      setError('Impossible de charger la partie');
+      setError(
+        'Impossible de charger la partie' + 
+        (getApiErrorMessage(err, '') ? ': ' + getApiErrorMessage(err, '') : '')
+      );
     } finally {
       setLoading(false);
     }
@@ -213,6 +219,10 @@ export function useGameLobbyPage() {
         await navigator.clipboard.writeText(shareUrl);
         setCopyMessage('Lien copié !');
         setTimeout(() => setCopyMessage(null), 2000);
+        setStartError(
+          'Partage annulé ou échoué, le lien a été copié dans le presse-papiers.' + 
+          (getApiErrorMessage(err, '') ? ' (' + getApiErrorMessage(err, '') + ')' : '')
+        );
       }
     } else {
       await navigator.clipboard.writeText(shareUrl);

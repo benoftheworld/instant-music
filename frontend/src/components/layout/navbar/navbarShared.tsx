@@ -77,11 +77,11 @@ export function getAdminHref(): string {
       try {
         const origin = new URL(api).origin;
         href = `${origin}${href}`;
-      } catch (_e) {
-        // fallback to root-relative
+      } catch {
+        // ignore and return raw
       }
     }
-  } catch (_e) {
+  } catch {
     // ignore and return raw
   }
 

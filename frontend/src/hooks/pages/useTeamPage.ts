@@ -26,7 +26,7 @@ export function useTeamPage() {
       setTeam(data);
       setEditDescription(data.description || '');
     } catch (err) {
-      setMessage({ type: 'error', text: 'Impossible de charger l\'équipe.' });
+      setMessage({ type: 'error', text: 'Impossible de charger l\'équipe. ' + getApiErrorMessage(err, '') });
     } finally {
       setLoading(false);
     }
@@ -44,7 +44,7 @@ export function useTeamPage() {
       const data = await teamService.getJoinRequests(team.id);
       setJoinRequests(Array.isArray(data) ? data : (data as any)?.results || []);
     } catch (err: unknown) {
-      // ignore
+      setMessage({ type: 'error', text: 'Impossible de charger les demandes de rejoindre. ' + getApiErrorMessage(err, '') });
     } finally {
       setRequestsLoading(false);
     }

@@ -201,5 +201,14 @@ export function useNotificationListeners() {
       unsubTeamRoleUpdated();
       unsubTeamMemberKicked();
     };
-  }, [isAuthenticated]);
+  }, [
+    isAuthenticated,
+    addInvitation,
+    setInvitations,
+    clearAll,
+    addFriendRequest,
+    setFriendRequests,
+    removeFriendRequest,
+    addSocialNotification,
+  ]);
 }

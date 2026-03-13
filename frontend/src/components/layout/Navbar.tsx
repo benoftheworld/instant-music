@@ -25,7 +25,7 @@ export default function Navbar() {
   useEffect(() => {
     if (!isAuthenticated) return;
     authService.getCurrentUser().then(updateUser).catch((err) => console.error('Failed to fetch current user:', err));
-  }, [isAuthenticated]);
+  }, [isAuthenticated, updateUser]);
 
   const closeMenu = () => setIsMenuOpen(false);
 

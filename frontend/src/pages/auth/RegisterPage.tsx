@@ -71,7 +71,7 @@ export default function RegisterPage() {
       const exists = await userService.usernameExists(username);
       setUsernameAvailable(!exists);
       if (exists) setUsernameError('Ce pseudonyme est déjà utilisé.');
-    } catch (err) {
+    } catch {
       // Ignore network errors here — backend will validate on submit
     } finally {
       setCheckingUsername(false);
@@ -87,7 +87,7 @@ export default function RegisterPage() {
       const exists = await userService.emailExists(email);
       setEmailAvailable(!exists);
       if (exists) setEmailError('Cette adresse email est déjà utilisée.');
-    } catch (err) {
+    } catch {
       // Ignore network errors here — backend will validate on submit
     } finally {
       setCheckingEmail(false);

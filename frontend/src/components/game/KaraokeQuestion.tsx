@@ -202,6 +202,16 @@ function getActiveLyricIndex(lines: SyncedLine[], currentTimeMs: number): number
   return idx;
 }
 
+/** Deterministic 32-bit hash (FNV-1a) for strings — used to seed RNG. */
+function hashStringToUint32(s: string): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+
 function KaraokeLyricsDisplay({
   lines,
   activeIndex,
@@ -311,7 +321,16 @@ const KaraokeQuestion = ({
 
   const yt = useYouTubePlayer(youtubeVideoId, !showResults, onSkipSong);
   const activeIndex = getActiveLyricIndex(syncedLines, yt.currentTimeMs);
-  const barHeights = useMemo(() => Array.from({ length: 5 }, () => 12 + Math.random() * 12), []);
+  const barHeights = useMemo(() => {
+    const seedSource = (youtubeVideoId ?? (round as any).track_id ?? (round as any).id ?? '').toString();
+    const seed = hashStringToUint32(seedSource);
+    let state = seed >>> 0;
+    const rng = () => {
+      state = (Math.imul(1664525, state) + 1013904223) >>> 0;
+      return state / 4294967296;
+    };
+    return Array.from({ length: 5 }, () => 12 + Math.floor(rng() * 12));
+  }, [round, youtubeVideoId]);
 
   /* ── Results phase: show track info ── */
   if (showResults) {

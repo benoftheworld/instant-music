@@ -63,7 +63,11 @@ export function useFriendsPage() {
       setMessage({ type: 'success', text: 'Demande acceptée !' });
       invalidateFriends();
     } catch (err) {
-      setMessage({ type: 'error', text: 'Erreur lors de l\'acceptation' });
+      setMessage({ 
+        type: 'error', 
+        text: 'Erreur lors de l\'acceptation de la demande' + 
+          (getApiErrorMessage(err, '') ? ': ' + getApiErrorMessage(err, '') : '') }
+      );
     }
   };
 
@@ -72,7 +76,7 @@ export function useFriendsPage() {
       await friendshipService.rejectRequest(id);
       invalidateFriends();
     } catch (err) {
-      setMessage({ type: 'error', text: 'Erreur lors du refus' });
+      setMessage({ type: 'error', text: 'Erreur lors du refus' + (getApiErrorMessage(err, '') ? ': ' + getApiErrorMessage(err, '') : '') });
     }
   };
 
@@ -82,7 +86,7 @@ export function useFriendsPage() {
       await friendshipService.removeFriend(friendshipId);
       invalidateFriends();
     } catch (err) {
-      setMessage({ type: 'error', text: 'Erreur lors de la suppression' });
+      setMessage({ type: 'error', text: 'Erreur lors de la suppression' + (getApiErrorMessage(err, '') ? ': ' + getApiErrorMessage(err, '') : '') });
     }
   };
 
