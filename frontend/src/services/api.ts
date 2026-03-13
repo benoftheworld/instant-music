@@ -28,8 +28,12 @@ function processQueue(error: unknown, token: string | null = null): void {
  * Rafraîchit le token d'accès de façon centralisée.
  * Le refresh token est envoyé automatiquement par le navigateur via cookie HttpOnly.
  * En cas d'échec, déconnecte l'utilisateur et redirige vers /login.
+ *
+ * Exportée pour que useSessionRehydration puisse l'utiliser et bénéficier
+ * du verrou isRefreshing — évite la race condition qui provoque
+ * un double refresh et le "jeton banni" lors du rechargement de page.
  */
-async function refreshAccessToken(): Promise<string> {
+export async function refreshAccessToken(): Promise<string> {
   if (isRefreshing) {
     return new Promise<string>((resolve, reject) => {
       failedQueue.push({ resolve, reject });

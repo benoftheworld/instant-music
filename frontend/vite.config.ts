@@ -11,6 +11,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    // Le polyfill modulepreload est injecté en <script> inline par Vite, ce qui
+    // viole le CSP (script-src sans 'unsafe-inline'). Les navigateurs modernes
+    // supportent nativement <link rel="modulepreload"> ; le polyfill est inutile.
+    modulePreload: { polyfill: false },
+  },
   esbuild: {
     // Supprime console.log et debugger en production
     drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],

@@ -9,9 +9,7 @@
 import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { tokenService } from '@/services/tokenService';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { refreshAccessToken } from '@/services/api';
 
 export function useSessionRehydration() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -22,14 +20,11 @@ export function useSessionRehydration() {
     if (!isAuthenticated || tokenService.getAccessToken() || attempted.current) return;
     attempted.current = true;
 
-    axios
-      .post(`${API_URL}/api/auth/token/refresh/`, {}, { withCredentials: true })
-      .then((res) => {
-        tokenService.setAccessToken(res.data.access);
-      })
-      .catch(() => {
-        // Cookie absent ou expiré → déconnexion propre
-        logout();
-      });
+    // Utilise la fonction partagée (avec verrou isRefreshing) pour éviter
+    // la race condition avec les intercepteurs axios lors du rechargement.
+    refreshAccessToken().catch(() => {
+      // Cookie absent ou expiré → déconnexion propre
+      logout();
+    });
   }, [isAuthenticated, logout]);
 }
