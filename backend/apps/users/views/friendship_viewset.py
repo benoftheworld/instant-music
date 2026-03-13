@@ -106,6 +106,30 @@ class FriendshipViewSet(viewsets.ViewSet):
                     {"error": "Une demande est déjà en cours."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+            elif existing.status == FriendshipStatus.REJECTED:
+                # Réutilise l'entrée existante pour respecter le unique_together
+                existing.from_user = request.user
+                existing.to_user = to_user
+                existing.status = FriendshipStatus.PENDING
+                existing.save()
+                friendship = existing
+
+                try:
+                    channel_layer = get_channel_layer()
+                    async_to_sync(channel_layer.group_send)(
+                        f"notifications_{to_user.id}",
+                        {
+                            "type": "notify.friend_request",
+                            "friendship": FriendshipSerializer(friendship).data,
+                        },
+                    )
+                except Exception:  # noqa: BLE001
+                    logger.exception("Échec de la notification WS pour la demande d'ami")
+
+                return Response(
+                    FriendshipSerializer(friendship).data,
+                    status=status.HTTP_201_CREATED,
+                )
 
         friendship = Friendship.objects.create(
             from_user=request.user,
@@ -130,6 +154,8 @@ class FriendshipViewSet(viewsets.ViewSet):
             FriendshipSerializer(friendship).data,
             status=status.HTTP_201_CREATED,
         )
+
+    @action(detail=True, methods=["post"])
     def accept(self, request, pk=None):
         """Accept a friend request."""
         try:
