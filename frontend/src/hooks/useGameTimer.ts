@@ -85,7 +85,7 @@ export function useGameTimer({
           gameService
             .endCurrentRound(roomCode!)
             .then(() => {
-              console.log('Round ended by timer');
+              // round terminé par le timer
             })
             .catch((err) => {
               console.error('Failed to end round:', err);

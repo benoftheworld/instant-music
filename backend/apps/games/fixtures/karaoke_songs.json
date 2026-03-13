@@ -1,0 +1,652 @@
+[
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000001",
+    "fields": {
+      "title": "Bohemian Rhapsody",
+      "artist": "Queen",
+      "youtube_video_id": "GGFSh4WUGEM",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 354000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000002",
+    "fields": {
+      "title": "Don't Stop Believin'",
+      "artist": "Journey",
+      "youtube_video_id": "VcjzHMhBtf0",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 251000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000003",
+    "fields": {
+      "title": "Sweet Caroline",
+      "artist": "Neil Diamond",
+      "youtube_video_id": "j71-ouDAmiM",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 201000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000004",
+    "fields": {
+      "title": "Total Eclipse of the Heart",
+      "artist": "Bonnie Tyler",
+      "youtube_video_id": "NEzDH7ojBXk",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 336000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000005",
+    "fields": {
+      "title": "Africa",
+      "artist": "Toto",
+      "youtube_video_id": "ztH0J0DqGJA",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 295000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000006",
+    "fields": {
+      "title": "Living on a Prayer",
+      "artist": "Bon Jovi",
+      "youtube_video_id": "HA9FHIQK3S8",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 250000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000007",
+    "fields": {
+      "title": "Eye of the Tiger",
+      "artist": "Survivor",
+      "youtube_video_id": "pdvpMwVrVgU",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 244000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000008",
+    "fields": {
+      "title": "Take On Me",
+      "artist": "a-ha",
+      "youtube_video_id": "FrZWAqFWjHU",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 225000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000009",
+    "fields": {
+      "title": "Girls Just Want to Have Fun",
+      "artist": "Cyndi Lauper",
+      "youtube_video_id": "1wTVGBnCFfI",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 230000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000010",
+    "fields": {
+      "title": "I Will Survive",
+      "artist": "Gloria Gaynor",
+      "youtube_video_id": "0I3tUa0URMY",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 198000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000011",
+    "fields": {
+      "title": "Shallow",
+      "artist": "Lady Gaga & Bradley Cooper",
+      "youtube_video_id": "beFMqQAPOjg",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 216000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000012",
+    "fields": {
+      "title": "Someone Like You",
+      "artist": "Adele",
+      "youtube_video_id": "K7l5ZeVVoCA",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 285000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000013",
+    "fields": {
+      "title": "Rolling in the Deep",
+      "artist": "Adele",
+      "youtube_video_id": "6j69DmGIwzk",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 228000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000014",
+    "fields": {
+      "title": "Happy",
+      "artist": "Pharrell Williams",
+      "youtube_video_id": "t7FbTkfZXW0",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 232000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000015",
+    "fields": {
+      "title": "Uptown Funk",
+      "artist": "Bruno Mars ft. Mark Ronson",
+      "youtube_video_id": "FJ3IobJJBvs",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 270000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000016",
+    "fields": {
+      "title": "Shape of You",
+      "artist": "Ed Sheeran",
+      "youtube_video_id": "1-Kzivd2yF8",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 234000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000017",
+    "fields": {
+      "title": "Blinding Lights",
+      "artist": "The Weeknd",
+      "youtube_video_id": "1mznFkNPJQI",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 200000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000018",
+    "fields": {
+      "title": "Levitating",
+      "artist": "Dua Lipa",
+      "youtube_video_id": "D6RNMkxKpR0",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 203000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000019",
+    "fields": {
+      "title": "As It Was",
+      "artist": "Harry Styles",
+      "youtube_video_id": "FmGLJKHfr00",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 167000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000020",
+    "fields": {
+      "title": "Anti-Hero",
+      "artist": "Taylor Swift",
+      "youtube_video_id": "8SaY2GNQiN0",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 200000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000021",
+    "fields": {
+      "title": "La Vie en Rose",
+      "artist": "Édith Piaf",
+      "youtube_video_id": "Rmd4KrnVhFE",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 186000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000022",
+    "fields": {
+      "title": "Non, Je Ne Regrette Rien",
+      "artist": "Édith Piaf",
+      "youtube_video_id": "EKMYB1I9d9U",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 131000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000023",
+    "fields": {
+      "title": "Les Champs-Élysées",
+      "artist": "Joe Dassin",
+      "youtube_video_id": "OdJh7Gqz5Us",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 197000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000024",
+    "fields": {
+      "title": "Je l'aime à mourir",
+      "artist": "Francis Cabrel",
+      "youtube_video_id": "G7sXjNIEF-8",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 266000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000025",
+    "fields": {
+      "title": "Ella, elle l'a",
+      "artist": "France Gall",
+      "youtube_video_id": "iqkGMbMOknY",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 229000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000026",
+    "fields": {
+      "title": "Alexandrie Alexandra",
+      "artist": "Claude François",
+      "youtube_video_id": "VhFzLqFKZ-o",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 218000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000027",
+    "fields": {
+      "title": "Quelqu'un m'a dit",
+      "artist": "Carla Bruni",
+      "youtube_video_id": "pkCniOyAZTY",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 237000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000028",
+    "fields": {
+      "title": "La Bombe Humaine",
+      "artist": "Téléphone",
+      "youtube_video_id": "tEvPbBXaUMs",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 196000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000029",
+    "fields": {
+      "title": "I Will Always Love You",
+      "artist": "Whitney Houston",
+      "youtube_video_id": "mCGWB2REhaA",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 273000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000030",
+    "fields": {
+      "title": "Respect",
+      "artist": "Aretha Franklin",
+      "youtube_video_id": "6FOUqQt3Kg0",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 147000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000031",
+    "fields": {
+      "title": "Stand By Me",
+      "artist": "Ben E. King",
+      "youtube_video_id": "3WHXJBW05kU",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 180000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000032",
+    "fields": {
+      "title": "Mr. Brightside",
+      "artist": "The Killers",
+      "youtube_video_id": "3qmGFVBfMGE",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 222000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000033",
+    "fields": {
+      "title": "Wonderwall",
+      "artist": "Oasis",
+      "youtube_video_id": "h3lssDFeLsA",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 259000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000034",
+    "fields": {
+      "title": "Hotel California",
+      "artist": "Eagles",
+      "youtube_video_id": "aovkNdOTjUQ",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 391000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000035",
+    "fields": {
+      "title": "Smells Like Teen Spirit",
+      "artist": "Nirvana",
+      "youtube_video_id": "CmBbJonjDpU",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 301000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000036",
+    "fields": {
+      "title": "With or Without You",
+      "artist": "U2",
+      "youtube_video_id": "h9FoJMjjMmE",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 296000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000037",
+    "fields": {
+      "title": "Dancing Queen",
+      "artist": "ABBA",
+      "youtube_video_id": "X1KhS1jnstg",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 233000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000038",
+    "fields": {
+      "title": "Waterloo",
+      "artist": "ABBA",
+      "youtube_video_id": "Gr-oRDIajTs",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 168000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000039",
+    "fields": {
+      "title": "Never Gonna Give You Up",
+      "artist": "Rick Astley",
+      "youtube_video_id": "hg0KDUGiMqk",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 213000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000040",
+    "fields": {
+      "title": "Can't Stop the Feeling!",
+      "artist": "Justin Timberlake",
+      "youtube_video_id": "cYqHDXkq4HY",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 237000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000041",
+    "fields": {
+      "title": "Crazy in Love",
+      "artist": "Beyoncé",
+      "youtube_video_id": "UZRKFWtnFBU",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 235000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000042",
+    "fields": {
+      "title": "Flowers",
+      "artist": "Miley Cyrus",
+      "youtube_video_id": "OVADdHHfZEo",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 200000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000043",
+    "fields": {
+      "title": "Heat Waves",
+      "artist": "Glass Animals",
+      "youtube_video_id": "5C_nklDwHsU",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 238000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000044",
+    "fields": {
+      "title": "Billie Jean",
+      "artist": "Michael Jackson",
+      "youtube_video_id": "OXg9IwWGhL4",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 294000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000045",
+    "fields": {
+      "title": "Lose Yourself",
+      "artist": "Eminem",
+      "youtube_video_id": "5oC4ZJpLgcA",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 326000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000046",
+    "fields": {
+      "title": "Sweet Child O' Mine",
+      "artist": "Guns N' Roses",
+      "youtube_video_id": "K-zRHQfijCs",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 356000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000047",
+    "fields": {
+      "title": "Highway to Hell",
+      "artist": "AC/DC",
+      "youtube_video_id": "fNHPFxG4wNk",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 208000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000048",
+    "fields": {
+      "title": "Superstition",
+      "artist": "Stevie Wonder",
+      "youtube_video_id": "3I0sMrSQZ_U",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 245000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000049",
+    "fields": {
+      "title": "Summer Nights",
+      "artist": "John Travolta & Olivia Newton-John",
+      "youtube_video_id": "eEdAtGTXSEQ",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 210000,
+      "is_active": true
+    }
+  },
+  {
+    "model": "games.karaokesong",
+    "pk": "00000001-0000-0000-0000-000000000050",
+    "fields": {
+      "title": "I Want to Know What Love Is",
+      "artist": "Foreigner",
+      "youtube_video_id": "RM8pYzYtTxk",
+      "lrclib_id": null,
+      "album_image_url": "",
+      "duration_ms": 330000,
+      "is_active": true
+    }
+  }
+]

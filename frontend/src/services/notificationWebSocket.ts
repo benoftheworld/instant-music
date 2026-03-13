@@ -38,7 +38,6 @@ class NotificationWebSocketService {
     }
 
     this.socket.onopen = () => {
-      console.log('[NotificationWS] Connected');
       this.reconnectAttempts = 0;
       this._startPing();
     };
@@ -96,7 +95,6 @@ class NotificationWebSocketService {
     this.reconnectAttempts++;
     const delay = Math.min(this.reconnectDelay * this.reconnectAttempts, 30_000);
     this.reconnectTimeout = setTimeout(() => {
-      console.log(`[NotificationWS] Reconnecting (attempt ${this.reconnectAttempts})…`);
       this.connect();
     }, delay);
   }

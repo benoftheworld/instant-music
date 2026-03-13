@@ -13,10 +13,12 @@
 #   --logs [svc]   Affiche les logs (tous ou un service précis)
 #   --rollback     Revient à l'image taggée "previous"
 #   --blue-green   Déploiement blue-green sans downtime (production uniquement)
+#   --ha           Active l'overlay haute disponibilité (Redis Sentinel + DB replica)
 #   --help         Affiche cette aide
 #
 # Exemples:
 #   ./deploy.sh production
+#   ./deploy.sh production --ha
 #   ./deploy.sh development --no-pull
 #   ./deploy.sh production --status
 #   ./deploy.sh production --logs backend
@@ -65,6 +67,7 @@ OPT_NO_CACHE=false
 OPT_STATUS=false
 OPT_ROLLBACK=false
 OPT_BLUE_GREEN=false
+OPT_HA=false
 OPT_LOGS=false
 OPT_LOGS_SVC=""
 
@@ -76,6 +79,7 @@ while [[ $# -gt 0 ]]; do
         --status)    OPT_STATUS=true ;;
         --rollback)  OPT_ROLLBACK=true ;;
         --blue-green) OPT_BLUE_GREEN=true ;;
+        --ha)        OPT_HA=true ;;
         --logs)      OPT_LOGS=true; OPT_LOGS_SVC="${2:-}"; [[ -n "$OPT_LOGS_SVC" ]] && shift ;;
         --help|-h)   usage ;;
         *)           log_warn "Option inconnue: $1" ;;
@@ -127,6 +131,8 @@ if [[ "$ENV" == "production" ]]; then
 fi
 
 COMPOSE_SSL_INIT="$DEVOPS_DIR/docker/docker-compose.ssl-init.yml"
+COMPOSE_MON_PROD="$DEVOPS_DIR/docker/docker-compose.monitoring-prod.yml"
+COMPOSE_HA="$DEVOPS_DIR/docker/docker-compose.ha.yml"
 DC="docker compose -f $COMPOSE_FILE $COMPOSE_EXTRA"
 
 # ─── Vérification SSL (production uniquement) ─────────────────────────────────
@@ -165,6 +171,26 @@ if [[ "$ENV" == "production" ]]; then
             log_warn "Les autres services (backend, db, redis...) vont quand meme demarrer."
             # Ajouter l'overlay ssl-init pour que nginx utilise la config HTTP-only
             DC="docker compose -f $COMPOSE_FILE -f $COMPOSE_SSL_INIT $COMPOSE_EXTRA"
+        fi
+    fi
+fi
+
+# ── Overlays production : monitoring (toujours actif) et HA (si --ha) ─────────
+if [[ "$ENV" == "production" ]]; then
+    # Le monitoring prod est déployé automatiquement sur chaque déploiement prod
+    if [[ -f "$COMPOSE_MON_PROD" ]]; then
+        DC="$DC -f $COMPOSE_MON_PROD"
+        log_info "Overlay monitoring-prod inclus dans ce deploiement."
+    else
+        log_warn "Fichier monitoring-prod introuvable ($COMPOSE_MON_PROD) — ignore."
+    fi
+
+    if [[ "$OPT_HA" == "true" ]]; then
+        if [[ -f "$COMPOSE_HA" ]]; then
+            DC="$DC -f $COMPOSE_HA"
+            log_info "Overlay haute-disponibilite (HA) inclus dans ce deploiement."
+        else
+            log_warn "Fichier HA introuvable ($COMPOSE_HA) — ignore."
         fi
     fi
 fi
@@ -405,6 +431,10 @@ log_success "Fichiers statiques collectes."
 if [[ "$ENV" == "production" ]]; then
     log_section "Initialisation des donnees de production"
 
+    log_info "Initialisation de la boutique (bonus & items)..."
+    $DC exec -T backend python manage.py seed_shop --force || \
+        log_warn "seed_shop ignore."
+
     log_info "Creation des achievements..."
     $DC exec -T backend python manage.py seed_achievements || \
         log_warn "seed_achievements ignore (deja initialise?)."
@@ -416,6 +446,14 @@ if [[ "$ENV" == "production" ]]; then
     log_info "Recalcul des statistiques joueurs..."
     $DC exec -T backend python manage.py recalculate_user_stats || \
         log_warn "recalculate_user_stats ignore."
+
+    log_info "Chargement des pages legales..."
+    $DC exec -T backend python manage.py loaddata legal_pages || \
+        log_warn "loaddata legal_pages ignore (deja present ou fixture manquante?)."
+
+    log_info "Chargement des chansons karaoke par defaut..."
+    $DC exec -T backend python manage.py loaddata karaoke_songs || \
+        log_warn "loaddata karaoke_songs ignore (deja present ou fixture manquante?)."
 fi
 
 log_section "Nettoyage"

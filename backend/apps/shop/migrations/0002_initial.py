@@ -10,18 +10,18 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('achievements', '0001_initial'),
+        ('shop', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='userachievement',
+            model_name='userinventory',
             name='user',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='achievements', to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='shop_inventory', to=settings.AUTH_USER_MODEL, verbose_name='utilisateur'),
         ),
         migrations.AlterUniqueTogether(
-            name='userachievement',
-            unique_together={('user', 'achievement')},
+            name='userinventory',
+            unique_together={('user', 'item')},
         ),
     ]

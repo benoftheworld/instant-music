@@ -38,8 +38,6 @@ export function useGameWebSocket({
 }: UseGameWebSocketParams): void {
   useEffect(() => {
     const unsubscribe = onMessage('message', (data: any) => {
-      console.log('WebSocket message:', data);
-
       switch (data.type) {
         case 'round_started':
           soundEffects.roundLoading();
@@ -54,7 +52,6 @@ export function useGameWebSocket({
           break;
 
         case 'player_answered':
-          console.log('Player answered:', data.player);
           break;
 
         case 'all_players_answered':
@@ -63,7 +60,9 @@ export function useGameWebSocket({
           if (user && game && game.host === user.id) {
             gameService
               .endCurrentRound(roomCode!)
-              .catch((err: any) => console.error('Failed to end round early:', err));
+              .catch((_err: any) => {
+                // L'hôte ne peut pas terminer le round : le timer le fera
+              });
           }
           break;
 

@@ -61,7 +61,6 @@ export class WebSocketService {
         // Ignore if a newer connect() call has taken over
         if (currentConnectId !== this.connectId) return;
 
-        console.log('WebSocket connected to room:', roomCode);
         this.reconnectAttempts = 0;
 
         // Start heartbeat ping every 30s to detect dead connections
@@ -80,17 +79,12 @@ export class WebSocketService {
 
       this.socket.onerror = () => {
         // onerror is always followed by onclose — let onclose handle rejection.
-        // Only log if this wasn't an intentional disconnect.
-        if (!this.intentionalDisconnect && currentConnectId === this.connectId) {
-          console.warn('WebSocket connection error (will retry via onclose)');
-        }
       };
 
       this.socket.onclose = (event) => {
         // Ignore if a newer connect() call has taken over
         if (currentConnectId !== this.connectId) return;
 
-        console.log(`WebSocket closed (code: ${event.code}, reason: ${event.reason || 'none'})`);
         this._emitEvent('disconnect', { code: event.code, reason: event.reason });
 
         if (!settled) {
@@ -126,8 +120,8 @@ export class WebSocketService {
           if (data.type) {
             this._emitEvent(data.type, data);
           }
-        } catch (error) {
-          console.error('Failed to parse WebSocket message:', error);
+        } catch {
+          // ignore malformed messages
         }
       };
     });
@@ -151,19 +145,17 @@ export class WebSocketService {
 
   private _attemptReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.log('Max reconnect attempts reached');
       this._emitEvent('reconnect_failed', {});
       return;
     }
 
     this.reconnectAttempts++;
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 10000);
-    console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
 
     this.reconnectTimeout = setTimeout(() => {
       if (this.roomCode) {
-        this.connect(this.roomCode).catch((error) => {
-          console.error('Reconnect failed:', error);
+        this.connect(this.roomCode).catch(() => {
+          // silently retry via _attemptReconnect chain
         });
       }
     }, delay);
@@ -187,8 +179,6 @@ export class WebSocketService {
   send(message: WebSocketMessage): void {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify(message));
-    } else {
-      console.warn('WebSocket is not connected (state:', this.socket?.readyState ?? 'null', ')');
     }
   }
 

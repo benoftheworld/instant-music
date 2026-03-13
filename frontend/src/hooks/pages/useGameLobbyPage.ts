@@ -25,8 +25,6 @@ export function useGameLobbyPage() {
 
   useEffect(() => {
     const unsubscribe = onMessage('message', (data) => {
-      console.log('WebSocket message received:', data);
-
       if (data.type === 'player_joined') {
         soundEffects.playerJoined();
         if (data.game_data) {
@@ -78,7 +76,6 @@ export function useGameLobbyPage() {
           } catch (joinError: any) {
             const errorMessage = joinError?.response?.data?.error;
             if (!errorMessage?.includes('déjà dans cette partie')) {
-              console.error('Failed to join game:', joinError);
               setError('Impossible de rejoindre la partie');
             }
           }
@@ -86,7 +83,6 @@ export function useGameLobbyPage() {
       }
     } catch (err) {
       setError('Impossible de charger la partie');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -100,7 +96,6 @@ export function useGameLobbyPage() {
 
   useEffect(() => {
     const unsubscribe = onMessage('reconnected', () => {
-      console.log('WebSocket reconnected — refreshing game state');
       loadGame();
     });
     return unsubscribe;

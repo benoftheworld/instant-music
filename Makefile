@@ -101,6 +101,28 @@ logs-clean: ## Supprime les logs Docker des containers arrêtés et les archives
 logs-rotate: ## Force une rotation logrotate des logs fichier (nécessite logrotate installé)
 	@sudo logrotate -f _devops/script/logrotate.conf || echo "  logrotate indisponible — rotation gérée par Python RotatingFileHandler"
 
+.PHONY: deploy-monitoring
+deploy-monitoring: ## Déployer le stack monitoring en production (sans redéployer l'appli)
+	@test -f _devops/nginx/monitoring/.htpasswd || \
+	  { echo ""; echo "  ERREUR: fichier .htpasswd manquant."; echo "  Exécuter : make monitoring-htpasswd"; echo ""; exit 1; }
+	@docker compose -f $(COMPOSE_PROD) -f $(COMPOSE_MON_PROD) $(COMPOSE_EXTRA) up -d \
+	  elasticsearch logstash kibana prometheus alertmanager grafana node-exporter redis-exporter postgres-exporter jaeger
+	@echo ""
+	@echo "Monitoring déployé sur https://$(DOMAIN)"
+	@echo "  Grafana    -> https://$(DOMAIN)/grafana/"
+	@echo "  Prometheus -> https://$(DOMAIN)/prometheus/"
+	@echo "  Kibana     -> https://$(DOMAIN)/kibana/"
+	@echo ""
+
+.PHONY: deploy-ha
+deploy-ha: ## Déployer l'overlay Haute Disponibilité (Redis Sentinel + DB replica)
+	@docker compose -f $(COMPOSE_PROD) -f _devops/docker/docker-compose.ha.yml $(COMPOSE_EXTRA) up -d
+	@echo ""
+	@echo "Overlay HA déployé :"
+	@echo "  Redis Sentinel x3 actifs"
+	@echo "  DB replica de streaming en cours"
+	@echo ""
+
 .PHONY: monitoring-up
 monitoring-up: ## Lancer la stack de monitoring (ELK + Prometheus + Grafana) — DEV
 	@docker compose -f $(COMPOSE_DEV) -f $(COMPOSE_MON) $(COMPOSE_EXTRA) up -d
