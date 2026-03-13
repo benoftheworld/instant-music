@@ -1,10 +1,12 @@
-"""Management command to seed default achievements.
+"""Commande Django pour peupler la base de données avec des réalisations.
 
-This command populates the database with a predefined set of achievements that
-users can earn by playing the game. It includes milestones for games played,
-wins, points, and special conditions like perfect rounds or win streaks.
-The command also supports an optional --reset flag to clear existing
-achievements before seeding new ones.
+Cette commande crée un ensemble de réalisations prédéfinies couvrant divers 
+jalons de jeu, tels que le nombre de parties jouées, les victoires, les points 
+accumulés, et des réalisations spéciales basées sur la performance. Elle peut 
+être exécutée avec l'option --reset pour supprimer les réalisations existantes 
+avant de les recréer, ou avec --force pour mettre à jour les réalisations 
+existantes avec les nouvelles descriptions et conditions.
+
 """
 
 from django.core.management.base import BaseCommand
@@ -109,7 +111,9 @@ DEFAULT_ACHIEVEMENTS = [
     # Special achievements
     {
         "name": "Sans faute",
-        "description": "Répondre correctement à toutes les questions d'une partie",
+        "description": (
+            "Répondre correctement à toutes les questions d'une partie"
+        ),
         "condition_type": "perfect_round",
         "condition_value": 1,
         "points": 75,
@@ -147,7 +151,10 @@ DEFAULT_ACHIEVEMENTS = [
     },
     {
         "name": "Réflexes de pro",
-        "description": "Répondre à toutes les questions en moins de 2 secondes sur une partie parfaite",
+        "description": (
+            "Répondre à toutes les questions en moins de 2 "
+            "secondes sur une partie parfaite"
+        ),
         "condition_type": "all_fast_round",
         "condition_value": 1,
         "condition_extra": "2.0",
@@ -164,7 +171,9 @@ DEFAULT_ACHIEVEMENTS = [
     },
     {
         "name": "Infaillible",
-        "description": "Enchaîner 10 bonnes réponses consécutives dans une même partie",
+        "description": (
+            "Enchaîner 10 bonnes réponses consécutives dans une même partie"
+        ),
         "condition_type": "global_correct_streak",
         "condition_value": 10,
         "points": 60,
@@ -303,7 +312,9 @@ DEFAULT_ACHIEVEMENTS = [
     },
     {
         "name": "Maestro des bonus",
-        "description": "Utiliser chacun des 8 types de bonus au moins une fois",
+        "description": (
+            "Utiliser chacun des 8 types de bonus au moins une fois"
+        ),
         "condition_type": "all_bonuses_used",
         "condition_value": 8,
         "points": 75,
@@ -311,14 +322,18 @@ DEFAULT_ACHIEVEMENTS = [
     # Performance avancée
     {
         "name": "En feu",
-        "description": "Enchaîner 8 bonnes réponses consécutives dans une même partie",
+        "description": (
+            "Enchaîner 8 bonnes réponses consécutives dans une même partie"
+        ),
         "condition_type": "in_game_streak",
         "condition_value": 8,
         "points": 75,
     },
     {
         "name": "Dominant",
-        "description": "Remporter une victoire avec le double du score du 2ème joueur",
+        "description": (
+            "Remporter une victoire avec le double du score du 2ème joueur"
+        ),
         "condition_type": "dominant_win",
         "condition_value": 1,
         "points": 100,
@@ -327,28 +342,45 @@ DEFAULT_ACHIEVEMENTS = [
 
 
 class Command(BaseCommand):
-    """Command to seed default achievements into the database."""
+    """Commande pour peupler la BDD avec des réalisations prédéfinies."""
 
-    help = "Seed default achievements into the database"
+    help = "Peupler la base de données avec des réalisations par défaut"
 
     def add_arguments(self, parser):
-        """Add optional argument to reset achievements before seeding."""
+        """Ajouter un argument pour réinitialiser les réalisations.
+        
+        Args:
+            parser : L'instance de parser d'arguments de Django.
+
+        """
         parser.add_argument(
             "--reset",
             action="store_true",
-            help="Delete all existing achievements before seeding",
+            help="Supprimer toutes les réalisations existantes avant de semer",
         )
         parser.add_argument(
             "--force",
             action="store_true",
             help=(
-                "Update existing achievements "
+                "Mettre à jour les réalisations existantes "
                 "(description, points, condition)",
             )
         )
 
     def handle(self, *args, **options):
-        """Seed achievements, optionally resetting existing ones first."""
+        """Gérer la logique de peuplement des réalisations, avec options.
+
+        Si --reset est utilisé, toutes les réalisations existantes sont 
+            supprimées.
+        Si --force est utilisé, les réalisations existantes sont mises à jour 
+            avec les nouvelles
+        descriptions et conditions, sinon elles sont laissées intactes.
+
+        Args:
+            *args: Arguments positionnels (non utilisés).
+            **options: Arguments d'options, notamment 'reset' et 'force'.
+            
+        """
         if options["reset"]:
             count = Achievement.objects.count()
             Achievement.objects.all().delete()

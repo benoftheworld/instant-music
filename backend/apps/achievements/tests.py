@@ -9,6 +9,15 @@ from .models import Achievement, UserAchievement
 
 @pytest.fixture()
 def achievement(db):
+    """Fixture pour créer une achievement de test.
+    
+    Args:
+      db : fixture intégrée de pytest-django pour accéder à la base de données.
+    
+    Returns:
+      Achievement : une instance d'Achievement créée pour les tests.
+    
+    """
     return Achievement.objects.create(
         name="Premier pas",
         description="Jouer sa première partie.",

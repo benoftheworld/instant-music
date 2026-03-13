@@ -1,4 +1,4 @@
-"""Serializers for achievements."""
+"""Serializers pour les modèles de succès et de succès débloqués."""
 
 from rest_framework import serializers
 
@@ -6,17 +6,7 @@ from .models import Achievement, UserAchievement
 
 
 class AchievementSerializer(serializers.ModelSerializer):
-    """Serializer for Achievement model.
-
-    To avoid N+1 queries, pass a ``user_achievements`` dict in the
-    serializer context mapping ``achievement_id`` → ``UserAchievement``
-    for the current user.  The view helper below builds it once::
-
-        user_achievements = {
-            ua.achievement_id: ua
-            for ua in UserAchievement.objects.filter(user=request.user)
-        }
-    """
+    """Serializer des succès."""
 
     unlocked = serializers.SerializerMethodField()
     unlocked_at = serializers.SerializerMethodField()
@@ -38,7 +28,17 @@ class AchievementSerializer(serializers.ModelSerializer):
         ]
 
     def _get_user_achievement(self, obj):
-        """Return the UserAchievement for the current user or None."""
+        """Retourne l'instance UserAchievement pour cet objet et l'utilisateur.
+        
+        Args:
+            obj (Achievement): L'instance d'Achievement pour laquelle vérifier 
+                le déblocage.
+
+        Returns:
+            UserAchievement ou None: L'instance UserAchievement si l'utilisateur 
+                a débloqué ce succès, sinon None.
+        
+        """
         # Fast path: pre-fetched map supplied by the view
         ua_map = self.context.get("user_achievements")
         if ua_map is not None:
@@ -65,7 +65,7 @@ class AchievementSerializer(serializers.ModelSerializer):
 
 
 class UserAchievementSerializer(serializers.ModelSerializer):
-    """Serializer for UserAchievement model."""
+    """Serializer pour UserAchievement, avec détails de l'achievement."""
 
     achievement = AchievementSerializer(read_only=True)
 

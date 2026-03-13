@@ -209,7 +209,10 @@ def _check_win_streak(
 ) -> bool:
     from apps.games.models import GamePlayer
 
-    recent_games = GamePlayer.objects.filter(user=user).order_by("-joined_at")[:cvalue]
+    recent_games = (
+        GamePlayer.objects.filter(user=user)
+        .order_by("-joined_at")[:cvalue]
+    )
     if recent_games.count() < cvalue:
         return False
     return all(p.rank == 1 for p in recent_games)

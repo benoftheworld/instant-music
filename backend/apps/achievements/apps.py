@@ -1,3 +1,5 @@
+"""Configuration for the Achievements app."""
+
 from django.apps import AppConfig
 
 

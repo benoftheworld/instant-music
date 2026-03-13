@@ -8,7 +8,7 @@ from .models import Achievement, UserAchievement
 
 
 class UserAchievementInline(admin.TabularInline):
-    """Inline for displaying which users have unlocked an achievement."""
+    """Administration en ligne des succès débloqués pour un utilisateur."""
 
     model = UserAchievement
     extra = 0
@@ -19,7 +19,7 @@ class UserAchievementInline(admin.TabularInline):
 
 @admin.register(Achievement)
 class AchievementAdmin(admin.ModelAdmin):
-    """Admin for managing achievements."""
+    """Administration des succès."""
 
     list_display = [
         "uuid_short",
@@ -88,7 +88,8 @@ class AchievementAdmin(admin.ModelAdmin):
         """
         return format_html(
             '<span style="background:#8b5cf6; color:#fff; padding:2px 8px; '
-            'border-radius:12px; font-size:11px; font-weight:bold;">{} pts</span>',
+            'border-radius:12px; font-size:11px; font-weight:bold;">{} pts'
+            '</span>',
             obj.points,
         )
 
@@ -108,7 +109,7 @@ class AchievementAdmin(admin.ModelAdmin):
 
 @admin.register(UserAchievement)
 class UserAchievementAdmin(admin.ModelAdmin):
-    """Admin for managing user achievements."""
+    """Administration des succès débloqués par les utilisateurs."""
 
     list_display = ["uuid_short", "user", "achievement", "unlocked_at"]
     list_filter = ["unlocked_at", "achievement"]

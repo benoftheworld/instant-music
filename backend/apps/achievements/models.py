@@ -1,4 +1,4 @@
-"""Models for achievements."""
+"""Models des succès et des succès débloqués par les utilisateurs."""
 
 import uuid
 
@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 class Achievement(models.Model):
-    """Achievement model."""
+    """Modèle de succès."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(_("nom"), max_length=100)
@@ -38,7 +38,7 @@ class Achievement(models.Model):
 
 
 class UserAchievement(models.Model):
-    """User's unlocked achievements."""
+    """Succès débloqués par les utilisateurs."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
@@ -50,7 +50,7 @@ class UserAchievement(models.Model):
     unlocked_at = models.DateTimeField(_("débloqué le"), auto_now_add=True)
 
     class Meta:
-        """Meta options for the UserAchievement model."""
+        """Options Meta pour le modèle UserAchievement."""
 
         verbose_name = _("succès utilisateur")
         verbose_name_plural = _("succès utilisateurs")
