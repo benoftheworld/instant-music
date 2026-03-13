@@ -74,7 +74,7 @@ export default function TextModeQuestion({
         title={round.question_text}
         subtitle={
           round.question_type === 'blind_inverse' ? round.artist_name
-          : round.question_type === 'guess_artist' ? `Titre : ${round.track_name}`
+          : round.question_type === 'guess_artist' ? `Titre : ${round.track_name}`
           : round.question_type === 'lyrics' ? `${round.track_name} — ${round.artist_name}`
           : undefined
         }

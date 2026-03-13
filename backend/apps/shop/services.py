@@ -6,12 +6,16 @@ BonusService — activation et consommation des bonus en partie
 
 import logging
 import random
+from typing import TYPE_CHECKING
 
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .models import BonusType, GameBonus, ShopItem, UserInventory
+
+if TYPE_CHECKING:
+    from apps.games.models import GameRound
 
 logger = logging.getLogger("apps.shop.services")
 

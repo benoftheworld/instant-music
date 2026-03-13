@@ -21,8 +21,9 @@ export default function TrackPreview({ track, autoPlay = false, showControls = t
   useEffect(() => {
     const audioEl = audioRef.current;
     if (autoPlay && track.preview_url && audioEl) {
-      audioEl.play().catch(console.error);
-      setIsPlaying(true);
+      audioEl.play()
+        .then(() => setIsPlaying(true))
+        .catch(console.error);
     }
 
     return () => {

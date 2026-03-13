@@ -31,11 +31,12 @@ _ISO_DURATION_RE = re.compile(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?")
 def _extract_thumbnail_url(snippet: dict[str, Any]) -> str:
     """Extrait l'URL de la meilleure miniature (high > medium > default)."""
     thumbnails = snippet.get("thumbnails", {})
-    return (
+    url: str = (
         thumbnails.get("high", {}).get("url")
         or thumbnails.get("medium", {}).get("url")
         or thumbnails.get("default", {}).get("url", "")
     )
+    return url
 
 
 class YouTubeAPIError(Exception):

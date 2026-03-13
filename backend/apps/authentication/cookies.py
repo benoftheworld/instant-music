@@ -5,6 +5,8 @@ Il transite uniquement via un cookie HttpOnly + Secure + SameSite=Strict,
 inaccessible au JavaScript client.
 """
 
+from typing import cast
+
 from django.conf import settings
 
 
@@ -44,4 +46,4 @@ def clear_refresh_cookie(response) -> None:
 
 def get_refresh_from_cookie(request) -> str | None:
     """Extrait le refresh token depuis le cookie de la requête."""
-    return request.COOKIES.get(REFRESH_COOKIE_NAME)
+    return cast("str | None", request.COOKIES.get(REFRESH_COOKIE_NAME))

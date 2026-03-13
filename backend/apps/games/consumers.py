@@ -368,7 +368,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         now_ms = int(time.time() * 1000)
         win_ms = window * 1000
         try:
-            result = await _get_ws_redis().eval(
+            result = await _get_ws_redis().eval(  # type: ignore[misc]
                 _SLIDING_WINDOW_SCRIPT, 1, key, now_ms, win_ms, limit
             )
             return bool(result)
@@ -553,7 +553,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             round=current_round, player__in=non_host_players
         ).count()
 
-        return answered_count >= non_host_count  # type: ignore[return-value]
+        return bool(answered_count >= non_host_count)
 
     async def player_answer(self, data):
         """Handle player submitting an answer."""
@@ -731,8 +731,8 @@ class GameConsumer(AsyncWebsocketConsumer):
             bonus.is_used = True
             bonus.used_at = timezone.now()
             bonus.save(update_fields=["is_used", "used_at"])
-            return True, username  # type: ignore[return-value]
-        return False, None  # type: ignore[return-value]
+            return True, username
+        return False, None
 
     async def finish_game(self, data):
         """Handle game finish."""

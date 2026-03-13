@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import type { Props } from './shared';
 
 /* ═══════════════════════════════════════════════════════════════════ */
@@ -190,25 +190,16 @@ interface SyncedLine {
 }
 
 /** Find the active lyric line index from current playback position. */
-function useActiveLyricIndex(lines: SyncedLine[], currentTimeMs: number): number {
-  const [activeIndex, setActiveIndex] = useState(-1);
-
-  useEffect(() => {
-    if (lines.length === 0) {
-      setActiveIndex(-1);
-      return;
+function getActiveLyricIndex(lines: SyncedLine[], currentTimeMs: number): number {
+  if (lines.length === 0) return -1;
+  let idx = -1;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (currentTimeMs >= lines[i].time_ms) {
+      idx = i;
+      break;
     }
-    let idx = -1;
-    for (let i = lines.length - 1; i >= 0; i--) {
-      if (currentTimeMs >= lines[i].time_ms) {
-        idx = i;
-        break;
-      }
-    }
-    setActiveIndex(idx);
-  }, [lines, currentTimeMs]);
-
-  return activeIndex;
+  }
+  return idx;
 }
 
 function KaraokeLyricsDisplay({
@@ -294,8 +285,9 @@ function KaraokeScoreSidebar({ score }: { score: number }) {
     <div className="flex flex-col items-center gap-4">
       <div className="bg-gray-900/80 backdrop-blur border border-gray-700 rounded-2xl p-6 text-center min-w-[140px]">
         <div className="text-gray-400 text-xs uppercase tracking-wider mb-1">Score</div>
-        <div className="text-4xl font-black text-yellow-400">{score}</div>
-        <div className="text-gray-500 text-xs mt-1">pts</div>
+        <div className="text-3xl font-bold text-yellow-400">{score}</div>
+        <div className="text-gray-500 text-xs mt-1">Points</div>
+        <div className="text-gray-500 text-xs mt-1">Bientôt disponible</div>
       </div>
     </div>
   );
@@ -318,7 +310,8 @@ const KaraokeQuestion = ({
   const youtubeVideoId: string | undefined = round.extra_data?.youtube_video_id;
 
   const yt = useYouTubePlayer(youtubeVideoId, !showResults, onSkipSong);
-  const activeIndex = useActiveLyricIndex(syncedLines, yt.currentTimeMs);
+  const activeIndex = getActiveLyricIndex(syncedLines, yt.currentTimeMs);
+  const barHeights = useMemo(() => Array.from({ length: 5 }, () => 12 + Math.random() * 12), []);
 
   /* ── Results phase: show track info ── */
   if (showResults) {
@@ -367,7 +360,7 @@ const KaraokeQuestion = ({
                     key={i}
                     className="w-1 bg-yellow-400 rounded-full animate-pulse"
                     style={{
-                      height: `${12 + Math.random() * 12}px`,
+                      height: `${barHeights[i]}px`,
                       animationDelay: `${i * 120}ms`,
                     }}
                   />

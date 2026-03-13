@@ -44,7 +44,14 @@ export default function PartyPlayerView({
   myPointsEarned = 0,
 }: PartyPlayerViewProps) {
   const [textAnswer, setTextAnswer] = useState('');
+  const [prevRoundNumber, setPrevRoundNumber] = useState(round.round_number);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Réinitialiser l'input texte à chaque nouveau round
+  if (prevRoundNumber !== round.round_number) {
+    setPrevRoundNumber(round.round_number);
+    setTextAnswer('');
+  }
 
   // Toujours focus l'input en mode texte
   useEffect(() => {
@@ -52,11 +59,6 @@ export default function PartyPlayerView({
       inputRef.current.focus();
     }
   }, [answerMode, hasAnswered]);
-
-  // Réinitialiser l'input texte à chaque nouveau round
-  useEffect(() => {
-    setTextAnswer('');
-  }, [round.round_number]);
 
   const handleTextSubmit = (e: React.FormEvent) => {
     e.preventDefault();

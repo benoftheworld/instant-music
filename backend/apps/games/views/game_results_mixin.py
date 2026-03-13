@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -13,6 +15,9 @@ from ..serializers import GamePlayerSerializer, GameSerializer
 
 class GameResultsMixin:
     """Actions liées à l'affichage et l'export des résultats de partie."""
+
+    if TYPE_CHECKING:
+        def get_object(self) -> Any: ...
 
     @action(detail=True, methods=["get"])
     def results(self, request, room_code=None):

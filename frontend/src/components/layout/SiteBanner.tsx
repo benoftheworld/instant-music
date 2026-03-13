@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { SiteBannerData } from '@/services/adminService';
 
 interface Props {
@@ -15,13 +15,16 @@ const COLOR_CLASSES: Record<SiteBannerData['color'], string> = {
 };
 
 export default function SiteBanner({ banner }: Props) {
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(
+    () => sessionStorage.getItem(`${DISMISSED_KEY}_${banner.message}`) === '1'
+  );
+  const [prevMessage, setPrevMessage] = useState(banner.message);
 
   // Réinitialiser si le message change
-  useEffect(() => {
-    const key = `${DISMISSED_KEY}_${banner.message}`;
-    setDismissed(sessionStorage.getItem(key) === '1');
-  }, [banner.message]);
+  if (prevMessage !== banner.message) {
+    setPrevMessage(banner.message);
+    setDismissed(sessionStorage.getItem(`${DISMISSED_KEY}_${banner.message}`) === '1');
+  }
 
   if (!banner.enabled || dismissed) return null;
 

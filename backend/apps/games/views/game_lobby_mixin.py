@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING, Any
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -32,6 +33,9 @@ logger = logging.getLogger(__name__)
 
 class GameLobbyMixin:
     """Actions liées à la gestion du lobby (création, rejoindre, quitter, démarrer)."""
+
+    if TYPE_CHECKING:
+        def get_object(self) -> Any: ...
 
     def _broadcast_player_join(self, game, player, room_code, request):
         """Refresh game, serialize, and broadcast a player_join event."""

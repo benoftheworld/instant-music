@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING, Any
 
 from django.db import transaction
 from django.utils import timezone
@@ -30,6 +31,9 @@ logger = logging.getLogger(__name__)
 
 class GameRoundMixin:
     """Actions liées au déroulement des manches (réponses, transitions)."""
+
+    if TYPE_CHECKING:
+        def get_object(self) -> Any: ...
 
     @action(detail=True, methods=["get"], url_path="current-round")
     def current_round(self, request, room_code=None):

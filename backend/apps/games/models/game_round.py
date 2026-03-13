@@ -52,15 +52,13 @@ class GameRound(models.Model):
     ended_at = models.DateTimeField(_("terminé le"), null=True, blank=True)
 
     class Meta:
-        indexes = [
-            models.Index(fields=["game", "round_number"], name="idx_round_game_num"),
-        ]
-
-    class Meta:
         verbose_name = _("round")
         verbose_name_plural = _("rounds")
         unique_together = ["game", "round_number"]
         ordering = ["game", "round_number"]
+        indexes = [
+            models.Index(fields=["game", "round_number"], name="idx_round_game_num"),
+        ]
 
     def __str__(self) -> str:
         return f"Round {self.round_number} - {self.game.room_code}"

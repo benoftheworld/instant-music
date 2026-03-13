@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING, Any
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -19,6 +20,10 @@ logger = logging.getLogger(__name__)
 
 class GameInvitationMixin:
     """Actions liées aux invitations de partie."""
+
+    if TYPE_CHECKING:
+        def get_object(self) -> Any: ...
+        def _broadcast_player_join(self, game: Any, player: Any, room_code: Any, request: Any) -> None: ...
 
     @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsGameHost])
     def invite(self, request, room_code=None):

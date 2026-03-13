@@ -13,12 +13,14 @@ export default function Navbar() {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [prevPathname, setPrevPathname] = useState(location.pathname);
 
   // Ferme le menu mobile à chaque changement de route
-  useEffect(() => {
+  if (prevPathname !== location.pathname) {
+    setPrevPathname(location.pathname);
     setIsMenuOpen(false);
     setIsAdminOpen(false);
-  }, [location.pathname]);
+  }
 
   useEffect(() => {
     if (!isAuthenticated) return;

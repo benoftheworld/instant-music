@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { getEffectiveMusicVolume } from './VolumeControl';
 import type { GameRound } from './types';
 
@@ -203,7 +203,9 @@ export function useAudioPlayer(
     [round.track_id, round.id, showResults, round.preview_url, seekOffsetMs, playbackRate],
     { playbackRate, seekOffsetMs, maxAudioDuration },
   );
-  startedAtRef.current = round.started_at;
+  useLayoutEffect(() => {
+    startedAtRef.current = round.started_at;
+  }, [startedAtRef, round.started_at]);
   return result;
 }
 

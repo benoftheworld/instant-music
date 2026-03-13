@@ -81,7 +81,7 @@ def logout(request):
     refresh_token = get_refresh_from_cookie(request)
     if refresh_token:
         try:
-            token = RefreshToken(refresh_token)
+            token = RefreshToken(refresh_token)  # type: ignore[arg-type]
             token.blacklist()
         except TokenError:
             pass  # Token déjà invalide ou expiré
