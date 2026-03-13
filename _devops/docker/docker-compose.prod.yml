@@ -173,6 +173,7 @@ services:
       - ../nginx/security_headers.conf:/etc/nginx/security_headers.conf:ro
       - ../nginx/security_headers_grafana.conf:/etc/nginx/security_headers_grafana.conf:ro
       - ../nginx/security_headers_kibana.conf:/etc/nginx/security_headers_kibana.conf:ro
+      - ../nginx/security_headers_prometheus.conf:/etc/nginx/security_headers_prometheus.conf:ro
       - ../nginx/monitoring:/etc/nginx/monitoring:ro
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
