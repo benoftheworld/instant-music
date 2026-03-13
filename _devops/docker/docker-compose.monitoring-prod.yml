@@ -1,0 +1,263 @@
+# docker-compose.monitoring-prod.yml
+#
+# Stack de monitoring en PRODUCTION.
+# - Les services rejoignent app-network (réseau Docker de l'application)
+# - Aucun port exposé publiquement (accessible via nginx uniquement)
+# - Grafana accessible sur https://benoftheworld.fr/grafana/
+# - Prometheus accessible sur https://benoftheworld.fr/prometheus/
+# - Kibana accessible sur https://benoftheworld.fr/kibana/
+#
+# Prérequis :
+#   1. make monitoring-htpasswd    → créer le fichier .htpasswd pour Basic Auth
+#   2. make monitoring-up-prod     → démarrer la stack
+#   3. make deploy-prod            → s'assurer que nginx recharge sa config
+
+name: instantmusic
+
+services:
+  # ── Elasticsearch ──────────────────────────────────────────────────────────
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: instantmusic_elasticsearch_prod
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:?ELASTIC_PASSWORD must be set in .env.prod}
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    expose:
+      - '9200'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f -u elastic:${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Logstash ───────────────────────────────────────────────────────────────
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.13.0
+    container_name: instantmusic_logstash_prod
+    volumes:
+      - ../monitoring/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ../monitoring/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ../monitoring/logstash/pipeline/logstash-prod.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    expose:
+      - '5044'
+      - '5000'
+      - '9600'
+    environment:
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m
+      - LOGSTASH_ES_PASSWORD=${LOGSTASH_PASSWORD}
+    depends_on:
+      elasticsearch-setup:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Init : configure les mots de passe des utilisateurs built-in ───────────
+  elasticsearch-setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: instantmusic_es_setup
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: 'no'
+    entrypoint: ['bash', '-c']
+    command:
+      - |
+        set -e
+        echo 'Vérification de la connexion à Elasticsearch…'
+        curl -sf --retry 5 --retry-delay 5 -u "elastic:$${ELASTIC_PASSWORD}" \
+          "http://elasticsearch:9200/_security/_authenticate" > /dev/null
+        echo 'Connexion OK. Configuration des utilisateurs built-in…'
+        # kibana_system — utilisé par Kibana pour communiquer avec ES
+        curl -sf --retry 3 --retry-delay 5 -X POST -u "elastic:$${ELASTIC_PASSWORD}" \
+          -H 'Content-Type: application/json' \
+          "http://elasticsearch:9200/_security/user/kibana_system/_password" \
+          -d '{"password": "'"$${KIBANA_PASSWORD}"'"}'
+        echo 'kibana_system OK'
+        # logstash_system — monitoring interne Logstash
+        curl -sf --retry 3 --retry-delay 5 -X POST -u "elastic:$${ELASTIC_PASSWORD}" \
+          -H 'Content-Type: application/json' \
+          "http://elasticsearch:9200/_security/user/logstash_system/_password" \
+          -d '{"password": "'"$${LOGSTASH_PASSWORD}"'"}'
+        echo 'logstash_system OK'
+        # logstash_writer — rôle + utilisateur dédié à l'écriture des index applicatifs
+        # (logstash_system est un user built-in de monitoring, il n'a PAS les droits d'écriture)
+        curl -sf --retry 3 --retry-delay 5 -X PUT -u "elastic:$${ELASTIC_PASSWORD}" \
+          -H 'Content-Type: application/json' \
+          "http://elasticsearch:9200/_security/role/logstash_writer" \
+          -d '{"cluster":["manage_index_templates","monitor"],"indices":[{"names":["instantmusic-*"],"privileges":["write","create_index","manage"]}]}'
+        echo 'role logstash_writer OK'
+        curl -sf --retry 3 --retry-delay 5 -X PUT -u "elastic:$${ELASTIC_PASSWORD}" \
+          -H 'Content-Type: application/json' \
+          "http://elasticsearch:9200/_security/user/logstash_writer" \
+          -d '{"password":"'"$${LOGSTASH_PASSWORD}"'","roles":["logstash_writer"],"full_name":"Logstash Writer"}'
+        echo 'user logstash_writer OK'
+        echo 'Utilisateurs configurés.'
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - KIBANA_PASSWORD=${KIBANA_PASSWORD}
+      - LOGSTASH_PASSWORD=${LOGSTASH_PASSWORD}
+    networks:
+      - app-network
+
+  # ── Kibana ─────────────────────────────────────────────────────────────────
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.0
+    container_name: instantmusic_kibana_prod
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD:?KIBANA_PASSWORD must be set in .env.prod}
+      - SERVER_BASEPATH=/kibana
+      - SERVER_REWRITEBASEPATH=true
+    expose:
+      - '5601'
+    depends_on:
+      elasticsearch-setup:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Node Exporter ──────────────────────────────────────────────────────────
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: instantmusic_node_exporter_prod
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Redis Exporter ──────────────────────────────────────────────────────────
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.58.0
+    container_name: instantmusic_redis_exporter_prod
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Postgres Exporter ──────────────────────────────────────────────────────
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: instantmusic_postgres_exporter_prod
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+    expose:
+      - '9187'
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Prometheus ─────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: instantmusic_prometheus_prod
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      # Subpath pour l'accès via nginx /prometheus/
+      - '--web.external-url=https://${DOMAIN:-benoftheworld.fr}/prometheus/'
+      - '--web.route-prefix=/'
+    expose:
+      - '9090'
+    depends_on:
+      - alertmanager
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── AlertManager ───────────────────────────────────────────────────────────
+  # Envoi d'email pour les alertes critiques et warning.
+  # Le fichier de config est généré par deploy.sh via envsubst depuis le template.
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: instantmusic_alertmanager_prod
+    volumes:
+      - ../monitoring/alertmanager/alertmanager-prod.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=https://${DOMAIN:-benoftheworld.fr}/alertmanager/'
+      - '--web.route-prefix=/'
+    expose:
+      - '9093'
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Grafana ────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: instantmusic_grafana_prod
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:?GF_ADMIN_PASSWORD must be set in .env.prod}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      # Subpath pour l'accès via nginx /grafana/
+      - GF_SERVER_ROOT_URL=https://${DOMAIN:-benoftheworld.fr}/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    expose:
+      - '3000'
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Jaeger (tracing distribué) ──────────────────────────────────────
+  # OTLP gRPC sur :4317, UI interne sur :16686 (accès via nginx /jaeger/)
+  jaeger:
+    image: jaegertracing/all-in-one:1.55
+    container_name: instantmusic_jaeger_prod
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - QUERY_BASE_PATH=/jaeger
+    expose:
+      - '16686'
+      - '4317'
+      - '4318'
+    restart: unless-stopped
+    networks:
+      - app-network
+
+volumes:
+  elasticsearch_data:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:
+
+networks:
+  # Réseau de l'application principale (créé par docker-compose.prod.yml)
+  app-network:
+    external: true
+    name: instantmusic_app-network

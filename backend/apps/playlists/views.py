@@ -1,0 +1,149 @@
+"""Views for playlists app (Deezer + YouTube search helpers).
+"""
+
+import logging
+
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+
+from apps.core.prometheus_metrics import EXTERNAL_API_REQUESTS_TOTAL
+from apps.core.throttles import PlaylistSearchThrottle
+
+from .decorators import handle_deezer_call
+from .deezer_service import deezer_service
+from .serializers import PlaylistSerializer
+from .youtube_service import YouTubeAPIError, youtube_service
+
+logger = logging.getLogger("apps.playlists.views")
+
+
+class PlaylistViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    # Actions Deezer accessibles sans authentification (previews publics)
+    PUBLIC_ACTIONS = {
+        "search",
+        "get_playlist",
+        "get_playlist_tracks",
+        "validate_playlist_access",
+    }
+
+    def get_permissions(self):
+        if self.action in self.PUBLIC_ACTIONS:
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get_throttles(self):
+        if self.action == "search":
+            return [PlaylistSearchThrottle()]
+        return super().get_throttles()
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("query", str, description="Search query for playlists")
+        ],
+        responses={200: PlaylistSerializer(many=True)},
+    )
+    @action(detail=False, methods=["get"])
+    @handle_deezer_call("search_playlists")
+    def search(self, request):
+        query = request.query_params.get("query", "")
+        if not query:
+            return Response(
+                {"error": "Query parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            limit = int(request.query_params.get("limit", 20))
+        except ValueError:
+            limit = 20
+
+        playlists = deezer_service.search_playlists(query, limit)
+        serializer = PlaylistSerializer(playlists, many=True)
+        return Response({"playlists": serializer.data, "source": "deezer"})
+
+    @extend_schema(responses={200: PlaylistSerializer})
+    @action(detail=False, methods=["get"], url_path=r"(?P<playlist_id>\d+)")
+    @handle_deezer_call("get_playlist")
+    def get_playlist(self, request, playlist_id=None):
+        playlist = deezer_service.get_playlist(playlist_id)
+        if not playlist:
+            logger.info(
+                "deezer_playlist_not_found",
+                extra={"playlist_id": playlist_id},
+            )
+            return Response(
+                {"error": "Playlist not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = PlaylistSerializer(playlist)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path=r"(?P<playlist_id>\d+)/tracks")
+    @handle_deezer_call("get_playlist_tracks")
+    def get_playlist_tracks(self, request, playlist_id=None):
+        try:
+            limit = int(request.query_params.get("limit", 50))
+        except ValueError:
+            limit = 50
+        tracks = deezer_service.get_playlist_tracks(playlist_id, limit)
+        return Response(tracks)
+
+    @action(detail=False, methods=["get"], url_path=r"(?P<playlist_id>\d+)/validate")
+    @handle_deezer_call("get_playlist_tracks")
+    def validate_playlist_access(self, request, playlist_id=None):
+        try:
+            tracks = deezer_service.get_playlist_tracks(playlist_id, limit=5)
+            return Response(
+                {
+                    "accessible": True,
+                    "track_count": len(tracks),
+                    "source": "deezer",
+                }
+            )
+        except Exception as e:
+            logger.warning(
+                "deezer_validate_playlist_error",
+                extra={"playlist_id": playlist_id, "error": str(e)},
+            )
+            return Response(
+                {"accessible": False, "error": str(e), "source": "deezer"},
+                status=status.HTTP_200_OK,
+            )
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("query", str, description="Search query for YouTube songs")
+        ]
+    )
+    @action(detail=False, methods=["get"], url_path="youtube-songs/search")
+    def search_youtube_songs(self, request):
+        """Search YouTube for music videos (used for karaoke mode)."""
+        query = request.query_params.get("query", "")
+        if not query or len(query.strip()) < 2:
+            return Response(
+                {"error": "Le paramètre query est requis (min 2 caractères)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            limit = min(int(request.query_params.get("limit", 10)), 20)
+        except ValueError:
+            limit = 10
+        try:
+            EXTERNAL_API_REQUESTS_TOTAL.labels(
+                service="youtube", endpoint="search_music_videos"
+            ).inc()
+            tracks = youtube_service.search_music_videos(query.strip(), limit=limit)
+            return Response({"tracks": tracks, "source": "youtube"})
+        except YouTubeAPIError as e:
+            logger.error(
+                "youtube_search_error",
+                extra={"query": query.strip(), "error": str(e)},
+            )
+            return Response(
+                {"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )

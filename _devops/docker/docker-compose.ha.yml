@@ -1,0 +1,106 @@
+# docker-compose.ha.yml
+#
+# Overlay Haute Disponibilité — à combiner avec docker-compose.prod.yml
+#
+# Usage :
+#   docker compose -f _devops/docker/docker-compose.prod.yml -f _devops/docker/docker-compose.ha.yml up -d
+#
+# Ajoute :
+#   - PostgreSQL streaming replica (lecture seule)
+#   - Redis Sentinel (1 master + 2 replicas + 3 sentinels)
+
+name: instantmusic
+
+services:
+  # ── PostgreSQL Replica ─────────────────────────────────────────────
+  db-replica:
+    image: postgres:15-alpine
+    container_name: instantmusic_db_replica
+    environment:
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    command: |
+      bash -c "
+        until pg_basebackup -h db -D /var/lib/postgresql/data -U ${POSTGRES_USER:-postgres} -Fp -Xs -P -R; do
+          echo 'Waiting for primary to be ready...'
+          sleep 5
+        done
+        chmod 0700 /var/lib/postgresql/data
+        exec postgres
+      "
+    volumes:
+      - db_replica_data:/var/lib/postgresql/data
+    depends_on:
+      - db
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Redis Replica 1 ────────────────────────────────────────────────
+  redis-replica-1:
+    image: redis:7-alpine
+    container_name: instantmusic_redis_replica_1
+    command: redis-server --replicaof redis 6379 --masterauth ${REDIS_PASSWORD:?REDIS_PASSWORD must be set} --requirepass ${REDIS_PASSWORD}
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Redis Replica 2 ────────────────────────────────────────────────────────
+  redis-replica-2:
+    image: redis:7-alpine
+    container_name: instantmusic_redis_replica_2
+    command: redis-server --replicaof redis 6379 --masterauth ${REDIS_PASSWORD:?REDIS_PASSWORD must be set} --requirepass ${REDIS_PASSWORD}
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Redis Sentinel 1 ──────────────────────────────────────────────
+  redis-sentinel-1: &sentinel
+    image: redis:7-alpine
+    container_name: instantmusic_sentinel_1
+    command: >
+      sh -c "
+        cat > /tmp/sentinel.conf <<EOF
+        port 26379
+        sentinel monitor mymaster redis 6379 2
+        sentinel auth-pass mymaster ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+        sentinel down-after-milliseconds mymaster 5000
+        sentinel failover-timeout mymaster 10000
+        sentinel parallel-syncs mymaster 1
+      EOF
+        redis-sentinel /tmp/sentinel.conf
+      "
+    depends_on:
+      - redis
+      - redis-replica-1
+      - redis-replica-2
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Redis Sentinel 2 ──────────────────────────────────────────────
+  redis-sentinel-2:
+    <<: *sentinel
+    container_name: instantmusic_sentinel_2
+
+  # ── Redis Sentinel 3 ──────────────────────────────────────────────
+  redis-sentinel-3:
+    <<: *sentinel
+    container_name: instantmusic_sentinel_3
+
+volumes:
+  db_replica_data:
+
+networks:
+  app-network:
+    external: true
+    name: instantmusic_app-network

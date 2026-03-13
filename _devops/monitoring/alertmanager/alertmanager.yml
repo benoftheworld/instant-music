@@ -1,0 +1,38 @@
+# AlertManager configuration for InstantMusic
+#
+# En DEV  : les valeurs ci-dessous sont des placeholders — les alertes
+#           s'affichent dans l'UI AlertManager (http://localhost:9093)
+#           mais l'envoi d'email est désactivé (smtp_smarthost vide).
+# En PROD : ce fichier est surchargé par alertmanager-prod.yml
+#           (monté dans docker-compose.monitoring-prod.yml).
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: email-default
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  routes:
+    - match:
+        severity: critical
+      receiver: email-critical
+      group_wait: 10s
+      repeat_interval: 1h
+
+receivers:
+  - name: email-default
+    email_configs: []
+
+  - name: email-critical
+    email_configs: []
+
+inhibit_rules:
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ['alertname', 'instance']

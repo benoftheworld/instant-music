@@ -1,0 +1,93 @@
+# Règles d'alerte Prometheus pour InstantMusic
+groups:
+  - name: instantmusic_infra
+    rules:
+      # ── Disponibilité ────────────────────────────────────────────────────
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Backend Django indisponible'
+          description: 'Le backend ne répond plus aux health checks depuis 1 minute.'
+
+      - alert: RedisDown
+        expr: up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Redis indisponible'
+          description: 'Redis ne répond plus depuis 1 minute. WebSocket et cache impactés.'
+
+      # ── Ressources système ───────────────────────────────────────────────
+      - alert: HighCpuUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Utilisation CPU élevée ({{ $value | printf "%.0f" }}%)'
+          description: 'CPU au-dessus de 85% depuis 5 minutes.'
+
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Utilisation mémoire élevée ({{ $value | printf "%.0f" }}%)'
+          description: 'Mémoire au-dessus de 85% depuis 5 minutes.'
+
+      - alert: DiskSpaceLow
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Espace disque faible ({{ $value | printf "%.0f" }}% utilisé)'
+          description: 'Disque root au-dessus de 85%. Vérifier les backups et les logs.'
+
+      - alert: DiskSpaceCritical
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Espace disque critique ({{ $value | printf "%.0f" }}% utilisé)'
+          description: 'Disque root au-dessus de 95%. Action immédiate requise.'
+
+  - name: instantmusic_app
+    rules:
+      # ── Backend HTTP ─────────────────────────────────────────────────────
+      - alert: HighErrorRate
+        expr: >
+          sum(rate(django_http_responses_total_by_status_total{status=~"5.."}[5m]))
+          / sum(rate(django_http_responses_total_by_status_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Taux d''erreur HTTP 5xx élevé ({{ $value | printf "%.1f" }}%)'
+          description: 'Plus de 5% de réponses 5xx depuis 5 minutes.'
+
+      # ── WebSocket ────────────────────────────────────────────────────────
+      - alert: WebSocketConnectionsDrop
+        expr: deriv(instantmusic_ws_connections_active[5m]) < -10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Chute rapide des connexions WebSocket'
+          description: 'Les connexions WS actives diminuent rapidement. Possible crash du backend.'
+
+      # ── Redis ────────────────────────────────────────────────────────────
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Redis utilise plus de 85% de sa mémoire maximale'
+          description: 'Vérifier les clés cache et les channel layers.'

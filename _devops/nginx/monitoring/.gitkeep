@@ -1,0 +1,3 @@
+# Ce dossier contient le fichier .htpasswd pour protéger les interfaces de monitoring.
+# Générer avec : make monitoring-htpasswd
+# Le fichier .htpasswd est ignoré par git (voir .gitignore).

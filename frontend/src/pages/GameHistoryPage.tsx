@@ -1,0 +1,192 @@
+import { getMediaUrl } from '@/services/api';
+import { getModeIcon, LEADERBOARD_TABS } from '@/constants/gameModes';
+import { PageLoader, EmptyState } from '@/components/ui';
+import { Link } from 'react-router-dom';
+import { useGameHistoryPage } from '@/hooks/pages/useGameHistoryPage';
+
+export default function GameHistoryPage() {
+  const {
+    games,
+    selectedMode,
+    setSelectedMode,
+    loading,
+    error,
+    page,
+    pageSize,
+    totalCount,
+    hasNext,
+    hasPrev,
+    handlePrev,
+    handleNext,
+    formatDate,
+  } = useGameHistoryPage();
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <PageLoader />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center text-red-600">
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold mb-2">Historique des parties</h1>
+        <p className="text-gray-600">Toutes les parties terminées</p>
+      </div>
+
+          {/* Mode selector */}
+          <div className="flex flex-wrap gap-2 mb-6 justify-center">
+            {LEADERBOARD_TABS.filter((t) => t.value !== 'general' && t.value !== 'teams').map((mode) => (
+              <button
+                key={mode.value}
+                onClick={() => setSelectedMode(mode.value)}
+                className={`px-3 py-2 rounded-lg font-medium transition-all text-sm ${
+                  selectedMode === mode.value
+                    ? 'bg-primary-500 text-white shadow-lg'
+                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                }`}
+              >
+                <span className="mr-1">{mode.icon}</span>
+                {mode.label}
+              </button>
+            ))}
+            <button
+              onClick={() => setSelectedMode(null)}
+              className={`px-3 py-2 rounded-lg font-medium transition-all text-sm ${
+                selectedMode === null
+                  ? 'bg-primary-500 text-white shadow-lg'
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+              }`}
+            >
+              Tous
+            </button>
+          </div>
+
+          {games.length === 0 ? (
+        <EmptyState
+          title="Aucune partie terminée pour le moment"
+          action={<Link to="/game/create" className="btn-primary">Créer une partie</Link>}
+        />
+      ) : (
+        <div className="space-y-4">
+          {games.map((game) => (
+            <div key={game.id} className="card hover:shadow-lg transition-shadow">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                {/* Game Info */}
+                <div className="md:col-span-3">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-3xl">{getModeIcon(game.mode)}</span>
+                    <div>
+                      <h3 className="font-bold text-lg">{game.mode_display}</h3>
+                      <p className="text-sm text-gray-500">Salle: {game.room_code}</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
+                          {game.answer_mode === 'mcq' ? '📋 QCM' : '⌨️ Saisie libre'}
+                        </span>
+                        {(game.mode === 'classique' || game.mode === 'rapide') && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
+                            {game.guess_target === 'artist' ? '🎤 Artiste' : '🎵 Titre'}
+                          </span>
+                        )}
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-cream-200 text-dark-400">
+                          {game.num_rounds} rounds
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Winner */}
+                <div className="md:col-span-3">
+                  {game.winner ? (
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center flex-shrink-0">
+                        {game.winner.avatar ? (
+                          <img
+                            src={getMediaUrl(game.winner.avatar)}
+                            alt={game.winner.username}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-white text-xl">👑</span>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Vainqueur</p>
+                        <p className="font-bold">{game.winner.username}</p>
+                        <p className="text-sm text-primary-600">{game.winner_score} pts</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">Aucun vainqueur</p>
+                  )}
+                </div>
+
+                {/* Stats */}
+                <div className="md:col-span-2 text-center">
+                  <p className="text-2xl font-bold text-primary-600">{game.player_count}</p>
+                  <p className="text-xs text-gray-500 uppercase">Joueurs</p>
+                </div>
+
+                {/* Date */}
+                <div className="md:col-span-3 text-sm text-gray-600">
+                  <p className="mb-1">
+                    <span className="font-medium">Hôte:</span> {game.host_username}
+                  </p>
+                  <p>
+                    <span className="font-medium">Terminée:</span> {formatDate(game.finished_at)}
+                  </p>
+                </div>
+
+                {/* Details Button */}
+                <div className="md:col-span-1 text-right">
+                  <Link
+                    to={`/game/${game.room_code}/results`}
+                    className="btn-primary text-sm text-light inline-block"
+                  >
+                    Détails
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* Pagination controls */}
+      {totalCount !== null && totalCount > pageSize && (
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <button
+            onClick={handlePrev}
+            disabled={!hasPrev}
+            className={`px-3 py-2 rounded-lg border ${!hasPrev ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+          >
+            Précédent
+          </button>
+          <div className="text-sm text-gray-600">
+            Page {page} / {Math.max(1, Math.ceil(totalCount / pageSize))}
+          </div>
+          <button
+            onClick={handleNext}
+            disabled={!hasNext}
+            className={`px-3 py-2 rounded-lg border ${!hasNext ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+          >
+            Suivant
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

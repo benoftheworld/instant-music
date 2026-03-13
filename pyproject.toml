@@ -1,0 +1,47 @@
+# Ruff configuration – replaces flake8, black, and isort for the backend
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+src = ["backend"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "C90", # mccabe complexity
+    "N",   # pep8-naming
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long – handled by formatter
+    "B008",  # do not perform function calls in default arguments (common in Django)
+    "N806",  # variable in function should be lowercase (QuerySet naming conventions)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*/migrations/*" = ["E501", "N", "I"]
+"*/tests*.py" = ["S101"]  # assert is fine in tests
+"*/__init__.py" = ["F401"] # unused imports in __init__ are intentional
+
+[tool.ruff.lint.mccabe]
+max-complexity = 12
+
+[tool.ruff.format]
+# Acts as black replacement
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+# Bandit config – invoked via: bandit -r backend/ -c pyproject.toml
+[tool.bandit]
+targets = ["backend"]
+exclude_dirs = ["backend/apps/*/migrations", "backend/*/tests*", ".venv", "venv"]
+skips = [
+    "B101", # assert_used – acceptable in tests
+    "B601", # paramiko_calls – not used in this project
+]

@@ -1,0 +1,149 @@
+# Monitoring stack: ELK (Elasticsearch + Logstash + Kibana) + Prometheus + Grafana
+# Usage (from repo root):
+#   docker compose -f _devops/docker/docker-compose.yml -f _devops/docker/docker-compose.monitoring.yml up -d
+#
+# Ports exposed:
+#   Kibana        http://localhost:5601
+#   Grafana       http://localhost:3001  (admin / admin)
+#   Prometheus    http://localhost:9090
+#   Elasticsearch http://localhost:9200  (internal only by default)
+
+version: '3.9'
+
+services:
+  # ── Elasticsearch ──────────────────────────────────────────────────────────
+  # NOTE: xpack.security.enabled=false is intentional for local development only.
+  # For production, enable security and configure TLS + authentication.
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - '9200:9200'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:9200/_cluster/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ── Logstash ───────────────────────────────────────────────────────────────
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.13.0
+    volumes:
+      - ../monitoring/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ../monitoring/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+    ports:
+      - '5044:5044'
+      - '5000:5000/tcp'
+      - '5000:5000/udp'
+      - '9600:9600'
+    environment:
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  # ── Kibana ─────────────────────────────────────────────────────────────────
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.0
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - '5601:5601'
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  # ── Node Exporter ─────────────────────────────────────────────────────────
+  # Métriques système : CPU, mémoire, disque, réseau
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+
+  # ── Redis Exporter ──────────────────────────────────────────────────────────
+  # Métriques Redis : mémoire, connexions, commandes, keyspace
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.58.0
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # ── Prometheus ─────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - '9090:9090'
+    depends_on:
+      - alertmanager
+
+  # ── AlertManager ───────────────────────────────────────────────────────────
+  # UI: http://localhost:9093  — email désactivé en dev (config sans SMTP)
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    volumes:
+      - ../monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - '9093:9093'
+    restart: unless-stopped
+
+  # ── Grafana ────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.1
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - '3001:3000'
+    depends_on:
+      - prometheus
+
+  # ── Jaeger (tracing distribué) ──────────────────────────────────────
+  # UI: http://localhost:16686   OTLP gRPC: :4317   OTLP HTTP: :4318
+  jaeger:
+    image: jaegertracing/all-in-one:1.55
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - '16686:16686'
+      - '4317:4317'
+      - '4318:4318'
+    restart: unless-stopped
+
+volumes:
+  elasticsearch_data:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:

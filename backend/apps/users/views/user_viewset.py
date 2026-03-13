@@ -1,0 +1,296 @@
+"""ViewSet for User model."""
+
+import json
+import logging
+
+from django.contrib.auth import update_session_auth_hash
+from django.db import transaction
+from django.http import HttpResponse
+from django.utils import timezone
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework_simplejwt.token_blacklist.models import (
+    BlacklistedToken,
+    OutstandingToken,
+)
+
+from apps.achievements.models import UserAchievement
+from apps.games.models import GameAnswer
+from apps.shop.models import UserInventory
+
+from ..encryption import hash_email
+from ..models import User
+from ..models.team_member import TeamMember
+from ..serializers import (
+    ChangePasswordSerializer,
+    PublicUserSerializer,
+    UserMinimalSerializer,
+    UserProfileUpdateSerializer,
+    UserSerializer,
+)
+
+logger = logging.getLogger("apps.users.views")
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    """ViewSet for User model."""
+
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+    # Désactiver PUT qui n'est pas utilisé ; toutes les autres méthodes
+    # nécessaires aux @action personnalisées (POST, PATCH, DELETE) sont autorisées.
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+
+    def get_serializer_class(self):
+        """Utiliser PublicUserSerializer pour les vues publiques."""
+        if self.action in ("list", "retrieve"):
+            return PublicUserSerializer
+        return UserSerializer
+
+    def get_queryset(self):
+        """Filter queryset based on user."""
+        if self.action == "list":
+            if self.request.user.is_staff:
+                return User.objects.all()
+            return User.objects.filter(id=self.request.user.id)
+        return User.objects.all()
+
+    @action(detail=False, methods=["get", "patch"])
+    def me(self, request):
+        """Get or update current user profile."""
+        if request.method == "GET":
+            serializer = UserSerializer(request.user, context={"request": request})
+            return Response(serializer.data)
+
+        serializer = UserProfileUpdateSerializer(
+            request.user, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        logger.info(
+            "user_profile_updated",
+            extra={"user_id": request.user.id},
+        )
+        return Response(
+            UserSerializer(request.user, context={"request": request}).data
+        )
+
+    @action(detail=False, methods=["post"])
+    def change_password(self, request):
+        """Change user password."""
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+
+        if not user.check_password(serializer.validated_data["old_password"]):
+            logger.warning(
+                "password_change_wrong_old_password",
+                extra={"user_id": user.id},
+            )
+            return Response(
+                {"old_password": "Mot de passe incorrect."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(serializer.validated_data["new_password"])
+        user.save()
+        update_session_auth_hash(request, user)
+
+        logger.info(
+            "password_changed",
+            extra={"user_id": user.id},
+        )
+        return Response(
+            {"message": "Mot de passe modifié avec succès."},
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=False, methods=["delete"])
+    def delete_account(self, request):
+        """Delete user account and all associated data (GDPR)."""
+        user = request.user
+        user_id = user.id
+        logger.info(
+            "account_deletion_started",
+            extra={"user_id": user_id},
+        )
+        # Invalider tous les tokens avant suppression pour déconnecter les sessions actives
+        for token in OutstandingToken.objects.filter(user=user):
+            BlacklistedToken.objects.get_or_create(token=token)
+        with transaction.atomic():
+            user.delete()
+
+        logger.info(
+            "account_deleted",
+            extra={"user_id": user_id},
+        )
+        return Response(
+            {"message": "Compte supprimé avec succès."},
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=False, methods=["get"])
+    def search(self, request):
+        """Search users by username."""
+        query = request.query_params.get("q", "").strip()
+        if len(query) < 2:
+            return Response([])
+
+        users = (
+            User.objects.filter(username__icontains=query)
+            .exclude(id=request.user.id)
+            .exclude(is_superuser=True)
+        )[:10]
+
+        serializer = UserMinimalSerializer(users, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], permission_classes=[AllowAny], url_path="exists")
+    def exists(self, request):
+        """Check whether a username or email is already taken.
+
+        GET params: ?username=... or ?email=...
+        Returns: {"exists": true|false}
+
+        Réponse constante pour éviter l’énumération de comptes.
+        """
+        import time
+
+        start = time.monotonic()
+
+        username = request.query_params.get("username", "").strip()
+        email = request.query_params.get("email", "").strip()
+
+        if username:
+            result = User.objects.filter(username__iexact=username).exists()
+        elif email:
+            result = User.objects.filter(email_hash=hash_email(email)).exists()
+        else:
+            result = False
+
+        # Temps de réponse constant (~50ms) pour éviter le timing-based enumeration
+        elapsed = time.monotonic() - start
+        min_duration = 0.05
+        if elapsed < min_duration:
+            time.sleep(min_duration - elapsed)
+
+        return Response({"exists": result})
+
+    @action(detail=False, methods=["get"])
+    def export_data(self, request):
+        """Export toutes les données personnelles de l'utilisateur (RGPD art. 20)."""
+        user = request.user
+        logger.info(
+            "gdpr_data_export",
+            extra={"user_id": user.id},
+        )
+        data = {
+            "exported_at": timezone.now().isoformat(),
+            "profile": {
+                "username": user.username,
+                "email": user.email,
+                "created_at": user.created_at.isoformat(),
+                "total_games_played": user.total_games_played,
+                "total_wins": user.total_wins,
+                "total_points": user.total_points,
+                "coins": getattr(user, "coins", None),
+            },
+            "game_participations": [
+                {
+                    "room_code": gp.game.room_code,
+                    "mode": gp.game.mode,
+                    "score": gp.score,
+                    "rank": gp.rank,
+                    "played_at": (
+                        gp.game.started_at.isoformat() if gp.game.started_at else None
+                    ),
+                }
+                for gp in user.game_participations.select_related("game").order_by(
+                    "-joined_at"
+                )
+            ],
+            "game_answers": [
+                {
+                    "room_code": ans.round.game.room_code,
+                    "round_number": ans.round.round_number,
+                    "answer": ans.answer,
+                    "is_correct": ans.is_correct,
+                    "points_earned": ans.points_earned,
+                    "response_time": ans.response_time,
+                    "answered_at": (
+                        ans.answered_at.isoformat() if ans.answered_at else None
+                    ),
+                }
+                for ans in GameAnswer.objects.filter(player__user=user)
+                .select_related("round__game")
+                .order_by("-answered_at")
+            ],
+            "achievements": [
+                {
+                    "name": ua.achievement.name,
+                    "description": ua.achievement.description,
+                    "unlocked_at": ua.unlocked_at.isoformat(),
+                }
+                for ua in UserAchievement.objects.filter(user=user).select_related(
+                    "achievement"
+                )
+            ],
+            "teams": [
+                {
+                    "team_name": tm.team.name,
+                    "role": tm.role,
+                    "joined_at": tm.joined_at.isoformat()
+                    if hasattr(tm, "joined_at")
+                    else None,
+                }
+                for tm in TeamMember.objects.filter(user=user).select_related("team")
+            ],
+            "inventory": [
+                {
+                    "item_name": inv.item.name if hasattr(inv, "item") else str(inv),
+                    "quantity": getattr(inv, "quantity", None),
+                    "acquired_at": inv.acquired_at.isoformat()
+                    if hasattr(inv, "acquired_at")
+                    else None,
+                }
+                for inv in UserInventory.objects.filter(user=user).select_related("item")
+            ],
+            "friends": [
+                {
+                    "username": f.to_user.username,
+                    "since": f.updated_at.isoformat(),
+                }
+                for f in user.friendships_sent.filter(status="accepted").select_related(
+                    "to_user"
+                )
+            ]
+            + [
+                {
+                    "username": f.from_user.username,
+                    "since": f.updated_at.isoformat(),
+                }
+                for f in user.friendships_received.filter(
+                    status="accepted"
+                ).select_related("from_user")
+            ],
+        }
+        response = HttpResponse(
+            json.dumps(data, ensure_ascii=False, indent=2),
+            content_type="application/json",
+        )
+        response["Content-Disposition"] = (
+            'attachment; filename="mes-donnees-instantmusic.json"'
+        )
+        return response
+
+    @action(detail=False, methods=["post"])
+    def cookie_consent(self, request):
+        """Enregistre le consentement cookies côté serveur (RGPD art. 7)."""
+        user = request.user
+        if not user.cookie_consent_given_at:
+            user.cookie_consent_given_at = timezone.now()
+            user.save(update_fields=["cookie_consent_given_at"])
+        return Response({"consented_at": user.cookie_consent_given_at.isoformat()})

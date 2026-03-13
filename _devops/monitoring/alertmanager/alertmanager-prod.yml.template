@@ -1,0 +1,66 @@
+# AlertManager PRODUCTION configuration for InstantMusic
+#
+# Les identifiants SMTP doivent être définis dans .env.prod :
+#   ALERTMANAGER_SMTP_FROM=alerts@instant-music.fr
+#   ALERTMANAGER_SMTP_HOST=smtp.gmail.com
+#   ALERTMANAGER_SMTP_PORT=587
+#   ALERTMANAGER_SMTP_USER=alerts@instant-music.fr
+#   ALERTMANAGER_SMTP_PASSWORD=<app-password>
+#   ALERTMANAGER_NOTIFY_EMAIL=admin@instant-music.fr
+#
+# Ce fichier est monté en lecture seule dans le conteneur alertmanager.
+# ⚠️  NE PAS committer de vraies valeurs SMTP ici — utiliser .env.prod.
+
+# NOTE : AlertManager ne supporte pas l'interpolation d'env vars dans son
+# fichier YAML. Pour éviter de stocker des secrets dans ce fichier versionné,
+# la stratégie retenue est d'utiliser `--web.config.file` ou de générer ce
+# fichier via un script d'init. Voir _devops/script/deploy.sh.
+#
+# Ci-dessous : template avec des valeurs fictives. Le script deploy.sh
+# utilise envsubst pour produire le fichier final.
+
+global:
+  resolve_timeout: 5m
+  smtp_from: '${ALERTMANAGER_SMTP_FROM}'
+  smtp_smarthost: '${ALERTMANAGER_SMTP_HOST}:${ALERTMANAGER_SMTP_PORT}'
+  smtp_auth_username: '${ALERTMANAGER_SMTP_USER}'
+  smtp_auth_password: '${ALERTMANAGER_SMTP_PASSWORD}'
+  smtp_require_tls: true
+
+route:
+  receiver: email-default
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  routes:
+    # Alertes critiques : notification immédiate, rappel toutes les heures
+    - match:
+        severity: critical
+      receiver: email-critical
+      group_wait: 10s
+      repeat_interval: 1h
+
+receivers:
+  - name: email-default
+    email_configs:
+      - to: '${ALERTMANAGER_NOTIFY_EMAIL}'
+        send_resolved: true
+        headers:
+          Subject: '[InstantMusic][{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+
+  - name: email-critical
+    email_configs:
+      - to: '${ALERTMANAGER_NOTIFY_EMAIL}'
+        send_resolved: true
+        headers:
+          Subject: '[InstantMusic][CRITICAL] {{ .GroupLabels.alertname }}'
+
+inhibit_rules:
+  # Si DiskSpaceCritical est déclenché, ne pas envoyer DiskSpaceLow en plus
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ['alertname', 'instance']
