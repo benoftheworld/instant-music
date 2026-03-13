@@ -49,7 +49,7 @@ function useAudioPlayerCore(
   const applySeek = useCallback((audio: HTMLAudioElement, startedAt?: string) => {
     const seekTime = getSeekTime(startedAt);
     if (seekTime > 0 && seekTime < 30) {
-      try { audio.currentTime = seekTime; } catch (_) { /* ignore */ }
+      try { audio.currentTime = seekTime; } catch { /* ignore */ }
     }
   }, [getSeekTime]);
 
@@ -213,6 +213,7 @@ export function useAudioPlayerOnResults(
   round: GameRound,
   showResults: boolean,
 ) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { startedAtRef: _, ...result } = useAudioPlayerCore(
     round.preview_url,
     showResults,

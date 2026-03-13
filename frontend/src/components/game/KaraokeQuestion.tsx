@@ -321,16 +321,22 @@ const KaraokeQuestion = ({
 
   const yt = useYouTubePlayer(youtubeVideoId, !showResults, onSkipSong);
   const activeIndex = getActiveLyricIndex(syncedLines, yt.currentTimeMs);
+  const trackKey = (round as any).track_id ?? (round as any).id ?? '';
+  const seedSource = (youtubeVideoId ?? trackKey).toString();
+
   const barHeights = useMemo(() => {
-    const seedSource = (youtubeVideoId ?? (round as any).track_id ?? (round as any).id ?? '').toString();
     const seed = hashStringToUint32(seedSource);
-    let state = seed >>> 0;
-    const rng = () => {
-      state = (Math.imul(1664525, state) + 1013904223) >>> 0;
-      return state / 4294967296;
-    };
-    return Array.from({ length: 5 }, () => 12 + Math.floor(rng() * 12));
-  }, [round, youtubeVideoId]);
+    const heights = new Array(5).fill(0).map((_, i) => {
+      // Derive a deterministic pseudo-random value per index from the seed
+      let x = (seed + (i + 1) * 0x9e3779b1) >>> 0;
+      x ^= x >>> 16;
+      x = Math.imul(x, 0x7feb352d) >>> 0;
+      x ^= x >>> 15;
+      const rand = (x >>> 0) / 4294967296;
+      return 12 + Math.floor(rand * 12);
+    });
+    return heights;
+  }, [seedSource]);
 
   /* ── Results phase: show track info ── */
   if (showResults) {
