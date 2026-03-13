@@ -319,8 +319,8 @@ const KaraokeQuestion = ({
   const syncedLines: SyncedLine[] = round.extra_data?.synced_lyrics ?? [];
   const youtubeVideoId: string | undefined = round.extra_data?.youtube_video_id;
 
-  const yt = useYouTubePlayer(youtubeVideoId, !showResults, onSkipSong);
-  const activeIndex = getActiveLyricIndex(syncedLines, yt.currentTimeMs);
+  const { containerRef: ytContainerRef, isReady: ytIsReady, isPlaying: ytIsPlaying, currentTimeMs: ytCurrentTimeMs, error: ytError } = useYouTubePlayer(youtubeVideoId, !showResults, onSkipSong);
+  const activeIndex = getActiveLyricIndex(syncedLines, ytCurrentTimeMs);
   const trackKey = (round as any).track_id ?? (round as any).id ?? '';
   const seedSource = (youtubeVideoId ?? trackKey).toString();
 
@@ -357,14 +357,14 @@ const KaraokeQuestion = ({
         {/* YouTube player (visible, min 200×200 per ToS) */}
         <div className="flex-shrink-0">
           <div
-            ref={yt.containerRef}
+            ref={ytContainerRef}
             className="rounded-xl overflow-hidden bg-black"
             style={{ width: '240px', height: '200px' }}
           />
-          {yt.error && (
-            <p className="text-red-400 text-xs mt-2 text-center max-w-[240px]">{yt.error}</p>
+          {ytError && (
+            <p className="text-red-400 text-xs mt-2 text-center max-w-[240px]">{ytError}</p>
           )}
-          {!yt.isReady && !yt.error && (
+          {!ytIsReady && !ytError && (
             <p className="text-gray-500 text-xs mt-2 text-center animate-pulse">Chargement YouTube…</p>
           )}
         </div>
@@ -377,7 +377,7 @@ const KaraokeQuestion = ({
           </div>
           <p className="text-gray-400 text-sm truncate">{round.artist_name}</p>
 
-          {yt.isPlaying && (
+          {ytIsPlaying && (
             <div className="mt-3 flex items-center gap-2">
               <div className="flex gap-[3px]">
                 {[...Array(5)].map((_, i) => (
