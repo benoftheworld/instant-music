@@ -77,9 +77,14 @@ class ApiService {
     // Intercepteur de requête : refresh proactif si le token est expiré ou
     // sur le point de l'être (marge de 30 s). Évite que le backend reçoive
     // des requêtes avec un token déjà invalide et logue des 401.
+    // Si aucun token n'est en mémoire mais que l'utilisateur est authentifié
+    // (rechargement de page), attend le refresh avant d'envoyer la requête.
     this.api.interceptors.request.use(
       async (config) => {
-        const token = tokenService.getAccessToken();
+        let token = tokenService.getAccessToken();
+        if (!token && useAuthStore.getState().isAuthenticated) {
+          token = await refreshAccessToken();
+        }
         if (token) {
           if (tokenService.isTokenExpired(token)) {
             const freshToken = await refreshAccessToken();
