@@ -3,6 +3,8 @@
 
 from unittest.mock import MagicMock
 
+import pytest
+
 from apps.shop.services import BonusActivationError, BonusService
 from tests.base import BaseUnitTest
 

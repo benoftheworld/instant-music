@@ -3,6 +3,8 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from apps.playlists.youtube_service import YouTubeAPIError, YouTubeService
 from tests.base import BaseUnitTest
 

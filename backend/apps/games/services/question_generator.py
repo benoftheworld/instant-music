@@ -379,7 +379,7 @@ class QuestionGeneratorService:
         options = [str(year)]
         attempts = 0
         while len(options) < 4 and attempts < 30:
-            offset = random.choice(
+            offset = random.choice(  # nosec B311
                 [
                     -10,
                     -8,

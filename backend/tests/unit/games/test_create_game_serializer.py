@@ -3,6 +3,7 @@
 
 from unittest.mock import MagicMock
 
+import pytest
 from rest_framework import serializers as drf
 
 from apps.games.serializers.create_game_serializer import CreateGameSerializer

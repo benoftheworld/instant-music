@@ -3,6 +3,8 @@
 
 from unittest.mock import patch
 
+import pytest
+
 from apps.authentication.serializers import RegisterSerializer
 from tests.base import BaseSerializerUnitTest
 

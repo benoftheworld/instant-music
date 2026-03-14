@@ -82,9 +82,11 @@ class TestGameServiceStartGame(BaseServiceUnitTest):
     def test_start_game_no_questions(self):
         svc = self._make_svc()
         game = MagicMock(status="waiting", mode="classique", playlist_id="123")
-        with patch.object(svc, "_generate_questions", return_value=[]):
-            with pytest.raises(ValueError):
-                svc.start_game(game)
+        with (
+            patch.object(svc, "_generate_questions", return_value=[]),
+            pytest.raises(ValueError),
+        ):
+            svc.start_game(game)
 
     @patch("apps.games.services.game_service.GAMES_ACTIVE")
     @patch("apps.games.services.game_service.GAMES_CREATED_TOTAL")

@@ -14,7 +14,7 @@ from ..models import Game
 def generate_room_code() -> str:
     """Generate a unique 6-character room code."""
     while True:
-        code = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        code = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))  # nosec B311
         if not Game.objects.filter(room_code=code).exists():
             return code
 

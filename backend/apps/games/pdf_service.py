@@ -186,7 +186,7 @@ class PdfBuilder:
                     else date_val
                 )
                 self.date_display = dt.strftime("%d/%m/%Y à %H:%M")
-            except Exception:
+            except Exception:  # nosec B110 — date parsing fallback
                 pass
 
         # Document + styles (initialised in build)

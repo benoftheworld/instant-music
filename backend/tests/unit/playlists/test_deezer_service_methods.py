@@ -307,6 +307,10 @@ class TestDeezerGetPlaylistTracks(BaseServiceUnitTest):
         from apps.playlists.deezer_service import DeezerAPIError, DeezerService
 
         svc = DeezerService()
-        with patch.object(svc, "_make_request", side_effect=DeezerAPIError("err")):
-            with pytest.raises(DeezerAPIError):
-                svc.get_playlist_tracks("123")
+        with (
+            patch.object(
+                svc, "_make_request", side_effect=DeezerAPIError("err")
+            ),
+            pytest.raises(DeezerAPIError),
+        ):
+            svc.get_playlist_tracks("123")

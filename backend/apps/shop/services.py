@@ -339,7 +339,7 @@ class BonusService:
             return []
 
         wrong = [o for o in options if o != correct_answer]
-        excluded = random.sample(wrong, min(2, len(wrong)))
+        excluded = random.sample(wrong, min(2, len(wrong)))  # nosec B311
 
         for b in bonus_qs:
             self.consume_bonus(b)

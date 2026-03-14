@@ -89,7 +89,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 extra={"user_id": user.id},
             )
             return Response(
-                {"old_password": "Mot de passe incorrect."},
+                {"old_password": "Mot de passe incorrect."},  # nosec B105
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

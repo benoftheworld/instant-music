@@ -3,6 +3,8 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from apps.shop.services import (
     ItemNotAvailableError,
     ShopService,

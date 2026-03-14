@@ -48,7 +48,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         """Validate passwords match."""
         if attrs["password"] != attrs["password2"]:
             raise serializers.ValidationError(
-                {"password": "Les mots de passe ne correspondent pas."}
+                {"password": "Les mots de passe ne correspondent pas."}  # nosec B105
             )
         return attrs
 
@@ -89,6 +89,6 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         """Validate that the two new passwords match."""
         if attrs["new_password"] != attrs["new_password2"]:
             raise serializers.ValidationError(
-                {"new_password": "Les mots de passe ne correspondent pas."}
+                {"new_password": "Les mots de passe ne correspondent pas."}  # nosec B105
             )
         return attrs

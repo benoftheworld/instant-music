@@ -1,6 +1,7 @@
 
 """Tests unitaires du PasswordResetConfirmSerializer."""
 
+import pytest
 from rest_framework import serializers as drf
 
 from apps.authentication.serializers import PasswordResetConfirmSerializer

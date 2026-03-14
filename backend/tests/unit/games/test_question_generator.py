@@ -493,9 +493,11 @@ class TestGenerateQuestions(BaseServiceUnitTest):
             }
             for i in range(10)
         ]
-        with patch.object(svc, "_fetch_tracks", return_value=tracks):
-            with patch.object(
+        with (
+            patch.object(svc, "_fetch_tracks", return_value=tracks),
+            patch.object(
                 svc, "_generate_for_mode", side_effect=lambda *a, **kw: {"q": "ok"}
-            ):
-                result = svc.generate_questions("123", num_questions=5)
+            ),
+        ):
+            result = svc.generate_questions("123", num_questions=5)
         assert len(result) == 5

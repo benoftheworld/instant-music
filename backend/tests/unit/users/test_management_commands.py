@@ -22,7 +22,9 @@ class TestRecalculateUserStats(BaseServiceUnitTest):
         mock_u = MagicMock(username="alice")
         mock_user.objects.all.return_value = [mock_u]
 
-        # Setup the chain:\n        # filter().count(), filter().filter().count(), filter().aggregate()
+        # Setup the chain:
+        # filter().count(), filter().filter().count(),
+        # filter().aggregate()
         mock_qs = MagicMock()
         mock_qs.count.return_value = 10
         mock_qs.filter.return_value.count.return_value = 3

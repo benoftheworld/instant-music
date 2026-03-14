@@ -95,6 +95,6 @@ class StructuredLoggingMiddleware:
             content_type = response.get("Content-Type", "")
             if "application/json" in content_type:
                 return response.content.decode("utf-8", errors="replace")
-        except Exception:
+        except Exception:  # nosec B110 — intentional silent fallback
             pass
         return None

@@ -3,6 +3,8 @@
 
 from unittest.mock import patch
 
+import pytest
+
 from apps.playlists.deezer_service import DeezerAPIError, DeezerService
 from tests.base import BaseUnitTest
 

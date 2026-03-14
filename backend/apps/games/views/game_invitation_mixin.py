@@ -97,7 +97,7 @@ class GameInvitationMixin:
 
             request.user.refresh_from_db()
             achievement_service.check_and_award(request.user)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001  # nosec B110
             pass
 
         # Push WS notification to recipient

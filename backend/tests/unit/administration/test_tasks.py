@@ -1,5 +1,6 @@
 """Tests unitaires des tâches Celery d'administration."""
 
+import contextlib
 from unittest.mock import MagicMock, patch
 
 from apps.administration.tasks import purge_expired_invitations
@@ -34,9 +35,7 @@ class TestPurgeExpiredInvitations(BaseUnitTest):
             ) as mock_retry,
         ):
             mock_objects.filter.side_effect = Exception("DB error")
-            try:
+            with contextlib.suppress(Exception):
                 purge_expired_invitations.__wrapped__()
-            except Exception:
-                pass
 
             mock_retry.assert_called_once()

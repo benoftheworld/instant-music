@@ -475,7 +475,7 @@ def create_lyrics_question(
         if not sequences:
             continue
 
-        start, original_seq = random.choice(sequences)
+        start, original_seq = random.choice(sequences)  # nosec B311
         # Build correct phrase (strip trailing punctuation, keep internal)
         clean_words = [re.sub(r"[^a-zA-ZÀ-ÿ' -]", "", w) for w in original_seq]
         correct_phrase = " ".join(clean_words)
