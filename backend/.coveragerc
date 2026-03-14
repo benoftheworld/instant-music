@@ -1,0 +1,27 @@
+[run]
+source = apps
+omit =
+    */migrations/*
+    */__init__.py
+    */admin.py
+    */apps.py
+    manage.py
+    config/wsgi.py
+    config/asgi.py
+    config/settings/*
+    config/otel.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if __name__ == .__main__
+    raise NotImplementedError
+    pass
+    except ImportError
+    TYPE_CHECKING
+show_missing = true
+fail_under = 100
+
+[html]
+directory = htmlcov

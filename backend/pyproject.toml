@@ -26,3 +26,21 @@ disallow_untyped_defs = true
 [[tool.mypy.overrides]]
 module = ["config.settings.*"]
 disable_error_code = ["index", "attr-defined"]
+
+[tool.coverage.run]
+source = ["apps"]
+omit = [
+    "apps/*/tests.py",
+    "apps/*/tests/*",
+    "apps/*/migrations/*",
+    "*/tests.py",
+    "apps/playlists/protocols.py",
+    "apps/games/routing.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.",
+]
