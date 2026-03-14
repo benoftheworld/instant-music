@@ -1,4 +1,5 @@
 """Application Django pour les statistiques."""
+
 from django.apps import AppConfig
 
 

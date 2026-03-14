@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 class EncryptedEmailField(models.TextField):
     """Représente un champ d'email chiffré en base de données.
 
-    Ce champ utilise Fernet (AES-128) pour chiffrer les emails avant de les 
-    stocker en base de données. Le chiffrement est transparent pour les 
-    développeurs : ils peuvent lire et écrire des emails en clair, et le champ 
+    Ce champ utilise Fernet (AES-128) pour chiffrer les emails avant de les
+    stocker en base de données. Le chiffrement est transparent pour les
+    développeurs : ils peuvent lire et écrire des emails en clair, et le champ
     s'occupe du chiffrement/déchiffrement.
     """
 

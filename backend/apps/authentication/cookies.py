@@ -17,9 +17,7 @@ def set_refresh_cookie(response, refresh_token: str) -> None:
     """Attache le refresh token en cookie HttpOnly sur la réponse."""
     from datetime import timedelta
 
-    max_age = settings.SIMPLE_JWT.get(
-        "REFRESH_TOKEN_LIFETIME", timedelta(days=7)
-    )
+    max_age = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME", timedelta(days=7))
     if isinstance(max_age, timedelta):
         max_age = int(max_age.total_seconds())
 

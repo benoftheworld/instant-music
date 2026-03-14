@@ -60,5 +60,6 @@ class UserAchievement(models.Model):
         """Affiche l'utilisateur et le succès débloqué."""
         return f"{self.user.username} - {self.achievement.name}"
 
+
 auditlog.register(Achievement)
 auditlog.register(UserAchievement)

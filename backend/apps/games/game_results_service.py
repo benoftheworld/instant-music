@@ -96,7 +96,8 @@ def build_rankings(game: Game) -> list[dict]:
     En mode soirée, le présentateur (hôte) est exclu du classement.
     """
     players = (
-        game.competitive_players().order_by("-score")
+        game.competitive_players()
+        .order_by("-score")
         .select_related("user")
         .prefetch_related("user__team_memberships__team")
     )

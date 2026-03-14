@@ -36,9 +36,7 @@ def update_player_stats_on_game_finish(
     if instance.status != GameStatus.FINISHED:
         return
 
-    user_ids = list(
-        instance.players.values_list("user_id", flat=True)
-    )
+    user_ids = list(instance.players.values_list("user_id", flat=True))
 
     if not user_ids:
         return
@@ -55,9 +53,7 @@ def update_player_stats_on_game_finish(
         .values("user_id")
         .annotate(
             _total_games=models_Count("id"),
-            _total_wins=models_Count(
-                "id", filter=Q(rank=1, game__is_online=True)
-            ),
+            _total_wins=models_Count("id", filter=Q(rank=1, game__is_online=True)),
             _total_points=Sum(
                 "score",
                 filter=Q(game__is_online=True) | Q(game__mode="karaoke"),
@@ -98,8 +94,9 @@ def update_team_stats_on_game_finish(
     from apps.users.models.team_member import TeamMember
 
     team_ids = set(
-        TeamMember.objects.filter(user_id__in=player_user_ids)
-        .values_list("team_id", flat=True)
+        TeamMember.objects.filter(user_id__in=player_user_ids).values_list(
+            "team_id", flat=True
+        )
     )
 
     if not team_ids:
@@ -114,9 +111,7 @@ def update_team_stats_on_game_finish(
         )
 
         # Parties : nombre de parties distinctes avec au moins un membre
-        team.total_games = (
-            all_participations.values("game_id").distinct().count()
-        )
+        team.total_games = all_participations.values("game_id").distinct().count()
 
         # Victoires : parties distinctes où un membre est 1er (hors solo)
         team.total_wins = (

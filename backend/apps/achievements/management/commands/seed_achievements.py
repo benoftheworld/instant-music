@@ -1,10 +1,10 @@
 """Commande Django pour peupler la base de données avec des réalisations.
 
-Cette commande crée un ensemble de réalisations prédéfinies couvrant divers 
-jalons de jeu, tels que le nombre de parties jouées, les victoires, les points 
-accumulés, et des réalisations spéciales basées sur la performance. Elle peut 
-être exécutée avec l'option --reset pour supprimer les réalisations existantes 
-avant de les recréer, ou avec --force pour mettre à jour les réalisations 
+Cette commande crée un ensemble de réalisations prédéfinies couvrant divers
+jalons de jeu, tels que le nombre de parties jouées, les victoires, les points
+accumulés, et des réalisations spéciales basées sur la performance. Elle peut
+être exécutée avec l'option --reset pour supprimer les réalisations existantes
+avant de les recréer, ou avec --force pour mettre à jour les réalisations
 existantes avec les nouvelles descriptions et conditions.
 
 """
@@ -111,9 +111,7 @@ DEFAULT_ACHIEVEMENTS = [
     # Special achievements
     {
         "name": "Sans faute",
-        "description": (
-            "Répondre correctement à toutes les questions d'une partie"
-        ),
+        "description": ("Répondre correctement à toutes les questions d'une partie"),
         "condition_type": "perfect_round",
         "condition_value": 1,
         "points": 75,
@@ -312,9 +310,7 @@ DEFAULT_ACHIEVEMENTS = [
     },
     {
         "name": "Maestro des bonus",
-        "description": (
-            "Utiliser chacun des 8 types de bonus au moins une fois"
-        ),
+        "description": ("Utiliser chacun des 8 types de bonus au moins une fois"),
         "condition_type": "all_bonuses_used",
         "condition_value": 8,
         "points": 75,
@@ -348,7 +344,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         """Ajouter un argument pour réinitialiser les réalisations.
-        
+
         Args:
             parser : L'instance de parser d'arguments de Django.
 
@@ -364,22 +360,22 @@ class Command(BaseCommand):
             help=(
                 "Mettre à jour les réalisations existantes "
                 "(description, points, condition)",
-            )
+            ),
         )
 
     def handle(self, *args, **options):
         """Gérer la logique de peuplement des réalisations, avec options.
 
-        Si --reset est utilisé, toutes les réalisations existantes sont 
+        Si --reset est utilisé, toutes les réalisations existantes sont
             supprimées.
-        Si --force est utilisé, les réalisations existantes sont mises à jour 
+        Si --force est utilisé, les réalisations existantes sont mises à jour
             avec les nouvelles
         descriptions et conditions, sinon elles sont laissées intactes.
 
         Args:
             *args: Arguments positionnels (non utilisés).
             **options: Arguments d'options, notamment 'reset' et 'force'.
-            
+
         """
         if options["reset"]:
             count = Achievement.objects.count()
@@ -407,9 +403,7 @@ class Command(BaseCommand):
                         setattr(obj, field, value)
                 obj.save()
                 updated_count += 1
-                self.stdout.write(
-                    self.style.WARNING(f"  ↻ Mis à jour : {obj.name}")
-                )
+                self.stdout.write(self.style.WARNING(f"  ↻ Mis à jour : {obj.name}"))
             else:
                 skipped_count += 1
 

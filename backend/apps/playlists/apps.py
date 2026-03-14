@@ -1,4 +1,5 @@
 """Application Django pour les playlists."""
+
 from django.apps import AppConfig
 
 

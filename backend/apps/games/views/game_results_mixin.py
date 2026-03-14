@@ -17,6 +17,7 @@ class GameResultsMixin:
     """Actions liées à l'affichage et l'export des résultats de partie."""
 
     if TYPE_CHECKING:
+
         def get_object(self) -> Any: ...  # noqa: D102
 
     @action(detail=True, methods=["get"])

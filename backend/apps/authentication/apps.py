@@ -1,4 +1,5 @@
 """Application Django pour l'authentification."""
+
 from django.apps import AppConfig
 
 

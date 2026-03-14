@@ -136,9 +136,7 @@ class InventoryViewSet(GenericViewSet):
                 game, bonus_type
             )
         except BonusActivationError as e:
-            return Response(
-                {"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         # Le bonus Vol ne peut pas être utilisé par le joueur en première position
         if bonus_type == "steal":
@@ -146,9 +144,12 @@ class InventoryViewSet(GenericViewSet):
 
             try:
                 activating_player = GP.objects.get(game=game, user=request.user)
-                is_first = not GP.objects.filter(game=game).exclude(
-                    id=activating_player.id
-                ).filter(score__gt=activating_player.score).exists()
+                is_first = (
+                    not GP.objects.filter(game=game)
+                    .exclude(id=activating_player.id)
+                    .filter(score__gt=activating_player.score)
+                    .exists()
+                )
                 if is_first:
                     return Response(
                         {

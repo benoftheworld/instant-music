@@ -52,4 +52,3 @@ class GameViewSet(
         if self.action == "create":
             return CreateGameSerializer
         return GameSerializer
-

@@ -1,4 +1,5 @@
 """Application Django pour les jeux."""
+
 from django.apps import AppConfig
 
 

@@ -74,9 +74,7 @@ class UserViewSet(viewsets.ModelViewSet):
             "user_profile_updated",
             extra={"user_id": request.user.id},
         )
-        return Response(
-            UserSerializer(request.user, context={"request": request}).data
-        )
+        return Response(UserSerializer(request.user, context={"request": request}).data)
 
     @action(detail=False, methods=["post"])
     def change_password(self, request):
@@ -262,9 +260,9 @@ class UserViewSet(viewsets.ModelViewSet):
                     if hasattr(inv, "acquired_at")
                     else None,
                 }
-                for inv in UserInventory.objects.filter(
-                    user=user
-                ).select_related("item")
+                for inv in UserInventory.objects.filter(user=user).select_related(
+                    "item"
+                )
             ],
             "friends": [
                 {

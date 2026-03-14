@@ -35,6 +35,7 @@ class GameLobbyMixin:
     """Actions liées à la gestion du lobby (création, rejoindre, quitter, démarrer)."""
 
     if TYPE_CHECKING:
+
         def get_object(self) -> Any: ...  # noqa: D102
 
     def _broadcast_player_join(self, game, player, room_code, request):

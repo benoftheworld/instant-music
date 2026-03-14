@@ -21,11 +21,11 @@ logger = logging.getLogger("apps.games.consumer")
 # Clé Redis : ws_rl:{user_id}:{room_code}:{message_type}
 # Valeurs : (max_messages, window_seconds)
 _WS_RATE_LIMITS: dict[str, tuple[int, int]] = {
-    "player_answer": (5, 10),   # 5 réponses par 10 s (anti-spam de réponses)
+    "player_answer": (5, 10),  # 5 réponses par 10 s (anti-spam de réponses)
     "activate_bonus": (3, 60),  # 3 activations de bonus par 60 s
-    "player_join": (5, 30),     # 5 tentatives de join par 30 s
-    "start_game": (3, 60),      # 3 tentatives par 60 s (action ponctuelle)
-    "_default": (30, 10),       # filet de sécurité global
+    "player_join": (5, 30),  # 5 tentatives de join par 30 s
+    "start_game": (3, 60),  # 3 tentatives par 60 s (action ponctuelle)
+    "_default": (30, 10),  # filet de sécurité global
 }
 
 # Script Lua : fenêtre glissante atomique (scored set + pruning)
@@ -320,10 +320,12 @@ class GameConsumer(AsyncWebsocketConsumer):
                 },
             )
             await self.send(
-                text_data=json.dumps({
-                    "type": "error",
-                    "message": "Trop de messages. Veuillez patienter.",
-                })
+                text_data=json.dumps(
+                    {
+                        "type": "error",
+                        "message": "Trop de messages. Veuillez patienter.",
+                    }
+                )
             )
             return
 
@@ -503,6 +505,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         return Game.objects.filter(  # type: ignore[no-any-return]
             room_code=self.room_code, host=self.scope["user"]
         ).exists()
+
     async def _require_host(self, action: str) -> bool:
         """Vérifie que l'utilisateur est l'hôte. Envoie une erreur et log si non.
 
@@ -524,6 +527,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             )
         )
         return False
+
     @database_sync_to_async
     def _check_all_party_players_answered(self) -> bool:
         """Vérifie si tous les joueurs non-hôte ont soumis une réponse ce round.
@@ -549,9 +553,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         if current_round is None:
             return False
 
-        non_host_players = GamePlayer.objects.filter(game=game).exclude(
-            user=game.host
-        )
+        non_host_players = GamePlayer.objects.filter(game=game).exclude(user=game.host)
         non_host_count = non_host_players.count()
         if non_host_count == 0:
             return False
@@ -688,9 +690,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             return {"error": "Partie introuvable."}
 
         if not game.is_online:
-            return {
-                "error": "Les bonus sont désactivés en mode hors ligne (solo)."
-            }
+            return {"error": "Les bonus sont désactivés en mode hors ligne (solo)."}
 
         try:
             round_number, _ = bonus_service.resolve_round_number(game, bonus_type)

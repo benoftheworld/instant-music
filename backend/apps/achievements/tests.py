@@ -10,13 +10,13 @@ from .models import Achievement, UserAchievement
 @pytest.fixture()
 def achievement(db):
     """Fixture pour créer une achievement de test.
-    
+
     Args:
       db : fixture intégrée de pytest-django pour accéder à la base de données.
-    
+
     Returns:
       Achievement : une instance d'Achievement créée pour les tests.
-    
+
     """
     return Achievement.objects.create(
         name="Premier pas",
@@ -104,8 +104,6 @@ class TestUserAchievementsByUser:
         self, auth_client, user2, achievement
     ):
         UserAchievement.objects.create(user=user2, achievement=achievement)
-        url = reverse(
-            "user-achievements-by-user", kwargs={"user_id": user2.pk}
-        )
+        url = reverse("user-achievements-by-user", kwargs={"user_id": user2.pk})
         response = auth_client.get(url)
         assert response.status_code == status.HTTP_200_OK

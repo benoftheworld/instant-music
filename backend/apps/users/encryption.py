@@ -26,7 +26,7 @@ def hash_email(email: str) -> str:
     """Retourne un hash HMAC de l'email.
 
     Utilisé pour l'anonymisation et la recherche d'emails sans les stocker
-    en clair. Le hash est basé sur une clé secrète pour éviter les attaques 
+    en clair. Le hash est basé sur une clé secrète pour éviter les attaques
     par dictionnaire.
 
     Args:

@@ -332,9 +332,7 @@ def _lrclib_search(query: str) -> dict | None:
 _UNKNOWN_ARTIST_MARKERS = {"artiste inconnu", "unknown artist", "unknown", ""}
 
 
-def get_synced_lyrics(
-    artist: str, title: str
-) -> tuple[list[dict] | None, int | None]:
+def get_synced_lyrics(artist: str, title: str) -> tuple[list[dict] | None, int | None]:
     """Fetch synced (timestamped) lyrics.
 
     Resolution order:

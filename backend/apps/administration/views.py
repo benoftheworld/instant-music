@@ -59,11 +59,11 @@ def site_status(request):
 @permission_classes([AllowAny])
 def legal_page(request, page_type: str):
     """Retourne le contenu d'une page légale.
-    
+
     Args:
         request: HTTP request
         page_type: type de la page légale ("privacy", "terms", etc.)
-    
+
     Response:
         200: {
             "page_type": "privacy",

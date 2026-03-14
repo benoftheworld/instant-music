@@ -16,9 +16,7 @@ from .models import Achievement, UserAchievement
 logger = logging.getLogger(__name__)
 
 
-def _push_achievement_notification(
-        user_id: int, achievement: "Achievement"
-    ) -> None:
+def _push_achievement_notification(user_id: int, achievement: "Achievement") -> None:
     """Push a WebSocket notif to the user for a newly unlocked achievement."""
     try:
         channel_layer = get_channel_layer()
@@ -161,70 +159,68 @@ class AchievementService:
 
 # ─── Condition checker functions ─────────────────────────────────────────────
 
+
 def _check_games_played(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     return user.total_games_played >= cvalue  # type: ignore[no-any-return]
 
 
 def _check_wins(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     return user.total_wins >= cvalue  # type: ignore[no-any-return]
 
 
 def _check_points(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     return user.total_points >= cvalue  # type: ignore[no-any-return]
 
 
 def _check_perfect_round(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     return bool(round_data and round_data.get("perfect_game"))
 
 
 def _check_win_streak(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     from apps.games.models import GamePlayer
 
-    recent_games = (
-        GamePlayer.objects.filter(user=user)
-        .order_by("-joined_at")[:cvalue]
-    )
+    recent_games = GamePlayer.objects.filter(user=user).order_by("-joined_at")[:cvalue]
     if recent_games.count() < cvalue:
         return False
     return all(p.rank == 1 for p in recent_games)
 
 
 def _check_fast_answers(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     from apps.games.models import GameAnswer
 
@@ -236,11 +232,11 @@ def _check_fast_answers(
 
 
 def _check_all_fast_round(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     if not (round_data and round_data.get("perfect_game")):
         return False
@@ -250,11 +246,11 @@ def _check_all_fast_round(
 
 
 def _check_accuracy(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     from apps.games.models import GameAnswer
 
@@ -264,27 +260,22 @@ def _check_accuracy(
     total = GameAnswer.objects.filter(player__user=user).count()
     if total == 0:
         return False
-    correct = GameAnswer.objects.filter(
-        player__user=user, 
-        is_correct=True
-    ).count()
+    correct = GameAnswer.objects.filter(player__user=user, is_correct=True).count()
     return (correct / total * 100) >= cvalue  # type: ignore[no-any-return]
 
 
 def _check_global_streak(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     if round_data:
         return round_data.get("max_streak", 0) >= cvalue  # type: ignore[no-any-return]
     from apps.games.models import GameAnswer, GamePlayer
 
-    player_ids = list(
-        GamePlayer.objects.filter(user=user).values_list("id", flat=True)
-    )
+    player_ids = list(GamePlayer.objects.filter(user=user).values_list("id", flat=True))
     for pid in player_ids:
         answers = list(
             GameAnswer.objects.filter(player_id=pid)
@@ -303,11 +294,11 @@ def _check_global_streak(
 
 
 def _check_single_game_score(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     from apps.games.models import GamePlayer
 
@@ -315,11 +306,11 @@ def _check_single_game_score(
 
 
 def _check_games_by_mode(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     from apps.games.models import GamePlayer
 
@@ -332,11 +323,11 @@ def _check_games_by_mode(
 
 
 def _check_wins_by_mode(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     from apps.games.models import GamePlayer
 
@@ -347,11 +338,11 @@ def _check_wins_by_mode(
 
 
 def _check_all_modes_played(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     from apps.games.models import GamePlayer
 
@@ -365,11 +356,11 @@ def _check_all_modes_played(
 
 
 def _check_friends_count(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     from django.db.models import Q
 
@@ -382,11 +373,11 @@ def _check_friends_count(
 
 
 def _check_games_hosted(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     from apps.games.models import Game
 
@@ -394,11 +385,11 @@ def _check_games_hosted(
 
 
 def _check_invitations_sent(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     from apps.games.models import GameInvitation
 
@@ -406,11 +397,11 @@ def _check_invitations_sent(
 
 
 def _check_items_purchased(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     from apps.shop.models import UserInventory
 
@@ -421,11 +412,11 @@ def _check_items_purchased(
 
 
 def _check_bonus_used(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     from apps.shop.models import GameBonus
 
@@ -438,11 +429,11 @@ def _check_bonus_used(
 
 
 def _check_all_bonuses_used(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     from apps.shop.models import BonusType, GameBonus
 
@@ -456,11 +447,11 @@ def _check_all_bonuses_used(
 
 
 def _check_in_game_streak(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     if round_data:
         return round_data.get("max_streak", 0) >= cvalue  # type: ignore[no-any-return]
@@ -468,11 +459,11 @@ def _check_in_game_streak(
 
 
 def _check_dominant_win(
-    user: Any, 
-    cvalue: int, 
-    cextra: str | None, 
-    game: Any, 
-    round_data: dict[str, Any] | None
+    user: Any,
+    cvalue: int,
+    cextra: str | None,
+    game: Any,
+    round_data: dict[str, Any] | None,
 ) -> bool:
     if round_data:
         return round_data.get("dominant_win", False)  # type: ignore[no-any-return]

@@ -78,7 +78,7 @@ class AchievementAdmin(admin.ModelAdmin):
     @admin.display(description=_("Points"))
     def points_badge(self, obj):
         """Affiche les points sous forme de badge stylisé.
-        
+
         Arguments:
             obj: L'instance de l'objet à afficher.
 
@@ -89,7 +89,7 @@ class AchievementAdmin(admin.ModelAdmin):
         return format_html(
             '<span style="background:#8b5cf6; color:#fff; padding:2px 8px; '
             'border-radius:12px; font-size:11px; font-weight:bold;">{} pts'
-            '</span>',
+            "</span>",
             obj.points,
         )
 
@@ -136,10 +136,10 @@ class UserAchievementAdmin(admin.ModelAdmin):
     @admin.display(description=_("UUID"))
     def uuid_short(self, obj):
         """Affiche les 8 premiers caractères de l'UUID avec un tooltip complet.
-        
+
         Arguments:
             obj: L'instance de l'objet à afficher.
-            
+
         Return:
             Un HTML formaté avec le UUID court et un tooltip complet.
 

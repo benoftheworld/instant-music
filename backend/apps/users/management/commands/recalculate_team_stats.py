@@ -33,9 +33,7 @@ class Command(BaseCommand):
             )
 
             # Parties distinctes avec au moins un membre
-            team.total_games = (
-                all_participations.values("game_id").distinct().count()
-            )
+            team.total_games = all_participations.values("game_id").distinct().count()
 
             # Victoires : parties distinctes où un membre est 1er (hors solo)
             team.total_wins = (
@@ -56,6 +54,4 @@ class Command(BaseCommand):
             team.save(update_fields=["total_games", "total_wins", "total_points"])
             updated += 1
 
-        self.stdout.write(
-            self.style.SUCCESS(f"{updated} équipe(s) mise(s) à jour.")
-        )
+        self.stdout.write(self.style.SUCCESS(f"{updated} équipe(s) mise(s) à jour."))

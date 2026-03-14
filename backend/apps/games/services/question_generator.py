@@ -416,8 +416,7 @@ class QuestionGeneratorService:
             "album_image": track.get("album_image"),
             "question_type": "guess_year",
             "question_text": (
-                f"En quelle année est sorti « {track['name']} »"
-                f" de {artist} ?"
+                f"En quelle année est sorti « {track['name']} » de {artist} ?"
             ),
             "correct_answer": str(year),
             "options": options,

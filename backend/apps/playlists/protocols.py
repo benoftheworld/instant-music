@@ -20,14 +20,10 @@ class MusicServiceProtocol(Protocol):
         """Récupérer les métadonnées d'une playlist."""
         ...
 
-    def get_playlist_tracks(
-        self, playlist_id: str, limit: int = 50
-    ) -> list[dict]:
+    def get_playlist_tracks(self, playlist_id: str, limit: int = 50) -> list[dict]:
         """Récupérer les pistes d'une playlist."""
         ...
 
-    def search_music_videos(
-        self, query: str, limit: int = 50
-    ) -> list[dict]:
+    def search_music_videos(self, query: str, limit: int = 50) -> list[dict]:
         """Chercher des clips musicaux par mot-clé."""
         ...

@@ -250,9 +250,7 @@ class PdfBuilder:
         COL_W = self.COL_W
 
         title_label = (
-            self.game_name
-            if self.game_name
-            else f"Partie {self.room_code}<br/><br/>"
+            self.game_name if self.game_name else f"Partie {self.room_code}<br/><br/>"
         )
         self.elements.append(Paragraph(title_label, S["title"]))
         sub_parts = [f"Salle <b>{self.room_code}</b>"]
@@ -619,7 +617,9 @@ class PdfBuilder:
                     TableStyle(
                         [
                             (
-                                "BACKGROUND", (0, 0), (-1, -1),
+                                "BACKGROUND",
+                                (0, 0),
+                                (-1, -1),
                                 colors.HexColor("#F9EFE7"),
                             ),
                             ("TOPPADDING", (0, 0), (-1, -1), 3),
@@ -628,8 +628,11 @@ class PdfBuilder:
                             ("RIGHTPADDING", (0, 0), (-1, -1), 6),
                             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                             (
-                                "LINEBELOW", (0, 0), (-1, -1),
-                                0.5, colors.HexColor("#EDE3DA"),
+                                "LINEBELOW",
+                                (0, 0),
+                                (-1, -1),
+                                0.5,
+                                colors.HexColor("#EDE3DA"),
                             ),
                         ]
                     )

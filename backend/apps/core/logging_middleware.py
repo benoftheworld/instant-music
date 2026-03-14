@@ -39,6 +39,7 @@ class RedactSensitiveParamsFilter(logging.Filter):
             record.msg = _SENSITIVE_PARAMS.sub(r"\1[REDACTED]", record.msg)
         return True
 
+
 logger = logging.getLogger("apps.core.http")
 
 

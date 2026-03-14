@@ -33,6 +33,7 @@ class GameRoundMixin:
     """Actions liées au déroulement des manches (réponses, transitions)."""
 
     if TYPE_CHECKING:
+
         def get_object(self) -> Any: ...  # noqa: D102
 
     @action(detail=True, methods=["get"], url_path="current-round")
@@ -57,10 +58,7 @@ class GameRoundMixin:
                         "next_round": GameRoundSerializer(next_round).data,
                     }
                 )
-            return Response({
-                "current_round": None, 
-                "message": "Partie terminée"
-            })
+            return Response({"current_round": None, "message": "Partie terminée"})
 
         return Response({"current_round": GameRoundSerializer(round_obj).data})
 
@@ -108,10 +106,7 @@ class GameRoundMixin:
             # ne doit pas inclure ces secondes.
             timer_offset = float(round_obj.game.timer_start_round)
             effective_delta = max(0.0, delta - timer_offset)
-            response_time = max(
-                0.0, 
-                min(effective_delta, float(round_obj.duration))
-            )
+            response_time = max(0.0, min(effective_delta, float(round_obj.duration)))
         else:
             response_time = 0.0
 
@@ -155,10 +150,10 @@ class GameRoundMixin:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(
-            detail=True, 
-            methods=["post"], 
-            url_path="end-round", 
-            permission_classes=[IsAuthenticated, IsGameHost]
+        detail=True,
+        methods=["post"],
+        url_path="end-round",
+        permission_classes=[IsAuthenticated, IsGameHost],
     )
     def end_current_round(self, request, room_code=None):
         """End the current round and broadcast results (host only)."""

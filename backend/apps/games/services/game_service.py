@@ -688,9 +688,7 @@ class GameService:
 
         # Batch-fetch last_daily_login for all players (1 query)
         daily_logins = dict(
-            User.objects.filter(pk__in=player_ids).values_list(
-                "pk", "last_daily_login"
-            )
+            User.objects.filter(pk__in=player_ids).values_list("pk", "last_daily_login")
         )
 
         # Batch-count fast correct answers per player (1 query)
@@ -743,9 +741,7 @@ class GameService:
 
         # Batch update last_daily_login (1 query)
         if daily_update_ids:
-            User.objects.filter(pk__in=daily_update_ids).update(
-                last_daily_login=today
-            )
+            User.objects.filter(pk__in=daily_update_ids).update(last_daily_login=today)
 
         # Bonus créateur de partie : +5 pièces pour l'hôte.
         _add_coins(game.host_id, 5, f"game_host_bonus:{game.id}")

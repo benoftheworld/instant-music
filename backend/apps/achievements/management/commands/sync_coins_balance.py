@@ -58,9 +58,7 @@ class Command(BaseCommand):
         verb = "SIMULATION" if dry_run else "MISE À JOUR"
 
         self.stdout.write(
-            self.style.WARNING(
-                f"[{verb}] Synchronisation des soldes de pièces…\n"
-            )
+            self.style.WARNING(f"[{verb}] Synchronisation des soldes de pièces…\n")
         )
 
         users = User.objects.all()

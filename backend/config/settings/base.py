@@ -206,8 +206,7 @@ AUTH_USER_MODEL = "users.User"
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": (
-            "django.contrib.auth.password_validation"
-            ".UserAttributeSimilarityValidator"
+            "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
         ),
     },
     {
@@ -295,7 +294,10 @@ JWT_REFRESH_COOKIE_SECURE = not DEBUG  # True en prod (HTTPS), False en dev
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": env("REDIS_CACHE_URL", default=env("REDIS_URL", default="redis://localhost:6379/0")),
+        "LOCATION": env(
+            "REDIS_CACHE_URL",
+            default=env("REDIS_URL", default="redis://localhost:6379/0"),
+        ),
     }
 }
 
@@ -304,14 +306,24 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [env("REDIS_CHANNELS_URL", default=env("REDIS_URL", default="redis://localhost:6379/1"))],
+            "hosts": [
+                env(
+                    "REDIS_CHANNELS_URL",
+                    default=env("REDIS_URL", default="redis://localhost:6379/1"),
+                )
+            ],
         },
     },
 }
 
 # Celery Configuration — Broker DB 2, Result DB 3
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=env("REDIS_URL", default="redis://localhost:6379/2"))
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=env("REDIS_URL", default="redis://localhost:6379/3"))
+CELERY_BROKER_URL = env(
+    "CELERY_BROKER_URL", default=env("REDIS_URL", default="redis://localhost:6379/2")
+)
+CELERY_RESULT_BACKEND = env(
+    "CELERY_RESULT_BACKEND",
+    default=env("REDIS_URL", default="redis://localhost:6379/3"),
+)
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"

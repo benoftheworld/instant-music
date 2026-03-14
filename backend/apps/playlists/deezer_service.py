@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 # ─── Constants ───────────────────────────────────────────────────────
 
-CACHE_TTL_SEARCH: int = 1800   # 30 min for search results
-CACHE_TTL_DETAIL: int = 3600   # 1 hour for playlist / track details
+CACHE_TTL_SEARCH: int = 1800  # 30 min for search results
+CACHE_TTL_DETAIL: int = 3600  # 1 hour for playlist / track details
 CACHE_TTL_PREVIEW: int = 4 * 3600  # 4 hours for track details / preview URLs
 
 # ─── Title cleaning ──────────────────────────────────────────────────

@@ -22,9 +22,7 @@ def custom_exception_handler(exc, context):
     request = context.get("request")
     view = context.get("view")
     view_name = (
-        f"{view.__class__.__module__}.{view.__class__.__name__}"
-        if view
-        else "unknown"
+        f"{view.__class__.__module__}.{view.__class__.__name__}" if view else "unknown"
     )
 
     user = getattr(request, "user", None) if request else None

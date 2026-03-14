@@ -55,9 +55,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
             data["is_party_mode"] = False
         else:
             if not data.get("playlist_id"):
-                raise serializers.ValidationError(
-                    "Veuillez sélectionner une playlist."
-                )
+                raise serializers.ValidationError("Veuillez sélectionner une playlist.")
             # Mode soirée : nécessite une partie en ligne
             if data.get("is_party_mode") and not data.get("is_online", True):
                 raise serializers.ValidationError(

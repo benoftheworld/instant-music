@@ -29,15 +29,15 @@ class AchievementSerializer(serializers.ModelSerializer):
 
     def _get_user_achievement(self, obj):
         """Retourne l'instance UserAchievement pour cet objet et l'utilisateur.
-        
+
         Args:
-            obj (Achievement): L'instance d'Achievement pour laquelle vérifier 
+            obj (Achievement): L'instance d'Achievement pour laquelle vérifier
                 le déblocage.
 
         Returns:
-            UserAchievement ou None: L'instance UserAchievement si l'utilisateur 
+            UserAchievement ou None: L'instance UserAchievement si l'utilisateur
                 a débloqué ce succès, sinon None.
-        
+
         """
         # Fast path: pre-fetched map supplied by the view
         ua_map = self.context.get("user_achievements")

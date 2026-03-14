@@ -180,11 +180,12 @@ class TeamLeaderboardView(APIView):
         page, page_size, offset = parse_pagination_params(request)
 
         # Utilise les stats dénormalisées (correctement dédupliquées par le signal)
-        teams_qs = Team.objects.filter(
-            total_games__gt=0
-        ).select_related("owner").annotate(
-            _member_count=Count("memberships")
-        ).order_by("-total_points", "-total_games")
+        teams_qs = (
+            Team.objects.filter(total_games__gt=0)
+            .select_related("owner")
+            .annotate(_member_count=Count("memberships"))
+            .order_by("-total_points", "-total_games")
+        )
 
         total_count = teams_qs.count()
         teams = teams_qs[offset : offset + page_size]

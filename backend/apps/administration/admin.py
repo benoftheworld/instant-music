@@ -69,12 +69,12 @@ class SiteConfigurationAdmin(admin.ModelAdmin):
     def status_overview(self, obj):
         """Display the current status of the site with visual indicators.
 
-        This method returns an HTML string that shows whether the site 
-        is in maintenance mode and whether the information banner is 
+        This method returns an HTML string that shows whether the site
+        is in maintenance mode and whether the information banner is
         active. It uses colored badges and icons for clarity.
 
         Args:
-            obj: The SiteConfiguration instance 
+            obj: The SiteConfiguration instance
                 (can be None when adding a new one).
 
         Returns:

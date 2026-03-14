@@ -30,9 +30,7 @@ def add_coins(user_id: int, amount: int, reason: str) -> int:
     if amount <= 0:
         return get_balance(user_id)
 
-    User.objects.filter(pk=user_id).update(
-        coins_balance=F("coins_balance") + amount
-    )
+    User.objects.filter(pk=user_id).update(coins_balance=F("coins_balance") + amount)
     balance = get_balance(user_id)
     logger.info(
         "coins_added user=%s amount=%d reason=%s balance=%d",
@@ -66,9 +64,7 @@ def deduct_coins(user_id: int, amount: int, reason: str) -> int:
             f"il en faut {amount}."
         )
 
-    User.objects.filter(pk=user_id).update(
-        coins_balance=F("coins_balance") - amount
-    )
+    User.objects.filter(pk=user_id).update(coins_balance=F("coins_balance") - amount)
     balance = get_balance(user_id)
     logger.info(
         "coins_deducted user=%s amount=%d reason=%s balance=%d",
@@ -83,8 +79,6 @@ def deduct_coins(user_id: int, amount: int, reason: str) -> int:
 def get_balance(user_id: int) -> int:
     """Retourne le solde actuel de pièces (lecture fraîche)."""
     return (
-        User.objects.filter(pk=user_id)
-        .values_list("coins_balance", flat=True)
-        .first()
+        User.objects.filter(pk=user_id).values_list("coins_balance", flat=True).first()
         or 0
     )

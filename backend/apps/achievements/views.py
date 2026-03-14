@@ -15,10 +15,7 @@ class AchievementListView(generics.ListAPIView):
 
     def get_queryset(self):
         """Return all achievements, ordered by condition type and value."""
-        return Achievement.objects.all().order_by(
-            "condition_type", 
-            "condition_value"
-        )
+        return Achievement.objects.all().order_by("condition_type", "condition_value")
 
     def get_serializer_context(self):
         """Add pre-fetched user achievements to the serializer context."""
@@ -27,9 +24,7 @@ class AchievementListView(generics.ListAPIView):
         if self.request.user.is_authenticated:
             ctx["user_achievements"] = {
                 ua.achievement_id: ua
-                for ua in UserAchievement.objects.filter(
-                    user=self.request.user
-                )
+                for ua in UserAchievement.objects.filter(user=self.request.user)
             }
         return ctx
 
