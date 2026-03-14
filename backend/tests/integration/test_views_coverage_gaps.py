@@ -32,7 +32,9 @@ class TestLobbyPatchBroadcastException(BaseAPIIntegrationTest):
         "apps.games.views.game_lobby_mixin.broadcast_game_update",
         side_effect=Exception("WS fail"),
     )
-    def test_patch_broadcast_fails_still_returns_ok(self, mock_bc, auth_client, user):
+    def test_patch_broadcast_fails_still_returns_ok(
+        self, mock_bc, auth_client, user
+    ):
         game = GameFactory(host=user, status="waiting")
         GamePlayerFactory(game=game, user=user)
         resp = auth_client.patch(
@@ -77,7 +79,9 @@ class TestLobbyLeaveHost(BaseAPIIntegrationTest):
         mock_bc.assert_called_once()
 
     @patch("apps.games.views.game_lobby_mixin.broadcast_player_leave")
-    def test_nonhost_leave_broadcasts(self, mock_bc, auth_client2, user, user2):
+    def test_nonhost_leave_broadcasts(
+        self, mock_bc, auth_client2, user, user2
+    ):
         game = GameFactory(host=user, status="waiting")
         GamePlayerFactory(game=game, user=user)
         GamePlayerFactory(game=game, user=user2)
@@ -179,7 +183,11 @@ class TestNextRoundNoMoreRounds(BaseAPIIntegrationTest):
     def get_base_url(self):
         return BASE
 
-    def test_next_round_no_unstarted_round(self, auth_client, user):
+    @patch("apps.games.views.game_round_mixin.broadcast_game_finish")
+    @patch("apps.games.views.game_round_mixin.broadcast_round_end")
+    def test_next_round_no_unstarted_round(
+        self, mock_bre, mock_bgf, auth_client, user
+    ):
         from django.utils import timezone
 
         game = GameFactory(host=user, status="in_progress")
@@ -192,7 +200,9 @@ class TestNextRoundNoMoreRounds(BaseAPIIntegrationTest):
             ended_at=timezone.now(),
         )
         resp = auth_client.post(f"{BASE}{game.room_code}/next-round/")
-        self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
+        # No unstarted round → the view finishes the game and returns 200
+        self.assert_status(resp, status.HTTP_200_OK)
+        assert "terminée" in resp.data.get("message", "")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -294,7 +304,9 @@ class TestShopActivateBonusEdgeCases(BaseAPIIntegrationTest):
             game=game, round_number=1, started_at=timezone.now()
         )
         mock_bs.resolve_round_number.return_value = (1, round_obj)
-        mock_bs.activate_bonus.side_effect = BonusAlreadyActiveError("Déjà actif")
+        mock_bs.activate_bonus.side_effect = BonusAlreadyActiveError(
+            "Déjà actif"
+        )
 
         resp = auth_client.post(
             f"{SHOP_BASE}inventory/activate/",
@@ -339,12 +351,14 @@ class TestTeamWsNotificationExceptions(BaseAPIIntegrationTest):
 
         team = Team.objects.create(name="TestTeam", owner=user)
         TeamMember.objects.create(team=team, user=user, role="owner")
-        TeamJoinRequest.objects.create(
+        join_req = TeamJoinRequest.objects.create(
             team=team, user=user2, status=TeamJoinRequestStatus.PENDING
         )
         mock_ats.return_value = MagicMock(side_effect=Exception("WS fail"))
         resp = auth_client.post(
-            f"{TEAM_BASE}{team.id}/approve/", {"user_id": str(user2.id)}, format="json"
+            f"{TEAM_BASE}{team.id}/approve/",
+            {"request_id": str(join_req.id)},
+            format="json",
         )
         self.assert_status(resp, status.HTTP_200_OK)
 
@@ -359,11 +373,13 @@ class TestTeamWsNotificationExceptions(BaseAPIIntegrationTest):
 
         team = Team.objects.create(name="TestTeam", owner=user)
         TeamMember.objects.create(team=team, user=user, role="owner")
-        TeamJoinRequest.objects.create(
+        join_req = TeamJoinRequest.objects.create(
             team=team, user=user2, status=TeamJoinRequestStatus.PENDING
         )
         mock_ats.return_value = MagicMock(side_effect=Exception("WS fail"))
         resp = auth_client.post(
-            f"{TEAM_BASE}{team.id}/reject/", {"user_id": str(user2.id)}, format="json"
+            f"{TEAM_BASE}{team.id}/reject/",
+            {"request_id": str(join_req.id)},
+            format="json",
         )
         self.assert_status(resp, status.HTTP_200_OK)
