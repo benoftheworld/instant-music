@@ -477,3 +477,189 @@ class TestDiscoveryPublicGames(BaseAPIIntegrationTest):
     def test_leaderboard_with_data(self, api_client):
         resp = api_client.get(f"{BASE}leaderboard/")
         self.assert_status(resp, status.HTTP_200_OK)
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  Lobby — cas limites supplémentaires
+# ═══════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.django_db
+class TestLobbyStartNoPlaylist(BaseAPIIntegrationTest):
+    """Vérifie start sans playlist sélectionnée."""
+
+    def get_base_url(self):
+        return BASE
+
+    def test_start_no_playlist(self, auth_client, user, user2, auth_client2):
+        game = GameFactory(
+            host=user, status="waiting", playlist_id=None, is_online=True
+        )
+        GamePlayerFactory(game=game, user=user)
+        GamePlayerFactory(game=game, user=user2)
+        resp = auth_client.post(f"{BASE}{game.room_code}/start/")
+        self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
+        assert "playlist" in resp.data["error"]
+
+
+@pytest.mark.django_db
+class TestLobbyStartNotEnoughMultiplayer(BaseAPIIntegrationTest):
+    """Vérifie start avec 1 seul joueur en multijoueur."""
+
+    def get_base_url(self):
+        return BASE
+
+    def test_start_only_one_player_online(self, auth_client, user):
+        game = GameFactory(
+            host=user, status="waiting", is_online=True, playlist_id="pl123"
+        )
+        GamePlayerFactory(game=game, user=user)
+        resp = auth_client.post(f"{BASE}{game.room_code}/start/")
+        self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
+        assert "2 joueurs" in resp.data["error"]
+
+
+@pytest.mark.django_db
+class TestLobbyStartServiceError(BaseAPIIntegrationTest):
+    """Vérifie start quand le service lève ValueError ou Exception."""
+
+    def get_base_url(self):
+        return BASE
+
+    @patch("apps.games.views.game_lobby_mixin.game_service.start_game")
+    def test_start_value_error(self, mock_start, auth_client, user, user2):
+        game = GameFactory(
+            host=user, status="waiting", is_online=True, playlist_id="pl123"
+        )
+        GamePlayerFactory(game=game, user=user)
+        GamePlayerFactory(game=game, user=user2)
+        mock_start.side_effect = ValueError("Playlist vide")
+        resp = auth_client.post(f"{BASE}{game.room_code}/start/")
+        self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
+        assert "Playlist vide" in resp.data["error"]
+
+    @patch("apps.games.views.game_lobby_mixin.game_service.start_game")
+    def test_start_unexpected_error(self, mock_start, auth_client, user, user2):
+        game = GameFactory(
+            host=user, status="waiting", is_online=True, playlist_id="pl123"
+        )
+        GamePlayerFactory(game=game, user=user)
+        GamePlayerFactory(game=game, user=user2)
+        mock_start.side_effect = RuntimeError("crash")
+        resp = auth_client.post(f"{BASE}{game.room_code}/start/")
+        self.assert_status(resp, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  Round — cas limites supplémentaires
+# ═══════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.django_db
+class TestAnswerValueError(BaseAPIIntegrationTest):
+    """Vérifie answer quand game_service.submit_answer lève ValueError."""
+
+    def get_base_url(self):
+        return BASE
+
+    @patch("apps.games.views.game_round_mixin.game_service.submit_answer")
+    @patch("apps.games.views.game_round_mixin.game_service.get_current_round")
+    def test_answer_value_error(self, mock_current, mock_submit, auth_client, user):
+        game = GameFactory(host=user, status="in_progress")
+        GamePlayerFactory(game=game, user=user)
+        round_obj = GameRoundFactory(game=game, round_number=1, started_at=timezone.now())
+        mock_current.return_value = round_obj
+        mock_submit.side_effect = ValueError("Réponse invalide")
+        resp = auth_client.post(
+            f"{BASE}{game.room_code}/answer/",
+            {"answer": "test"},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
+
+    @patch("apps.games.views.game_round_mixin.game_service.get_current_round")
+    def test_answer_no_started_at(self, mock_current, auth_client, user):
+        """Round sans started_at → response_time = 0."""
+        game = GameFactory(host=user, status="in_progress")
+        GamePlayerFactory(game=game, user=user)
+        round_obj = GameRoundFactory(
+            game=game, round_number=1, started_at=None
+        )
+        mock_current.return_value = round_obj
+        # Uses real submit_answer which will calculate response_time=0
+        resp = auth_client.post(
+            f"{BASE}{game.room_code}/answer/",
+            {"answer": "test"},
+            format="json",
+        )
+        # Should succeed (201) since round has no answers yet
+        self.assert_status(resp, status.HTTP_201_CREATED)
+
+
+@pytest.mark.django_db
+class TestEndRoundBroadcastException(BaseAPIIntegrationTest):
+    """Vérifie end-round quand le broadcast échoue."""
+
+    def get_base_url(self):
+        return BASE
+
+    @patch("apps.games.views.game_round_mixin.broadcast_round_end", side_effect=RuntimeError("WS down"))
+    def test_end_round_broadcast_error(self, mock_broadcast, auth_client, user):
+        game = GameFactory(host=user, status="in_progress")
+        GamePlayerFactory(game=game, user=user)
+        round_obj = GameRoundFactory(
+            game=game, round_number=1, started_at=timezone.now(), ended_at=None
+        )
+        resp = auth_client.post(f"{BASE}{game.room_code}/end-round/")
+        self.assert_status(resp, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@pytest.mark.django_db
+class TestNextRoundBroadcastException(BaseAPIIntegrationTest):
+    """Vérifie next-round quand le broadcast round_end échoue mais continue."""
+
+    def get_base_url(self):
+        return BASE
+
+    @patch("apps.games.views.game_round_mixin.broadcast_round_end", side_effect=RuntimeError("WS err"))
+    @patch("apps.games.views.game_round_mixin.broadcast_game_finish")
+    def test_next_round_broadcast_error_continues(self, mock_finish, mock_end, auth_client, user):
+        game = GameFactory(host=user, status="in_progress")
+        GamePlayerFactory(game=game, user=user)
+        # Create a round that's active
+        GameRoundFactory(game=game, round_number=1, started_at=timezone.now(), ended_at=None)
+        # No next round → should finish game
+        resp = auth_client.post(f"{BASE}{game.room_code}/next-round/")
+        self.assert_status(resp, status.HTTP_200_OK)
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  Invitation — cas limites supplémentaires
+# ═══════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.django_db
+class TestInviteGameNotWaiting(BaseAPIIntegrationTest):
+    """Vérifie invite quand la partie n'est pas en attente."""
+
+    def get_base_url(self):
+        return BASE
+
+    def test_invite_game_in_progress(self, auth_client, user, user2):
+        game = GameFactory(host=user, status="in_progress")
+        GamePlayerFactory(game=game, user=user)
+        resp = auth_client.post(
+            f"{BASE}{game.room_code}/invite/",
+            {"username": user2.username},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
+
+    def test_decline_non_pending_invitation(self, auth_client2, user, user2):
+        game = GameFactory(host=user, status="waiting")
+        GamePlayerFactory(game=game, user=user)
+        invitation = GameInvitationFactory(
+            game=game, sender=user, recipient=user2, status="accepted"
+        )
+        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/decline/")
+        self.assert_status(resp, status.HTTP_400_BAD_REQUEST)

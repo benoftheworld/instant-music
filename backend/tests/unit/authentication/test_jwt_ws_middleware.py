@@ -88,3 +88,65 @@ class TestJwtMiddlewareCall(BaseServiceUnitTest):
         mock_send.assert_called_once_with(
             {"type": "websocket.close", "code": 4003}
         )
+
+    @pytest.mark.asyncio
+    @patch("apps.authentication.jwt_ws_middleware.AccessToken")
+    async def test_user_not_found_closes_4003(self, mock_access):
+        from apps.authentication.jwt_ws_middleware import JwtWebSocketMiddleware
+
+        mock_token = MagicMock()
+        mock_token.__getitem__ = MagicMock(return_value=999)
+        mock_access.return_value = mock_token
+
+        mock_inner = AsyncMock()
+        middleware = JwtWebSocketMiddleware(mock_inner)
+        middleware._get_user = AsyncMock(return_value=None)
+        mock_send = AsyncMock()
+        scope = {
+            "type": "websocket",
+            "query_string": b"token=validtoken",
+            "path": "/ws/test/",
+        }
+        await middleware(scope, AsyncMock(), mock_send)
+        mock_send.assert_called_once_with({"type": "websocket.close", "code": 4003})
+        mock_inner.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("apps.authentication.jwt_ws_middleware.AccessToken")
+    async def test_unexpected_error_closes_4003(self, mock_access):
+        from apps.authentication.jwt_ws_middleware import JwtWebSocketMiddleware
+
+        mock_access.side_effect = RuntimeError("unexpected")
+        mock_inner = AsyncMock()
+        middleware = JwtWebSocketMiddleware(mock_inner)
+        mock_send = AsyncMock()
+        scope = {
+            "type": "websocket",
+            "query_string": b"token=sometoken",
+            "path": "/ws/test/",
+        }
+        await middleware(scope, AsyncMock(), mock_send)
+        mock_send.assert_called_once_with({"type": "websocket.close", "code": 4003})
+
+    @pytest.mark.asyncio
+    @patch("apps.authentication.jwt_ws_middleware.AccessToken")
+    async def test_valid_token_injects_user(self, mock_access):
+        from apps.authentication.jwt_ws_middleware import JwtWebSocketMiddleware
+
+        mock_token = MagicMock()
+        mock_token.__getitem__ = MagicMock(return_value=42)
+        mock_access.return_value = mock_token
+
+        mock_user = MagicMock()
+        mock_inner = AsyncMock()
+        middleware = JwtWebSocketMiddleware(mock_inner)
+        middleware._get_user = AsyncMock(return_value=mock_user)
+        mock_send = AsyncMock()
+        scope = {
+            "type": "websocket",
+            "query_string": b"token=goodtoken",
+            "path": "/ws/test/",
+        }
+        await middleware(scope, AsyncMock(), mock_send)
+        assert scope["user"] == mock_user
+        mock_inner.assert_called_once()

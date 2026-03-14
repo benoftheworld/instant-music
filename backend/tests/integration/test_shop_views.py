@@ -16,7 +16,6 @@ from tests.factories import (
     UserInventoryFactory,
 )
 
-
 SHOP_URL = "/api/shop/items/"
 INVENTORY_URL = "/api/shop/inventory/"
 

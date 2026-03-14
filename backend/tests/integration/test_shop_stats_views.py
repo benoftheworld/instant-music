@@ -130,6 +130,15 @@ class TestStatsViews(BaseAPIIntegrationTest):
         resp = auth_client.get(f"{self.get_base_url()}user/{uuid.uuid4()}/")
         self.assert_status(resp, status.HTTP_404_NOT_FOUND)
 
+    def test_user_public_stats_superuser_hidden(self, auth_client, staff_user):
+        """Profil public d'un superuser → 404."""
+        from apps.users.models import User
+        su = User.objects.create_superuser(
+            username="admin_hidden", email="admin@test.com", password="pass"
+        )
+        resp = auth_client.get(f"{self.get_base_url()}user/{su.id}/")
+        self.assert_status(resp, status.HTTP_404_NOT_FOUND)
+
 
 @pytest.mark.django_db
 class TestPlaylistViews(BaseAPIIntegrationTest):

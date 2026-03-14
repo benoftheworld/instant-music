@@ -431,3 +431,564 @@ class TestValidateWsMessage(BaseServiceUnitTest):
     def test_valid_with_required(self):
         from apps.games.consumers import validate_ws_message
         assert validate_ws_message({"type": "activate_bonus", "bonus_type": "freeze"}) is None
+
+    def test_non_string_type(self):
+        from apps.games.consumers import validate_ws_message
+
+        result = validate_ws_message({"type": 123})
+        assert result is not None
+        assert "type" in result
+
+    def test_all_schema_types_valid(self):
+        """Couvre tous les types de messages connus sans champs requis."""
+        from apps.games.consumers import WS_MESSAGE_SCHEMAS, validate_ws_message
+
+        for msg_type, schema in WS_MESSAGE_SCHEMAS.items():
+            data = {"type": msg_type}
+            for field in schema.get("required", set()):
+                data[field] = "test_value"
+            assert validate_ws_message(data) is None, f"Failed for type: {msg_type}"
+
+
+class TestGameConsumerConnect(BaseServiceUnitTest):
+    """Vérifie GameConsumer.connect."""
+
+    def get_service_module(self):
+        import apps.games.consumers
+        return apps.games.consumers
+
+    @pytest.mark.asyncio
+    @patch("apps.games.consumers.WS_CONNECTIONS_ACTIVE")
+    @patch("apps.games.consumers.WS_CONNECTIONS_TOTAL")
+    async def test_connect_success(self, mock_total, mock_active):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        user = MagicMock(id=42, username="alice", is_authenticated=True)
+        consumer.scope = {
+            "user": user,
+            "url_route": {"kwargs": {"room_code": "ABCDEF"}},
+        }
+        consumer.channel_name = "ch1"
+        consumer.channel_layer = AsyncMock()
+        consumer.accept = AsyncMock()
+        consumer.send = AsyncMock()
+        consumer._set_player_connected = AsyncMock()
+        consumer.get_game_data = AsyncMock(return_value={"players": []})
+
+        await consumer.connect()
+
+        assert consumer.room_code == "ABCDEF"
+        assert consumer.room_group_name == "game_ABCDEF"
+        consumer.channel_layer.group_add.assert_called_once()
+        consumer.accept.assert_called_once()
+        consumer._set_player_connected.assert_called_once_with(True)
+        # Should send connection_established + broadcast player_join
+        assert consumer.send.call_count >= 1
+        consumer.channel_layer.group_send.assert_called_once()
+
+
+class TestGameConsumerDisconnect(BaseServiceUnitTest):
+    """Vérifie GameConsumer.disconnect."""
+
+    def get_service_module(self):
+        import apps.games.consumers
+        return apps.games.consumers
+
+    @pytest.mark.asyncio
+    @patch("apps.games.consumers.WS_CONNECTIONS_ACTIVE")
+    @patch("apps.games.consumers.WS_CONNECTIONS_TOTAL")
+    async def test_disconnect_authenticated(self, mock_total, mock_active):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        user = MagicMock(id=42, username="alice", is_authenticated=True)
+        consumer.scope = {"user": user}
+        consumer.room_code = "ABCDEF"
+        consumer.room_group_name = "game_ABCDEF"
+        consumer.channel_name = "ch1"
+        consumer.channel_layer = AsyncMock()
+        consumer._set_player_connected = AsyncMock()
+        consumer.get_game_data = AsyncMock(return_value={"players": []})
+
+        await consumer.disconnect(1000)
+
+        consumer.channel_layer.group_discard.assert_called_once()
+        consumer._set_player_connected.assert_called_once_with(False)
+        consumer.get_game_data.assert_called_once()
+        consumer.channel_layer.group_send.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("apps.games.consumers.WS_CONNECTIONS_ACTIVE")
+    @patch("apps.games.consumers.WS_CONNECTIONS_TOTAL")
+    async def test_disconnect_unauthenticated(self, mock_total, mock_active):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer.scope = {"user": None}
+        consumer.room_code = "ABCDEF"
+        consumer.room_group_name = "game_ABCDEF"
+        consumer.channel_name = "ch1"
+        consumer.channel_layer = AsyncMock()
+
+        await consumer.disconnect(1000)
+
+        consumer.channel_layer.group_discard.assert_called_once()
+        # Should not attempt broadcast for unauthenticated
+        consumer.channel_layer.group_send.assert_not_called()
+
+
+class TestGameConsumerRateLimit(BaseServiceUnitTest):
+    """Vérifie _check_rate_limit."""
+
+    def get_service_module(self):
+        import apps.games.consumers
+        return apps.games.consumers
+
+    @pytest.mark.asyncio
+    @patch("apps.games.consumers._get_ws_redis")
+    async def test_rate_limit_allowed(self, mock_redis_fn):
+        from apps.games.consumers import GameConsumer
+
+        mock_redis = AsyncMock()
+        mock_redis.eval = AsyncMock(return_value=1)
+        mock_redis_fn.return_value = mock_redis
+
+        consumer = GameConsumer()
+        consumer.scope = {"user": MagicMock(id=1)}
+        consumer.room_code = "ROOM1"
+
+        result = await consumer._check_rate_limit("player_join")
+        assert result is True
+
+    @pytest.mark.asyncio
+    @patch("apps.games.consumers._get_ws_redis")
+    async def test_rate_limit_throttled(self, mock_redis_fn):
+        from apps.games.consumers import GameConsumer
+
+        mock_redis = AsyncMock()
+        mock_redis.eval = AsyncMock(return_value=0)
+        mock_redis_fn.return_value = mock_redis
+
+        consumer = GameConsumer()
+        consumer.scope = {"user": MagicMock(id=1)}
+        consumer.room_code = "ROOM1"
+
+        result = await consumer._check_rate_limit("player_answer")
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("apps.games.consumers._get_ws_redis")
+    async def test_rate_limit_redis_error_fails_closed(self, mock_redis_fn):
+        from apps.games.consumers import GameConsumer
+
+        mock_redis = AsyncMock()
+        mock_redis.eval = AsyncMock(side_effect=Exception("Redis down"))
+        mock_redis_fn.return_value = mock_redis
+
+        consumer = GameConsumer()
+        consumer.scope = {"user": MagicMock(id=1)}
+        consumer.room_code = "ROOM1"
+
+        result = await consumer._check_rate_limit("start_game")
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("apps.games.consumers._get_ws_redis")
+    async def test_rate_limit_default_limits(self, mock_redis_fn):
+        from apps.games.consumers import GameConsumer
+
+        mock_redis = AsyncMock()
+        mock_redis.eval = AsyncMock(return_value=1)
+        mock_redis_fn.return_value = mock_redis
+
+        consumer = GameConsumer()
+        consumer.scope = {"user": MagicMock(id=1)}
+        consumer.room_code = "ROOM1"
+
+        # Unknown type should use _default limits
+        result = await consumer._check_rate_limit("some_unknown_type")
+        assert result is True
+
+
+class TestGameConsumerReceiveRouting(BaseServiceUnitTest):
+    """Vérifie le routage depuis GameConsumer.receive."""
+
+    def get_service_module(self):
+        import apps.games.consumers
+        return apps.games.consumers
+
+    def _make_consumer(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer.room_code = "ABCDEF"
+        consumer.room_group_name = "game_ABCDEF"
+        consumer.scope = {"user": MagicMock(id=1, is_authenticated=True)}
+        consumer.channel_name = "ch1"
+        consumer.channel_layer = AsyncMock()
+        consumer.send = AsyncMock()
+        return consumer
+
+    @pytest.mark.asyncio
+    @patch("apps.games.consumers.GameConsumer._check_rate_limit", new_callable=AsyncMock, return_value=True)
+    async def test_route_player_join(self, mock_rl):
+        consumer = self._make_consumer()
+        consumer.player_join = AsyncMock()
+        await consumer.receive(text_data=json.dumps({"type": "player_join"}))
+        consumer.player_join.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("apps.games.consumers.GameConsumer._check_rate_limit", new_callable=AsyncMock, return_value=True)
+    async def test_route_player_answer(self, mock_rl):
+        consumer = self._make_consumer()
+        consumer.player_answer = AsyncMock()
+        await consumer.receive(text_data=json.dumps({"type": "player_answer"}))
+        consumer.player_answer.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("apps.games.consumers.GameConsumer._check_rate_limit", new_callable=AsyncMock, return_value=True)
+    async def test_route_start_game(self, mock_rl):
+        consumer = self._make_consumer()
+        consumer.start_game = AsyncMock()
+        await consumer.receive(text_data=json.dumps({"type": "start_game"}))
+        consumer.start_game.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("apps.games.consumers.GameConsumer._check_rate_limit", new_callable=AsyncMock, return_value=True)
+    async def test_route_activate_bonus(self, mock_rl):
+        consumer = self._make_consumer()
+        consumer.activate_bonus = AsyncMock()
+        await consumer.receive(text_data=json.dumps({"type": "activate_bonus", "bonus_type": "fog"}))
+        consumer.activate_bonus.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("apps.games.consumers.GameConsumer._check_rate_limit", new_callable=AsyncMock, return_value=True)
+    async def test_handler_exception_sends_error(self, mock_rl):
+        consumer = self._make_consumer()
+        consumer.player_join = AsyncMock(side_effect=RuntimeError("boom"))
+        await consumer.receive(text_data=json.dumps({"type": "player_join"}))
+        # Last send should be the error
+        calls = consumer.send.call_args_list
+        last_sent = json.loads(calls[-1][1]["text_data"])
+        assert last_sent["type"] == "error"
+        assert "interne" in last_sent["message"]
+
+    @pytest.mark.asyncio
+    @patch("apps.games.consumers.GameConsumer._check_rate_limit", new_callable=AsyncMock, return_value=False)
+    async def test_rate_limited_returns_error(self, mock_rl):
+        consumer = self._make_consumer()
+        await consumer.receive(text_data=json.dumps({"type": "player_join"}))
+        sent = json.loads(consumer.send.call_args[1]["text_data"])
+        assert "patienter" in sent["message"]
+
+
+class TestGameConsumerPlayerAnswer(BaseServiceUnitTest):
+    """Vérifie player_answer handler."""
+
+    def get_service_module(self):
+        import apps.games.consumers
+        return apps.games.consumers
+
+    @pytest.mark.asyncio
+    async def test_player_answer_broadcasts(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer.scope = {"user": MagicMock(username="alice")}
+        consumer.room_group_name = "game_ROOM1"
+        consumer.room_code = "ROOM1"
+        consumer.channel_layer = AsyncMock()
+        consumer._check_all_party_players_answered = AsyncMock(return_value=False)
+
+        await consumer.player_answer({"type": "player_answer", "answer": "test"})
+
+        consumer.channel_layer.group_send.assert_called_once()
+        call = consumer.channel_layer.group_send.call_args
+        assert call[0][1]["type"] == "broadcast_player_answer"
+        assert call[0][1]["player"] == "alice"
+
+    @pytest.mark.asyncio
+    async def test_player_answer_all_answered_party_mode(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer.scope = {"user": MagicMock(username="alice")}
+        consumer.room_group_name = "game_ROOM1"
+        consumer.room_code = "ROOM1"
+        consumer.channel_layer = AsyncMock()
+        consumer._check_all_party_players_answered = AsyncMock(return_value=True)
+
+        await consumer.player_answer({"type": "player_answer"})
+
+        assert consumer.channel_layer.group_send.call_count == 2
+        second_call = consumer.channel_layer.group_send.call_args_list[1]
+        assert second_call[0][1]["type"] == "broadcast_all_answered"
+
+
+class TestGameConsumerStartGame(BaseServiceUnitTest):
+    """Vérifie start_game handler."""
+
+    def get_service_module(self):
+        import apps.games.consumers
+        return apps.games.consumers
+
+    @pytest.mark.asyncio
+    async def test_start_game_as_host(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer.scope = {"user": MagicMock(id=1)}
+        consumer.room_code = "ROOM1"
+        consumer.room_group_name = "game_ROOM1"
+        consumer.channel_layer = AsyncMock()
+        consumer.send = AsyncMock()
+        consumer._require_host = AsyncMock(return_value=True)
+        consumer.get_game_data = AsyncMock(return_value={"status": "playing"})
+
+        await consumer.start_game({"type": "start_game"})
+
+        consumer.channel_layer.group_send.assert_called_once()
+        call = consumer.channel_layer.group_send.call_args
+        assert call[0][1]["type"] == "broadcast_game_start"
+
+    @pytest.mark.asyncio
+    async def test_start_game_not_host(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer.scope = {"user": MagicMock(id=2)}
+        consumer.room_code = "ROOM1"
+        consumer.room_group_name = "game_ROOM1"
+        consumer.channel_layer = AsyncMock()
+        consumer.send = AsyncMock()
+        consumer._require_host = AsyncMock(return_value=False)
+
+        await consumer.start_game({"type": "start_game"})
+
+        consumer.channel_layer.group_send.assert_not_called()
+
+
+class TestGameConsumerStartRound(BaseServiceUnitTest):
+    """Vérifie start_round handler."""
+
+    def get_service_module(self):
+        import apps.games.consumers
+        return apps.games.consumers
+
+    @pytest.mark.asyncio
+    async def test_start_round_as_host(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer.scope = {"user": MagicMock(id=1)}
+        consumer.room_code = "ROOM1"
+        consumer.room_group_name = "game_ROOM1"
+        consumer.channel_layer = AsyncMock()
+        consumer.send = AsyncMock()
+        consumer._require_host = AsyncMock(return_value=True)
+        consumer._enrich_round_data_with_fog = AsyncMock(return_value={"round_number": 1})
+
+        await consumer.start_round({"type": "start_round", "round_data": {"round_number": 1}})
+
+        consumer.channel_layer.group_send.assert_called_once()
+        call = consumer.channel_layer.group_send.call_args
+        assert call[0][1]["type"] == "broadcast_round_start"
+
+    @pytest.mark.asyncio
+    async def test_start_round_not_host(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer._require_host = AsyncMock(return_value=False)
+        consumer.channel_layer = AsyncMock()
+
+        await consumer.start_round({"type": "start_round"})
+
+        consumer.channel_layer.group_send.assert_not_called()
+
+
+class TestGameConsumerEndRound(BaseServiceUnitTest):
+    """Vérifie end_round handler."""
+
+    def get_service_module(self):
+        import apps.games.consumers
+        return apps.games.consumers
+
+    @pytest.mark.asyncio
+    async def test_end_round_as_host(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer.scope = {"user": MagicMock(id=1)}
+        consumer.room_code = "ROOM1"
+        consumer.room_group_name = "game_ROOM1"
+        consumer.channel_layer = AsyncMock()
+        consumer._require_host = AsyncMock(return_value=True)
+
+        await consumer.end_round({"type": "end_round", "results": {"scores": {}}})
+
+        consumer.channel_layer.group_send.assert_called_once()
+        call = consumer.channel_layer.group_send.call_args
+        assert call[0][1]["type"] == "broadcast_round_end"
+
+
+class TestGameConsumerNextRound(BaseServiceUnitTest):
+    """Vérifie next_round handler."""
+
+    def get_service_module(self):
+        import apps.games.consumers
+        return apps.games.consumers
+
+    @pytest.mark.asyncio
+    async def test_next_round_as_host(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer._require_host = AsyncMock(return_value=True)
+        consumer.room_group_name = "game_ROOM1"
+        consumer.channel_layer = AsyncMock()
+        consumer._enrich_round_data_with_fog = AsyncMock(return_value={"round_number": 2})
+
+        await consumer.next_round({"type": "next_round", "round_data": {"round_number": 2}})
+
+        consumer.channel_layer.group_send.assert_called_once()
+        call = consumer.channel_layer.group_send.call_args
+        assert call[0][1]["type"] == "broadcast_next_round"
+
+
+class TestGameConsumerFinishGame(BaseServiceUnitTest):
+    """Vérifie finish_game handler."""
+
+    def get_service_module(self):
+        import apps.games.consumers
+        return apps.games.consumers
+
+    @pytest.mark.asyncio
+    async def test_finish_game_as_host(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer._require_host = AsyncMock(return_value=True)
+        consumer.room_group_name = "game_ROOM1"
+        consumer.channel_layer = AsyncMock()
+
+        await consumer.finish_game({"type": "finish_game", "results": {"winner": "alice"}})
+
+        consumer.channel_layer.group_send.assert_called_once()
+        call = consumer.channel_layer.group_send.call_args
+        assert call[0][1]["type"] == "broadcast_game_finish"
+
+    @pytest.mark.asyncio
+    async def test_finish_game_not_host(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer._require_host = AsyncMock(return_value=False)
+        consumer.channel_layer = AsyncMock()
+
+        await consumer.finish_game({"type": "finish_game"})
+
+        consumer.channel_layer.group_send.assert_not_called()
+
+
+class TestGameConsumerActivateBonusHandler(BaseServiceUnitTest):
+    """Vérifie activate_bonus handler complet."""
+
+    def get_service_module(self):
+        import apps.games.consumers
+        return apps.games.consumers
+
+    @pytest.mark.asyncio
+    async def test_activate_bonus_success(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer.scope = {"user": MagicMock(username="alice")}
+        consumer.room_code = "ROOM1"
+        consumer.room_group_name = "game_ROOM1"
+        consumer.channel_layer = AsyncMock()
+        consumer.send = AsyncMock()
+        consumer._do_activate_bonus = AsyncMock(return_value={"round_number": 3})
+
+        await consumer.activate_bonus({"type": "activate_bonus", "bonus_type": "fog"})
+
+        consumer.channel_layer.group_send.assert_called_once()
+        call = consumer.channel_layer.group_send.call_args
+        assert call[0][1]["type"] == "broadcast_bonus_activated"
+        assert call[0][1]["bonus"]["bonus_type"] == "fog"
+        assert call[0][1]["bonus"]["username"] == "alice"
+
+    @pytest.mark.asyncio
+    async def test_activate_bonus_error(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer.scope = {"user": MagicMock(username="alice")}
+        consumer.room_code = "ROOM1"
+        consumer.room_group_name = "game_ROOM1"
+        consumer.channel_layer = AsyncMock()
+        consumer.send = AsyncMock()
+        consumer._do_activate_bonus = AsyncMock(return_value={"error": "Bonus indisponible."})
+
+        await consumer.activate_bonus({"type": "activate_bonus", "bonus_type": "fog"})
+
+        consumer.channel_layer.group_send.assert_not_called()
+        sent = json.loads(consumer.send.call_args[1]["text_data"])
+        assert sent["type"] == "error"
+        assert "indisponible" in sent["message"]
+
+
+class TestGameConsumerEnrichRoundData(BaseServiceUnitTest):
+    """Vérifie _enrich_round_data_with_fog."""
+
+    def get_service_module(self):
+        import apps.games.consumers
+        return apps.games.consumers
+
+    @pytest.mark.asyncio
+    async def test_no_round_number(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer._check_and_consume_fog = AsyncMock()
+
+        result = await consumer._enrich_round_data_with_fog({})
+
+        consumer._check_and_consume_fog.assert_not_called()
+        assert result == {}
+
+    @pytest.mark.asyncio
+    async def test_fog_active(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer._check_and_consume_fog = AsyncMock(return_value=(True, "alice"))
+
+        result = await consumer._enrich_round_data_with_fog({"round_number": 3})
+
+        assert result["fog_active"] is True
+        assert result["fog_activator"] == "alice"
+
+    @pytest.mark.asyncio
+    async def test_fog_not_active(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer._check_and_consume_fog = AsyncMock(return_value=(False, None))
+
+        result = await consumer._enrich_round_data_with_fog({"round_number": 3})
+
+        assert "fog_active" not in result
+
+    @pytest.mark.asyncio
+    async def test_none_round_data(self):
+        from apps.games.consumers import GameConsumer
+
+        consumer = GameConsumer()
+        consumer._check_and_consume_fog = AsyncMock()
+
+        result = await consumer._enrich_round_data_with_fog(None)
+
+        assert result is None
+        consumer._check_and_consume_fog.assert_not_called()

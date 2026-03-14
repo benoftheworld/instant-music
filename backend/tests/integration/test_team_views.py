@@ -1,9 +1,17 @@
 """Tests d'intégration du TeamViewSet."""
 
+import uuid
+
 import pytest
 from rest_framework import status
 
-from apps.users.models import Team, TeamMember, TeamMemberRole
+from apps.users.models import (
+    Team,
+    TeamJoinRequest,
+    TeamJoinRequestStatus,
+    TeamMember,
+    TeamMemberRole,
+)
 from tests.base import BaseAPIIntegrationTest
 
 
@@ -279,3 +287,252 @@ class TestTeamRolesAndMembers(BaseAPIIntegrationTest):
             format="json",
         )
         self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
+
+
+@pytest.mark.django_db
+class TestTeamRetrieve(BaseAPIIntegrationTest):
+    """Vérifie le retrieve (non-list action path for get_queryset)."""
+
+    def get_base_url(self):
+        return "/api/users/teams/"
+
+    def test_retrieve_team(self, auth_client, user):
+        team = Team.objects.create(owner=user, name="Team Retrieve")
+        TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
+        resp = auth_client.get(f"{self.get_base_url()}{team.id}/")
+        self.assert_status(resp, status.HTTP_200_OK)
+        assert resp.data["name"] == "Team Retrieve"
+
+
+@pytest.mark.django_db
+class TestTeamJoinEdgeCases(BaseAPIIntegrationTest):
+    """Vérifie les cas limites des demandes d'adhésion."""
+
+    def get_base_url(self):
+        return "/api/users/teams/"
+
+    def test_join_after_rejection_resets_to_pending(self, auth_client2, user, user2):
+        """Après un rejet, une nouvelle demande repasse en pending."""
+        team = Team.objects.create(owner=user, name="Team Rejoin")
+        TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
+        # Créer une demande rejetée
+        TeamJoinRequest.objects.create(
+            team=team, user=user2, status=TeamJoinRequestStatus.REJECTED
+        )
+        resp = auth_client2.post(f"{self.get_base_url()}{team.id}/join/")
+        self.assert_status(resp, status.HTTP_201_CREATED)
+        jr = TeamJoinRequest.objects.get(team=team, user=user2)
+        assert jr.status == TeamJoinRequestStatus.PENDING
+
+
+@pytest.mark.django_db
+class TestTeamApproveRejectEdgeCases(BaseAPIIntegrationTest):
+    """Vérifie les cas limites approve/reject."""
+
+    def get_base_url(self):
+        return "/api/users/teams/"
+
+    def test_approve_nonexistent_request(self, auth_client, user):
+        team = Team.objects.create(owner=user, name="Team Approve NE")
+        TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
+        resp = auth_client.post(
+            f"{self.get_base_url()}{team.id}/approve/",
+            {"request_id": str(uuid.uuid4())},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_404_NOT_FOUND)
+
+    def test_approve_team_not_found(self, auth_client):
+        resp = auth_client.post(
+            f"{self.get_base_url()}{uuid.uuid4()}/approve/",
+            {"request_id": str(uuid.uuid4())},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_404_NOT_FOUND)
+
+    def test_approve_not_admin(self, auth_client2, user, user2):
+        team = Team.objects.create(owner=user, name="Team Not Admin")
+        TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
+        TeamMember.objects.create(team=team, user=user2, role=TeamMemberRole.MEMBER)
+        resp = auth_client2.post(
+            f"{self.get_base_url()}{team.id}/approve/",
+            {"request_id": str(uuid.uuid4())},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_403_FORBIDDEN)
+
+    def test_reject_no_request_id(self, auth_client, user):
+        team = Team.objects.create(owner=user, name="Team Reject NR")
+        TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
+        resp = auth_client.post(
+            f"{self.get_base_url()}{team.id}/reject/",
+            {},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
+
+    def test_reject_nonexistent_request(self, auth_client, user):
+        team = Team.objects.create(owner=user, name="Team Reject NE")
+        TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
+        resp = auth_client.post(
+            f"{self.get_base_url()}{team.id}/reject/",
+            {"request_id": str(uuid.uuid4())},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_404_NOT_FOUND)
+
+    def test_reject_team_not_found(self, auth_client):
+        resp = auth_client.post(
+            f"{self.get_base_url()}{uuid.uuid4()}/reject/",
+            {"request_id": str(uuid.uuid4())},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_404_NOT_FOUND)
+
+    def test_requests_team_not_found(self, auth_client):
+        resp = auth_client.get(f"{self.get_base_url()}{uuid.uuid4()}/requests/")
+        self.assert_status(resp, status.HTTP_404_NOT_FOUND)
+
+
+@pytest.mark.django_db
+class TestTeamManageEdgeCases(BaseAPIIntegrationTest):
+    """Vérifie les cas limites de gestion d'équipe."""
+
+    def get_base_url(self):
+        return "/api/users/teams/"
+
+    def test_leave_not_member(self, auth_client2, user, user2):
+        team = Team.objects.create(owner=user, name="Team Leave NM")
+        TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
+        resp = auth_client2.post(f"{self.get_base_url()}{team.id}/leave/")
+        self.assert_status(resp, status.HTTP_404_NOT_FOUND)
+
+    def test_edit_team_not_found(self, auth_client):
+        resp = auth_client.patch(
+            f"{self.get_base_url()}{uuid.uuid4()}/edit/",
+            {"description": "test"},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_404_NOT_FOUND)
+
+    def test_invite_team_not_found(self, auth_client):
+        resp = auth_client.post(
+            f"{self.get_base_url()}{uuid.uuid4()}/invite/",
+            {"username": "alice"},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_404_NOT_FOUND)
+
+    def test_invite_already_member(self, auth_client, user, user2):
+        team = Team.objects.create(owner=user, name="Team InvDup")
+        TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
+        TeamMember.objects.create(team=team, user=user2, role=TeamMemberRole.MEMBER)
+        resp = auth_client.post(
+            f"{self.get_base_url()}{team.id}/invite/",
+            {"username": user2.username},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
+
+    def test_dissolve_team_not_found(self, auth_client):
+        resp = auth_client.post(f"{self.get_base_url()}{uuid.uuid4()}/dissolve/")
+        self.assert_status(resp, status.HTTP_404_NOT_FOUND)
+
+    def test_dissolve_not_member(self, auth_client2, user, user2):
+        """User not a member at all gets 403."""
+        team = Team.objects.create(owner=user, name="Team Dis NM")
+        TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
+        resp = auth_client2.post(f"{self.get_base_url()}{team.id}/dissolve/")
+        self.assert_status(resp, status.HTTP_403_FORBIDDEN)
+
+
+@pytest.mark.django_db
+class TestTeamUpdateMemberEdgeCases(BaseAPIIntegrationTest):
+    """Vérifie les cas limites de update_member."""
+
+    def get_base_url(self):
+        return "/api/users/teams/"
+
+    def test_update_member_team_not_found(self, auth_client):
+        resp = auth_client.post(
+            f"{self.get_base_url()}{uuid.uuid4()}/update_member/",
+            {"member_id": str(uuid.uuid4()), "role": TeamMemberRole.ADMIN},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_404_NOT_FOUND)
+
+    def test_update_member_not_found(self, auth_client, user):
+        team = Team.objects.create(owner=user, name="Team UMem NF")
+        TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
+        resp = auth_client.post(
+            f"{self.get_base_url()}{team.id}/update_member/",
+            {"member_id": str(uuid.uuid4()), "role": TeamMemberRole.ADMIN},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_404_NOT_FOUND)
+
+    def test_update_owner_by_admin_fails(self, auth_client2, user, user2):
+        team = Team.objects.create(owner=user, name="Team UA")
+        TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
+        owner_member = TeamMember.objects.get(team=team, user=user)
+        TeamMember.objects.create(team=team, user=user2, role=TeamMemberRole.ADMIN)
+        resp = auth_client2.post(
+            f"{self.get_base_url()}{team.id}/update_member/",
+            {"member_id": str(owner_member.id), "role": TeamMemberRole.MEMBER},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_403_FORBIDDEN)
+
+    def test_update_member_invalid_role(self, auth_client, user, user2):
+        team = Team.objects.create(owner=user, name="Team IR")
+        TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
+        member = TeamMember.objects.create(
+            team=team, user=user2, role=TeamMemberRole.MEMBER
+        )
+        resp = auth_client.post(
+            f"{self.get_base_url()}{team.id}/update_member/",
+            {"member_id": str(member.id), "role": "invalid_role"},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
+
+    def test_transfer_ownership(self, auth_client, user, user2):
+        team = Team.objects.create(owner=user, name="Team TO")
+        TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
+        member = TeamMember.objects.create(
+            team=team, user=user2, role=TeamMemberRole.MEMBER
+        )
+        resp = auth_client.post(
+            f"{self.get_base_url()}{team.id}/update_member/",
+            {"member_id": str(member.id), "role": TeamMemberRole.OWNER},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_200_OK)
+        team.refresh_from_db()
+        assert team.owner == user2
+
+
+@pytest.mark.django_db
+class TestTeamRemoveMemberEdgeCases(BaseAPIIntegrationTest):
+    """Vérifie les cas limites de remove_member."""
+
+    def get_base_url(self):
+        return "/api/users/teams/"
+
+    def test_remove_member_team_not_found(self, auth_client):
+        resp = auth_client.post(
+            f"{self.get_base_url()}{uuid.uuid4()}/remove_member/",
+            {"member_id": str(uuid.uuid4())},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_404_NOT_FOUND)
+
+    def test_remove_member_not_found(self, auth_client, user):
+        team = Team.objects.create(owner=user, name="Team RM NF")
+        TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
+        resp = auth_client.post(
+            f"{self.get_base_url()}{team.id}/remove_member/",
+            {"member_id": str(uuid.uuid4())},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_404_NOT_FOUND)

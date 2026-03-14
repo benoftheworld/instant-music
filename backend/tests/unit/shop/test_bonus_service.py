@@ -355,6 +355,196 @@ class TestShopServicePurchase(BaseServiceUnitTest):
             svc.purchase.__wrapped__(svc, MagicMock(), item_id="1", quantity=1)
 
 
+class TestShopServicePurchaseStock(BaseServiceUnitTest):
+    """Vérifie la mise à jour du stock et de l'inventaire existant."""
+
+    def get_service_module(self):
+        from apps.shop import services
+        return services
+
+    def _make_svc(self):
+        from apps.shop.services import ShopService
+        return ShopService()
+
+    @patch("apps.shop.services.UserInventory")
+    @patch("apps.shop.services.ShopItem")
+    def test_purchase_decrements_finite_stock(self, mock_si, mock_ui):
+        svc = self._make_svc()
+        item = MagicMock(cost=10, is_event_only=False, stock=5, name="TestItem")
+        mock_si.objects.select_for_update.return_value.get.return_value = item
+        inventory = MagicMock(quantity=1)
+        mock_ui.objects.get_or_create.return_value = (inventory, True)
+        user = MagicMock(id=1, coins_balance=100)
+
+        with patch("apps.users.coin_service.deduct_coins"):
+            svc.purchase.__wrapped__(svc, user, item_id="1", quantity=2)
+
+        assert item.stock == 3
+        item.save.assert_called_once_with(update_fields=["stock"])
+
+    @patch("apps.shop.services.UserInventory")
+    @patch("apps.shop.services.ShopItem")
+    def test_purchase_existing_inventory_increases_quantity(self, mock_si, mock_ui):
+        svc = self._make_svc()
+        item = MagicMock(cost=10, is_event_only=False, stock=None, name="TestItem")
+        mock_si.objects.select_for_update.return_value.get.return_value = item
+        inventory = MagicMock(quantity=3)
+        # created=False => already exists in inventory
+        mock_ui.objects.get_or_create.return_value = (inventory, False)
+        user = MagicMock(id=1, coins_balance=100)
+
+        with patch("apps.users.coin_service.deduct_coins"):
+            svc.purchase.__wrapped__(svc, user, item_id="1", quantity=2)
+
+        assert inventory.quantity == 5
+        inventory.save.assert_called_once_with(update_fields=["quantity"])
+
+
+class TestShopServiceTotalCoins(BaseServiceUnitTest):
+    """Vérifie get_total_coins_available."""
+
+    def get_service_module(self):
+        from apps.shop import services
+        return services
+
+    def _make_svc(self):
+        from apps.shop.services import ShopService
+        return ShopService()
+
+    @patch("apps.achievements.models.Achievement")
+    def test_returns_total_or_zero(self, mock_achievement):
+        svc = self._make_svc()
+        mock_achievement.objects.aggregate.return_value = {"total": 500}
+        result = svc.get_total_coins_available()
+        assert result == 500
+
+    @patch("apps.achievements.models.Achievement")
+    def test_returns_zero_when_none(self, mock_achievement):
+        svc = self._make_svc()
+        mock_achievement.objects.aggregate.return_value = {"total": None}
+        result = svc.get_total_coins_available()
+        assert result == 0
+
+
+class TestBonusServiceActivateBonus(BaseServiceUnitTest):
+    """Vérifie activate_bonus du BonusService."""
+
+    def get_service_module(self):
+        from apps.shop import services
+        return services
+
+    def _make_svc(self):
+        from apps.shop.services import BonusService
+        return BonusService()
+
+    @patch("apps.shop.services.GameBonus")
+    @patch("apps.shop.services.UserInventory")
+    @patch("apps.shop.services.ShopItem")
+    @patch("apps.games.models.GamePlayer")
+    def test_activate_success(self, mock_gp, mock_si, mock_ui, mock_gb):
+        svc = self._make_svc()
+        player = MagicMock()
+        mock_gp.objects.get.return_value = player
+        item = MagicMock()
+        mock_si.objects.get.return_value = item
+        inventory = MagicMock(quantity=3)
+        mock_ui.objects.select_for_update.return_value.get.return_value = inventory
+        bonus = MagicMock()
+        mock_gb.objects.create.return_value = bonus
+
+        result = svc.activate_bonus.__wrapped__(
+            svc, user=MagicMock(), game=MagicMock(), bonus_type="fifty_fifty", round_number=1
+        )
+        assert result == bonus
+        assert inventory.quantity == 2
+        inventory.save.assert_called_once_with(update_fields=["quantity"])
+
+    @patch("apps.games.models.GamePlayer")
+    def test_activate_player_not_in_game(self, mock_gp):
+        from django.core.exceptions import ObjectDoesNotExist
+        svc = self._make_svc()
+        mock_gp.DoesNotExist = ObjectDoesNotExist
+        mock_gp.objects.get.side_effect = ObjectDoesNotExist
+        with pytest.raises(ValueError, match="ne participez pas"):
+            svc.activate_bonus.__wrapped__(
+                svc, user=MagicMock(), game=MagicMock(), bonus_type="steal"
+            )
+
+    @patch("apps.shop.services.ShopItem")
+    @patch("apps.games.models.GamePlayer")
+    def test_activate_item_not_found(self, mock_gp, mock_si):
+        from apps.shop.services import ItemNotAvailableError
+        from apps.shop.models import ShopItem as _SI
+        svc = self._make_svc()
+        mock_gp.objects.get.return_value = MagicMock()
+        mock_si.DoesNotExist = _SI.DoesNotExist
+        mock_si.objects.get.side_effect = _SI.DoesNotExist
+        with pytest.raises(ItemNotAvailableError):
+            svc.activate_bonus.__wrapped__(
+                svc, user=MagicMock(), game=MagicMock(), bonus_type="steal"
+            )
+
+    @patch("apps.shop.services.GameBonus")
+    @patch("apps.shop.services.UserInventory")
+    @patch("apps.shop.services.ShopItem")
+    @patch("apps.games.models.GamePlayer")
+    def test_activate_unique_bonus_already_active(self, mock_gp, mock_si, mock_ui, mock_gb):
+        from apps.shop.services import BonusAlreadyActiveError
+        svc = self._make_svc()
+        mock_gp.objects.get.return_value = MagicMock()
+        mock_si.objects.get.return_value = MagicMock()
+        mock_ui.objects.select_for_update.return_value.get.return_value = MagicMock(quantity=1)
+        mock_gb.objects.filter.return_value.exists.return_value = True
+
+        with pytest.raises(BonusAlreadyActiveError):
+            svc.activate_bonus.__wrapped__(
+                svc, user=MagicMock(), game=MagicMock(), bonus_type="shield"
+            )
+
+
+class TestBonusServiceStealShield(BaseServiceUnitTest):
+    """Vérifie que le bouclier bloque le vol."""
+
+    def get_service_module(self):
+        from apps.shop import services
+        return services
+
+    def _make_svc(self):
+        from apps.shop.services import BonusService
+        return BonusService()
+
+    @patch("apps.shop.services.GameBonus")
+    @patch("apps.games.models.GamePlayer")
+    def test_steal_blocked_by_shield(self, mock_gp, mock_gb):
+        svc = self._make_svc()
+        bonus = MagicMock()
+
+        leader = MagicMock(score=200)
+        mock_gp.objects.filter.return_value.exclude.return_value.order_by.return_value.first.return_value = leader
+
+        call_count = [0]
+
+        def side_effect_filter(**kwargs):
+            call_count[0] += 1
+            result = MagicMock()
+            if call_count[0] == 1:
+                # First call: check steal bonus exists
+                result.exists.return_value = True
+                result.__iter__ = lambda s: iter([bonus])
+            elif call_count[0] == 2:
+                # Second call: check leader has shield
+                result.exists.return_value = True
+            else:
+                result.exists.return_value = False
+            return result
+
+        mock_gb.objects.filter = side_effect_filter
+
+        player = MagicMock(score=50)
+        stolen = svc.apply_steal_bonus(player, MagicMock(), round_number=1)
+        assert stolen == 0
+
+
 class TestShopServiceInventory(BaseServiceUnitTest):
     """Vérifie get_user_inventory."""
 
