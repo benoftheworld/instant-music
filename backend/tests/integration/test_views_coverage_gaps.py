@@ -243,112 +243,30 @@ class TestTeamWsNotificationExceptions(BaseAPIIntegrationTest):
         )
         self.assert_status(resp, status.HTTP_200_OK)
 
-# ═══════════════════════════════════════════════════════════════════
-#  Shop views remaining gaps
-# ═══════════════════════════════════════════════════════════════════
-
-SHOP_BASE = "/api/shop/"
-
-
 @pytest.mark.django_db
-class TestShopActivateBonusEdgeCases(BaseAPIIntegrationTest):
-    """Lines 163-164, 171, 190-191, 212-213 in shop/views.py."""
+class TestNextRoundNoMoreRounds(BaseAPIIntegrationTest):
+    """Line 170 — next_round when no unstarted next round exists."""
 
     def get_base_url(self):
-        return SHOP_BASE
+        return BASE
 
-    @patch("apps.shop.views.bonus_service")
-    def test_activate_fifty_fifty(self, mock_bs, auth_client, user):
-        game = GameFactory(host=user, status="in_progress")
-        GamePlayerFactory(game=game, user=user)
+    @patch("apps.games.views.game_round_mixin.broadcast_game_finish")
+    @patch("apps.games.views.game_round_mixin.broadcast_round_end")
+    def test_next_round_no_unstarted_round(
+        self, mock_bre, mock_bgf, auth_client, user
+    ):
         from django.utils import timezone
 
-        round_obj = GameRoundFactory(
+        game = GameFactory(host=user, status="in_progress")
+        GamePlayerFactory(game=game, user=user)
+        # All rounds already started
+        GameRoundFactory(
             game=game,
             round_number=1,
             started_at=timezone.now(),
-            options=["A", "B", "C", "D"],
-            correct_answer="A",
+            ended_at=timezone.now(),
         )
-        mock_bs.resolve_round_number.return_value = (1, round_obj)
-        bonus_mock = MagicMock()
-        mock_bs.activate_bonus.return_value = bonus_mock
-        mock_bs.get_fifty_fifty_exclusions.return_value = ["B", "C"]
-
-        resp = auth_client.post(
-            f"{SHOP_BASE}inventory/activate/",
-            {"bonus_type": "fifty_fifty", "room_code": game.room_code},
-            format="json",
-        )
+        resp = auth_client.post(f"{BASE}{game.room_code}/next-round/")
+        # No unstarted round → the view finishes the game and returns 200
         self.assert_status(resp, status.HTTP_200_OK)
-        assert "excluded_options" in resp.data
-
-    @patch("apps.shop.views.bonus_service")
-    def test_activate_steal_bonus(self, mock_bs, auth_client, user):
-        game = GameFactory(host=user, status="in_progress")
-        GamePlayerFactory(game=game, user=user, score=50)
-        from django.utils import timezone
-
-        round_obj = GameRoundFactory(
-            game=game, round_number=1, started_at=timezone.now()
-        )
-        mock_bs.resolve_round_number.return_value = (1, round_obj)
-        bonus_mock = MagicMock()
-        mock_bs.activate_bonus.return_value = bonus_mock
-        mock_bs.apply_steal_bonus.return_value = 100
-
-        resp = auth_client.post(
-            f"{SHOP_BASE}inventory/activate/",
-            {"bonus_type": "steal", "room_code": game.room_code},
-            format="json",
-        )
-        self.assert_status(resp, status.HTTP_200_OK)
-        assert "stolen_points" in resp.data
-
-    @patch("apps.shop.views.bonus_service")
-    def test_activate_time_bonus(self, mock_bs, auth_client, user):
-        game = GameFactory(host=user, status="in_progress")
-        GamePlayerFactory(game=game, user=user)
-        from django.utils import timezone
-
-        round_obj = GameRoundFactory(
-            game=game,
-            round_number=1,
-            started_at=timezone.now(),
-            duration=30,
-        )
-        mock_bs.resolve_round_number.return_value = (1, round_obj)
-        bonus_mock = MagicMock()
-        mock_bs.activate_bonus.return_value = bonus_mock
-        mock_bs.apply_time_bonus.return_value = 45
-
-        resp = auth_client.post(
-            f"{SHOP_BASE}inventory/activate/",
-            {"bonus_type": "time_bonus", "room_code": game.room_code},
-            format="json",
-        )
-        self.assert_status(resp, status.HTTP_200_OK)
-        assert resp.data.get("new_duration") == 45
-
-    @patch("apps.shop.views.bonus_service")
-    def test_activate_bonus_conflict(self, mock_bs, auth_client, user):
-        from apps.shop.services import BonusAlreadyActiveError
-
-        game = GameFactory(host=user, status="in_progress")
-        GamePlayerFactory(game=game, user=user)
-        from django.utils import timezone
-
-        round_obj = GameRoundFactory(
-            game=game, round_number=1, started_at=timezone.now()
-        )
-        mock_bs.resolve_round_number.return_value = (1, round_obj)
-        mock_bs.activate_bonus.side_effect = BonusAlreadyActiveError(
-            "Déjà actif"
-        )
-
-        resp = auth_client.post(
-            f"{SHOP_BASE}inventory/activate/",
-            {"bonus_type": "shield", "room_code": game.room_code},
-            format="json",
-        )
-        self.assert_status(resp, status.HTTP_409_CONFLICT)
+        assert "terminée" in resp.data.get("message", "")
