@@ -25,9 +25,7 @@ class TestAwardRetroactiveAchievements(BaseServiceUnitTest):
         "apps.achievements.management.commands"
         ".award_retroactive_achievements.achievement_service"
     )
-    def test_awards_achievements(
-        self, mock_svc, mock_user, mock_gp, mock_ga
-    ):
+    def test_awards_achievements(self, mock_svc, mock_user, mock_gp, mock_ga):
         from apps.achievements.management.commands.award_retroactive_achievements import (  # noqa: E501
             Command,
         )

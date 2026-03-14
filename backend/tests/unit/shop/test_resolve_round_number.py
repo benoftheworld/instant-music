@@ -1,4 +1,3 @@
-
 """Tests unitaires de BonusService.resolve_round_number."""
 
 from unittest.mock import MagicMock

@@ -1,4 +1,3 @@
-
 """Tests unitaires de TeamJoinRequestCreateSerializer.validate."""
 
 from unittest.mock import MagicMock, patch

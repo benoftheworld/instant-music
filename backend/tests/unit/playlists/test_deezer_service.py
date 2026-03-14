@@ -1,4 +1,3 @@
-
 """Tests unitaires de DeezerService."""
 
 from unittest.mock import patch

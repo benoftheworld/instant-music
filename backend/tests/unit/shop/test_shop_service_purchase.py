@@ -1,4 +1,3 @@
-
 """Tests unitaires de ShopService.purchase."""
 
 from unittest.mock import MagicMock, patch

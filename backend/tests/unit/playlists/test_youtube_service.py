@@ -1,4 +1,3 @@
-
 """Tests unitaires de YouTubeService."""
 
 from unittest.mock import MagicMock, patch

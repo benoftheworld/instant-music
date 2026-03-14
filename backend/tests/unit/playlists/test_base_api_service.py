@@ -1,4 +1,3 @@
-
 """Tests unitaires de BaseAPIService."""
 
 from unittest.mock import MagicMock, patch

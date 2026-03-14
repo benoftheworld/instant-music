@@ -64,9 +64,12 @@ class TestDeezerMakeRequest(BaseServiceUnitTest):
         from apps.playlists.deezer_service import DeezerAPIError, DeezerService
 
         svc = DeezerService()
-        with patch.object(
-            svc, "_get_json", return_value={"error": {"message": "Bad request"}}
-        ), pytest.raises(DeezerAPIError, match="Bad request"):
+        with (
+            patch.object(
+                svc, "_get_json", return_value={"error": {"message": "Bad request"}}
+            ),
+            pytest.raises(DeezerAPIError, match="Bad request"),
+        ):
             svc._make_request("/test")
 
 
@@ -308,9 +311,7 @@ class TestDeezerGetPlaylistTracks(BaseServiceUnitTest):
 
         svc = DeezerService()
         with (
-            patch.object(
-                svc, "_make_request", side_effect=DeezerAPIError("err")
-            ),
+            patch.object(svc, "_make_request", side_effect=DeezerAPIError("err")),
             pytest.raises(DeezerAPIError),
         ):
             svc.get_playlist_tracks("123")

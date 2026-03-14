@@ -1,4 +1,3 @@
-
 """Tests unitaires du PasswordResetConfirmSerializer."""
 
 import pytest

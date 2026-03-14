@@ -333,8 +333,8 @@ class TestLrclibFetch(BaseServiceUnitTest):
             "url",
             404,
             "Not Found",
-            None,
             None,  # type: ignore[arg-type]
+            None,
         )
         from apps.games.lyrics_service import _lrclib_fetch
 

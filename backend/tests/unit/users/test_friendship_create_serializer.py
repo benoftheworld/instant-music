@@ -1,4 +1,3 @@
-
 """Tests unitaires de FriendshipCreateSerializer.validate_username."""
 
 from unittest.mock import MagicMock, patch

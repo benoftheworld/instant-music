@@ -2,6 +2,7 @@
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from tests.factories import (
@@ -9,6 +10,14 @@ from tests.factories import (
 )
 
 User = get_user_model()
+
+
+@pytest.fixture(autouse=True)
+def clear_cache():
+    """Vide le cache Django avant chaque test pour éviter les contaminations."""
+    cache.clear()
+    yield
+    cache.clear()
 
 
 @pytest.fixture()

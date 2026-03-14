@@ -62,9 +62,7 @@ class TestRecalculateTeamStats(BaseServiceUnitTest):
 
         # The ORM chain returns mock queryset
         mock_qs = MagicMock()
-        mock_qs.values.return_value.distinct.return_value.count.return_value = (
-            10
-        )
+        mock_qs.values.return_value.distinct.return_value.count.return_value = 10
         mock_qs.filter.return_value.values.return_value.distinct.return_value.count.return_value = (  # noqa: E501
             3
         )

@@ -1,4 +1,3 @@
-
 """Tests unitaires du RegisterSerializer."""
 
 from unittest.mock import patch

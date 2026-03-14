@@ -842,9 +842,9 @@ class TestGameConsumerStartRound(BaseServiceUnitTest):
         consumer.channel_layer = AsyncMock()
         consumer.send = AsyncMock()
         consumer._require_host = AsyncMock(return_value=True)  # type: ignore[method-assign]
-        consumer._enrich_round_data_with_fog = AsyncMock(
+        consumer._enrich_round_data_with_fog = AsyncMock(  # type: ignore[method-assign]
             return_value={"round_number": 1}
-        )  # type: ignore[method-assign]
+        )
 
         await consumer.start_round(
             {"type": "start_round", "round_data": {"round_number": 1}}
@@ -909,9 +909,9 @@ class TestGameConsumerNextRound(BaseServiceUnitTest):
         consumer._require_host = AsyncMock(return_value=True)  # type: ignore[method-assign]
         consumer.room_group_name = "game_ROOM1"
         consumer.channel_layer = AsyncMock()
-        consumer._enrich_round_data_with_fog = AsyncMock(
+        consumer._enrich_round_data_with_fog = AsyncMock(  # type: ignore[method-assign]
             return_value={"round_number": 2}
-        )  # type: ignore[method-assign]
+        )
 
         await consumer.next_round(
             {"type": "next_round", "round_data": {"round_number": 2}}

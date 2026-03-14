@@ -1,4 +1,3 @@
-
 """Tests unitaires du CreateGameSerializer — validation croisée."""
 
 from unittest.mock import MagicMock
