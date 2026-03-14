@@ -80,9 +80,7 @@ class TestSiteConfigurationModel(BaseModelUnitTest):
     # ── Meta ────────────────────────────────────────────────────────
 
     def test_verbose_name(self):
-        self.assert_meta_verbose_name(
-            "Configuration du site", "Configuration du site"
-        )
+        self.assert_meta_verbose_name("Configuration du site", "Configuration du site")
 
     # ── clean: singleton constraint ─────────────────────────────────
 
@@ -93,7 +91,7 @@ class TestSiteConfigurationModel(BaseModelUnitTest):
         SiteConfiguration.clean(obj)  # ne doit pas lever
 
     def test_clean_pk_2_raises(self):
-        """pk != 1 lève ValidationError."""
+        """Pk != 1 lève ValidationError."""
         obj = MagicMock(spec=SiteConfiguration)
         obj.pk = 2
         import pytest
@@ -137,9 +135,7 @@ class TestSiteConfigurationModel(BaseModelUnitTest):
             mock_cache.get.return_value = None
             result = SiteConfiguration.get_solo()
         assert result is db_obj
-        mock_cache.set.assert_called_once_with(
-            "site_configuration_solo", db_obj, 300
-        )
+        mock_cache.set.assert_called_once_with("site_configuration_solo", db_obj, 300)
 
     # ── save: force pk=1 + clear cache ──────────────────────────────
 

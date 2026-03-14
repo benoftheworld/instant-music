@@ -13,13 +13,13 @@ class TestExtractLineSequences(BaseUnitTest):
     def test_single_word_sequence(self):
         result = _extract_line_sequences("Hello beautiful world tonight", 1)
         assert len(result) > 0
-        for start, seq in result:
+        for _start, seq in result:
             assert len(seq) == 1
 
     def test_two_word_sequences(self):
         result = _extract_line_sequences("Love changes everything around", 2)
         assert len(result) > 0
-        for start, seq in result:
+        for _start, seq in result:
             assert len(seq) == 2
 
     def test_boring_words_filtered(self):

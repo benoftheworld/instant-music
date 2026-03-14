@@ -1,7 +1,5 @@
 """Tests d'intégration de l'API d'authentification."""
 
-from rest_framework.test import APIClient
-
 from tests.base import BaseAPIIntegrationTest
 from tests.factories import UserFactory
 

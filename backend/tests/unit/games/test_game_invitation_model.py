@@ -1,7 +1,7 @@
 """Tests unitaires du modèle GameInvitation — introspection et logique."""
 
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from django.utils import timezone
 
@@ -25,9 +25,7 @@ class TestGameInvitationModel(BaseModelUnitTest):
         self.assert_field_max_length(GameInvitation, "status", 20)
 
     def test_status_choices(self):
-        self.assert_field_choices(
-            GameInvitation, "status", InvitationStatus.choices
-        )
+        self.assert_field_choices(GameInvitation, "status", InvitationStatus.choices)
 
     def test_status_default(self):
         self.assert_field_default(GameInvitation, "status", InvitationStatus.PENDING)
@@ -58,13 +56,13 @@ class TestGameInvitationModel(BaseModelUnitTest):
     def test_is_expired_false_when_future(self):
         invitation = MagicMock(spec=GameInvitation)
         invitation.expires_at = timezone.now() + timedelta(minutes=10)
-        result = GameInvitation.is_expired.fget(invitation)
+        result = GameInvitation.is_expired.fget(invitation)  # type: ignore[unused-ignore, attr-defined]
         assert result is False
 
     def test_is_expired_true_when_past(self):
         invitation = MagicMock(spec=GameInvitation)
         invitation.expires_at = timezone.now() - timedelta(minutes=10)
-        result = GameInvitation.is_expired.fget(invitation)
+        result = GameInvitation.is_expired.fget(invitation)  # type: ignore[unused-ignore, attr-defined]
         assert result is True
 
     def test_is_expired_true_when_exactly_now(self):
@@ -72,7 +70,7 @@ class TestGameInvitationModel(BaseModelUnitTest):
         now = timezone.now()
         invitation = MagicMock(spec=GameInvitation)
         invitation.expires_at = now - timedelta(seconds=1)
-        result = GameInvitation.is_expired.fget(invitation)
+        result = GameInvitation.is_expired.fget(invitation)  # type: ignore[unused-ignore, attr-defined]
         assert result is True
 
     # ── ForeignKeys ─────────────────────────────────────────────────

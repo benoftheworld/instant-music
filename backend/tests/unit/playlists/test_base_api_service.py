@@ -1,3 +1,4 @@
+
 """Tests unitaires de BaseAPIService."""
 
 from unittest.mock import MagicMock, patch
@@ -36,7 +37,7 @@ class TestBaseAPIServiceGetJson(BaseUnitTest):
 
         try:
             self.service._get_json("http://example.com/api")
-            assert False, "Expected RuntimeError"
+            pytest.fail("Expected RuntimeError")
         except RuntimeError:
             pass
 
@@ -46,7 +47,7 @@ class TestBaseAPIServiceGetJson(BaseUnitTest):
 
         try:
             self.service._get_json("http://example.com/api")
-            assert False, "Expected RuntimeError"
+            pytest.fail("Expected RuntimeError")
         except RuntimeError as e:
             assert "Request failed" in str(e)
 

@@ -17,8 +17,13 @@ class TestRedactSensitiveParamsFilter(BaseUnitTest):
 
     def test_redacts_token_in_msg(self):
         record = logging.LogRecord(
-            "test", logging.INFO, "", 0,
-            "/ws/game/ABC123/?token=eyJ0eXAiOiJKV1Q", None, None,
+            "test",
+            logging.INFO,
+            "",
+            0,
+            "/ws/game/ABC123/?token=eyJ0eXAiOiJKV1Q",
+            None,
+            None,
         )
         self.filter.filter(record)
         assert "[REDACTED]" in record.msg
@@ -26,23 +31,41 @@ class TestRedactSensitiveParamsFilter(BaseUnitTest):
 
     def test_redacts_access_token_in_args(self):
         record = logging.LogRecord(
-            "test", logging.INFO, "", 0, "%s", ("/ws/?access_token=secret123",), None,
+            "test",
+            logging.INFO,
+            "",
+            0,
+            "%s",
+            ("/ws/?access_token=secret123",),
+            None,
         )
         self.filter.filter(record)
-        assert "[REDACTED]" in record.args[0]
-        assert "secret123" not in record.args[0]
+        assert isinstance(record.args, tuple)
+        assert "[REDACTED]" in str(record.args[0])
+        assert "secret123" not in str(record.args[0])
 
     def test_non_string_args_unchanged(self):
         record = logging.LogRecord(
-            "test", logging.INFO, "", 0, "%d", (42,), None,
+            "test",
+            logging.INFO,
+            "",
+            0,
+            "%d",
+            (42,),
+            None,
         )
         self.filter.filter(record)
         assert record.args == (42,)
 
     def test_no_sensitive_params_unchanged(self):
         record = logging.LogRecord(
-            "test", logging.INFO, "", 0,
-            "/api/games/", None, None,
+            "test",
+            logging.INFO,
+            "",
+            0,
+            "/api/games/",
+            None,
+            None,
         )
         self.filter.filter(record)
         assert record.msg == "/api/games/"

@@ -11,7 +11,10 @@ class TestCleanTrackTitle(BaseUnitTest):
         return clean_track_title
 
     def test_remastered_parenthesised(self):
-        assert clean_track_title("Bohemian Rhapsody (Remastered 2011)") == "Bohemian Rhapsody"
+        assert (
+            clean_track_title("Bohemian Rhapsody (Remastered 2011)")
+            == "Bohemian Rhapsody"
+        )
 
     def test_remastered_no_year(self):
         assert clean_track_title("Hymne à l'amour (Remastered)") == "Hymne à l'amour"
@@ -20,7 +23,9 @@ class TestCleanTrackTitle(BaseUnitTest):
         assert clean_track_title("Hymne à l'amour - 2020 Remaster") == "Hymne à l'amour"
 
     def test_year_before_keyword(self):
-        assert clean_track_title("Hotel California (2013 Remaster)") == "Hotel California"
+        assert (
+            clean_track_title("Hotel California (2013 Remaster)") == "Hotel California"
+        )
 
     def test_french_variant(self):
         assert clean_track_title("Ma Benz [Remasterisée]") == "Ma Benz"

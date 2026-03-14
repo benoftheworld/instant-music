@@ -73,7 +73,7 @@ class TestShopPurchase(BaseAPIIntegrationTest):
         user.save(update_fields=["coins_balance"])
         resp = auth_client.post(
             f"{SHOP_URL}purchase/",
-            {"item_id": str(item.id), "quantity": 1},
+            {"item_id": str(item.id), "quantity": 1},  # type: ignore[attr-defined]
             format="json",
         )
         self.assert_status(resp, status.HTTP_201_CREATED)
@@ -84,7 +84,7 @@ class TestShopPurchase(BaseAPIIntegrationTest):
         user.save(update_fields=["coins_balance"])
         resp = auth_client.post(
             f"{SHOP_URL}purchase/",
-            {"item_id": str(item.id), "quantity": 1},
+            {"item_id": str(item.id), "quantity": 1},  # type: ignore[attr-defined]
             format="json",
         )
         self.assert_status(resp, status.HTTP_402_PAYMENT_REQUIRED)
@@ -95,7 +95,7 @@ class TestShopPurchase(BaseAPIIntegrationTest):
         user.save(update_fields=["coins_balance"])
         resp = auth_client.post(
             f"{SHOP_URL}purchase/",
-            {"item_id": str(item.id), "quantity": 1},
+            {"item_id": str(item.id), "quantity": 1},  # type: ignore[attr-defined]
             format="json",
         )
         self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
@@ -172,7 +172,9 @@ class TestInventoryActivate(BaseAPIIntegrationTest):
 
         game = GameFactory(host=user, status="in_progress", bonuses_enabled=True)
         GamePlayerFactory(game=game, user=user)
-        mock_svc.resolve_round_number.side_effect = BonusActivationError("Aucune manche")
+        mock_svc.resolve_round_number.side_effect = BonusActivationError(
+            "Aucune manche"
+        )
         resp = auth_client.post(
             f"{INVENTORY_URL}activate/",
             {"bonus_type": "double_points", "room_code": game.room_code},
@@ -203,7 +205,9 @@ class TestInventoryActivate(BaseAPIIntegrationTest):
 
     @patch("channels.layers.get_channel_layer")
     @patch("apps.shop.views.bonus_service")
-    def test_activate_steal_first_player_blocked(self, mock_svc, mock_channel, auth_client, user):
+    def test_activate_steal_first_player_blocked(
+        self, mock_svc, mock_channel, auth_client, user
+    ):
         game, player, round_obj = self._create_game_with_player_and_round(user)
         # Player is in first position (no one with higher score)
         mock_svc.resolve_round_number.return_value = (1, round_obj)

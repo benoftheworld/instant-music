@@ -1,8 +1,9 @@
 """Tests unitaires des consumers WebSocket."""
 
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from tests.base import BaseServiceUnitTest
 
@@ -12,6 +13,7 @@ class TestNotificationConsumerConnect(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -50,6 +52,7 @@ class TestNotificationConsumerDisconnect(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -78,6 +81,7 @@ class TestNotificationConsumerReceive(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -88,9 +92,7 @@ class TestNotificationConsumerReceive(BaseServiceUnitTest):
         consumer.send = AsyncMock()
 
         await consumer.receive(text_data=json.dumps({"type": "ping"}))
-        consumer.send.assert_called_once_with(
-            text_data=json.dumps({"type": "pong"})
-        )
+        consumer.send.assert_called_once_with(text_data=json.dumps({"type": "pong"}))
 
     @pytest.mark.asyncio
     async def test_invalid_json(self):
@@ -108,6 +110,7 @@ class TestNotificationConsumerGetattr(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -129,7 +132,7 @@ class TestNotificationConsumerGetattr(BaseServiceUnitTest):
 
         consumer = NotificationConsumer()
         with pytest.raises(AttributeError):
-            consumer.unknown_method
+            _ = consumer.unknown_method
 
 
 class TestGameConsumerReceive(BaseServiceUnitTest):
@@ -137,6 +140,7 @@ class TestGameConsumerReceive(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -196,6 +200,7 @@ class TestGameConsumerBroadcastHandlers(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -287,10 +292,12 @@ class TestGameConsumerBroadcastHandlers(BaseServiceUnitTest):
 
         consumer = GameConsumer()
         consumer.send = AsyncMock()
-        await consumer.broadcast_next_round({
-            "round_data": {"round_number": 2},
-            "updated_players": [{"name": "alice"}],
-        })
+        await consumer.broadcast_next_round(
+            {
+                "round_data": {"round_number": 2},
+                "updated_players": [{"name": "alice"}],
+            }
+        )
         sent = json.loads(consumer.send.call_args[1]["text_data"])
         assert "updated_players" in sent
 
@@ -320,9 +327,11 @@ class TestGameConsumerBroadcastHandlers(BaseServiceUnitTest):
 
         consumer = GameConsumer()
         consumer.send = AsyncMock()
-        await consumer.broadcast_bonus_activated({
-            "bonus": {"bonus_type": "freeze", "username": "alice"},
-        })
+        await consumer.broadcast_bonus_activated(
+            {
+                "bonus": {"bonus_type": "freeze", "username": "alice"},
+            }
+        )
         sent = json.loads(consumer.send.call_args[1]["text_data"])
         assert sent["type"] == "bonus_activated"
 
@@ -332,11 +341,13 @@ class TestGameConsumerBroadcastHandlers(BaseServiceUnitTest):
 
         consumer = GameConsumer()
         consumer.send = AsyncMock()
-        await consumer.broadcast_bonus_activated({
-            "bonus": {"bonus_type": "slow"},
-            "new_duration": 15,
-            "updated_players": [{"name": "bob"}],
-        })
+        await consumer.broadcast_bonus_activated(
+            {
+                "bonus": {"bonus_type": "slow"},
+                "new_duration": 15,
+                "updated_players": [{"name": "bob"}],
+            }
+        )
         sent = json.loads(consumer.send.call_args[1]["text_data"])
         assert sent["new_duration"] == 15
         assert "updated_players" in sent
@@ -347,6 +358,7 @@ class TestGameConsumerActivateBonus(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -368,6 +380,7 @@ class TestGameConsumerRequireHost(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -405,32 +418,41 @@ class TestValidateWsMessage(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     def test_valid_ping(self):
         from apps.games.consumers import validate_ws_message
+
         assert validate_ws_message({"type": "ping"}) is None
 
     def test_missing_type(self):
         from apps.games.consumers import validate_ws_message
+
         result = validate_ws_message({})
         assert result is not None
 
     def test_unknown_type(self):
         from apps.games.consumers import validate_ws_message
+
         result = validate_ws_message({"type": "nonexistent"})
         assert result is not None
         assert "inconnu" in result
 
     def test_missing_required_fields(self):
         from apps.games.consumers import validate_ws_message
+
         result = validate_ws_message({"type": "activate_bonus"})
         assert result is not None
         assert "bonus_type" in result
 
     def test_valid_with_required(self):
         from apps.games.consumers import validate_ws_message
-        assert validate_ws_message({"type": "activate_bonus", "bonus_type": "freeze"}) is None
+
+        assert (
+            validate_ws_message({"type": "activate_bonus", "bonus_type": "freeze"})
+            is None
+        )
 
     def test_non_string_type(self):
         from apps.games.consumers import validate_ws_message
@@ -455,6 +477,7 @@ class TestGameConsumerConnect(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -493,6 +516,7 @@ class TestGameConsumerDisconnect(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -543,6 +567,7 @@ class TestGameConsumerRateLimit(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -616,6 +641,7 @@ class TestGameConsumerReceiveRouting(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     def _make_consumer(self):
@@ -631,7 +657,11 @@ class TestGameConsumerReceiveRouting(BaseServiceUnitTest):
         return consumer
 
     @pytest.mark.asyncio
-    @patch("apps.games.consumers.GameConsumer._check_rate_limit", new_callable=AsyncMock, return_value=True)
+    @patch(
+        "apps.games.consumers.GameConsumer._check_rate_limit",
+        new_callable=AsyncMock,
+        return_value=True,
+    )
     async def test_route_player_join(self, mock_rl):
         consumer = self._make_consumer()
         consumer.player_join = AsyncMock()
@@ -639,7 +669,11 @@ class TestGameConsumerReceiveRouting(BaseServiceUnitTest):
         consumer.player_join.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("apps.games.consumers.GameConsumer._check_rate_limit", new_callable=AsyncMock, return_value=True)
+    @patch(
+        "apps.games.consumers.GameConsumer._check_rate_limit",
+        new_callable=AsyncMock,
+        return_value=True,
+    )
     async def test_route_player_answer(self, mock_rl):
         consumer = self._make_consumer()
         consumer.player_answer = AsyncMock()
@@ -647,7 +681,11 @@ class TestGameConsumerReceiveRouting(BaseServiceUnitTest):
         consumer.player_answer.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("apps.games.consumers.GameConsumer._check_rate_limit", new_callable=AsyncMock, return_value=True)
+    @patch(
+        "apps.games.consumers.GameConsumer._check_rate_limit",
+        new_callable=AsyncMock,
+        return_value=True,
+    )
     async def test_route_start_game(self, mock_rl):
         consumer = self._make_consumer()
         consumer.start_game = AsyncMock()
@@ -655,15 +693,25 @@ class TestGameConsumerReceiveRouting(BaseServiceUnitTest):
         consumer.start_game.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("apps.games.consumers.GameConsumer._check_rate_limit", new_callable=AsyncMock, return_value=True)
+    @patch(
+        "apps.games.consumers.GameConsumer._check_rate_limit",
+        new_callable=AsyncMock,
+        return_value=True,
+    )
     async def test_route_activate_bonus(self, mock_rl):
         consumer = self._make_consumer()
         consumer.activate_bonus = AsyncMock()
-        await consumer.receive(text_data=json.dumps({"type": "activate_bonus", "bonus_type": "fog"}))
+        await consumer.receive(
+            text_data=json.dumps({"type": "activate_bonus", "bonus_type": "fog"})
+        )
         consumer.activate_bonus.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("apps.games.consumers.GameConsumer._check_rate_limit", new_callable=AsyncMock, return_value=True)
+    @patch(
+        "apps.games.consumers.GameConsumer._check_rate_limit",
+        new_callable=AsyncMock,
+        return_value=True,
+    )
     async def test_handler_exception_sends_error(self, mock_rl):
         consumer = self._make_consumer()
         consumer.player_join = AsyncMock(side_effect=RuntimeError("boom"))
@@ -675,7 +723,11 @@ class TestGameConsumerReceiveRouting(BaseServiceUnitTest):
         assert "interne" in last_sent["message"]
 
     @pytest.mark.asyncio
-    @patch("apps.games.consumers.GameConsumer._check_rate_limit", new_callable=AsyncMock, return_value=False)
+    @patch(
+        "apps.games.consumers.GameConsumer._check_rate_limit",
+        new_callable=AsyncMock,
+        return_value=False,
+    )
     async def test_rate_limited_returns_error(self, mock_rl):
         consumer = self._make_consumer()
         await consumer.receive(text_data=json.dumps({"type": "player_join"}))
@@ -688,6 +740,7 @@ class TestGameConsumerPlayerAnswer(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -731,6 +784,7 @@ class TestGameConsumerStartGame(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -743,7 +797,7 @@ class TestGameConsumerStartGame(BaseServiceUnitTest):
         consumer.room_group_name = "game_ROOM1"
         consumer.channel_layer = AsyncMock()
         consumer.send = AsyncMock()
-        consumer._require_host = AsyncMock(return_value=True)
+        consumer._require_host = AsyncMock(return_value=True)  # type: ignore[method-assign]
         consumer.get_game_data = AsyncMock(return_value={"status": "playing"})
 
         await consumer.start_game({"type": "start_game"})
@@ -762,7 +816,7 @@ class TestGameConsumerStartGame(BaseServiceUnitTest):
         consumer.room_group_name = "game_ROOM1"
         consumer.channel_layer = AsyncMock()
         consumer.send = AsyncMock()
-        consumer._require_host = AsyncMock(return_value=False)
+        consumer._require_host = AsyncMock(return_value=False)  # type: ignore[method-assign]
 
         await consumer.start_game({"type": "start_game"})
 
@@ -774,6 +828,7 @@ class TestGameConsumerStartRound(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -786,10 +841,14 @@ class TestGameConsumerStartRound(BaseServiceUnitTest):
         consumer.room_group_name = "game_ROOM1"
         consumer.channel_layer = AsyncMock()
         consumer.send = AsyncMock()
-        consumer._require_host = AsyncMock(return_value=True)
-        consumer._enrich_round_data_with_fog = AsyncMock(return_value={"round_number": 1})
+        consumer._require_host = AsyncMock(return_value=True)  # type: ignore[method-assign]
+        consumer._enrich_round_data_with_fog = AsyncMock(
+            return_value={"round_number": 1}
+        )  # type: ignore[method-assign]
 
-        await consumer.start_round({"type": "start_round", "round_data": {"round_number": 1}})
+        await consumer.start_round(
+            {"type": "start_round", "round_data": {"round_number": 1}}
+        )
 
         consumer.channel_layer.group_send.assert_called_once()
         call = consumer.channel_layer.group_send.call_args
@@ -800,7 +859,7 @@ class TestGameConsumerStartRound(BaseServiceUnitTest):
         from apps.games.consumers import GameConsumer
 
         consumer = GameConsumer()
-        consumer._require_host = AsyncMock(return_value=False)
+        consumer._require_host = AsyncMock(return_value=False)  # type: ignore[method-assign]
         consumer.channel_layer = AsyncMock()
 
         await consumer.start_round({"type": "start_round"})
@@ -813,6 +872,7 @@ class TestGameConsumerEndRound(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -824,7 +884,7 @@ class TestGameConsumerEndRound(BaseServiceUnitTest):
         consumer.room_code = "ROOM1"
         consumer.room_group_name = "game_ROOM1"
         consumer.channel_layer = AsyncMock()
-        consumer._require_host = AsyncMock(return_value=True)
+        consumer._require_host = AsyncMock(return_value=True)  # type: ignore[method-assign]
 
         await consumer.end_round({"type": "end_round", "results": {"scores": {}}})
 
@@ -838,6 +898,7 @@ class TestGameConsumerNextRound(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -845,12 +906,16 @@ class TestGameConsumerNextRound(BaseServiceUnitTest):
         from apps.games.consumers import GameConsumer
 
         consumer = GameConsumer()
-        consumer._require_host = AsyncMock(return_value=True)
+        consumer._require_host = AsyncMock(return_value=True)  # type: ignore[method-assign]
         consumer.room_group_name = "game_ROOM1"
         consumer.channel_layer = AsyncMock()
-        consumer._enrich_round_data_with_fog = AsyncMock(return_value={"round_number": 2})
+        consumer._enrich_round_data_with_fog = AsyncMock(
+            return_value={"round_number": 2}
+        )  # type: ignore[method-assign]
 
-        await consumer.next_round({"type": "next_round", "round_data": {"round_number": 2}})
+        await consumer.next_round(
+            {"type": "next_round", "round_data": {"round_number": 2}}
+        )
 
         consumer.channel_layer.group_send.assert_called_once()
         call = consumer.channel_layer.group_send.call_args
@@ -862,6 +927,7 @@ class TestGameConsumerFinishGame(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -869,11 +935,13 @@ class TestGameConsumerFinishGame(BaseServiceUnitTest):
         from apps.games.consumers import GameConsumer
 
         consumer = GameConsumer()
-        consumer._require_host = AsyncMock(return_value=True)
+        consumer._require_host = AsyncMock(return_value=True)  # type: ignore[method-assign]
         consumer.room_group_name = "game_ROOM1"
         consumer.channel_layer = AsyncMock()
 
-        await consumer.finish_game({"type": "finish_game", "results": {"winner": "alice"}})
+        await consumer.finish_game(
+            {"type": "finish_game", "results": {"winner": "alice"}}
+        )
 
         consumer.channel_layer.group_send.assert_called_once()
         call = consumer.channel_layer.group_send.call_args
@@ -884,7 +952,7 @@ class TestGameConsumerFinishGame(BaseServiceUnitTest):
         from apps.games.consumers import GameConsumer
 
         consumer = GameConsumer()
-        consumer._require_host = AsyncMock(return_value=False)
+        consumer._require_host = AsyncMock(return_value=False)  # type: ignore[method-assign]
         consumer.channel_layer = AsyncMock()
 
         await consumer.finish_game({"type": "finish_game"})
@@ -897,6 +965,7 @@ class TestGameConsumerActivateBonusHandler(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -929,7 +998,9 @@ class TestGameConsumerActivateBonusHandler(BaseServiceUnitTest):
         consumer.room_group_name = "game_ROOM1"
         consumer.channel_layer = AsyncMock()
         consumer.send = AsyncMock()
-        consumer._do_activate_bonus = AsyncMock(return_value={"error": "Bonus indisponible."})
+        consumer._do_activate_bonus = AsyncMock(
+            return_value={"error": "Bonus indisponible."}
+        )
 
         await consumer.activate_bonus({"type": "activate_bonus", "bonus_type": "fog"})
 
@@ -944,6 +1015,7 @@ class TestGameConsumerEnrichRoundData(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.consumers
+
         return apps.games.consumers
 
     @pytest.mark.asyncio
@@ -988,7 +1060,7 @@ class TestGameConsumerEnrichRoundData(BaseServiceUnitTest):
         consumer = GameConsumer()
         consumer._check_and_consume_fog = AsyncMock()
 
-        result = await consumer._enrich_round_data_with_fog(None)
+        result = await consumer._enrich_round_data_with_fog(None)  # type: ignore[arg-type]
 
         assert result is None
         consumer._check_and_consume_fog.assert_not_called()

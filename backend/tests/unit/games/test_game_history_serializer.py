@@ -1,6 +1,6 @@
 """Tests unitaires de GameHistorySerializer."""
 
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 
 from tests.base import BaseUnitTest
 
@@ -10,6 +10,7 @@ class TestGameHistorySerializer(BaseUnitTest):
 
     def get_target_class(self):
         from apps.games.serializers.game_history_serializer import GameHistorySerializer
+
         return GameHistorySerializer
 
     def _make_player(self, score, username="alice", has_avatar=True):
@@ -32,6 +33,7 @@ class TestGameHistorySerializer(BaseUnitTest):
 
     def test_sorted_players_descending(self):
         from apps.games.serializers.game_history_serializer import GameHistorySerializer
+
         ser = GameHistorySerializer()
         p1 = self._make_player(50, "bob")
         p2 = self._make_player(100, "alice")
@@ -42,6 +44,7 @@ class TestGameHistorySerializer(BaseUnitTest):
 
     def test_get_winner_returns_top_player(self):
         from apps.games.serializers.game_history_serializer import GameHistorySerializer
+
         ser = GameHistorySerializer()
         p1 = self._make_player(100, "alice")
         obj = self._make_game_obj([p1])
@@ -50,18 +53,21 @@ class TestGameHistorySerializer(BaseUnitTest):
 
     def test_get_winner_no_players(self):
         from apps.games.serializers.game_history_serializer import GameHistorySerializer
+
         ser = GameHistorySerializer()
         obj = self._make_game_obj([])
         assert ser.get_winner(obj) is None
 
     def test_get_winner_score_empty(self):
         from apps.games.serializers.game_history_serializer import GameHistorySerializer
+
         ser = GameHistorySerializer()
         obj = self._make_game_obj([])
         assert ser.get_winner_score(obj) == 0
 
     def test_get_winner_score(self):
         from apps.games.serializers.game_history_serializer import GameHistorySerializer
+
         ser = GameHistorySerializer()
         p1 = self._make_player(200, "alice")
         obj = self._make_game_obj([p1])
@@ -69,12 +75,14 @@ class TestGameHistorySerializer(BaseUnitTest):
 
     def test_get_player_count(self):
         from apps.games.serializers.game_history_serializer import GameHistorySerializer
+
         ser = GameHistorySerializer()
         obj = self._make_game_obj([self._make_player(10), self._make_player(20)])
         assert ser.get_player_count(obj) == 2
 
     def test_get_participants_ranked(self):
         from apps.games.serializers.game_history_serializer import GameHistorySerializer
+
         ser = GameHistorySerializer()
         p1 = self._make_player(100, "alice")
         p2 = self._make_player(50, "bob")
@@ -86,6 +94,7 @@ class TestGameHistorySerializer(BaseUnitTest):
 
     def test_get_winner_no_avatar(self):
         from apps.games.serializers.game_history_serializer import GameHistorySerializer
+
         ser = GameHistorySerializer()
         p1 = self._make_player(100, "alice", has_avatar=False)
         obj = self._make_game_obj([p1])

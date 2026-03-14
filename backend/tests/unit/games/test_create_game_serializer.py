@@ -1,3 +1,4 @@
+
 """Tests unitaires du CreateGameSerializer — validation croisée."""
 
 from unittest.mock import MagicMock
@@ -20,7 +21,7 @@ class TestCreateGameSerializer(BaseSerializerUnitTest):
         serializer = CreateGameSerializer()
         try:
             serializer.validate_round_duration(5)
-            assert False, "Should have raised"
+            pytest.fail("Should have raised")
         except drf.ValidationError:
             pass
 
@@ -28,7 +29,7 @@ class TestCreateGameSerializer(BaseSerializerUnitTest):
         serializer = CreateGameSerializer()
         try:
             serializer.validate_round_duration(301)
-            assert False, "Should have raised"
+            pytest.fail("Should have raised")
         except drf.ValidationError:
             pass
 
@@ -44,7 +45,7 @@ class TestCreateGameSerializer(BaseSerializerUnitTest):
         serializer = CreateGameSerializer()
         try:
             serializer.validate_score_display_duration(-1)
-            assert False, "Should have raised"
+            pytest.fail("Should have raised")
         except drf.ValidationError:
             pass
 
@@ -52,7 +53,7 @@ class TestCreateGameSerializer(BaseSerializerUnitTest):
         serializer = CreateGameSerializer()
         try:
             serializer.validate_score_display_duration(31)
-            assert False, "Should have raised"
+            pytest.fail("Should have raised")
         except drf.ValidationError:
             pass
 
@@ -65,7 +66,7 @@ class TestCreateGameSerializer(BaseSerializerUnitTest):
         serializer = CreateGameSerializer()
         try:
             serializer.validate_lyrics_words_count(1)
-            assert False, "Should have raised"
+            pytest.fail("Should have raised")
         except drf.ValidationError:
             pass
 
@@ -73,7 +74,7 @@ class TestCreateGameSerializer(BaseSerializerUnitTest):
         serializer = CreateGameSerializer()
         try:
             serializer.validate_lyrics_words_count(11)
-            assert False, "Should have raised"
+            pytest.fail("Should have raised")
         except drf.ValidationError:
             pass
 
@@ -86,19 +87,21 @@ class TestCreateGameSerializer(BaseSerializerUnitTest):
         serializer = CreateGameSerializer()
         try:
             serializer.validate({"mode": "karaoke"})
-            assert False, "Should have raised"
+            pytest.fail("Should have raised")
         except drf.ValidationError:
             pass
 
     def test_karaoke_forces_offline_settings(self):
         serializer = CreateGameSerializer()
         song = MagicMock()
-        data = serializer.validate({
-            "mode": "karaoke",
-            "karaoke_song": song,
-            "is_online": True,
-            "max_players": 10,
-        })
+        data = serializer.validate(
+            {
+                "mode": "karaoke",
+                "karaoke_song": song,
+                "is_online": True,
+                "max_players": 10,
+            }
+        )
         assert data["is_online"] is False
         assert data["max_players"] == 1
         assert data["num_rounds"] == 1
@@ -108,32 +111,36 @@ class TestCreateGameSerializer(BaseSerializerUnitTest):
         serializer = CreateGameSerializer()
         try:
             serializer.validate({"mode": "classique"})
-            assert False, "Should have raised"
+            pytest.fail("Should have raised")
         except drf.ValidationError:
             pass
 
     def test_party_mode_requires_online(self):
         serializer = CreateGameSerializer()
         try:
-            serializer.validate({
-                "mode": "classique",
-                "playlist_id": "123",
-                "is_party_mode": True,
-                "is_online": False,
-            })
-            assert False, "Should have raised"
+            serializer.validate(
+                {
+                    "mode": "classique",
+                    "playlist_id": "123",
+                    "is_party_mode": True,
+                    "is_online": False,
+                }
+            )
+            pytest.fail("Should have raised")
         except drf.ValidationError:
             pass
 
     def test_offline_forces_solo_settings(self):
         serializer = CreateGameSerializer()
-        data = serializer.validate({
-            "mode": "classique",
-            "playlist_id": "123",
-            "is_online": False,
-            "max_players": 10,
-            "is_public": True,
-        })
+        data = serializer.validate(
+            {
+                "mode": "classique",
+                "playlist_id": "123",
+                "is_online": False,
+                "max_players": 10,
+                "is_public": True,
+            }
+        )
         assert data["max_players"] == 1
         assert data["is_public"] is False
         assert data["is_party_mode"] is False
@@ -141,9 +148,11 @@ class TestCreateGameSerializer(BaseSerializerUnitTest):
 
     def test_valid_online_classic(self):
         serializer = CreateGameSerializer()
-        data = serializer.validate({
-            "mode": "classique",
-            "playlist_id": "123",
-            "is_online": True,
-        })
+        data = serializer.validate(
+            {
+                "mode": "classique",
+                "playlist_id": "123",
+                "is_online": True,
+            }
+        )
         assert data["playlist_id"] == "123"

@@ -10,6 +10,7 @@ class TestMaintenanceResponse(BaseUnitTest):
 
     def get_target_class(self):
         from apps.games.views.utils import _maintenance_response_if_needed
+
         return type(_maintenance_response_if_needed)
 
     @patch("apps.administration.models.SiteConfiguration")

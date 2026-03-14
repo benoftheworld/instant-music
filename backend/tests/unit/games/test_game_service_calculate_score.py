@@ -9,6 +9,7 @@ class TestGameServiceCalculateScore(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.services.game_service
+
         return apps.games.services.game_service
 
     def setup_method(self):

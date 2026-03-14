@@ -1,6 +1,6 @@
 """Tests unitaires de EncryptedEmailField."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from apps.users.fields import EncryptedEmailField
 from tests.base import BaseUnitTest

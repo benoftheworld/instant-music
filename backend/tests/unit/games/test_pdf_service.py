@@ -1,7 +1,5 @@
 """Tests unitaires du PdfBuilder."""
 
-from unittest.mock import MagicMock, patch
-
 from tests.base import BaseServiceUnitTest
 
 
@@ -10,10 +8,12 @@ class TestPdfBuilderInit(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.games import pdf_service
+
         return pdf_service
 
     def _make_builder(self, **game_overrides):
         from apps.games.pdf_service import PdfBuilder
+
         game_data = {
             "room_code": "ABCD",
             "name": "Test Game",
@@ -37,8 +37,14 @@ class TestPdfBuilderInit(BaseServiceUnitTest):
                 "artist_name": "Artist1",
                 "correct_answer": "Song1",
                 "answers": [
-                    {"username": "alice", "answer": "Song1", "is_correct": True,
-                     "points_earned": 50, "response_time": 2.5, "bonuses": []},
+                    {
+                        "username": "alice",
+                        "answer": "Song1",
+                        "is_correct": True,
+                        "points_earned": 50,
+                        "response_time": 2.5,
+                        "bonuses": [],
+                    },
                 ],
             },
         ]
@@ -65,10 +71,12 @@ class TestPdfBuilderSections(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.games import pdf_service
+
         return pdf_service
 
     def _make_builder(self):
         from apps.games.pdf_service import PdfBuilder
+
         game_data = {
             "room_code": "ABCD",
             "name": "Test",
@@ -80,12 +88,30 @@ class TestPdfBuilderSections(BaseServiceUnitTest):
             "finished_at": "2025-01-15T14:30:00",
         }
         rankings = [
-            {"username": "alice", "score": 100, "rank": 1, "correct_answers": 3,
-             "total_answers": 3, "avg_response_time": 2.5},
-            {"username": "bob", "score": 80, "rank": 2, "correct_answers": 2,
-             "total_answers": 3, "avg_response_time": 3.0},
-            {"username": "charlie", "score": 60, "rank": 3, "correct_answers": 1,
-             "total_answers": 3, "avg_response_time": 4.0},
+            {
+                "username": "alice",
+                "score": 100,
+                "rank": 1,
+                "correct_answers": 3,
+                "total_answers": 3,
+                "avg_response_time": 2.5,
+            },
+            {
+                "username": "bob",
+                "score": 80,
+                "rank": 2,
+                "correct_answers": 2,
+                "total_answers": 3,
+                "avg_response_time": 3.0,
+            },
+            {
+                "username": "charlie",
+                "score": 60,
+                "rank": 3,
+                "correct_answers": 1,
+                "total_answers": 3,
+                "avg_response_time": 4.0,
+            },
         ]
         rounds = [
             {
@@ -95,10 +121,22 @@ class TestPdfBuilderSections(BaseServiceUnitTest):
                 "correct_answer": "Song1",
                 "question_type": "guess_title",
                 "answers": [
-                    {"username": "alice", "answer": "Song1", "is_correct": True,
-                     "points_earned": 50, "response_time": 2.5, "bonuses": []},
-                    {"username": "bob", "answer": "Wrong", "is_correct": False,
-                     "points_earned": 0, "response_time": 5.0, "bonuses": []},
+                    {
+                        "username": "alice",
+                        "answer": "Song1",
+                        "is_correct": True,
+                        "points_earned": 50,
+                        "response_time": 2.5,
+                        "bonuses": [],
+                    },
+                    {
+                        "username": "bob",
+                        "answer": "Wrong",
+                        "is_correct": False,
+                        "points_earned": 0,
+                        "response_time": 5.0,
+                        "bonuses": [],
+                    },
                 ],
             },
         ]
@@ -137,8 +175,7 @@ class TestPdfBuilderSections(BaseServiceUnitTest):
     def test_build_produces_bytes(self):
         builder = self._make_builder()
         pdf_bytes = (
-            builder
-            .add_header()
+            builder.add_header()
             .add_podium()
             .add_ranking_table()
             .add_round_details()
@@ -155,20 +192,25 @@ class TestPdfHelpers(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.games import pdf_service
+
         return pdf_service
 
     def test_medal_labels(self):
         from apps.games.pdf_service import _medal
+
         assert _medal(1) == "1er"
         assert _medal(2) == "2e"
         assert _medal(3) == "3e"
         assert _medal(4) == "4."
 
     def test_section_header(self):
-        from apps.games.pdf_service import _section_header
         from reportlab.lib.styles import getSampleStyleSheet
+
+        from apps.games.pdf_service import _section_header
+
         styles = getSampleStyleSheet()
         from reportlab.lib.styles import ParagraphStyle
+
         sec_sty = ParagraphStyle("sec", parent=styles["Normal"])
         result = _section_header("Test", sec_sty)
         assert result is not None

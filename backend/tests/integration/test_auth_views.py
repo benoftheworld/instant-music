@@ -9,7 +9,6 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from tests.base import BaseAPIIntegrationTest
-from tests.factories import UserFactory
 
 
 @pytest.mark.django_db
@@ -36,9 +35,7 @@ class TestAuthRegister(BaseAPIIntegrationTest):
         assert "tokens" in resp.data
 
     def test_register_missing_fields(self, api_client):
-        resp = api_client.post(
-            f"{self.get_base_url()}register/", {}, format="json"
-        )
+        resp = api_client.post(f"{self.get_base_url()}register/", {}, format="json")
         self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
 
     def test_register_password_mismatch(self, api_client):
@@ -104,9 +101,7 @@ class TestAuthLogin(BaseAPIIntegrationTest):
         self.assert_status(resp, status.HTTP_401_UNAUTHORIZED)
 
     def test_login_missing_fields(self, api_client):
-        resp = api_client.post(
-            f"{self.get_base_url()}login/", {}, format="json"
-        )
+        resp = api_client.post(f"{self.get_base_url()}login/", {}, format="json")
         self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
 
 
@@ -283,7 +278,12 @@ class TestPasswordResetFlow(BaseAPIIntegrationTest):
         token = default_token_generator.make_token(user)
         resp = api_client.post(
             f"{self.get_base_url()}password/reset/confirm/",
-            {"uid": uid, "token": token, "new_password": "NewSecure@Pass123!", "new_password2": "NewSecure@Pass123!"},
+            {
+                "uid": uid,
+                "token": token,
+                "new_password": "NewSecure@Pass123!",
+                "new_password2": "NewSecure@Pass123!",
+            },
             format="json",
         )
         self.assert_status(resp, status.HTTP_200_OK)

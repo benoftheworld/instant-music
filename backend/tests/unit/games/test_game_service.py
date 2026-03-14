@@ -1,7 +1,5 @@
 """Tests unitaires du GameService (check_answer, calculate_score)."""
 
-from unittest.mock import MagicMock, patch
-
 from apps.games.services.game_service import GameService
 from tests.base import BaseServiceUnitTest
 
@@ -11,6 +9,7 @@ class TestGameServiceCheckAnswer(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.services.game_service
+
         return apps.games.services.game_service
 
     def setup_method(self):
@@ -153,8 +152,6 @@ class TestGameServiceCheckAnswer(BaseServiceUnitTest):
     # ── Default answer_mode → mcq ───────────────────────────────────
 
     def test_no_extra_data_defaults_mcq(self):
-        ok, factor = self.service.check_answer(
-            "classique", "Answer", "Answer", None
-        )
+        ok, factor = self.service.check_answer("classique", "Answer", "Answer", None)
         assert ok is True
         assert factor == 1.0

@@ -10,10 +10,12 @@ class TestGameSerializerPlayerCount(BaseUnitTest):
 
     def get_target_class(self):
         from apps.games.serializers.game_serializer import GameSerializer
+
         return GameSerializer
 
     def test_annotation_path(self):
         from apps.games.serializers.game_serializer import GameSerializer
+
         ser = GameSerializer()
         obj = MagicMock()
         obj._player_count = 5
@@ -21,6 +23,7 @@ class TestGameSerializerPlayerCount(BaseUnitTest):
 
     def test_prefetch_path(self):
         from apps.games.serializers.game_serializer import GameSerializer
+
         ser = GameSerializer()
         obj = MagicMock()
         # Remove _player_count so hasattr returns False
@@ -31,6 +34,7 @@ class TestGameSerializerPlayerCount(BaseUnitTest):
 
     def test_count_fallback(self):
         from apps.games.serializers.game_serializer import GameSerializer
+
         ser = GameSerializer()
         obj = MagicMock()
         del obj._player_count
@@ -40,6 +44,7 @@ class TestGameSerializerPlayerCount(BaseUnitTest):
 
     def test_no_prefetch_cache_attr(self):
         from apps.games.serializers.game_serializer import GameSerializer
+
         ser = GameSerializer()
         obj = MagicMock()
         del obj._player_count

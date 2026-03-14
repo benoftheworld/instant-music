@@ -1,6 +1,6 @@
 """Tests unitaires des signals de l'app games."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from apps.games.signals import update_player_stats_on_game_finish
 from tests.base import BaseUnitTest

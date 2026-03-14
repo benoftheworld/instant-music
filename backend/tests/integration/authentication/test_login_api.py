@@ -1,7 +1,5 @@
 """Tests d'intégration de l'API de login."""
 
-from rest_framework.test import APIClient
-
 from tests.base import BaseAPIIntegrationTest
 from tests.factories import UserFactory
 
@@ -15,8 +13,8 @@ class TestAuthLogin(BaseAPIIntegrationTest):
     def setup_method(self):
         self.client = self.get_client()
         self.user = UserFactory(username="loginuser")
-        self.user.set_password("TestP@ss123!")
-        self.user.save()
+        self.user.set_password("TestP@ss123!")  # type: ignore[attr-defined]
+        self.user.save()  # type: ignore[attr-defined]
 
     def test_login_success(self):
         data = {"username": "loginuser", "password": "TestP@ss123!"}

@@ -13,17 +13,13 @@ class TestTeamCreate(BaseAPIIntegrationTest):
     def test_create_team_success(self):
         user = UserFactory()
         client = self.get_auth_client(user)
-        resp = client.post(
-            self.get_base_url(), {"name": "Team Alpha"}, format="json"
-        )
+        resp = client.post(self.get_base_url(), {"name": "Team Alpha"}, format="json")
         self.assert_status(resp, 201)
         assert resp.data["name"] == "Team Alpha"
 
     def test_create_team_unauthenticated(self):
         client = self.get_client()
-        resp = client.post(
-            self.get_base_url(), {"name": "Team Beta"}, format="json"
-        )
+        resp = client.post(self.get_base_url(), {"name": "Team Beta"}, format="json")
         self.assert_status(resp, 401)
 
 

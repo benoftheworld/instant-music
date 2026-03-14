@@ -10,11 +10,12 @@ class TestUpdateTeamStats(BaseUnitTest):
 
     def get_target_class(self):
         from apps.games.signals import update_team_stats_on_game_finish
+
         return type(update_team_stats_on_game_finish)
 
     def test_non_finished_game_skips(self):
-        from apps.games.signals import update_team_stats_on_game_finish
         from apps.games.models import GameStatus
+        from apps.games.signals import update_team_stats_on_game_finish
 
         instance = MagicMock()
         instance.status = GameStatus.WAITING
@@ -23,7 +24,6 @@ class TestUpdateTeamStats(BaseUnitTest):
     @patch("apps.users.models.team_member.TeamMember")
     @patch("apps.users.models.Team")
     def test_no_teams_skips(self, mock_team, mock_tm):
-        from apps.games.signals import update_team_stats_on_game_finish
         from apps.games.models import GameStatus
 
         instance = MagicMock()
@@ -36,8 +36,8 @@ class TestUpdateTeamStats(BaseUnitTest):
     @patch("apps.users.models.team_member.TeamMember")
     @patch("apps.users.models.Team")
     def test_updates_team_stats(self, mock_team, mock_tm, mock_gp):
-        from apps.games.signals import update_team_stats_on_game_finish
         from apps.games.models import GameStatus
+        from apps.games.signals import update_team_stats_on_game_finish
 
         instance = MagicMock()
         instance.status = GameStatus.FINISHED
@@ -50,8 +50,12 @@ class TestUpdateTeamStats(BaseUnitTest):
 
         participations = MagicMock()
         mock_gp.objects.filter.return_value = participations
-        participations.values.return_value.distinct.return_value.count.return_value = 3
-        participations.filter.return_value.values.return_value.distinct.return_value.count.return_value = 1
+        participations.values.return_value.distinct.return_value.count.return_value = (  # noqa: E501
+            3
+        )
+        participations.filter.return_value.values.return_value.distinct.return_value.count.return_value = (  # noqa: E501
+            1
+        )
         participations.filter.return_value.aggregate.return_value = {"s": 250}
 
         update_team_stats_on_game_finish(sender=None, instance=instance)

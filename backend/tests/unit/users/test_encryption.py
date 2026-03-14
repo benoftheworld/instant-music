@@ -11,6 +11,7 @@ class TestEncryption(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.users.encryption
+
         return apps.users.encryption
 
     # ── get_fernet ──────────────────────────────────────────────────

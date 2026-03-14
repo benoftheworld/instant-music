@@ -1,4 +1,4 @@
-"""Tests d'intégration des GameViewSet mixins (lobby, round, discovery, results, invitation)."""
+"""Tests d'intégration des GameViewSet mixins."""
 
 import pytest
 from rest_framework import status
@@ -301,19 +301,17 @@ class TestGameInvitationMixin(BaseAPIIntegrationTest):
     def test_decline_nonexistent(self, auth_client):
         """Refuser une invitation inexistante → 404."""
         import uuid
+
         fake_id = str(uuid.uuid4())
-        resp = auth_client.post(
-            f"{self.get_base_url()}invitations/{fake_id}/decline/"
-        )
+        resp = auth_client.post(f"{self.get_base_url()}invitations/{fake_id}/decline/")
         self.assert_status(resp, status.HTTP_404_NOT_FOUND)
 
     def test_accept_nonexistent(self, auth_client):
         """Accepter une invitation inexistante → 404."""
         import uuid
+
         fake_id = str(uuid.uuid4())
-        resp = auth_client.post(
-            f"{self.get_base_url()}invitations/{fake_id}/accept/"
-        )
+        resp = auth_client.post(f"{self.get_base_url()}invitations/{fake_id}/accept/")
         self.assert_status(resp, status.HTTP_404_NOT_FOUND)
 
     def test_invite_no_username(self, auth_client, user):

@@ -5,12 +5,6 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
 from tests.factories import (
-    AchievementFactory,
-    GameFactory,
-    GamePlayerFactory,
-    GameRoundFactory,
-    ShopItemFactory,
-    TeamFactory,
     UserFactory,
 )
 

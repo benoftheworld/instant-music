@@ -19,8 +19,10 @@ class TestFiftyFiftyExclusions(BaseUnitTest):
     def test_no_bonus_returns_empty(self, mock_gb):
         mock_gb.objects.filter.return_value.exists.return_value = False
         result = self.service.get_fifty_fifty_exclusions(
-            player=MagicMock(), round_number=1,
-            options=["A", "B", "C", "D"], correct_answer="A"
+            player=MagicMock(),
+            round_number=1,
+            options=["A", "B", "C", "D"],
+            correct_answer="A",
         )
         assert result == []
 
@@ -32,8 +34,10 @@ class TestFiftyFiftyExclusions(BaseUnitTest):
         mock_gb.objects.filter.return_value.__iter__ = lambda self: iter([bonus])
         mock_random.sample.return_value = ["B", "C"]
         result = self.service.get_fifty_fifty_exclusions(
-            player=MagicMock(), round_number=1,
-            options=["A", "B", "C", "D"], correct_answer="A"
+            player=MagicMock(),
+            round_number=1,
+            options=["A", "B", "C", "D"],
+            correct_answer="A",
         )
         assert len(result) == 2
         assert "A" not in result
@@ -46,7 +50,6 @@ class TestFiftyFiftyExclusions(BaseUnitTest):
         mock_gb.objects.filter.return_value.__iter__ = lambda self: iter([bonus])
         mock_random.sample.return_value = ["B"]
         result = self.service.get_fifty_fifty_exclusions(
-            player=MagicMock(), round_number=1,
-            options=["A", "B"], correct_answer="A"
+            player=MagicMock(), round_number=1, options=["A", "B"], correct_answer="A"
         )
         assert len(result) == 1

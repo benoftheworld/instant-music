@@ -1,6 +1,6 @@
 """Tests unitaires des méthodes du DeezerService."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from tests.base import BaseServiceUnitTest
 
@@ -10,6 +10,7 @@ class TestDeezerParseTrack(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.playlists.deezer_service
+
         return apps.playlists.deezer_service
 
     def test_parses_valid_track(self):
@@ -46,23 +47,26 @@ class TestDeezerMakeRequest(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.playlists.deezer_service
+
         return apps.playlists.deezer_service
 
     def test_success(self):
         from apps.playlists.deezer_service import DeezerService
 
         svc = DeezerService()
-        svc._get_json = MagicMock(return_value={"data": [{"id": 1}]})
-        result = svc._make_request("/test")
+        with patch.object(svc, "_get_json", return_value={"data": [{"id": 1}]}):
+            result = svc._make_request("/test")
         assert "data" in result
 
     def test_api_error(self):
         import pytest
+
         from apps.playlists.deezer_service import DeezerAPIError, DeezerService
 
         svc = DeezerService()
-        svc._get_json = MagicMock(return_value={"error": {"message": "Bad request"}})
-        with pytest.raises(DeezerAPIError, match="Bad request"):
+        with patch.object(
+            svc, "_get_json", return_value={"error": {"message": "Bad request"}}
+        ), pytest.raises(DeezerAPIError, match="Bad request"):
             svc._make_request("/test")
 
 
@@ -71,6 +75,7 @@ class TestDeezerSearchPlaylists(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.playlists.deezer_service
+
         return apps.playlists.deezer_service
 
     @patch("django.core.cache.cache.get", return_value=None)
@@ -79,20 +84,23 @@ class TestDeezerSearchPlaylists(BaseServiceUnitTest):
         from apps.playlists.deezer_service import DeezerService
 
         svc = DeezerService()
-        svc._make_request = MagicMock(return_value={
-            "data": [
-                {
-                    "id": 1,
-                    "title": "Rock Hits",
-                    "picture_medium": "https://img.url",
-                    "nb_tracks": 50,
-                    "user": {"name": "Editor"},
-                    "link": "https://deezer.com/playlist/1",
-                }
-            ]
-        })
-
-        result = svc.search_playlists("rock")
+        with patch.object(
+            svc,
+            "_make_request",
+            return_value={
+                "data": [
+                    {
+                        "id": 1,
+                        "title": "Rock Hits",
+                        "picture_medium": "https://img.url",
+                        "nb_tracks": 50,
+                        "user": {"name": "Editor"},
+                        "link": "https://deezer.com/playlist/1",
+                    }
+                ]
+            },
+        ):
+            result = svc.search_playlists("rock")
         assert len(result) == 1
         assert result[0]["name"] == "Rock Hits"
         assert result[0]["playlist_id"] == "1"
@@ -111,6 +119,7 @@ class TestDeezerGetPlaylist(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.playlists.deezer_service
+
         return apps.playlists.deezer_service
 
     @patch("django.core.cache.cache.get", return_value=None)
@@ -119,17 +128,20 @@ class TestDeezerGetPlaylist(BaseServiceUnitTest):
         from apps.playlists.deezer_service import DeezerService
 
         svc = DeezerService()
-        svc._make_request = MagicMock(return_value={
-            "id": 1,
-            "title": "My Playlist",
-            "description": "Desc",
-            "picture_medium": "https://img.url",
-            "nb_tracks": 10,
-            "creator": {"name": "Owner"},
-            "link": "https://deezer.com/playlist/1",
-        })
-
-        result = svc.get_playlist("1")
+        with patch.object(
+            svc,
+            "_make_request",
+            return_value={
+                "id": 1,
+                "title": "My Playlist",
+                "description": "Desc",
+                "picture_medium": "https://img.url",
+                "nb_tracks": 10,
+                "creator": {"name": "Owner"},
+                "link": "https://deezer.com/playlist/1",
+            },
+        ):
+            result = svc.get_playlist("1")
         assert result is not None
         assert result["name"] == "My Playlist"
 
@@ -138,9 +150,10 @@ class TestDeezerGetPlaylist(BaseServiceUnitTest):
         from apps.playlists.deezer_service import DeezerAPIError, DeezerService
 
         svc = DeezerService()
-        svc._make_request = MagicMock(side_effect=DeezerAPIError("Not found"))
-
-        result = svc.get_playlist("999")
+        with patch.object(
+            svc, "_make_request", side_effect=DeezerAPIError("Not found")
+        ):
+            result = svc.get_playlist("999")
         assert result is None
 
 
@@ -149,6 +162,7 @@ class TestDeezerSearchTracks(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.playlists.deezer_service
+
         return apps.playlists.deezer_service
 
     @patch("django.core.cache.cache.get", return_value=None)
@@ -157,14 +171,30 @@ class TestDeezerSearchTracks(BaseServiceUnitTest):
         from apps.playlists.deezer_service import DeezerService
 
         svc = DeezerService()
-        svc._make_request = MagicMock(return_value={
-            "data": [
-                {"id": 1, "title": "Song", "preview": "https://p.url", "artist": {"name": "A"}, "album": {"title": "B"}, "duration": 30},
-                {"id": 2, "title": "No Preview", "preview": "", "artist": {"name": "C"}, "album": {"title": "D"}},
-            ]
-        })
-
-        result = svc.search_tracks("query")
+        with patch.object(
+            svc,
+            "_make_request",
+            return_value={
+                "data": [
+                    {
+                        "id": 1,
+                        "title": "Song",
+                        "preview": "https://p.url",
+                        "artist": {"name": "A"},
+                        "album": {"title": "B"},
+                        "duration": 30,
+                    },
+                    {
+                        "id": 2,
+                        "title": "No Preview",
+                        "preview": "",
+                        "artist": {"name": "C"},
+                        "album": {"title": "D"},
+                    },
+                ]
+            },
+        ):
+            result = svc.search_tracks("query")
         assert len(result) == 1
 
 
@@ -173,6 +203,7 @@ class TestDeezerGetTrackDetails(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.playlists.deezer_service
+
         return apps.playlists.deezer_service
 
     @patch("django.core.cache.cache.get", return_value=None)
@@ -181,13 +212,20 @@ class TestDeezerGetTrackDetails(BaseServiceUnitTest):
         from apps.playlists.deezer_service import DeezerService
 
         svc = DeezerService()
-        svc._make_request = MagicMock(return_value={
-            "id": 1, "title": "Track", "preview": "https://p.url",
-            "artist": {"name": "A"}, "album": {"title": "B"},
-            "duration": 30, "release_date": "2023-01-01",
-        })
-
-        result = svc.get_track_details("1")
+        with patch.object(
+            svc,
+            "_make_request",
+            return_value={
+                "id": 1,
+                "title": "Track",
+                "preview": "https://p.url",
+                "artist": {"name": "A"},
+                "album": {"title": "B"},
+                "duration": 30,
+                "release_date": "2023-01-01",
+            },
+        ):
+            result = svc.get_track_details("1")
         assert result is not None
         assert result["release_date"] == "2023-01-01"
 
@@ -196,9 +234,8 @@ class TestDeezerGetTrackDetails(BaseServiceUnitTest):
         from apps.playlists.deezer_service import DeezerAPIError, DeezerService
 
         svc = DeezerService()
-        svc._make_request = MagicMock(side_effect=DeezerAPIError("err"))
-
-        result = svc.get_track_details("999")
+        with patch.object(svc, "_make_request", side_effect=DeezerAPIError("err")):
+            result = svc.get_track_details("999")
         assert result is None
 
 
@@ -207,15 +244,18 @@ class TestDeezerSearchMusicVideos(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.playlists.deezer_service
+
         return apps.playlists.deezer_service
 
     def test_delegates_to_search_tracks(self):
         from apps.playlists.deezer_service import DeezerService
 
         svc = DeezerService()
-        svc.search_tracks = MagicMock(return_value=[{"track": True}])
-        result = svc.search_music_videos("query", 10)
-        svc.search_tracks.assert_called_once_with("query", 10)
+        with patch.object(
+            svc, "search_tracks", return_value=[{"track": True}]
+        ) as mock_st:
+            result = svc.search_music_videos("query", 10)
+            mock_st.assert_called_once_with("query", 10)
         assert result == [{"track": True}]
 
 
@@ -224,6 +264,7 @@ class TestDeezerGetPlaylistTracks(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.playlists.deezer_service
+
         return apps.playlists.deezer_service
 
     @patch("django.core.cache.cache.get", return_value=None)
@@ -232,13 +273,23 @@ class TestDeezerGetPlaylistTracks(BaseServiceUnitTest):
         from apps.playlists.deezer_service import DeezerService
 
         svc = DeezerService()
-        svc._make_request = MagicMock(return_value={
-            "data": [
-                {"id": 1, "title": "Song", "preview": "https://p.url", "artist": {"name": "A"}, "album": {"title": "B"}, "duration": 30},
-            ]
-        })
-
-        result = svc.get_playlist_tracks("123", limit=10)
+        with patch.object(
+            svc,
+            "_make_request",
+            return_value={
+                "data": [
+                    {
+                        "id": 1,
+                        "title": "Song",
+                        "preview": "https://p.url",
+                        "artist": {"name": "A"},
+                        "album": {"title": "B"},
+                        "duration": 30,
+                    },
+                ]
+            },
+        ):
+            result = svc.get_playlist_tracks("123", limit=10)
         assert len(result) == 1
 
     @patch("django.core.cache.cache.get", return_value=[{"cached": True}])
@@ -252,9 +303,10 @@ class TestDeezerGetPlaylistTracks(BaseServiceUnitTest):
     @patch("django.core.cache.cache.get", return_value=None)
     def test_raises_on_empty_first_page(self, mock_get):
         import pytest
+
         from apps.playlists.deezer_service import DeezerAPIError, DeezerService
 
         svc = DeezerService()
-        svc._make_request = MagicMock(side_effect=DeezerAPIError("err"))
-        with pytest.raises(DeezerAPIError):
-            svc.get_playlist_tracks("123")
+        with patch.object(svc, "_make_request", side_effect=DeezerAPIError("err")):
+            with pytest.raises(DeezerAPIError):
+                svc.get_playlist_tracks("123")

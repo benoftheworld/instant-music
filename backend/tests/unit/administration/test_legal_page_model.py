@@ -20,9 +20,7 @@ class TestLegalPageModel(BaseModelUnitTest):
         self.assert_field_max_length(LegalPage, "page_type", 20)
 
     def test_page_type_choices(self):
-        self.assert_field_choices(
-            LegalPage, "page_type", LegalPage.PageType.choices
-        )
+        self.assert_field_choices(LegalPage, "page_type", LegalPage.PageType.choices)
 
     def test_page_type_unique(self):
         self.assert_field_unique(LegalPage, "page_type", True)

@@ -1,5 +1,7 @@
 """Tests unitaires des classes de throttle."""
 
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+
 from apps.core.throttles import (
     GameCreateThrottle,
     GameJoinThrottle,
@@ -10,7 +12,6 @@ from apps.core.throttles import (
     RegisterThrottle,
     TokenRefreshThrottle,
 )
-from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from tests.base import BaseUnitTest
 
 

@@ -6,9 +6,9 @@ from tests.base import BaseServiceUnitTest
 
 
 class TestSerializeToDict(BaseServiceUnitTest):
-
     def get_service_module(self):
         import apps.games.broadcast_service
+
         return apps.games.broadcast_service
 
     """Vérifie la conversion serializer → dict."""
@@ -23,9 +23,9 @@ class TestSerializeToDict(BaseServiceUnitTest):
 
 
 class TestUuidSafe(BaseServiceUnitTest):
-
     def get_service_module(self):
         import apps.games.broadcast_service
+
         return apps.games.broadcast_service
 
     """Vérifie la conversion récursive des UUID en str."""
@@ -76,9 +76,9 @@ class TestUuidSafe(BaseServiceUnitTest):
 
 
 class TestGroupName(BaseServiceUnitTest):
-
     def get_service_module(self):
         import apps.games.broadcast_service
+
         return apps.games.broadcast_service
 
     """Vérifie le format du nom de groupe."""
@@ -90,9 +90,9 @@ class TestGroupName(BaseServiceUnitTest):
 
 
 class TestGroupSend(BaseServiceUnitTest):
-
     def get_service_module(self):
         import apps.games.broadcast_service
+
         return apps.games.broadcast_service
 
     """Vérifie que _group_send appelle le channel layer."""
@@ -109,9 +109,9 @@ class TestGroupSend(BaseServiceUnitTest):
 
 
 class TestBuildPlayerScores(BaseServiceUnitTest):
-
     def get_service_module(self):
         import apps.games.broadcast_service
+
         return apps.games.broadcast_service
 
     """Vérifie la construction des scores par joueur."""
@@ -145,9 +145,9 @@ class TestBuildPlayerScores(BaseServiceUnitTest):
 
 
 class TestBuildUpdatedPlayers(BaseServiceUnitTest):
-
     def get_service_module(self):
         import apps.games.broadcast_service
+
         return apps.games.broadcast_service
 
     """Vérifie la construction de la liste des joueurs."""
@@ -169,7 +169,7 @@ class TestBuildUpdatedPlayers(BaseServiceUnitTest):
         mock_player.is_connected = True
 
         mock_game = MagicMock()
-        mock_game.competitive_players.return_value.select_related.return_value.order_by.return_value = [
+        mock_game.competitive_players.return_value.select_related.return_value.order_by.return_value = [  # noqa: E501
             mock_player
         ]
 
@@ -184,6 +184,7 @@ class TestBroadcastPlayerJoin(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.broadcast_service
+
         return apps.games.broadcast_service
 
     @patch("apps.games.broadcast_service._group_send")
@@ -211,6 +212,7 @@ class TestBroadcastGameEvents(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.broadcast_service
+
         return apps.games.broadcast_service
 
     @patch("apps.games.broadcast_service._group_send")
@@ -252,6 +254,7 @@ class TestBroadcastRoundEvents(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.broadcast_service
+
         return apps.games.broadcast_service
 
     @patch("apps.games.broadcast_service._group_send")
@@ -277,7 +280,9 @@ class TestBroadcastRoundEvents(BaseServiceUnitTest):
     @patch("apps.games.broadcast_service._build_player_scores")
     @patch("apps.games.broadcast_service.GameAnswer")
     @patch("apps.games.broadcast_service.GameRoundSerializer")
-    def test_broadcast_round_end(self, mock_ser, mock_ga, mock_scores, mock_players, mock_bonuses, mock_send):
+    def test_broadcast_round_end(
+        self, mock_ser, mock_ga, mock_scores, mock_players, mock_bonuses, mock_send
+    ):
         from apps.games.broadcast_service import broadcast_round_end
 
         round_obj = MagicMock(round_number=1, correct_answer="Song")

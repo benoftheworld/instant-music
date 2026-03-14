@@ -13,8 +13,13 @@ class TestLeaderboardSerializer(BaseSerializerUnitTest):
     def test_fields(self):
         serializer = LeaderboardSerializer()
         expected = {
-            "user_id", "username", "avatar", "total_games",
-            "total_wins", "total_points", "win_rate",
+            "user_id",
+            "username",
+            "avatar",
+            "total_games",
+            "total_wins",
+            "total_points",
+            "win_rate",
         }
         assert set(serializer.fields.keys()) == expected
 

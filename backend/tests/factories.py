@@ -133,7 +133,9 @@ class GameRoundFactory(DjangoModelFactory):
     track_name = factory.Sequence(lambda n: f"Song {n}")
     artist_name = factory.Sequence(lambda n: f"Artist {n}")
     correct_answer = factory.LazyAttribute(lambda obj: obj.track_name)
-    options = factory.LazyFunction(lambda: ["Option A", "Option B", "Option C", "Option D"])
+    options = factory.LazyFunction(
+        lambda: ["Option A", "Option B", "Option C", "Option D"]
+    )
     preview_url = "https://example.com/preview.mp3"
     question_type = "guess_title"
     duration = 30

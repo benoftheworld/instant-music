@@ -12,14 +12,17 @@ class TestBonusServiceResolveRound(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.shop import services
+
         return services
 
     def _make_svc(self):
         from apps.shop.services import BonusService
+
         return BonusService()
 
     def test_fog_requires_active_round(self):
         from apps.shop.services import BonusActivationError
+
         svc = self._make_svc()
         game = MagicMock()
         game.rounds.filter.return_value.first.return_value = None
@@ -37,6 +40,7 @@ class TestBonusServiceResolveRound(BaseServiceUnitTest):
 
     def test_joker_requires_active_round(self):
         from apps.shop.services import BonusActivationError
+
         svc = self._make_svc()
         game = MagicMock()
         game.rounds.filter.return_value.first.return_value = None
@@ -58,10 +62,12 @@ class TestBonusServiceActivate(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.shop import services
+
         return services
 
     def _make_svc(self):
         from apps.shop.services import BonusService
+
         return BonusService()
 
     @patch("apps.shop.services.GameBonus")
@@ -79,7 +85,7 @@ class TestBonusServiceActivate(BaseServiceUnitTest):
         mock_gb.objects.create.return_value = MagicMock()
         mock_gb.objects.filter.return_value.exists.return_value = False
 
-        result = svc.activate_bonus.__wrapped__(
+        svc.activate_bonus.__wrapped__(
             svc, MagicMock(), MagicMock(), "double_points", round_number=1
         )
         assert inv.quantity == 4
@@ -87,6 +93,7 @@ class TestBonusServiceActivate(BaseServiceUnitTest):
     @patch("apps.games.models.GamePlayer")
     def test_activate_not_in_game(self, mock_gp):
         from django.core.exceptions import ObjectDoesNotExist
+
         svc = self._make_svc()
         mock_gp.DoesNotExist = ObjectDoesNotExist
         mock_gp.objects.get.side_effect = ObjectDoesNotExist
@@ -101,17 +108,22 @@ class TestBonusServiceApplyScore(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.shop import services
+
         return services
 
     def _make_svc(self):
         from apps.shop.services import BonusService
+
         return BonusService()
 
     def test_incorrect_answer_no_bonus(self):
         svc = self._make_svc()
         points, bonuses = svc.apply_score_bonuses(
-            player=MagicMock(), round_number=1, base_points=50,
-            is_correct=False, game=MagicMock(),
+            player=MagicMock(),
+            round_number=1,
+            base_points=50,
+            is_correct=False,
+            game=MagicMock(),
         )
         assert points == 50
         assert bonuses == []
@@ -119,12 +131,16 @@ class TestBonusServiceApplyScore(BaseServiceUnitTest):
     @patch("apps.shop.services.GameBonus")
     def test_double_points(self, mock_gb):
         from apps.shop.models import BonusType
+
         svc = self._make_svc()
         bonus = MagicMock(bonus_type=BonusType.DOUBLE_POINTS)
         mock_gb.objects.filter.return_value.select_for_update.return_value = [bonus]
         points, bonuses = svc.apply_score_bonuses(
-            player=MagicMock(), round_number=1, base_points=50,
-            is_correct=True, game=MagicMock(),
+            player=MagicMock(),
+            round_number=1,
+            base_points=50,
+            is_correct=True,
+            game=MagicMock(),
         )
         assert points == 100
         assert BonusType.DOUBLE_POINTS in bonuses
@@ -132,12 +148,16 @@ class TestBonusServiceApplyScore(BaseServiceUnitTest):
     @patch("apps.shop.services.GameBonus")
     def test_max_points(self, mock_gb):
         from apps.shop.models import BonusType
+
         svc = self._make_svc()
         bonus = MagicMock(bonus_type=BonusType.MAX_POINTS)
         mock_gb.objects.filter.return_value.select_for_update.return_value = [bonus]
         points, bonuses = svc.apply_score_bonuses(
-            player=MagicMock(), round_number=1, base_points=20,
-            is_correct=True, game=MagicMock(),
+            player=MagicMock(),
+            round_number=1,
+            base_points=20,
+            is_correct=True,
+            game=MagicMock(),
         )
         assert points >= 20
         assert BonusType.MAX_POINTS in bonuses
@@ -148,10 +168,12 @@ class TestBonusServiceFiftyFifty(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.shop import services
+
         return services
 
     def _make_svc(self):
         from apps.shop.services import BonusService
+
         return BonusService()
 
     @patch("apps.shop.services.GameBonus")
@@ -162,8 +184,10 @@ class TestBonusServiceFiftyFifty(BaseServiceUnitTest):
         mock_gb.objects.filter.return_value.__iter__ = lambda s: iter([bonus])
         options = ["Song1", "Song2", "Song3", "Song4"]
         excluded = svc.get_fifty_fifty_exclusions(
-            player=MagicMock(), round_number=1,
-            options=options, correct_answer="Song1",
+            player=MagicMock(),
+            round_number=1,
+            options=options,
+            correct_answer="Song1",
         )
         assert len(excluded) == 2
         assert "Song1" not in excluded
@@ -173,8 +197,10 @@ class TestBonusServiceFiftyFifty(BaseServiceUnitTest):
         svc = self._make_svc()
         mock_gb.objects.filter.return_value.exists.return_value = False
         result = svc.get_fifty_fifty_exclusions(
-            player=MagicMock(), round_number=1,
-            options=["a", "b", "c"], correct_answer="a",
+            player=MagicMock(),
+            round_number=1,
+            options=["a", "b", "c"],
+            correct_answer="a",
         )
         assert result == []
 
@@ -184,10 +210,12 @@ class TestBonusServiceSteal(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.shop import services
+
         return services
 
     def _make_svc(self):
         from apps.shop.services import BonusService
+
         return BonusService()
 
     @patch("apps.shop.services.GameBonus")
@@ -199,13 +227,14 @@ class TestBonusServiceSteal(BaseServiceUnitTest):
         mock_gb.objects.filter.return_value.__iter__ = lambda s: iter([bonus])
 
         leader = MagicMock(score=200)
-        mock_gp.objects.filter.return_value.exclude.return_value.order_by.return_value.first.return_value = leader
+        mock_gp.objects.filter.return_value.exclude.return_value.order_by.return_value.first.return_value = (  # noqa: E501
+            leader
+        )
 
         # No shield
         mock_gb.objects.filter.side_effect = None
         # Reset for different calls
         call_count = [0]
-        original_filter = mock_gb.objects.filter
 
         def side_effect_filter(**kwargs):
             call_count[0] += 1
@@ -236,10 +265,12 @@ class TestBonusServiceTimeBonus(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.shop import services
+
         return services
 
     def _make_svc(self):
         from apps.shop.services import BonusService
+
         return BonusService()
 
     @patch("apps.shop.services.GameBonus")
@@ -268,6 +299,7 @@ class TestBonusServiceTimeBonus(BaseServiceUnitTest):
     @patch("apps.games.models.GamePlayer")
     def test_player_not_in_game(self, mock_gp, mock_gb):
         from django.core.exceptions import ObjectDoesNotExist
+
         svc = self._make_svc()
         mock_gp.DoesNotExist = ObjectDoesNotExist
         mock_gp.objects.get.side_effect = ObjectDoesNotExist
@@ -280,10 +312,12 @@ class TestBonusServiceConsume(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.shop import services
+
         return services
 
     def _make_svc(self):
         from apps.shop.services import BonusService
+
         return BonusService()
 
     def test_consume_marks_used(self):
@@ -306,10 +340,12 @@ class TestShopServicePurchase(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.shop import services
+
         return services
 
     def _make_svc(self):
         from apps.shop.services import ShopService
+
         return ShopService()
 
     @patch("apps.shop.services.UserInventory")
@@ -330,15 +366,19 @@ class TestShopServicePurchase(BaseServiceUnitTest):
     def test_purchase_not_found(self, mock_si):
         from apps.shop.models import ShopItem as _SI
         from apps.shop.services import ItemNotAvailableError
+
         svc = self._make_svc()
         mock_si.DoesNotExist = _SI.DoesNotExist
-        mock_si.objects.select_for_update.return_value.get.side_effect = _SI.DoesNotExist
+        mock_si.objects.select_for_update.return_value.get.side_effect = (
+            _SI.DoesNotExist
+        )
         with pytest.raises(ItemNotAvailableError):
             svc.purchase.__wrapped__(svc, MagicMock(), item_id="1")
 
     @patch("apps.shop.services.ShopItem")
     def test_purchase_event_only_free(self, mock_si):
         from apps.shop.services import ItemNotAvailableError
+
         svc = self._make_svc()
         item = MagicMock(cost=0, is_event_only=True)
         mock_si.objects.select_for_update.return_value.get.return_value = item
@@ -348,6 +388,7 @@ class TestShopServicePurchase(BaseServiceUnitTest):
     @patch("apps.shop.services.ShopItem")
     def test_purchase_insufficient_stock(self, mock_si):
         from apps.shop.services import ItemNotAvailableError
+
         svc = self._make_svc()
         item = MagicMock(cost=10, is_event_only=False, stock=0)
         mock_si.objects.select_for_update.return_value.get.return_value = item
@@ -360,10 +401,12 @@ class TestShopServicePurchaseStock(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.shop import services
+
         return services
 
     def _make_svc(self):
         from apps.shop.services import ShopService
+
         return ShopService()
 
     @patch("apps.shop.services.UserInventory")
@@ -405,10 +448,12 @@ class TestShopServiceTotalCoins(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.shop import services
+
         return services
 
     def _make_svc(self):
         from apps.shop.services import ShopService
+
         return ShopService()
 
     @patch("apps.achievements.models.Achievement")
@@ -431,10 +476,12 @@ class TestBonusServiceActivateBonus(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.shop import services
+
         return services
 
     def _make_svc(self):
         from apps.shop.services import BonusService
+
         return BonusService()
 
     @patch("apps.shop.services.GameBonus")
@@ -453,7 +500,11 @@ class TestBonusServiceActivateBonus(BaseServiceUnitTest):
         mock_gb.objects.create.return_value = bonus
 
         result = svc.activate_bonus.__wrapped__(
-            svc, user=MagicMock(), game=MagicMock(), bonus_type="fifty_fifty", round_number=1
+            svc,
+            user=MagicMock(),
+            game=MagicMock(),
+            bonus_type="fifty_fifty",
+            round_number=1,
         )
         assert result == bonus
         assert inventory.quantity == 2
@@ -462,6 +513,7 @@ class TestBonusServiceActivateBonus(BaseServiceUnitTest):
     @patch("apps.games.models.GamePlayer")
     def test_activate_player_not_in_game(self, mock_gp):
         from django.core.exceptions import ObjectDoesNotExist
+
         svc = self._make_svc()
         mock_gp.DoesNotExist = ObjectDoesNotExist
         mock_gp.objects.get.side_effect = ObjectDoesNotExist
@@ -473,8 +525,9 @@ class TestBonusServiceActivateBonus(BaseServiceUnitTest):
     @patch("apps.shop.services.ShopItem")
     @patch("apps.games.models.GamePlayer")
     def test_activate_item_not_found(self, mock_gp, mock_si):
-        from apps.shop.services import ItemNotAvailableError
         from apps.shop.models import ShopItem as _SI
+        from apps.shop.services import ItemNotAvailableError
+
         svc = self._make_svc()
         mock_gp.objects.get.return_value = MagicMock()
         mock_si.DoesNotExist = _SI.DoesNotExist
@@ -488,12 +541,17 @@ class TestBonusServiceActivateBonus(BaseServiceUnitTest):
     @patch("apps.shop.services.UserInventory")
     @patch("apps.shop.services.ShopItem")
     @patch("apps.games.models.GamePlayer")
-    def test_activate_unique_bonus_already_active(self, mock_gp, mock_si, mock_ui, mock_gb):
+    def test_activate_unique_bonus_already_active(
+        self, mock_gp, mock_si, mock_ui, mock_gb
+    ):
         from apps.shop.services import BonusAlreadyActiveError
+
         svc = self._make_svc()
         mock_gp.objects.get.return_value = MagicMock()
         mock_si.objects.get.return_value = MagicMock()
-        mock_ui.objects.select_for_update.return_value.get.return_value = MagicMock(quantity=1)
+        mock_ui.objects.select_for_update.return_value.get.return_value = MagicMock(
+            quantity=1
+        )
         mock_gb.objects.filter.return_value.exists.return_value = True
 
         with pytest.raises(BonusAlreadyActiveError):
@@ -507,10 +565,12 @@ class TestBonusServiceStealShield(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.shop import services
+
         return services
 
     def _make_svc(self):
         from apps.shop.services import BonusService
+
         return BonusService()
 
     @patch("apps.shop.services.GameBonus")
@@ -520,7 +580,9 @@ class TestBonusServiceStealShield(BaseServiceUnitTest):
         bonus = MagicMock()
 
         leader = MagicMock(score=200)
-        mock_gp.objects.filter.return_value.exclude.return_value.order_by.return_value.first.return_value = leader
+        mock_gp.objects.filter.return_value.exclude.return_value.order_by.return_value.first.return_value = (  # noqa: E501
+            leader
+        )
 
         call_count = [0]
 
@@ -550,10 +612,12 @@ class TestShopServiceInventory(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.shop import services
+
         return services
 
     def _make_svc(self):
         from apps.shop.services import ShopService
+
         return ShopService()
 
     @patch("apps.shop.services.UserInventory")

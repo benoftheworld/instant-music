@@ -1,3 +1,4 @@
+
 """Tests unitaires de BonusService.resolve_round_number."""
 
 from unittest.mock import MagicMock
@@ -42,7 +43,7 @@ class TestResolveRoundNumber(BaseUnitTest):
         game.rounds.filter.return_value.first.return_value = None
         try:
             self.service.resolve_round_number(game, "fog")
-            assert False, "Expected BonusActivationError"
+            pytest.fail("Expected BonusActivationError")
         except BonusActivationError:
             pass
 
@@ -51,6 +52,6 @@ class TestResolveRoundNumber(BaseUnitTest):
         game.rounds.filter.return_value.first.return_value = None
         try:
             self.service.resolve_round_number(game, "joker")
-            assert False, "Expected BonusActivationError"
+            pytest.fail("Expected BonusActivationError")
         except BonusActivationError:
             pass

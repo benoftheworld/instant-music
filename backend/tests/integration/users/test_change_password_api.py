@@ -12,8 +12,8 @@ class TestChangePassword(BaseAPIIntegrationTest):
 
     def setup_method(self):
         self.user = UserFactory()
-        self.user.set_password("OldP@ss123!")
-        self.user.save()
+        self.user.set_password("OldP@ss123!")  # type: ignore[attr-defined]
+        self.user.save()  # type: ignore[attr-defined]
         self.client = self.get_auth_client(self.user)
 
     def test_change_password_success(self):

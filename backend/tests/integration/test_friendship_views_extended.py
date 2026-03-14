@@ -1,7 +1,8 @@
-"""Tests d'intégration étendus — couverture des branches manquantes friendship_viewset."""
+"""Tests d'intégration étendus — friendship_viewset."""
+
+from unittest.mock import MagicMock, patch
 
 import pytest
-from unittest.mock import patch, MagicMock
 from rest_framework import status
 
 from apps.users.models import Friendship, FriendshipStatus
@@ -55,9 +56,7 @@ class TestFriendshipSendRequestWsException(BaseAPIIntegrationTest):
         )
         mock_cl.return_value.group_send = MagicMock(side_effect=Exception("WS fail"))
         # async_to_sync wraps group_send; we patch at channel layer level
-        with patch(
-            "apps.users.views.friendship_viewset.async_to_sync"
-        ) as mock_ats:
+        with patch("apps.users.views.friendship_viewset.async_to_sync") as mock_ats:
             mock_ats.return_value = MagicMock(side_effect=Exception("WS fail"))
             resp = auth_client.post(
                 f"{BASE}send_request/",

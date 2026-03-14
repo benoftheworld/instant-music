@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock
 
-from django.db import models
-
 from apps.users.models import Friendship
 from apps.users.models.enums import FriendshipStatus
 from tests.base import BaseModelUnitTest

@@ -33,9 +33,7 @@ class TestTeamCreate(BaseAPIIntegrationTest):
         assert Team.objects.filter(name="My Team").exists()
 
     def test_create_team_unauthenticated(self, api_client):
-        resp = api_client.post(
-            self.get_base_url(), {"name": "Team"}, format="json"
-        )
+        resp = api_client.post(self.get_base_url(), {"name": "Team"}, format="json")
         self.assert_status(resp, status.HTTP_401_UNAUTHORIZED)
 
 
@@ -74,6 +72,7 @@ class TestTeamJoin(BaseAPIIntegrationTest):
 
     def test_join_nonexistent_team(self, auth_client):
         import uuid
+
         resp = auth_client.post(f"{self.get_base_url()}{uuid.uuid4()}/join/")
         self.assert_status(resp, status.HTTP_404_NOT_FOUND)
 
@@ -97,6 +96,7 @@ class TestTeamApproveReject(BaseAPIIntegrationTest):
         TeamMember.objects.create(team=team, user=user, role=TeamMemberRole.OWNER)
         auth_client2.post(f"{self.get_base_url()}{team.id}/join/")
         from apps.users.models import TeamJoinRequest
+
         jr = TeamJoinRequest.objects.filter(team=team, user=user2).first()
         return team, jr
 

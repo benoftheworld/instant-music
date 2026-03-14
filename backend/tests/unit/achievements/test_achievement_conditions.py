@@ -10,15 +10,18 @@ class TestCheckGamesPlayed(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     def test_met_when_enough_games(self):
         from apps.achievements.services import _check_games_played
+
         user = MagicMock(total_games_played=10)
         assert _check_games_played(user, 5, None, None, None) is True
 
     def test_not_met_when_insufficient(self):
         from apps.achievements.services import _check_games_played
+
         user = MagicMock(total_games_played=3)
         assert _check_games_played(user, 5, None, None, None) is False
 
@@ -28,15 +31,18 @@ class TestCheckWins(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     def test_met(self):
         from apps.achievements.services import _check_wins
+
         user = MagicMock(total_wins=10)
         assert _check_wins(user, 5, None, None, None) is True
 
     def test_not_met(self):
         from apps.achievements.services import _check_wins
+
         user = MagicMock(total_wins=2)
         assert _check_wins(user, 5, None, None, None) is False
 
@@ -46,15 +52,18 @@ class TestCheckPoints(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     def test_met(self):
         from apps.achievements.services import _check_points
+
         user = MagicMock(total_points=1000)
         assert _check_points(user, 500, None, None, None) is True
 
     def test_not_met(self):
         from apps.achievements.services import _check_points
+
         user = MagicMock(total_points=100)
         assert _check_points(user, 500, None, None, None) is False
 
@@ -64,19 +73,29 @@ class TestCheckPerfectRound(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     def test_true_when_perfect_game(self):
         from apps.achievements.services import _check_perfect_round
-        assert _check_perfect_round(MagicMock(), 0, None, None, {"perfect_game": True}) is True
+
+        assert (
+            _check_perfect_round(MagicMock(), 0, None, None, {"perfect_game": True})
+            is True
+        )
 
     def test_false_when_no_round_data(self):
         from apps.achievements.services import _check_perfect_round
+
         assert _check_perfect_round(MagicMock(), 0, None, None, None) is False
 
     def test_false_when_not_perfect(self):
         from apps.achievements.services import _check_perfect_round
-        assert _check_perfect_round(MagicMock(), 0, None, None, {"perfect_game": False}) is False
+
+        assert (
+            _check_perfect_round(MagicMock(), 0, None, None, {"perfect_game": False})
+            is False
+        )
 
 
 class TestCheckAllFastRound(BaseServiceUnitTest):
@@ -84,20 +103,24 @@ class TestCheckAllFastRound(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     def test_true_when_fast(self):
         from apps.achievements.services import _check_all_fast_round
+
         rd = {"perfect_game": True, "max_response_time": 1.5}
         assert _check_all_fast_round(MagicMock(), 0, "2.0", None, rd) is True
 
     def test_false_when_slow(self):
         from apps.achievements.services import _check_all_fast_round
+
         rd = {"perfect_game": True, "max_response_time": 3.0}
         assert _check_all_fast_round(MagicMock(), 0, "2.0", None, rd) is False
 
     def test_false_when_no_round_data(self):
         from apps.achievements.services import _check_all_fast_round
+
         assert _check_all_fast_round(MagicMock(), 0, None, None, None) is False
 
 
@@ -106,14 +129,19 @@ class TestCheckInGameStreak(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     def test_true_with_streak(self):
         from apps.achievements.services import _check_in_game_streak
-        assert _check_in_game_streak(MagicMock(), 5, None, None, {"max_streak": 7}) is True
+
+        assert (
+            _check_in_game_streak(MagicMock(), 5, None, None, {"max_streak": 7}) is True
+        )
 
     def test_false_without_round_data(self):
         from apps.achievements.services import _check_in_game_streak
+
         assert _check_in_game_streak(MagicMock(), 5, None, None, None) is False
 
 
@@ -122,14 +150,20 @@ class TestCheckDominantWin(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     def test_true(self):
         from apps.achievements.services import _check_dominant_win
-        assert _check_dominant_win(MagicMock(), 0, None, None, {"dominant_win": True}) is True
+
+        assert (
+            _check_dominant_win(MagicMock(), 0, None, None, {"dominant_win": True})
+            is True
+        )
 
     def test_false_no_data(self):
         from apps.achievements.services import _check_dominant_win
+
         assert _check_dominant_win(MagicMock(), 0, None, None, None) is False
 
 
@@ -138,15 +172,22 @@ class TestCheckGlobalStreak(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     def test_true_from_round_data(self):
         from apps.achievements.services import _check_global_streak
-        assert _check_global_streak(MagicMock(), 5, None, None, {"max_streak": 10}) is True
+
+        assert (
+            _check_global_streak(MagicMock(), 5, None, None, {"max_streak": 10}) is True
+        )
 
     def test_false_from_round_data(self):
         from apps.achievements.services import _check_global_streak
-        assert _check_global_streak(MagicMock(), 5, None, None, {"max_streak": 2}) is False
+
+        assert (
+            _check_global_streak(MagicMock(), 5, None, None, {"max_streak": 2}) is False
+        )
 
 
 class TestPushAchievementNotification(BaseServiceUnitTest):
@@ -154,6 +195,7 @@ class TestPushAchievementNotification(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     @patch("apps.achievements.services.get_channel_layer")
@@ -188,6 +230,7 @@ class TestCheckCondition(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     def test_unknown_condition_type(self):
@@ -206,6 +249,7 @@ class TestCheckWinStreak(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     @patch("apps.games.models.GamePlayer")
@@ -213,7 +257,9 @@ class TestCheckWinStreak(BaseServiceUnitTest):
         from apps.achievements.services import _check_win_streak
 
         qs = MagicMock()
-        mock_gp.objects.filter.return_value.order_by.return_value.__getitem__ = lambda s, k: qs
+        mock_gp.objects.filter.return_value.order_by.return_value.__getitem__ = (
+            lambda s, k: qs
+        )
         qs.count.return_value = 3
         p1 = MagicMock(rank=1)
         p2 = MagicMock(rank=1)
@@ -227,7 +273,9 @@ class TestCheckWinStreak(BaseServiceUnitTest):
         from apps.achievements.services import _check_win_streak
 
         qs = MagicMock()
-        mock_gp.objects.filter.return_value.order_by.return_value.__getitem__ = lambda s, k: qs
+        mock_gp.objects.filter.return_value.order_by.return_value.__getitem__ = (
+            lambda s, k: qs
+        )
         qs.count.return_value = 1
         result = _check_win_streak(MagicMock(), 3, None, None, None)
         assert result is False
@@ -238,6 +286,7 @@ class TestCheckFastAnswers(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     @patch("apps.games.models.GameAnswer")
@@ -260,6 +309,7 @@ class TestCheckAccuracy(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     @patch("apps.games.models.GameAnswer")
@@ -286,18 +336,23 @@ class TestCheckAccuracy(BaseServiceUnitTest):
         assert _check_accuracy(user, 80, None, None, None) is False
 
 
-class TestCheckGlobalStreak(BaseServiceUnitTest):
+class TestCheckGlobalStreakDB(BaseServiceUnitTest):
     """Vérifie _check_global_streak."""
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     def test_from_round_data(self):
         from apps.achievements.services import _check_global_streak
 
-        assert _check_global_streak(MagicMock(), 5, None, None, {"max_streak": 7}) is True
-        assert _check_global_streak(MagicMock(), 5, None, None, {"max_streak": 3}) is False
+        assert (
+            _check_global_streak(MagicMock(), 5, None, None, {"max_streak": 7}) is True
+        )
+        assert (
+            _check_global_streak(MagicMock(), 5, None, None, {"max_streak": 3}) is False
+        )
 
     @patch("apps.games.models.GameAnswer")
     @patch("apps.games.models.GamePlayer")
@@ -305,8 +360,12 @@ class TestCheckGlobalStreak(BaseServiceUnitTest):
         from apps.achievements.services import _check_global_streak
 
         mock_gp.objects.filter.return_value.values_list.return_value = ["pid1"]
-        mock_ga.objects.filter.return_value.order_by.return_value.values_list.return_value = [
-            True, True, True, True, True
+        mock_ga.objects.filter.return_value.order_by.return_value.values_list.return_value = [  # noqa: E501
+            True,
+            True,
+            True,
+            True,
+            True,
         ]
         assert _check_global_streak(MagicMock(), 5, None, None, None) is True
 
@@ -316,6 +375,7 @@ class TestCheckSingleGameScore(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     @patch("apps.games.models.GamePlayer")
@@ -331,6 +391,7 @@ class TestCheckGamesByMode(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     @patch("apps.games.models.GamePlayer")
@@ -346,6 +407,7 @@ class TestCheckWinsByMode(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     @patch("apps.games.models.GamePlayer")
@@ -361,13 +423,16 @@ class TestCheckAllModesPlayed(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     @patch("apps.games.models.GamePlayer")
     def test_met(self, mock_gp):
         from apps.achievements.services import _check_all_modes_played
 
-        mock_gp.objects.filter.return_value.values_list.return_value.distinct.return_value.count.return_value = 6
+        mock_gp.objects.filter.return_value.values_list.return_value.distinct.return_value.count.return_value = (  # noqa: E501
+            6
+        )
         assert _check_all_modes_played(MagicMock(), 6, None, None, None) is True
 
 
@@ -376,6 +441,7 @@ class TestCheckFriendsCount(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     @patch("apps.users.models.Friendship")
@@ -391,6 +457,7 @@ class TestCheckGamesHosted(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     @patch("apps.games.models.Game")
@@ -406,6 +473,7 @@ class TestCheckInvitationsSent(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     @patch("apps.games.models.GameInvitation")
@@ -421,13 +489,16 @@ class TestCheckItemsPurchased(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     @patch("apps.shop.models.UserInventory")
     def test_met(self, mock_ui):
         from apps.achievements.services import _check_items_purchased
 
-        mock_ui.objects.filter.return_value.values.return_value.distinct.return_value.count.return_value = 5
+        mock_ui.objects.filter.return_value.values.return_value.distinct.return_value.count.return_value = (  # noqa: E501
+            5
+        )
         assert _check_items_purchased(MagicMock(), 3, None, None, None) is True
 
 
@@ -436,6 +507,7 @@ class TestCheckBonusUsed(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     @patch("apps.shop.models.GameBonus")
@@ -451,6 +523,7 @@ class TestCheckAllBonusesUsed(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.services
+
         return apps.achievements.services
 
     @patch("apps.shop.models.GameBonus")

@@ -1,6 +1,6 @@
 """Tests unitaires du modèle User — introspection des champs et métadonnées."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from django.db import models
 
@@ -144,25 +144,25 @@ class TestUserModel(BaseModelUnitTest):
         user = MagicMock(spec=User)
         user.total_games_played = 0
         user.total_wins = 0
-        assert User.win_rate.fget(user) == 0.0
+        assert User.win_rate.fget(user) == 0.0  # type: ignore[unused-ignore, attr-defined]
 
     def test_win_rate_some_wins(self):
         user = MagicMock(spec=User)
         user.total_games_played = 10
         user.total_wins = 5
-        assert User.win_rate.fget(user) == 50.0
+        assert User.win_rate.fget(user) == 50.0  # type: ignore[unused-ignore, attr-defined]
 
     def test_win_rate_all_wins(self):
         user = MagicMock(spec=User)
         user.total_games_played = 10
         user.total_wins = 10
-        assert User.win_rate.fget(user) == 100.0
+        assert User.win_rate.fget(user) == 100.0  # type: ignore[unused-ignore, attr-defined]
 
     def test_win_rate_one_game_one_win(self):
         user = MagicMock(spec=User)
         user.total_games_played = 1
         user.total_wins = 1
-        assert User.win_rate.fget(user) == 100.0
+        assert User.win_rate.fget(user) == 100.0  # type: ignore[unused-ignore, attr-defined]
 
     # ── __str__ ─────────────────────────────────────────────────────
 

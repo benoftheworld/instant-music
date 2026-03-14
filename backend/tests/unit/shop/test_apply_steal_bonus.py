@@ -1,6 +1,6 @@
 """Tests unitaires de BonusService.apply_steal_bonus."""
 
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 from apps.shop.services import BonusService
 from tests.base import BaseUnitTest
@@ -32,7 +32,9 @@ class TestApplyStealBonus(BaseUnitTest):
         steal_qs.__iter__ = lambda self: iter([bonus])
         mock_gb.objects.filter.return_value = steal_qs
 
-        mock_gp.objects.filter.return_value.exclude.return_value.order_by.return_value.first.return_value = None
+        mock_gp.objects.filter.return_value.exclude.return_value.order_by.return_value.first.return_value = (  # noqa: E501
+            None
+        )
 
         result = self.service.apply_steal_bonus(
             player=MagicMock(), game=MagicMock(), round_number=1

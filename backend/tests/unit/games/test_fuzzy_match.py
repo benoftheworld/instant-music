@@ -9,6 +9,7 @@ class TestFuzzyMatch(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.services.text_matching
+
         return apps.games.services.text_matching
 
     # ── Correspondance exacte ───────────────────────────────────────

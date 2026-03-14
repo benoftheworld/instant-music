@@ -1,7 +1,5 @@
 """Tests unitaires du module de pagination."""
 
-from unittest.mock import MagicMock
-
 from apps.core.pagination import StandardResultsPagination
 from tests.base import BaseUnitTest
 

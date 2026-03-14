@@ -1,8 +1,8 @@
 """Tests d'intégration des vues playlists (Deezer + YouTube)."""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
+import pytest
 from rest_framework import status
 
 from tests.base import BaseAPIIntegrationTest
@@ -82,7 +82,12 @@ class TestPlaylistTracks(BaseAPIIntegrationTest):
     @patch("apps.playlists.views.deezer_service")
     def test_get_tracks_success(self, mock_deezer, api_client):
         mock_deezer.get_playlist_tracks.return_value = [
-            {"id": 1, "title": "Song", "artist": {"name": "Artist"}, "preview": "http://mp3"}
+            {
+                "id": 1,
+                "title": "Song",
+                "artist": {"name": "Artist"},
+                "preview": "http://mp3",
+            }
         ]
         resp = api_client.get(f"{self.get_base_url()}123/tracks/")
         self.assert_status(resp, status.HTTP_200_OK)

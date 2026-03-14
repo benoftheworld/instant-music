@@ -14,12 +14,16 @@ class TestAnonymizeOldGameData(BaseUnitTest):
 
     def test_returns_counts_no_data(self):
         with (
-            patch("apps.games.models.game_answer.GameAnswer.objects") as mock_answer_mgr,
+            patch(
+                "apps.games.models.game_answer.GameAnswer.objects"
+            ) as mock_answer_mgr,
             patch("apps.games.models.game.Game.objects") as mock_game_mgr,
         ):
             # Simuler aucune réponse (la boucle while s'arrête immédiatement)
             mock_filter_qs = MagicMock()
-            mock_filter_qs.values_list.return_value.__getitem__ = MagicMock(return_value=[])
+            mock_filter_qs.values_list.return_value.__getitem__ = MagicMock(
+                return_value=[]
+            )
             mock_answer_mgr.filter.return_value = mock_filter_qs
 
             # Simuler aucune partie annulée

@@ -1,6 +1,6 @@
 """Tests unitaires du GameService."""
 
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -12,10 +12,12 @@ class TestGameServiceStartGame(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.games.services import game_service
+
         return game_service
 
     def _make_svc(self):
         from apps.games.services.game_service import GameService
+
         return GameService()
 
     def test_start_game_not_waiting(self):
@@ -49,16 +51,26 @@ class TestGameServiceStartGame(BaseServiceUnitTest):
         )
         questions = [
             {
-                "track_id": "1", "track_name": "Song1", "artist_name": "A1",
-                "correct_answer": "Song1", "options": ["Song1", "S2", "S3", "S4"],
-                "preview_url": "url", "question_type": "guess_title",
-                "question_text": "Q?", "extra_data": {},
+                "track_id": "1",
+                "track_name": "Song1",
+                "artist_name": "A1",
+                "correct_answer": "Song1",
+                "options": ["Song1", "S2", "S3", "S4"],
+                "preview_url": "url",
+                "question_type": "guess_title",
+                "question_text": "Q?",
+                "extra_data": {},
             },
             {
-                "track_id": "2", "track_name": "Song2", "artist_name": "A2",
-                "correct_answer": "Song2", "options": ["Song2", "S1", "S3", "S4"],
-                "preview_url": "url", "question_type": "guess_title",
-                "question_text": "Q?", "extra_data": {},
+                "track_id": "2",
+                "track_name": "Song2",
+                "artist_name": "A2",
+                "correct_answer": "Song2",
+                "options": ["Song2", "S1", "S3", "S4"],
+                "preview_url": "url",
+                "question_type": "guess_title",
+                "question_text": "Q?",
+                "extra_data": {},
             },
         ]
         mock_gr.objects.create.return_value = MagicMock()
@@ -81,17 +93,22 @@ class TestGameServiceStartGame(BaseServiceUnitTest):
     @patch("apps.games.services.game_service.get_synced_lyrics_by_lrclib_id")
     @patch("apps.games.services.game_service.GameRound")
     @patch("apps.games.services.game_service.timezone")
-    def test_start_karaoke_game(self, mock_tz, mock_gr, mock_lrclib, mock_synced,
-                                mock_tx, mock_gc, mock_ga):
+    def test_start_karaoke_game(
+        self, mock_tz, mock_gr, mock_lrclib, mock_synced, mock_tx, mock_gc, mock_ga
+    ):
         svc = self._make_svc()
         mock_lrclib.return_value = [{"time_ms": 0, "text": "la"}]
         mock_gr.objects.create.return_value = MagicMock()
         game = MagicMock(
             status="waiting",
             mode="karaoke",
-            karaoke_track={"youtube_video_id": "yt1", "track_name": "Song",
-                           "artist_name": "Art", "duration_ms": 180000,
-                           "lrclib_id": 42},
+            karaoke_track={
+                "youtube_video_id": "yt1",
+                "track_name": "Song",
+                "artist_name": "Art",
+                "duration_ms": 180000,
+                "lrclib_id": 42,
+            },
             karaoke_song_id=1,
             answer_mode="mcq",
             guess_target="title",
@@ -111,10 +128,12 @@ class TestGameServiceCheckAnswer(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.games.services import game_service
+
         return game_service
 
     def _make_svc(self):
         from apps.games.services.game_service import GameService
+
         return GameService()
 
     def test_generation_exact(self):
@@ -148,13 +167,17 @@ class TestGameServiceCheckAnswer(BaseServiceUnitTest):
 
     def test_mcq_correct(self):
         svc = self._make_svc()
-        ok, factor = svc.check_answer("classique", "Song1", "Song1", {"answer_mode": "mcq"})
+        ok, factor = svc.check_answer(
+            "classique", "Song1", "Song1", {"answer_mode": "mcq"}
+        )
         assert ok is True
         assert factor == 1.0
 
     def test_mcq_wrong(self):
         svc = self._make_svc()
-        ok, factor = svc.check_answer("classique", "Song2", "Song1", {"answer_mode": "mcq"})
+        ok, factor = svc.check_answer(
+            "classique", "Song2", "Song1", {"answer_mode": "mcq"}
+        )
         assert ok is False
         assert factor == 0.0
 
@@ -162,7 +185,9 @@ class TestGameServiceCheckAnswer(BaseServiceUnitTest):
     def test_text_mode_fuzzy(self, mock_fuzzy):
         mock_fuzzy.return_value = (True, 0.85)
         svc = self._make_svc()
-        ok, factor = svc.check_answer("paroles", "answer", "correct", {"answer_mode": "text"})
+        ok, factor = svc.check_answer(
+            "paroles", "answer", "correct", {"answer_mode": "text"}
+        )
         assert ok is True
         assert factor == 0.85
 
@@ -170,7 +195,9 @@ class TestGameServiceCheckAnswer(BaseServiceUnitTest):
     def test_text_mode_no_match(self, mock_fuzzy):
         mock_fuzzy.return_value = (False, 0.3)
         svc = self._make_svc()
-        ok, factor = svc.check_answer("paroles", "answer", "correct", {"answer_mode": "text"})
+        ok, factor = svc.check_answer(
+            "paroles", "answer", "correct", {"answer_mode": "text"}
+        )
         assert ok is False
         assert factor == 0.0
 
@@ -180,10 +207,12 @@ class TestGameServiceCheckClassiqueText(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.games.services import game_service
+
         return game_service
 
     def _make_svc(self):
         from apps.games.services.game_service import GameService
+
         return GameService()
 
     @patch("apps.games.services.game_service.fuzzy_match")
@@ -191,7 +220,8 @@ class TestGameServiceCheckClassiqueText(BaseServiceUnitTest):
         mock_fuzzy.return_value = (True, 0.9)
         svc = self._make_svc()
         ok, factor = svc._check_classique_text_answer(
-            "Artist - Title", "Title",
+            "Artist - Title",
+            "Title",
             {"artist_name": "Artist", "track_name": "Title", "answer_mode": "text"},
         )
         assert ok is True
@@ -203,7 +233,8 @@ class TestGameServiceCheckClassiqueText(BaseServiceUnitTest):
         mock_fuzzy.side_effect = [(False, 0.2), (True, 0.9)]
         svc = self._make_svc()
         ok, factor = svc._check_classique_text_answer(
-            "Title", "Title",
+            "Title",
+            "Title",
             {"artist_name": "Artist", "track_name": "Title"},
         )
         assert ok is True
@@ -214,9 +245,11 @@ class TestGameServiceCheckClassiqueText(BaseServiceUnitTest):
         mock_fuzzy.return_value = (True, 0.9)
         svc = self._make_svc()
         import json
+
         answer = json.dumps({"artist": "Artist", "title": "Title"})
         ok, factor = svc._check_classique_text_answer(
-            answer, "Title",
+            answer,
+            "Title",
             {"artist_name": "Artist", "track_name": "Title"},
         )
         assert ok is True
@@ -226,7 +259,8 @@ class TestGameServiceCheckClassiqueText(BaseServiceUnitTest):
         mock_fuzzy.return_value = (False, 0.1)
         svc = self._make_svc()
         ok, factor = svc._check_classique_text_answer(
-            "gibberish", "Title",
+            "gibberish",
+            "Title",
             {"artist_name": "Artist", "track_name": "Title"},
         )
         assert ok is False
@@ -235,7 +269,9 @@ class TestGameServiceCheckClassiqueText(BaseServiceUnitTest):
     def test_empty_answer(self):
         svc = self._make_svc()
         ok, factor = svc._check_classique_text_answer(
-            "", "Title", {"artist_name": "Artist", "track_name": "Title"},
+            "",
+            "Title",
+            {"artist_name": "Artist", "track_name": "Title"},
         )
         assert ok is False
 
@@ -245,10 +281,12 @@ class TestGameServiceCalculateScore(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.games.services import game_service
+
         return game_service
 
     def _make_svc(self):
         from apps.games.services.game_service import GameService
+
         return GameService()
 
     def test_zero_accuracy(self):
@@ -278,23 +316,29 @@ class TestGameServiceRoundHelpers(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.games.services import game_service
+
         return game_service
 
     def _make_svc(self):
         from apps.games.services.game_service import GameService
+
         return GameService()
 
     def test_get_current_round(self):
         svc = self._make_svc()
         game = MagicMock()
-        game.rounds.filter.return_value.order_by.return_value.first.return_value = MagicMock()
+        game.rounds.filter.return_value.order_by.return_value.first.return_value = (
+            MagicMock()
+        )
         result = svc.get_current_round(game)
         assert result is not None
 
     def test_get_next_round(self):
         svc = self._make_svc()
         game = MagicMock()
-        game.rounds.filter.return_value.order_by.return_value.first.return_value = MagicMock()
+        game.rounds.filter.return_value.order_by.return_value.first.return_value = (
+            MagicMock()
+        )
         result = svc.get_next_round(game)
         assert result is not None
 
@@ -319,10 +363,12 @@ class TestGameServiceSubmitAnswer(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.games.services import game_service
+
         return game_service
 
     def _make_svc(self):
         from apps.games.services.game_service import GameService
+
         return GameService()
 
     @patch("apps.games.services.game_service.SCORES_EARNED")
@@ -330,7 +376,9 @@ class TestGameServiceSubmitAnswer(BaseServiceUnitTest):
     @patch("apps.games.services.game_service.ANSWERS_TOTAL")
     @patch("apps.games.services.game_service.GameAnswer")
     @patch("apps.games.services.game_service.GamePlayer")
-    def test_submit_correct_answer(self, mock_gp, mock_ga, mock_ans_total, mock_ans_rt, mock_scores):
+    def test_submit_correct_answer(
+        self, mock_gp, mock_ga, mock_ans_total, mock_ans_rt, mock_scores
+    ):
         svc = self._make_svc()
         player = MagicMock(consecutive_correct=0, pk=1)
         round_obj = MagicMock(
@@ -343,7 +391,7 @@ class TestGameServiceSubmitAnswer(BaseServiceUnitTest):
         mock_ga.objects.filter.return_value.count.return_value = 0
         mock_ga.objects.create.return_value = MagicMock()
 
-        result = svc.submit_answer.__wrapped__(svc, player, round_obj, "Song1", 2.5)
+        svc.submit_answer.__wrapped__(svc, player, round_obj, "Song1", 2.5)
         mock_ga.objects.create.assert_called_once()
 
     @patch("apps.games.services.game_service.SCORES_EARNED")
@@ -352,7 +400,9 @@ class TestGameServiceSubmitAnswer(BaseServiceUnitTest):
     @patch("apps.shop.models.GameBonus")
     @patch("apps.games.services.game_service.GameAnswer")
     @patch("apps.games.services.game_service.GamePlayer")
-    def test_submit_wrong_answer(self, mock_gp, mock_ga, mock_gb, mock_ans_total, mock_ans_rt, mock_scores):
+    def test_submit_wrong_answer(
+        self, mock_gp, mock_ga, mock_gb, mock_ans_total, mock_ans_rt, mock_scores
+    ):
         svc = self._make_svc()
         player = MagicMock(consecutive_correct=3, pk=1)
         round_obj = MagicMock(
@@ -365,7 +415,7 @@ class TestGameServiceSubmitAnswer(BaseServiceUnitTest):
         mock_ga.objects.create.return_value = MagicMock()
         mock_gb.objects.filter.return_value.exists.return_value = False
 
-        result = svc.submit_answer.__wrapped__(svc, player, round_obj, "Wrong", 2.5)
+        svc.submit_answer.__wrapped__(svc, player, round_obj, "Wrong", 2.5)
 
         assert player.consecutive_correct == 0
 
@@ -375,10 +425,12 @@ class TestGameServiceFinishGame(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.games.services import game_service
+
         return game_service
 
     def _make_svc(self):
         from apps.games.services.game_service import GameService
+
         return GameService()
 
     @patch("apps.games.services.game_service.GAMES_ACTIVE")
@@ -387,11 +439,19 @@ class TestGameServiceFinishGame(BaseServiceUnitTest):
     @patch("apps.games.services.game_service.GameAnswer")
     @patch("apps.games.services.game_service.Game")
     @patch("apps.games.services.game_service.GamePlayer")
-    def test_finish_game(self, mock_gp, mock_game_cls, mock_ga, mock_check,
-                         mock_finished_total, mock_active):
+    def test_finish_game(
+        self,
+        mock_gp,
+        mock_game_cls,
+        mock_ga,
+        mock_check,
+        mock_finished_total,
+        mock_active,
+    ):
         svc = self._make_svc()
-        game = MagicMock(status="in_progress", mode="classique", pk=1,
-                         host_id=10, num_rounds=5)
+        game = MagicMock(
+            status="in_progress", mode="classique", pk=1, host_id=10, num_rounds=5
+        )
         mock_game_cls.objects.select_for_update.return_value.get.return_value = game
 
         player1 = MagicMock(score=100, pk=1, user_id=10)
@@ -399,7 +459,7 @@ class TestGameServiceFinishGame(BaseServiceUnitTest):
         game.players.order_by.return_value = [player1, player2]
         game.rounds.count.return_value = 5
 
-        mock_ga.objects.filter.return_value.order_by.return_value.values_list.return_value = [
+        mock_ga.objects.filter.return_value.order_by.return_value.values_list.return_value = [  # noqa: E501
             (1, True, 2.0),
             (2, False, 5.0),
         ]
@@ -415,7 +475,9 @@ class TestGameServiceFinishGame(BaseServiceUnitTest):
         svc = self._make_svc()
         game = MagicMock(status="finished", pk=1)
         finished_game = MagicMock(status="finished")
-        mock_game_cls.objects.select_for_update.return_value.get.return_value = finished_game
+        mock_game_cls.objects.select_for_update.return_value.get.return_value = (
+            finished_game
+        )
         result = svc.finish_game.__wrapped__(svc, game)
         assert result.status == "finished"
 
@@ -425,10 +487,12 @@ class TestGameServiceHelpers(BaseServiceUnitTest):
 
     def get_service_module(self):
         from apps.games.services import game_service
+
         return game_service
 
     def test_effective_round_duration_karaoke_with_video(self):
         from apps.games.services.game_service import GameService
+
         result = GameService._effective_round_duration(
             {"extra_data": {"video_duration_ms": 180000}}, True, 30
         )
@@ -437,33 +501,44 @@ class TestGameServiceHelpers(BaseServiceUnitTest):
     def test_effective_round_duration_karaoke_no_video(self):
         from apps.games.services.game_service import GameService
         from apps.games.services.scoring import KARAOKE_FALLBACK_DURATION
+
         result = GameService._effective_round_duration({"extra_data": {}}, True, 30)
         assert result == KARAOKE_FALLBACK_DURATION
 
     def test_effective_round_duration_normal(self):
         from apps.games.services.game_service import GameService
+
         result = GameService._effective_round_duration({}, False, 30)
         assert result == 30
 
     def test_build_extra_data(self):
         from apps.games.services.game_service import GameService
+
         game = MagicMock(mode="classique", answer_mode="mcq", guess_target="title")
-        q = {"extra_data": {}, "artist_name": "Art", "track_name": "Track", "album_image": "img"}
+        q = {
+            "extra_data": {},
+            "artist_name": "Art",
+            "track_name": "Track",
+            "album_image": "img",
+        }
         result = GameService._build_extra_data(q, game)
         assert result["album_image"] == "img"
         assert result["round_mode"] == "classique"
 
     def test_resolve_options_mcq(self):
         from apps.games.services.game_service import GameService
+
         result = GameService._resolve_options({"options": ["a", "b"]}, False, False)
         assert result == ["a", "b"]
 
     def test_resolve_options_karaoke(self):
         from apps.games.services.game_service import GameService
+
         result = GameService._resolve_options({"options": ["a"]}, True, False)
         assert result == []
 
     def test_resolve_options_text(self):
         from apps.games.services.game_service import GameService
+
         result = GameService._resolve_options({"options": ["a"]}, False, True)
         assert result == []

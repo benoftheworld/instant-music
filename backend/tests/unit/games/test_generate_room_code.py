@@ -1,6 +1,6 @@
 """Tests unitaires de generate_room_code et _maintenance_response_if_needed."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from tests.base import BaseUnitTest
 
@@ -10,6 +10,7 @@ class TestGenerateRoomCode(BaseUnitTest):
 
     def get_target_class(self):
         from apps.games.views.utils import generate_room_code
+
         return type(generate_room_code)
 
     @patch("apps.games.views.utils.Game")

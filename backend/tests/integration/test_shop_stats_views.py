@@ -38,6 +38,7 @@ class TestShopViews(BaseAPIIntegrationTest):
     def test_purchase_nonexistent_item(self, auth_client):
         """Achat d'un article inexistant → 400."""
         import uuid
+
         resp = auth_client.post(
             f"{self.get_base_url()}purchase/",
             {"item_id": str(uuid.uuid4()), "quantity": 1},
@@ -127,12 +128,14 @@ class TestStatsViews(BaseAPIIntegrationTest):
     def test_user_public_stats_not_found(self, auth_client):
         """Statistiques d'un utilisateur inexistant → 404."""
         import uuid
+
         resp = auth_client.get(f"{self.get_base_url()}user/{uuid.uuid4()}/")
         self.assert_status(resp, status.HTTP_404_NOT_FOUND)
 
     def test_user_public_stats_superuser_hidden(self, auth_client, staff_user):
         """Profil public d'un superuser → 404."""
         from apps.users.models import User
+
         su = User.objects.create_superuser(
             username="admin_hidden", email="admin@test.com", password="pass"
         )

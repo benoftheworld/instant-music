@@ -26,7 +26,9 @@ class TestParseVideoTitle(BaseUnitTest):
         assert track == "Umbrella"
 
     def test_pipe_separator(self):
-        artist, track = YouTubeService._parse_video_title("Pink Floyd | Comfortably Numb")
+        artist, track = YouTubeService._parse_video_title(
+            "Pink Floyd | Comfortably Numb"
+        )
         assert artist == "Pink Floyd"
         assert track == "Comfortably Numb"
 

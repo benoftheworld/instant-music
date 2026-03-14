@@ -12,7 +12,7 @@ class TestUserSearch(BaseAPIIntegrationTest):
 
     def test_search_finds_user(self):
         user = UserFactory(username="searcher")
-        target = UserFactory(username="findme")
+        UserFactory(username="findme")
         client = self.get_auth_client(user)
         resp = client.get(self.get_base_url(), {"q": "findme"})
         self.assert_status(resp, 200)

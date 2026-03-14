@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from apps.core.middleware import PrometheusMetricsMiddleware, _normalize_path
+from apps.core.middleware import PrometheusMetricsMiddleware
 from tests.base import BaseUnitTest
 
 

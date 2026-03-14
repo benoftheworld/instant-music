@@ -4,7 +4,7 @@ import json
 import time
 from unittest.mock import MagicMock, patch
 
-from apps.administration.middleware import MaintenanceMiddleware, _EXCLUDED_PREFIXES
+from apps.administration.middleware import _EXCLUDED_PREFIXES, MaintenanceMiddleware
 from tests.base import BaseUnitTest
 
 
@@ -152,9 +152,7 @@ class TestMaintenanceMiddleware(BaseUnitTest):
         MaintenanceMiddleware._cache_ts = time.monotonic()  # vient d'être mis à jour
 
         # Ne devrait pas appeler get_solo
-        with patch(
-            "apps.administration.models.SiteConfiguration"
-        ) as mock_config:
+        with patch("apps.administration.models.SiteConfiguration") as mock_config:
             self.middleware._refresh_cache()
             mock_config.get_solo.assert_not_called()
 

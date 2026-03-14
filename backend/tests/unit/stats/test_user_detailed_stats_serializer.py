@@ -13,10 +13,18 @@ class TestUserDetailedStatsSerializer(BaseSerializerUnitTest):
     def test_fields(self):
         serializer = UserDetailedStatsSerializer()
         expected = {
-            "total_games_played", "total_wins", "total_points", "win_rate",
-            "avg_score_per_game", "best_score", "total_correct_answers",
-            "total_answers", "accuracy", "avg_response_time",
-            "achievements_unlocked", "achievements_total",
+            "total_games_played",
+            "total_wins",
+            "total_points",
+            "win_rate",
+            "avg_score_per_game",
+            "best_score",
+            "total_correct_answers",
+            "total_answers",
+            "accuracy",
+            "avg_response_time",
+            "achievements_unlocked",
+            "achievements_total",
         }
         assert set(serializer.fields.keys()) == expected
 

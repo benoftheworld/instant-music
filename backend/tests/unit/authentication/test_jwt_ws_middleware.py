@@ -1,7 +1,8 @@
 """Tests du JwtWebSocketMiddleware."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from tests.base import BaseServiceUnitTest
 
@@ -11,6 +12,7 @@ class TestExtractToken(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.authentication.jwt_ws_middleware
+
         return apps.authentication.jwt_ws_middleware
 
     def test_extracts_token(self):
@@ -30,7 +32,7 @@ class TestExtractToken(BaseServiceUnitTest):
     def test_no_query_string_returns_none(self):
         from apps.authentication.jwt_ws_middleware import JwtWebSocketMiddleware
 
-        scope = {}
+        scope: dict[str, bytes] = {}
         result = JwtWebSocketMiddleware._extract_token(scope)
         assert result is None
 
@@ -47,7 +49,9 @@ class TestJwtMiddlewareCall(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.authentication.jwt_ws_middleware
+
         return apps.authentication.jwt_ws_middleware
+
     @pytest.mark.asyncio
     async def test_non_websocket_passthrough(self):
         from apps.authentication.jwt_ws_middleware import JwtWebSocketMiddleware
@@ -67,9 +71,7 @@ class TestJwtMiddlewareCall(BaseServiceUnitTest):
         mock_send = AsyncMock()
         scope = {"type": "websocket", "query_string": b"", "path": "/ws/test/"}
         await middleware(scope, AsyncMock(), mock_send)
-        mock_send.assert_called_once_with(
-            {"type": "websocket.close", "code": 4003}
-        )
+        mock_send.assert_called_once_with({"type": "websocket.close", "code": 4003})
         mock_inner.assert_not_called()
 
     @pytest.mark.asyncio
@@ -85,9 +87,7 @@ class TestJwtMiddlewareCall(BaseServiceUnitTest):
             "path": "/ws/test/",
         }
         await middleware(scope, AsyncMock(), mock_send)
-        mock_send.assert_called_once_with(
-            {"type": "websocket.close", "code": 4003}
-        )
+        mock_send.assert_called_once_with({"type": "websocket.close", "code": 4003})
 
     @pytest.mark.asyncio
     @patch("apps.authentication.jwt_ws_middleware.AccessToken")

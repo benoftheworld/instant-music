@@ -1,3 +1,4 @@
+
 """Tests unitaires de YouTubeService."""
 
 from unittest.mock import MagicMock, patch
@@ -29,7 +30,7 @@ class TestYouTubeServiceMakeRequest(BaseUnitTest):
         self.service.api_key = ""
         try:
             self.service._make_request("search", {})
-            assert False, "Expected YouTubeAPIError"
+            pytest.fail("Expected YouTubeAPIError")
         except YouTubeAPIError as e:
             assert "not configured" in str(e)
 

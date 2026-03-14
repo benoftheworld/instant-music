@@ -19,7 +19,9 @@ class TestCheckRoundDataConditions(BaseUnitTest):
         assert _check_perfect_round(None, 0, None, None, {"perfect_game": True}) is True
 
     def test_not_perfect(self):
-        assert _check_perfect_round(None, 0, None, None, {"perfect_game": False}) is False
+        assert (
+            _check_perfect_round(None, 0, None, None, {"perfect_game": False}) is False
+        )
 
     def test_no_round_data(self):
         assert _check_perfect_round(None, 0, None, None, None) is False
@@ -53,7 +55,9 @@ class TestCheckRoundDataConditions(BaseUnitTest):
         assert _check_dominant_win(None, 0, None, None, {"dominant_win": True}) is True
 
     def test_dominant_win_false(self):
-        assert _check_dominant_win(None, 0, None, None, {"dominant_win": False}) is False
+        assert (
+            _check_dominant_win(None, 0, None, None, {"dominant_win": False}) is False
+        )
 
     def test_dominant_win_no_data(self):
         assert _check_dominant_win(None, 0, None, None, None) is False

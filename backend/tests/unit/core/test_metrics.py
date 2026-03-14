@@ -10,10 +10,14 @@ class TestMetricsAllowedIp(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.core.metrics
+
         return apps.core.metrics
 
     @patch("apps.core.metrics.generate_latest", return_value=b"metric 1")
-    @patch.dict("os.environ", {"ALLOWED_METRICS_IPS": "127.0.0.1", "PROMETHEUS_MULTIPROC_DIR": ""})
+    @patch.dict(
+        "os.environ",
+        {"ALLOWED_METRICS_IPS": "127.0.0.1", "PROMETHEUS_MULTIPROC_DIR": ""},
+    )
     def test_allowed_ip(self, mock_gen):
         from apps.core.metrics import metrics
 
@@ -34,7 +38,10 @@ class TestMetricsAllowedIp(BaseServiceUnitTest):
         assert response.status_code == 403
 
     @patch("apps.core.metrics.generate_latest", return_value=b"metric 1")
-    @patch.dict("os.environ", {"ALLOWED_METRICS_IPS": "127.0.0.1", "PROMETHEUS_MULTIPROC_DIR": ""})
+    @patch.dict(
+        "os.environ",
+        {"ALLOWED_METRICS_IPS": "127.0.0.1", "PROMETHEUS_MULTIPROC_DIR": ""},
+    )
     def test_staff_user_allowed(self, mock_gen):
         from apps.core.metrics import metrics
 
@@ -45,7 +52,10 @@ class TestMetricsAllowedIp(BaseServiceUnitTest):
         assert response.status_code == 200
 
     @patch("apps.core.metrics.generate_latest", return_value=b"metric 1")
-    @patch.dict("os.environ", {"ALLOWED_METRICS_IPS": "10.0.0.0/8", "PROMETHEUS_MULTIPROC_DIR": ""})
+    @patch.dict(
+        "os.environ",
+        {"ALLOWED_METRICS_IPS": "10.0.0.0/8", "PROMETHEUS_MULTIPROC_DIR": ""},
+    )
     def test_cidr_range(self, mock_gen):
         from apps.core.metrics import metrics
 

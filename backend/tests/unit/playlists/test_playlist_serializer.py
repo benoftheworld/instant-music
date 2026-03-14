@@ -13,8 +13,13 @@ class TestPlaylistSerializer(BaseSerializerUnitTest):
     def test_fields(self):
         serializer = PlaylistSerializer()
         expected = {
-            "playlist_id", "name", "description", "image_url",
-            "total_tracks", "owner", "external_url",
+            "playlist_id",
+            "name",
+            "description",
+            "image_url",
+            "total_tracks",
+            "owner",
+            "external_url",
         }
         assert set(serializer.fields.keys()) == expected
 

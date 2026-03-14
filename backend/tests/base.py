@@ -5,7 +5,6 @@ afin de mutualiser les helpers et réduire la duplication de code.
 """
 
 from abc import ABC, abstractmethod
-from unittest.mock import MagicMock
 
 from rest_framework.test import APIClient
 
@@ -95,8 +94,7 @@ class BaseUnitTest(ABC):
         """Vérifie la contrainte unique_together."""
         unique_together = model_class._meta.unique_together
         assert tuple(expected_fields) in unique_together, (
-            f"unique_together {expected_fields} non trouvé. "
-            f"Actuel : {unique_together}"
+            f"unique_together {expected_fields} non trouvé. Actuel : {unique_together}"
         )
 
     def assert_ordering(self, model_class, expected_ordering: list):
@@ -108,9 +106,7 @@ class BaseUnitTest(ABC):
     def assert_verbose_name(self, model_class, expected: str):
         """Vérifie le verbose_name du modèle."""
         actual = str(model_class._meta.verbose_name)
-        assert actual == expected, (
-            f"verbose_name = '{actual}', attendu '{expected}'"
-        )
+        assert actual == expected, f"verbose_name = '{actual}', attendu '{expected}'"
 
 
 class BaseModelUnitTest(BaseUnitTest):
@@ -129,6 +125,7 @@ class BaseModelUnitTest(BaseUnitTest):
     def assert_model_has_uuid_pk(self):
         """Vérifie que le modèle utilise un UUID comme PK."""
         from django.db import models
+
         pk_field = self.get_model_class()._meta.pk
         assert isinstance(pk_field, models.UUIDField), (
             f"PK de type {type(pk_field).__name__}, attendu UUIDField"
@@ -171,7 +168,7 @@ class BaseSerializerUnitTest(BaseUnitTest):
     def assert_invalid_data(
         self, data: dict, expected_field: str, context: dict | None = None
     ):
-        """Vérifie que les données sont invalides et que l'erreur est sur le bon champ."""
+        """Vérifie données invalides et erreur sur bon champ."""
         ctx = context or {}
         serializer = self.get_serializer_class()(data=data, context=ctx)
         assert not serializer.is_valid(), "Données attendues invalides mais validées"
@@ -197,7 +194,9 @@ class BaseSerializerUnitTest(BaseUnitTest):
         """Vérifie qu'un champ n'est pas required."""
         serializer = self.get_serializer_class()()
         field = serializer.fields[field_name]
-        assert not field.required, f"Le champ '{field_name}' ne devrait pas être required"
+        assert not field.required, (
+            f"Le champ '{field_name}' ne devrait pas être required"
+        )
 
 
 class BaseServiceUnitTest(BaseUnitTest):
@@ -254,7 +253,8 @@ class BaseIntegrationTest(ABC):
         data = response.json() if hasattr(response, "json") else response.data
         for key in expected_keys:
             assert key in data, (
-                f"Clé '{key}' absente de la réponse. Clés présentes : {list(data.keys())}"
+                f"Clé '{key}' absente de la réponse."
+                f" Clés présentes : {list(data.keys())}"
             )
 
     def assert_json_value(self, response, key: str, expected_value):
@@ -307,9 +307,7 @@ class BaseAPIIntegrationTest(BaseIntegrationTest):
         self.assert_status(response, expected_status)
         return response
 
-    def assert_create_failure(
-        self, client, data: dict, expected_status: int = 400
-    ):
+    def assert_create_failure(self, client, data: dict, expected_status: int = 400):
         """Vérifie qu'une création échoue."""
         response = client.post(self.get_base_url(), data, format="json")
         self.assert_status(response, expected_status)

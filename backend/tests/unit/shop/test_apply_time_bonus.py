@@ -48,7 +48,5 @@ class TestApplyTimeBonus(BaseUnitTest):
         round_obj.round_number = 1
         round_obj.game = MagicMock()
 
-        result = self.service.apply_time_bonus(
-            player=MagicMock(), round_obj=round_obj
-        )
+        result = self.service.apply_time_bonus(player=MagicMock(), round_obj=round_obj)
         assert result == 30 + BonusService.TIME_BONUS_SECONDS

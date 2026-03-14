@@ -11,6 +11,7 @@ class TestRecalculateUserStats(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.users.management.commands.recalculate_user_stats
+
         return apps.users.management.commands.recalculate_user_stats
 
     @patch("apps.users.management.commands.recalculate_user_stats.GamePlayer")
@@ -21,11 +22,13 @@ class TestRecalculateUserStats(BaseServiceUnitTest):
         mock_u = MagicMock(username="alice")
         mock_user.objects.all.return_value = [mock_u]
 
-        # Setup the chain: filter().count(), filter().filter().count(), filter().aggregate()
+        # Setup the chain:\n        # filter().count(), filter().filter().count(), filter().aggregate()
         mock_qs = MagicMock()
         mock_qs.count.return_value = 10
         mock_qs.filter.return_value.count.return_value = 3
-        mock_qs.filter.return_value.aggregate.return_value = {"total": 5000}
+        mock_qs.filter.return_value.aggregate.return_value = {
+            "total": 5000,
+        }
         mock_gp.objects.filter.return_value = mock_qs
 
         cmd = Command()
@@ -43,6 +46,7 @@ class TestRecalculateTeamStats(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.users.management.commands.recalculate_team_stats
+
         return apps.users.management.commands.recalculate_team_stats
 
     @patch("apps.users.management.commands.recalculate_team_stats.GamePlayer")
@@ -56,8 +60,12 @@ class TestRecalculateTeamStats(BaseServiceUnitTest):
 
         # The ORM chain returns mock queryset
         mock_qs = MagicMock()
-        mock_qs.values.return_value.distinct.return_value.count.return_value = 10
-        mock_qs.filter.return_value.values.return_value.distinct.return_value.count.return_value = 3
+        mock_qs.values.return_value.distinct.return_value.count.return_value = (
+            10
+        )
+        mock_qs.filter.return_value.values.return_value.distinct.return_value.count.return_value = (  # noqa: E501
+            3
+        )
         mock_qs.filter.return_value.aggregate.return_value = {"s": 5000}
         mock_gp.objects.filter.return_value = mock_qs
 

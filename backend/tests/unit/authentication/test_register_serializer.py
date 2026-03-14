@@ -1,6 +1,7 @@
+
 """Tests unitaires du RegisterSerializer."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from apps.authentication.serializers import RegisterSerializer
 from tests.base import BaseSerializerUnitTest
@@ -25,7 +26,13 @@ class TestRegisterSerializer(BaseSerializerUnitTest):
 
     def test_fields(self):
         serializer = RegisterSerializer()
-        expected = {"username", "email", "password", "password2", "accept_privacy_policy"}
+        expected = {
+            "username",
+            "email",
+            "password",
+            "password2",
+            "accept_privacy_policy",
+        }
         assert set(serializer.fields.keys()) == expected
 
     def test_password_write_only(self):
@@ -41,9 +48,10 @@ class TestRegisterSerializer(BaseSerializerUnitTest):
     def test_privacy_policy_false_calls_validator(self):
         serializer = RegisterSerializer()
         from rest_framework import serializers as drf
+
         try:
             serializer.validate_accept_privacy_policy(False)
-            assert False, "Should have raised"
+            pytest.fail("Should have raised")
         except drf.ValidationError:
             pass
 
@@ -60,9 +68,10 @@ class TestRegisterSerializer(BaseSerializerUnitTest):
         mock_user.objects.filter.return_value.exists.return_value = True
         serializer = RegisterSerializer()
         from rest_framework import serializers as drf
+
         try:
             serializer.validate_email("test@example.com")
-            assert False, "Should have raised"
+            pytest.fail("Should have raised")
         except drf.ValidationError:
             pass
 
@@ -77,8 +86,9 @@ class TestRegisterSerializer(BaseSerializerUnitTest):
     def test_validate_passwords_differ(self):
         serializer = RegisterSerializer()
         from rest_framework import serializers as drf
+
         try:
             serializer.validate({"password": "abc", "password2": "xyz"})
-            assert False, "Should have raised"
+            pytest.fail("Should have raised")
         except drf.ValidationError as e:
             assert "password" in str(e.detail)

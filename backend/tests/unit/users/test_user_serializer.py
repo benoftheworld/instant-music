@@ -13,17 +13,32 @@ class TestUserSerializer(BaseSerializerUnitTest):
     def test_fields(self):
         serializer = UserSerializer()
         expected = {
-            "id", "username", "email", "avatar", "is_staff",
-            "total_games_played", "total_wins", "total_points",
-            "coins_balance", "win_rate", "created_at", "updated_at",
+            "id",
+            "username",
+            "email",
+            "avatar",
+            "is_staff",
+            "total_games_played",
+            "total_wins",
+            "total_points",
+            "coins_balance",
+            "win_rate",
+            "created_at",
+            "updated_at",
         }
         assert set(serializer.fields.keys()) == expected
 
     def test_read_only_fields(self):
         serializer = UserSerializer()
         read_only = {
-            "id", "is_staff", "total_games_played", "total_wins",
-            "total_points", "coins_balance", "created_at", "updated_at",
+            "id",
+            "is_staff",
+            "total_games_played",
+            "total_wins",
+            "total_points",
+            "coins_balance",
+            "created_at",
+            "updated_at",
         }
         for field_name in read_only:
             assert serializer.fields[field_name].read_only is True, (

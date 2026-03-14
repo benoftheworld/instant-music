@@ -36,7 +36,7 @@ class TestShopPurchase(BaseAPIIntegrationTest):
         client = self.get_auth_client(user)
         resp = client.post(
             self.get_base_url(),
-            {"item_id": str(item.id), "quantity": 1},
+            {"item_id": str(item.id), "quantity": 1},  # type: ignore[attr-defined]
             format="json",
         )
         self.assert_status(resp, 402)
@@ -47,7 +47,7 @@ class TestShopPurchase(BaseAPIIntegrationTest):
         client = self.get_auth_client(user)
         resp = client.post(
             self.get_base_url(),
-            {"item_id": str(item.id), "quantity": 1},
+            {"item_id": str(item.id), "quantity": 1},  # type: ignore[attr-defined]
             format="json",
         )
         self.assert_status(resp, 201)

@@ -20,6 +20,7 @@ class TestValidateAvatar(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.users.validators
+
         return apps.users.validators
 
     # ── Constantes ──────────────────────────────────────────────────
@@ -28,12 +29,12 @@ class TestValidateAvatar(BaseServiceUnitTest):
         assert MAX_AVATAR_SIZE == 5 * 1024 * 1024
 
     def test_allowed_types(self):
-        assert ALLOWED_AVATAR_TYPES == {
+        assert {
             "image/jpeg",
             "image/png",
             "image/webp",
             "image/gif",
-        }
+        } == ALLOWED_AVATAR_TYPES
 
     # ── Taille ──────────────────────────────────────────────────────
 

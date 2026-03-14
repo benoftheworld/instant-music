@@ -35,8 +35,10 @@ class TestUserManager(BaseModelUnitTest):
         with patch.object(User.objects, "create_user"):
             try:
                 User.objects.create_superuser(
-                    username="admin", email="admin@test.com",
-                    password="pass", is_staff=False
+                    username="admin",
+                    email="admin@test.com",
+                    password="pass",
+                    is_staff=False,
                 )
             except ValueError as e:
                 assert "is_staff=True" in str(e)
@@ -46,8 +48,10 @@ class TestUserManager(BaseModelUnitTest):
         with patch.object(User.objects, "create_user"):
             try:
                 User.objects.create_superuser(
-                    username="admin", email="admin@test.com",
-                    password="pass", is_superuser=False
+                    username="admin",
+                    email="admin@test.com",
+                    password="pass",
+                    is_superuser=False,
                 )
             except ValueError as e:
                 assert "is_superuser=True" in str(e)

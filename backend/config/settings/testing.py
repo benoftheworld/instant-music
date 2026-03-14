@@ -1,4 +1,7 @@
-"""Settings for running tests — uses SQLite in-memory to avoid external DB dependency."""
+"""Settings for running tests.
+
+Uses SQLite in-memory to avoid external DB dependency.
+"""
 
 from .development import *  # noqa: F401, F403
 

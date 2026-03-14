@@ -5,10 +5,8 @@ from rest_framework import status
 
 from tests.base import BaseAPIIntegrationTest
 from tests.factories import (
-    GameAnswerFactory,
     GameFactory,
     GamePlayerFactory,
-    GameRoundFactory,
     UserFactory,
 )
 
@@ -24,17 +22,17 @@ class TestLeaderboardWithData(BaseAPIIntegrationTest):
         u1 = UserFactory()
         u2 = UserFactory()
         game = GameFactory(host=u1, status="finished")
-        gp1 = GamePlayerFactory(game=game, user=u1, score=200, rank=1)
-        gp2 = GamePlayerFactory(game=game, user=u2, score=100, rank=2)
+        GamePlayerFactory(game=game, user=u1, score=200, rank=1)
+        GamePlayerFactory(game=game, user=u2, score=100, rank=2)
         # Update user stats
-        u1.total_points = 200
-        u1.total_games_played = 1
-        u1.total_wins = 1
-        u1.save()
-        u2.total_points = 100
-        u2.total_games_played = 1
-        u2.total_wins = 0
-        u2.save()
+        u1.total_points = 200  # type: ignore[attr-defined]
+        u1.total_games_played = 1  # type: ignore[attr-defined]
+        u1.total_wins = 1  # type: ignore[attr-defined]
+        u1.save()  # type: ignore[attr-defined]
+        u2.total_points = 100  # type: ignore[attr-defined]
+        u2.total_games_played = 1  # type: ignore[attr-defined]
+        u2.total_wins = 0  # type: ignore[attr-defined]
+        u2.save()  # type: ignore[attr-defined]
         resp = api_client.get(self.get_base_url())
         self.assert_status(resp, status.HTTP_200_OK)
         results = resp.data.get("results", resp.data)
@@ -52,10 +50,10 @@ class TestLeaderboardByModeWithData(BaseAPIIntegrationTest):
     def test_leaderboard_mode_classic(self, api_client):
         u1 = UserFactory()
         game = GameFactory(host=u1, status="finished", mode="classic")
-        gp = GamePlayerFactory(game=game, user=u1, score=300, rank=1)
-        u1.total_points = 300
-        u1.total_games_played = 1
-        u1.save()
+        GamePlayerFactory(game=game, user=u1, score=300, rank=1)
+        u1.total_points = 300  # type: ignore[attr-defined]
+        u1.total_games_played = 1  # type: ignore[attr-defined]
+        u1.save()  # type: ignore[attr-defined]
         resp = api_client.get(f"{self.get_base_url()}classic/")
         self.assert_status(resp, status.HTTP_200_OK)
 
@@ -69,6 +67,7 @@ class TestTeamLeaderboardWithData(BaseAPIIntegrationTest):
 
     def test_team_leaderboard_with_data(self, api_client):
         from apps.users.models import Team, TeamMember
+
         owner = UserFactory()
         team = Team.objects.create(
             name="TestTeam", owner=owner, total_points=500, total_games=5, total_wins=3
@@ -93,7 +92,7 @@ class TestMyRankWithData(BaseAPIIntegrationTest):
 
     def test_my_rank_with_game_data(self, auth_client, user):
         game = GameFactory(host=user, status="finished", mode="classic")
-        gp = GamePlayerFactory(game=game, user=user, score=500, rank=1)
+        GamePlayerFactory(game=game, user=user, score=500, rank=1)
         user.total_points = 500
         user.total_games_played = 1
         user.save()

@@ -16,7 +16,7 @@ class TestDeleteAccount(BaseAPIIntegrationTest):
 
     def test_delete_account_success(self):
         user = UserFactory()
-        user_id = user.id
+        user_id = user.id  # type: ignore[attr-defined]
         client = self.get_auth_client(user)
         resp = client.delete(self.get_base_url())
         self.assert_status(resp, 200)

@@ -1,4 +1,4 @@
-"""Tests d'intégration — couverture branches manquantes vues lobby, round, shop, team."""
+"""Tests d'intégration — branches manquantes vues."""
 
 from unittest.mock import MagicMock, patch
 
@@ -72,7 +72,7 @@ class TestLobbyLeaveHost(BaseAPIIntegrationTest):
         GamePlayerFactory(game=game, user=user)
         resp = auth_client.post(f"{BASE}{game.room_code}/leave/")
         self.assert_status(resp, status.HTTP_200_OK)
-        game.refresh_from_db()
+        game.refresh_from_db()  # type: ignore[attr-defined]
         assert game.status == "cancelled"
         mock_bc.assert_called_once()
 
@@ -95,8 +95,11 @@ class TestLobbyStartPartyMode(BaseAPIIntegrationTest):
 
     def test_party_mode_no_players_except_host(self, auth_client, user):
         game = GameFactory(
-            host=user, status="waiting", is_party_mode=True,
-            is_online=True, playlist_id="123",
+            host=user,
+            status="waiting",
+            is_party_mode=True,
+            is_online=True,
+            playlist_id="123",
         )
         GamePlayerFactory(game=game, user=user)
         resp = auth_client.post(f"{BASE}{game.room_code}/start/")
@@ -110,8 +113,11 @@ class TestLobbyStartPartyMode(BaseAPIIntegrationTest):
         self, mock_brs, mock_bgs, mock_gs, auth_client, user
     ):
         game = GameFactory(
-            host=user, status="waiting", is_party_mode=True,
-            is_online=True, playlist_id="123",
+            host=user,
+            status="waiting",
+            is_party_mode=True,
+            is_online=True,
+            playlist_id="123",
         )
         GamePlayerFactory(game=game, user=user)
         other = UserFactory()
@@ -135,7 +141,9 @@ class TestLobbyStartBroadcasts(BaseAPIIntegrationTest):
     def test_start_broadcasts_both(
         self, mock_gs, mock_bgs, mock_brs, auth_client, user
     ):
-        game = GameFactory(host=user, status="waiting", is_online=False, playlist_id="123")
+        game = GameFactory(
+            host=user, status="waiting", is_online=False, playlist_id="123"
+        )
         GamePlayerFactory(game=game, user=user)
         round_obj = MagicMock()
         mock_gs.start_game.return_value = (game, [round_obj])
@@ -173,12 +181,15 @@ class TestNextRoundNoMoreRounds(BaseAPIIntegrationTest):
 
     def test_next_round_no_unstarted_round(self, auth_client, user):
         from django.utils import timezone
+
         game = GameFactory(host=user, status="in_progress")
         GamePlayerFactory(game=game, user=user)
         # All rounds already started
         GameRoundFactory(
-            game=game, round_number=1,
-            started_at=timezone.now(), ended_at=timezone.now()
+            game=game,
+            round_number=1,
+            started_at=timezone.now(),
+            ended_at=timezone.now(),
         )
         resp = auth_client.post(f"{BASE}{game.room_code}/next-round/")
         self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
@@ -203,9 +214,13 @@ class TestShopActivateBonusEdgeCases(BaseAPIIntegrationTest):
         game = GameFactory(host=user, status="in_progress")
         GamePlayerFactory(game=game, user=user)
         from django.utils import timezone
+
         round_obj = GameRoundFactory(
-            game=game, round_number=1, started_at=timezone.now(),
-            options=["A", "B", "C", "D"], correct_answer="A"
+            game=game,
+            round_number=1,
+            started_at=timezone.now(),
+            options=["A", "B", "C", "D"],
+            correct_answer="A",
         )
         mock_bs.resolve_round_number.return_value = (1, round_obj)
         bonus_mock = MagicMock()
@@ -223,8 +238,9 @@ class TestShopActivateBonusEdgeCases(BaseAPIIntegrationTest):
     @patch("apps.shop.views.bonus_service")
     def test_activate_steal_bonus(self, mock_bs, auth_client, user):
         game = GameFactory(host=user, status="in_progress")
-        gp = GamePlayerFactory(game=game, user=user, score=50)
+        GamePlayerFactory(game=game, user=user, score=50)
         from django.utils import timezone
+
         round_obj = GameRoundFactory(
             game=game, round_number=1, started_at=timezone.now()
         )
@@ -246,8 +262,12 @@ class TestShopActivateBonusEdgeCases(BaseAPIIntegrationTest):
         game = GameFactory(host=user, status="in_progress")
         GamePlayerFactory(game=game, user=user)
         from django.utils import timezone
+
         round_obj = GameRoundFactory(
-            game=game, round_number=1, started_at=timezone.now(), duration=30,
+            game=game,
+            round_number=1,
+            started_at=timezone.now(),
+            duration=30,
         )
         mock_bs.resolve_round_number.return_value = (1, round_obj)
         bonus_mock = MagicMock()
@@ -265,9 +285,11 @@ class TestShopActivateBonusEdgeCases(BaseAPIIntegrationTest):
     @patch("apps.shop.views.bonus_service")
     def test_activate_bonus_conflict(self, mock_bs, auth_client, user):
         from apps.shop.services import BonusAlreadyActiveError
+
         game = GameFactory(host=user, status="in_progress")
         GamePlayerFactory(game=game, user=user)
         from django.utils import timezone
+
         round_obj = GameRoundFactory(
             game=game, round_number=1, started_at=timezone.now()
         )
@@ -299,6 +321,7 @@ class TestTeamWsNotificationExceptions(BaseAPIIntegrationTest):
     @patch("apps.users.views.team_viewset.async_to_sync")
     def test_join_ws_exception(self, mock_ats, auth_client2, user, user2):
         from apps.users.models import Team, TeamMember
+
         team = Team.objects.create(name="TestTeam", owner=user)
         TeamMember.objects.create(team=team, user=user, role="owner")
         mock_ats.return_value = MagicMock(side_effect=Exception("WS fail"))
@@ -307,24 +330,40 @@ class TestTeamWsNotificationExceptions(BaseAPIIntegrationTest):
 
     @patch("apps.users.views.team_viewset.async_to_sync")
     def test_approve_ws_exception(self, mock_ats, auth_client, user, user2):
-        from apps.users.models import Team, TeamMember, TeamJoinRequest, TeamJoinRequestStatus
+        from apps.users.models import (
+            Team,
+            TeamJoinRequest,
+            TeamJoinRequestStatus,
+            TeamMember,
+        )
+
         team = Team.objects.create(name="TestTeam", owner=user)
         TeamMember.objects.create(team=team, user=user, role="owner")
-        req = TeamJoinRequest.objects.create(
+        TeamJoinRequest.objects.create(
             team=team, user=user2, status=TeamJoinRequestStatus.PENDING
         )
         mock_ats.return_value = MagicMock(side_effect=Exception("WS fail"))
-        resp = auth_client.post(f"{TEAM_BASE}{team.id}/approve/", {"user_id": str(user2.id)}, format="json")
+        resp = auth_client.post(
+            f"{TEAM_BASE}{team.id}/approve/", {"user_id": str(user2.id)}, format="json"
+        )
         self.assert_status(resp, status.HTTP_200_OK)
 
     @patch("apps.users.views.team_viewset.async_to_sync")
     def test_reject_ws_exception(self, mock_ats, auth_client, user, user2):
-        from apps.users.models import Team, TeamMember, TeamJoinRequest, TeamJoinRequestStatus
+        from apps.users.models import (
+            Team,
+            TeamJoinRequest,
+            TeamJoinRequestStatus,
+            TeamMember,
+        )
+
         team = Team.objects.create(name="TestTeam", owner=user)
         TeamMember.objects.create(team=team, user=user, role="owner")
-        req = TeamJoinRequest.objects.create(
+        TeamJoinRequest.objects.create(
             team=team, user=user2, status=TeamJoinRequestStatus.PENDING
         )
         mock_ats.return_value = MagicMock(side_effect=Exception("WS fail"))
-        resp = auth_client.post(f"{TEAM_BASE}{team.id}/reject/", {"user_id": str(user2.id)}, format="json")
+        resp = auth_client.post(
+            f"{TEAM_BASE}{team.id}/reject/", {"user_id": str(user2.id)}, format="json"
+        )
         self.assert_status(resp, status.HTTP_200_OK)

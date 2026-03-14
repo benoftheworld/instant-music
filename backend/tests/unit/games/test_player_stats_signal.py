@@ -10,12 +10,13 @@ class TestUpdatePlayerStats(BaseUnitTest):
 
     def get_target_class(self):
         from apps.games.signals import update_player_stats_on_game_finish
+
         return type(update_player_stats_on_game_finish)
 
     @patch("apps.games.signals.GamePlayer")
     def test_non_finished_game_skips(self, mock_gp):
-        from apps.games.signals import update_player_stats_on_game_finish
         from apps.games.models import GameStatus
+        from apps.games.signals import update_player_stats_on_game_finish
 
         instance = MagicMock()
         instance.status = GameStatus.WAITING
@@ -25,8 +26,8 @@ class TestUpdatePlayerStats(BaseUnitTest):
     @patch("django.contrib.auth.get_user_model")
     @patch("apps.games.signals.GamePlayer")
     def test_no_players_skips(self, mock_gp, mock_get_user):
-        from apps.games.signals import update_player_stats_on_game_finish
         from apps.games.models import GameStatus
+        from apps.games.signals import update_player_stats_on_game_finish
 
         instance = MagicMock()
         instance.status = GameStatus.FINISHED
@@ -37,15 +38,22 @@ class TestUpdatePlayerStats(BaseUnitTest):
     @patch("django.contrib.auth.get_user_model")
     @patch("apps.games.signals.GamePlayer")
     def test_updates_user_stats(self, mock_gp, mock_get_user):
-        from apps.games.signals import update_player_stats_on_game_finish
         from apps.games.models import GameStatus
+        from apps.games.signals import update_player_stats_on_game_finish
 
         instance = MagicMock()
         instance.status = GameStatus.FINISHED
         instance.players.values_list.return_value = ["uid1"]
 
-        stats_row = {"user_id": "uid1", "_total_games": 5, "_total_wins": 2, "_total_points": 100}
-        mock_gp.objects.filter.return_value.values.return_value.annotate.return_value = [stats_row]
+        stats_row = {
+            "user_id": "uid1",
+            "_total_games": 5,
+            "_total_wins": 2,
+            "_total_points": 100,
+        }
+        mock_gp.objects.filter.return_value.values.return_value.annotate.return_value = [  # noqa: E501
+            stats_row
+        ]
 
         User = MagicMock()
         mock_get_user.return_value = User

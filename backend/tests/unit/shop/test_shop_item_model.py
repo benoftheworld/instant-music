@@ -121,19 +121,19 @@ class TestShopItemModel(BaseModelUnitTest):
         """stock=None → toujours en stock."""
         item = MagicMock(spec=ShopItem)
         item.stock = None
-        assert ShopItem.is_in_stock.fget(item) is True
+        assert ShopItem.is_in_stock.fget(item) is True  # type: ignore[unused-ignore, attr-defined]
 
     def test_is_in_stock_positive(self):
-        """stock > 0 → en stock."""
+        """Stock > 0 → en stock."""
         item = MagicMock(spec=ShopItem)
         item.stock = 5
-        assert ShopItem.is_in_stock.fget(item) is True
+        assert ShopItem.is_in_stock.fget(item) is True  # type: ignore[unused-ignore, attr-defined]
 
     def test_is_in_stock_zero(self):
-        """stock = 0 → hors stock."""
+        """Stock = 0 → hors stock."""
         item = MagicMock(spec=ShopItem)
         item.stock = 0
-        assert ShopItem.is_in_stock.fget(item) is False
+        assert ShopItem.is_in_stock.fget(item) is False  # type: ignore[unused-ignore, attr-defined]
 
     # ── __str__ ─────────────────────────────────────────────────────
 

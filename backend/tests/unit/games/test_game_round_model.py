@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock
 
-from django.db import models
-
 from apps.games.models import GameRound
 from tests.base import BaseModelUnitTest
 

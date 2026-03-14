@@ -1,6 +1,7 @@
+
 """Tests unitaires de DeezerService."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from apps.playlists.deezer_service import DeezerAPIError, DeezerService
 from tests.base import BaseUnitTest
@@ -26,7 +27,7 @@ class TestDeezerServiceMakeRequest(BaseUnitTest):
         mock_get.return_value = {"error": {"message": "Quota exceeded"}}
         try:
             self.service._make_request("/search")
-            assert False, "Expected DeezerAPIError"
+            pytest.fail("Expected DeezerAPIError")
         except DeezerAPIError as e:
             assert "Quota exceeded" in str(e)
 

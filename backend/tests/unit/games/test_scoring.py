@@ -16,6 +16,7 @@ class TestScoringConstants(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.services.scoring
+
         return apps.games.services.scoring
 
     def test_base_points(self):

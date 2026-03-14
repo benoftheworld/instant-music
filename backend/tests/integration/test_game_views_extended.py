@@ -1,4 +1,4 @@
-"""Tests d'intégration approfondis des Game ViewSet mixins (round, lobby, invitation, results, discovery)."""
+"""Tests d'intégration approfondis des Game ViewSet mixins."""
 
 from datetime import timedelta
 from unittest.mock import patch
@@ -16,7 +16,6 @@ from tests.factories import (
     GameRoundFactory,
     UserFactory,
 )
-
 
 BASE = "/api/games/"
 
@@ -65,12 +64,13 @@ class TestCurrentRoundWithRounds(BaseAPIIntegrationTest):
         GamePlayerFactory(game=game, user=user)
         # Round 1 ended
         GameRoundFactory(
-            game=game, round_number=1, started_at=timezone.now(), ended_at=timezone.now()
+            game=game,
+            round_number=1,
+            started_at=timezone.now(),
+            ended_at=timezone.now(),
         )
         # Round 2 not started
-        GameRoundFactory(
-            game=game, round_number=2, started_at=None, ended_at=None
-        )
+        GameRoundFactory(game=game, round_number=2, started_at=None, ended_at=None)
         resp = auth_client.get(f"{BASE}{game.room_code}/current-round/")
         self.assert_status(resp, status.HTTP_200_OK)
         assert resp.data.get("next_round") is not None
@@ -85,8 +85,8 @@ class TestAnswerSubmission(BaseAPIIntegrationTest):
 
     def test_answer_success(self, auth_client, user):
         game = GameFactory(host=user, status="in_progress")
-        player = GamePlayerFactory(game=game, user=user)
-        round_obj = GameRoundFactory(
+        GamePlayerFactory(game=game, user=user)
+        GameRoundFactory(
             game=game,
             round_number=1,
             started_at=timezone.now(),
@@ -105,8 +105,12 @@ class TestAnswerSubmission(BaseAPIIntegrationTest):
         game = GameFactory(host=user, status="in_progress")
         player = GamePlayerFactory(game=game, user=user)
         round_obj = GameRoundFactory(
-            game=game, round_number=1, started_at=timezone.now(), ended_at=None,
-            correct_answer="A", options=["A", "B", "C", "D"],
+            game=game,
+            round_number=1,
+            started_at=timezone.now(),
+            ended_at=None,
+            correct_answer="A",
+            options=["A", "B", "C", "D"],
         )
         GameAnswerFactory(round=round_obj, player=player, answer="A")
         resp = auth_client.post(
@@ -129,7 +133,10 @@ class TestEndRound(BaseAPIIntegrationTest):
         game = GameFactory(host=user, status="in_progress")
         GamePlayerFactory(game=game, user=user)
         GameRoundFactory(
-            game=game, round_number=1, started_at=timezone.now(), ended_at=None,
+            game=game,
+            round_number=1,
+            started_at=timezone.now(),
+            ended_at=None,
             correct_answer="Song A",
         )
         resp = auth_client.post(f"{BASE}{game.room_code}/end-round/")
@@ -146,8 +153,10 @@ class TestEndRound(BaseAPIIntegrationTest):
         game = GameFactory(host=user, status="in_progress")
         GamePlayerFactory(game=game, user=user)
         GameRoundFactory(
-            game=game, round_number=1,
-            started_at=timezone.now(), ended_at=timezone.now(),
+            game=game,
+            round_number=1,
+            started_at=timezone.now(),
+            ended_at=timezone.now(),
         )
         # All rounds ended → get_current_round returns None → 400
         resp = auth_client.post(f"{BASE}{game.room_code}/end-round/")
@@ -158,7 +167,10 @@ class TestEndRound(BaseAPIIntegrationTest):
         GamePlayerFactory(game=game, user=user)
         GamePlayerFactory(game=game, user=user2)
         GameRoundFactory(
-            game=game, round_number=1, started_at=timezone.now(), ended_at=None,
+            game=game,
+            round_number=1,
+            started_at=timezone.now(),
+            ended_at=None,
         )
         resp = auth_client2.post(f"{BASE}{game.room_code}/end-round/")
         self.assert_status(resp, status.HTTP_403_FORBIDDEN)
@@ -177,11 +189,16 @@ class TestNextRound(BaseAPIIntegrationTest):
         game = GameFactory(host=user, status="in_progress")
         GamePlayerFactory(game=game, user=user)
         GameRoundFactory(
-            game=game, round_number=1,
-            started_at=timezone.now(), ended_at=timezone.now(),
+            game=game,
+            round_number=1,
+            started_at=timezone.now(),
+            ended_at=timezone.now(),
         )
         GameRoundFactory(
-            game=game, round_number=2, started_at=None, ended_at=None,
+            game=game,
+            round_number=2,
+            started_at=None,
+            ended_at=None,
         )
         resp = auth_client.post(f"{BASE}{game.room_code}/next-round/")
         self.assert_status(resp, status.HTTP_200_OK)
@@ -193,8 +210,10 @@ class TestNextRound(BaseAPIIntegrationTest):
         game = GameFactory(host=user, status="in_progress")
         GamePlayerFactory(game=game, user=user)
         GameRoundFactory(
-            game=game, round_number=1,
-            started_at=timezone.now(), ended_at=timezone.now(),
+            game=game,
+            round_number=1,
+            started_at=timezone.now(),
+            ended_at=timezone.now(),
         )
         # No more rounds → game should finish
         resp = auth_client.post(f"{BASE}{game.room_code}/next-round/")
@@ -299,7 +318,7 @@ class TestInviteSuccess(BaseAPIIntegrationTest):
     def test_invite_success(self, auth_client, user):
         game = GameFactory(host=user, status="waiting")
         GamePlayerFactory(game=game, user=user)
-        target = UserFactory(username="invitee")
+        UserFactory(username="invitee")
         resp = auth_client.post(
             f"{BASE}{game.room_code}/invite/",
             {"username": "invitee"},
@@ -310,7 +329,7 @@ class TestInviteSuccess(BaseAPIIntegrationTest):
     def test_invite_game_full(self, auth_client, user):
         game = GameFactory(host=user, status="waiting", max_players=1)
         GamePlayerFactory(game=game, user=user)
-        target = UserFactory(username="invitee2")
+        UserFactory(username="invitee2")
         resp = auth_client.post(
             f"{BASE}{game.room_code}/invite/",
             {"username": "invitee2"},
@@ -345,10 +364,10 @@ class TestAcceptDeclineInvitation(BaseAPIIntegrationTest):
             game=game, sender=user, recipient=user2, status="pending"
         )
         # Ensure not expired
-        invitation.expires_at = timezone.now() + timedelta(hours=1)
-        invitation.save(update_fields=["expires_at"])
+        invitation.expires_at = timezone.now() + timedelta(hours=1)  # type: ignore[attr-defined]
+        invitation.save(update_fields=["expires_at"])  # type: ignore[attr-defined]
 
-        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/accept/")
+        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/accept/")  # type: ignore[attr-defined]
         self.assert_status(resp, status.HTTP_200_OK)
         assert "room_code" in resp.data
 
@@ -358,10 +377,10 @@ class TestAcceptDeclineInvitation(BaseAPIIntegrationTest):
         invitation = GameInvitationFactory(
             game=game, sender=user, recipient=user2, status="pending"
         )
-        invitation.expires_at = timezone.now() - timedelta(hours=1)
-        invitation.save(update_fields=["expires_at"])
+        invitation.expires_at = timezone.now() - timedelta(hours=1)  # type: ignore[attr-defined]
+        invitation.save(update_fields=["expires_at"])  # type: ignore[attr-defined]
 
-        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/accept/")
+        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/accept/")  # type: ignore[attr-defined]
         self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
         assert "expiré" in resp.data["error"]
 
@@ -371,7 +390,7 @@ class TestAcceptDeclineInvitation(BaseAPIIntegrationTest):
         invitation = GameInvitationFactory(
             game=game, sender=user, recipient=user2, status="accepted"
         )
-        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/accept/")
+        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/accept/")  # type: ignore[attr-defined]
         self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
 
     def test_decline_invitation_success(self, auth_client2, user, user2):
@@ -379,7 +398,7 @@ class TestAcceptDeclineInvitation(BaseAPIIntegrationTest):
         invitation = GameInvitationFactory(
             game=game, sender=user, recipient=user2, status="pending"
         )
-        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/decline/")
+        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/decline/")  # type: ignore[attr-defined]
         self.assert_status(resp, status.HTTP_200_OK)
 
     def test_accept_game_not_waiting(self, auth_client2, user, user2):
@@ -388,9 +407,9 @@ class TestAcceptDeclineInvitation(BaseAPIIntegrationTest):
         invitation = GameInvitationFactory(
             game=game, sender=user, recipient=user2, status="pending"
         )
-        invitation.expires_at = timezone.now() + timedelta(hours=1)
-        invitation.save(update_fields=["expires_at"])
-        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/accept/")
+        invitation.expires_at = timezone.now() + timedelta(hours=1)  # type: ignore[attr-defined]
+        invitation.save(update_fields=["expires_at"])  # type: ignore[attr-defined]
+        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/accept/")  # type: ignore[attr-defined]
         self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
 
     def test_accept_game_full(self, auth_client2, user, user2):
@@ -399,9 +418,9 @@ class TestAcceptDeclineInvitation(BaseAPIIntegrationTest):
         invitation = GameInvitationFactory(
             game=game, sender=user, recipient=user2, status="pending"
         )
-        invitation.expires_at = timezone.now() + timedelta(hours=1)
-        invitation.save(update_fields=["expires_at"])
-        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/accept/")
+        invitation.expires_at = timezone.now() + timedelta(hours=1)  # type: ignore[attr-defined]
+        invitation.save(update_fields=["expires_at"])  # type: ignore[attr-defined]
+        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/accept/")  # type: ignore[attr-defined]
         self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
 
 
@@ -421,10 +440,15 @@ class TestResultsSuccess(BaseAPIIntegrationTest):
         game = GameFactory(host=user, status="finished")
         player = GamePlayerFactory(game=game, user=user, score=500)
         round_obj = GameRoundFactory(
-            game=game, round_number=1, started_at=timezone.now(), ended_at=timezone.now(),
+            game=game,
+            round_number=1,
+            started_at=timezone.now(),
+            ended_at=timezone.now(),
             correct_answer="Song A",
         )
-        GameAnswerFactory(round=round_obj, player=player, answer="Song A", is_correct=True)
+        GameAnswerFactory(
+            round=round_obj, player=player, answer="Song A", is_correct=True
+        )
         resp = auth_client.get(f"{BASE}{game.room_code}/results/")
         self.assert_status(resp, status.HTTP_200_OK)
         assert "game" in resp.data
@@ -435,9 +459,12 @@ class TestResultsSuccess(BaseAPIIntegrationTest):
     def test_results_pdf_success(self, mock_pdf, auth_client, user):
         mock_pdf.return_value = b"%PDF-1.4 fake content"
         game = GameFactory(host=user, status="finished")
-        player = GamePlayerFactory(game=game, user=user, score=500)
-        round_obj = GameRoundFactory(
-            game=game, round_number=1, started_at=timezone.now(), ended_at=timezone.now(),
+        GamePlayerFactory(game=game, user=user, score=500)
+        GameRoundFactory(
+            game=game,
+            round_number=1,
+            started_at=timezone.now(),
+            ended_at=timezone.now(),
         )
         resp = auth_client.get(f"{BASE}{game.room_code}/results/pdf/")
         assert resp.status_code == 200
@@ -464,13 +491,15 @@ class TestDiscoveryPublicGames(BaseAPIIntegrationTest):
         assert resp.data["results"]
 
     def test_public_games_search(self, auth_client, user):
-        game = GameFactory(host=user, status="waiting", is_public=True, name="UniqueGameName")
+        game = GameFactory(
+            host=user, status="waiting", is_public=True, name="UniqueGameName"
+        )
         GamePlayerFactory(game=game, user=user)
         resp = auth_client.get(f"{BASE}public/?search=UniqueGame")
         self.assert_status(resp, status.HTTP_200_OK)
 
     def test_history_with_data(self, api_client, user):
-        game = GameFactory(host=user, status="finished")
+        GameFactory(host=user, status="finished")
         resp = api_client.get(f"{BASE}history/")
         self.assert_status(resp, status.HTTP_200_OK)
 
@@ -567,7 +596,9 @@ class TestAnswerValueError(BaseAPIIntegrationTest):
     def test_answer_value_error(self, mock_current, mock_submit, auth_client, user):
         game = GameFactory(host=user, status="in_progress")
         GamePlayerFactory(game=game, user=user)
-        round_obj = GameRoundFactory(game=game, round_number=1, started_at=timezone.now())
+        round_obj = GameRoundFactory(
+            game=game, round_number=1, started_at=timezone.now()
+        )
         mock_current.return_value = round_obj
         mock_submit.side_effect = ValueError("Réponse invalide")
         resp = auth_client.post(
@@ -582,9 +613,7 @@ class TestAnswerValueError(BaseAPIIntegrationTest):
         """Round sans started_at → response_time = 0."""
         game = GameFactory(host=user, status="in_progress")
         GamePlayerFactory(game=game, user=user)
-        round_obj = GameRoundFactory(
-            game=game, round_number=1, started_at=None
-        )
+        round_obj = GameRoundFactory(game=game, round_number=1, started_at=None)
         mock_current.return_value = round_obj
         # Uses real submit_answer which will calculate response_time=0
         resp = auth_client.post(
@@ -603,11 +632,14 @@ class TestEndRoundBroadcastException(BaseAPIIntegrationTest):
     def get_base_url(self):
         return BASE
 
-    @patch("apps.games.views.game_round_mixin.broadcast_round_end", side_effect=RuntimeError("WS down"))
+    @patch(
+        "apps.games.views.game_round_mixin.broadcast_round_end",
+        side_effect=RuntimeError("WS down"),
+    )
     def test_end_round_broadcast_error(self, mock_broadcast, auth_client, user):
         game = GameFactory(host=user, status="in_progress")
         GamePlayerFactory(game=game, user=user)
-        round_obj = GameRoundFactory(
+        GameRoundFactory(
             game=game, round_number=1, started_at=timezone.now(), ended_at=None
         )
         resp = auth_client.post(f"{BASE}{game.room_code}/end-round/")
@@ -621,13 +653,20 @@ class TestNextRoundBroadcastException(BaseAPIIntegrationTest):
     def get_base_url(self):
         return BASE
 
-    @patch("apps.games.views.game_round_mixin.broadcast_round_end", side_effect=RuntimeError("WS err"))
+    @patch(
+        "apps.games.views.game_round_mixin.broadcast_round_end",
+        side_effect=RuntimeError("WS err"),
+    )
     @patch("apps.games.views.game_round_mixin.broadcast_game_finish")
-    def test_next_round_broadcast_error_continues(self, mock_finish, mock_end, auth_client, user):
+    def test_next_round_broadcast_error_continues(
+        self, mock_finish, mock_end, auth_client, user
+    ):
         game = GameFactory(host=user, status="in_progress")
         GamePlayerFactory(game=game, user=user)
         # Create a round that's active
-        GameRoundFactory(game=game, round_number=1, started_at=timezone.now(), ended_at=None)
+        GameRoundFactory(
+            game=game, round_number=1, started_at=timezone.now(), ended_at=None
+        )
         # No next round → should finish game
         resp = auth_client.post(f"{BASE}{game.room_code}/next-round/")
         self.assert_status(resp, status.HTTP_200_OK)
@@ -661,5 +700,5 @@ class TestInviteGameNotWaiting(BaseAPIIntegrationTest):
         invitation = GameInvitationFactory(
             game=game, sender=user, recipient=user2, status="accepted"
         )
-        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/decline/")
+        resp = auth_client2.post(f"{BASE}invitations/{invitation.id}/decline/")  # type: ignore[attr-defined]
         self.assert_status(resp, status.HTTP_400_BAD_REQUEST)

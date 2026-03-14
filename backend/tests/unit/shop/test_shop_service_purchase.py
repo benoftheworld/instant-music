@@ -1,9 +1,9 @@
+
 """Tests unitaires de ShopService.purchase."""
 
 from unittest.mock import MagicMock, patch
 
 from apps.shop.services import (
-    InsufficientCoinsError,
     ItemNotAvailableError,
     ShopService,
 )
@@ -22,13 +22,14 @@ class TestShopServicePurchase(BaseUnitTest):
     @patch("apps.shop.services.ShopItem")
     def test_item_not_found_raises(self, mock_item):
         from apps.shop.models import ShopItem
+
         mock_item.DoesNotExist = ShopItem.DoesNotExist
         mock_item.objects.select_for_update.return_value.get.side_effect = (
             ShopItem.DoesNotExist
         )
         try:
             self.service.purchase.__wrapped__(self.service, MagicMock(), "id1", 1)
-            assert False, "Expected ItemNotAvailableError"
+            pytest.fail("Expected ItemNotAvailableError")
         except ItemNotAvailableError:
             pass
 
@@ -38,7 +39,7 @@ class TestShopServicePurchase(BaseUnitTest):
         mock_item.objects.select_for_update.return_value.get.return_value = item
         try:
             self.service.purchase.__wrapped__(self.service, MagicMock(), "id1", 1)
-            assert False, "Expected ItemNotAvailableError"
+            pytest.fail("Expected ItemNotAvailableError")
         except ItemNotAvailableError:
             pass
 
@@ -48,6 +49,6 @@ class TestShopServicePurchase(BaseUnitTest):
         mock_item.objects.select_for_update.return_value.get.return_value = item
         try:
             self.service.purchase.__wrapped__(self.service, MagicMock(), "id1", 1)
-            assert False, "Expected ItemNotAvailableError"
+            pytest.fail("Expected ItemNotAvailableError")
         except ItemNotAvailableError:
             pass

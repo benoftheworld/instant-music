@@ -1,6 +1,6 @@
 """Tests unitaires de _build_leaderboard_entry."""
 
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 
 from tests.base import BaseUnitTest
 
@@ -10,6 +10,7 @@ class TestBuildLeaderboardEntry(BaseUnitTest):
 
     def get_target_class(self):
         from apps.stats.services import _build_leaderboard_entry
+
         return type(_build_leaderboard_entry)
 
     def _make_user(self, username="alice", has_team=True, has_avatar=True):
@@ -35,6 +36,7 @@ class TestBuildLeaderboardEntry(BaseUnitTest):
 
     def test_basic_entry(self):
         from apps.stats.services import _build_leaderboard_entry
+
         user = self._make_user()
         entry = _build_leaderboard_entry(1, user)
         assert entry["rank"] == 1
@@ -44,6 +46,7 @@ class TestBuildLeaderboardEntry(BaseUnitTest):
 
     def test_no_team(self):
         from apps.stats.services import _build_leaderboard_entry
+
         user = self._make_user(has_team=False)
         entry = _build_leaderboard_entry(1, user)
         assert entry["team_name"] is None
@@ -51,12 +54,14 @@ class TestBuildLeaderboardEntry(BaseUnitTest):
 
     def test_extra_fields_merged(self):
         from apps.stats.services import _build_leaderboard_entry
+
         user = self._make_user()
         entry = _build_leaderboard_entry(1, user, extra={"special": True})
         assert entry["special"] is True
 
     def test_no_avatar(self):
         from apps.stats.services import _build_leaderboard_entry
+
         user = self._make_user(has_avatar=False)
         entry = _build_leaderboard_entry(1, user)
         assert entry["avatar"] is None

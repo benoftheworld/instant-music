@@ -10,6 +10,7 @@ class TestBuildRankings(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.game_results_service
+
         return apps.games.game_results_service
 
     def test_builds_rankings(self):
@@ -28,9 +29,13 @@ class TestBuildRankings(BaseServiceUnitTest):
 
         mock_game = MagicMock()
         mock_game.is_party_mode = False
-        mock_game.competitive_players.return_value.order_by.return_value.select_related.return_value.prefetch_related.return_value = [
-            mock_player
-        ]
+        chain = (
+            mock_game.competitive_players.return_value
+            .order_by.return_value
+            .select_related.return_value
+            .prefetch_related.return_value
+        )
+        chain.__iter__ = lambda s: iter([mock_player])
 
         result = build_rankings(mock_game)
         assert len(result) == 1
@@ -45,7 +50,10 @@ class TestBuildRankings(BaseServiceUnitTest):
         mock_game.is_party_mode = True
         mock_game.host = MagicMock()
         chain = (
-            mock_game.competitive_players.return_value.order_by.return_value.select_related.return_value.prefetch_related.return_value
+            mock_game.competitive_players.return_value
+            .order_by.return_value
+            .select_related.return_value
+            .prefetch_related.return_value
         )
         chain.exclude.return_value = []
 
@@ -74,9 +82,13 @@ class TestBuildRankings(BaseServiceUnitTest):
 
         mock_game = MagicMock()
         mock_game.is_party_mode = False
-        mock_game.competitive_players.return_value.order_by.return_value.select_related.return_value.prefetch_related.return_value = [
-            mock_player
-        ]
+        chain = (
+            mock_game.competitive_players.return_value
+            .order_by.return_value
+            .select_related.return_value
+            .prefetch_related.return_value
+        )
+        chain.__iter__ = lambda s: iter([mock_player])
 
         result = build_rankings(mock_game)
         assert result[0]["team_name"] == "Team Alpha"
@@ -87,6 +99,7 @@ class TestBuildRoundsDetail(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.games.game_results_service
+
         return apps.games.game_results_service
 
     @patch("apps.shop.models.GameBonus")
@@ -94,10 +107,10 @@ class TestBuildRoundsDetail(BaseServiceUnitTest):
     def test_empty_game(self, mock_round_cls, mock_bonus_cls):
         from apps.games.game_results_service import build_rounds_detail
 
-        mock_bonus_cls.objects.filter.return_value.select_related.return_value.order_by.return_value = (
+        mock_bonus_cls.objects.filter.return_value.select_related.return_value.order_by.return_value = (  # noqa: E501
             []
         )
-        mock_round_cls.objects.filter.return_value.prefetch_related.return_value.order_by.return_value = (
+        mock_round_cls.objects.filter.return_value.prefetch_related.return_value.order_by.return_value = (  # noqa: E501
             []
         )
 
@@ -112,24 +125,35 @@ class TestBuildRoundsDetail(BaseServiceUnitTest):
         from apps.games.game_results_service import build_rounds_detail
 
         # Setup: no bonuses
-        mock_bonus_cls.objects.filter.return_value.select_related.return_value.order_by.return_value = []
+        mock_bonus_cls.objects.filter.return_value.select_related.return_value.order_by.return_value = (  # noqa: E501
+            []
+        )
 
         # Setup: two answers — correct then wrong
-        ans1 = MagicMock(is_correct=True, points_earned=100, response_time=1.5, streak_bonus=0)
+        ans1 = MagicMock(
+            is_correct=True, points_earned=100, response_time=1.5, streak_bonus=0
+        )
         ans1.player.user.username = "alice"
         ans1.answer = "Right"
 
-        ans2 = MagicMock(is_correct=False, points_earned=0, response_time=2.0, streak_bonus=0)
+        ans2 = MagicMock(
+            is_correct=False, points_earned=0, response_time=2.0, streak_bonus=0
+        )
         ans2.player.user.username = "alice"
         ans2.answer = "Wrong"
 
         round_obj = MagicMock(
-            round_number=1, track_name="T", artist_name="A",
-            correct_answer="A", track_id="t1"
+            round_number=1,
+            track_name="T",
+            artist_name="A",
+            correct_answer="A",
+            track_id="t1",
         )
         round_obj.answers.all.return_value.order_by.return_value = [ans1, ans2]
 
-        mock_round_cls.objects.filter.return_value.prefetch_related.return_value.order_by.return_value = [round_obj]
+        mock_round_cls.objects.filter.return_value.prefetch_related.return_value.order_by.return_value = (  # noqa: E501
+            [round_obj]
+        )
 
         game = MagicMock()
         rounds_detail, streaks = build_rounds_detail(game)
@@ -150,14 +174,21 @@ class TestBuildRoundsDetail(BaseServiceUnitTest):
         bonus.round_number = 1
         bonus.player.user.username = "bob"
         bonus.bonus_type = "fog"
-        mock_bonus_cls.objects.filter.return_value.select_related.return_value.order_by.return_value = [bonus]
+        mock_bonus_cls.objects.filter.return_value.select_related.return_value.order_by.return_value = (  # noqa: E501
+            [bonus]
+        )
 
         round_obj = MagicMock(
-            round_number=1, track_name="T", artist_name="A",
-            correct_answer="A", track_id="t1"
+            round_number=1,
+            track_name="T",
+            artist_name="A",
+            correct_answer="A",
+            track_id="t1",
         )
         round_obj.answers.all.return_value.order_by.return_value = []
-        mock_round_cls.objects.filter.return_value.prefetch_related.return_value.order_by.return_value = [round_obj]
+        mock_round_cls.objects.filter.return_value.prefetch_related.return_value.order_by.return_value = (  # noqa: E501
+            [round_obj]
+        )
 
         game = MagicMock()
         rounds_detail, _ = build_rounds_detail(game)
@@ -180,9 +211,13 @@ class TestBuildRoundsDetail(BaseServiceUnitTest):
 
         mock_game = MagicMock()
         mock_game.is_party_mode = False
-        mock_game.competitive_players.return_value.order_by.return_value.select_related.return_value.prefetch_related.return_value = [
-            mock_player
-        ]
+        chain = (
+            mock_game.competitive_players.return_value
+            .order_by.return_value
+            .select_related.return_value
+            .prefetch_related.return_value
+        )
+        chain.__iter__ = lambda s: iter([mock_player])
 
         result = build_rankings(mock_game)
         assert len(result) == 1

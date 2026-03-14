@@ -1,6 +1,6 @@
 """Tests unitaires du décorateur handle_deezer_call."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from apps.playlists.decorators import handle_deezer_call
 from apps.playlists.deezer_service import DeezerAPIError

@@ -77,7 +77,7 @@ class TestUserPublicStats(BaseAPIIntegrationTest):
         target = UserFactory()
         viewer = UserFactory()
         client = self.get_auth_client(viewer)
-        resp = client.get(f"{self.get_base_url()}{target.id}/")
+        resp = client.get(f"{self.get_base_url()}{target.id}/")  # type: ignore[attr-defined]
         self.assert_status(resp, 200)
         assert resp.data["username"] == target.username
 

@@ -11,14 +11,26 @@ class TestAwardRetroactiveAchievements(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.management.commands.award_retroactive_achievements
+
         return apps.achievements.management.commands.award_retroactive_achievements
 
-    @patch("apps.achievements.management.commands.award_retroactive_achievements.GameAnswer")
-    @patch("apps.achievements.management.commands.award_retroactive_achievements.GamePlayer")
+    @patch(
+        "apps.achievements.management.commands.award_retroactive_achievements.GameAnswer"
+    )
+    @patch(
+        "apps.achievements.management.commands.award_retroactive_achievements.GamePlayer"
+    )
     @patch("apps.achievements.management.commands.award_retroactive_achievements.User")
-    @patch("apps.achievements.management.commands.award_retroactive_achievements.achievement_service")
-    def test_awards_achievements(self, mock_svc, mock_user, mock_gp, mock_ga):
-        from apps.achievements.management.commands.award_retroactive_achievements import Command
+    @patch(
+        "apps.achievements.management.commands"
+        ".award_retroactive_achievements.achievement_service"
+    )
+    def test_awards_achievements(
+        self, mock_svc, mock_user, mock_gp, mock_ga
+    ):
+        from apps.achievements.management.commands.award_retroactive_achievements import (  # noqa: E501
+            Command,
+        )
 
         mock_u = MagicMock(username="alice", total_games_played=5)
         mock_user.objects.filter.return_value = [mock_u]
@@ -26,7 +38,9 @@ class TestAwardRetroactiveAchievements(BaseServiceUnitTest):
         mock_player = MagicMock()
         mock_player.game.rounds.count.return_value = 5
         mock_gp.objects.filter.return_value = [mock_player]
-        mock_ga.objects.filter.return_value.count.return_value = 5  # all correct = perfect
+        mock_ga.objects.filter.return_value.count.return_value = (
+            5  # all correct = perfect
+        )
 
         mock_ach = MagicMock(name="Pro")
         mock_svc.check_and_award.return_value = [mock_ach]
@@ -41,11 +55,18 @@ class TestAwardRetroactiveAchievements(BaseServiceUnitTest):
         output = cmd.stdout.getvalue()
         assert "alice" in output
 
-    @patch("apps.achievements.management.commands.award_retroactive_achievements.GamePlayer")
+    @patch(
+        "apps.achievements.management.commands.award_retroactive_achievements.GamePlayer"
+    )
     @patch("apps.achievements.management.commands.award_retroactive_achievements.User")
-    @patch("apps.achievements.management.commands.award_retroactive_achievements.achievement_service")
+    @patch(
+        "apps.achievements.management.commands"
+        ".award_retroactive_achievements.achievement_service"
+    )
     def test_no_achievements(self, mock_svc, mock_user, mock_gp):
-        from apps.achievements.management.commands.award_retroactive_achievements import Command
+        from apps.achievements.management.commands.award_retroactive_achievements import (  # noqa: E501
+            Command,
+        )
 
         mock_u = MagicMock(username="bob")
         mock_user.objects.filter.return_value = [mock_u]
@@ -68,6 +89,7 @@ class TestSeedAchievements(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.management.commands.seed_achievements
+
         return apps.achievements.management.commands.seed_achievements
 
     @patch("apps.achievements.management.commands.seed_achievements.Achievement")
@@ -106,6 +128,7 @@ class TestSyncCoinsBalance(BaseServiceUnitTest):
 
     def get_service_module(self):
         import apps.achievements.management.commands.sync_coins_balance
+
         return apps.achievements.management.commands.sync_coins_balance
 
     @patch("apps.achievements.management.commands.sync_coins_balance.UserInventory")
@@ -117,12 +140,10 @@ class TestSyncCoinsBalance(BaseServiceUnitTest):
         mock_u = MagicMock(username="alice", coins_balance=100, pk=1)
         mock_user.objects.all.return_value = [mock_u]
 
-        mock_ua.objects.filter.return_value.aggregate.return_value = {
-            "total": 200
-        }
+        mock_ua.objects.filter.return_value.aggregate.return_value = {"total": 200}
 
         # UserInventory ORM chain: filter().annotate().aggregate()
-        mock_ui.objects.filter.return_value.annotate.return_value.aggregate.return_value = {
+        mock_ui.objects.filter.return_value.annotate.return_value.aggregate.return_value = {  # noqa: E501
             "total": 50
         }
 
@@ -135,4 +156,3 @@ class TestSyncCoinsBalance(BaseServiceUnitTest):
 
         # expected_balance = max(0, 200 - 50) = 150 != 100 → update
         mock_user.objects.filter.assert_called_with(pk=1)
-

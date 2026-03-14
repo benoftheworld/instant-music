@@ -1,3 +1,4 @@
+
 """Tests unitaires du PasswordResetConfirmSerializer."""
 
 from rest_framework import serializers as drf
@@ -46,20 +47,20 @@ class TestPasswordResetConfirmSerializer(BaseSerializerUnitTest):
         }
         try:
             serializer.validate(attrs)
-            assert False, "Should have raised"
+            pytest.fail("Should have raised")
         except drf.ValidationError as e:
             assert "new_password" in str(e.detail)
 
     def test_uid_required(self):
-        serializer = PasswordResetConfirmSerializer(data={
-            "token": "t", "new_password": "p", "new_password2": "p"
-        })
+        serializer = PasswordResetConfirmSerializer(
+            data={"token": "t", "new_password": "p", "new_password2": "p"}
+        )
         assert not serializer.is_valid()
         assert "uid" in serializer.errors
 
     def test_token_required(self):
-        serializer = PasswordResetConfirmSerializer(data={
-            "uid": "u", "new_password": "p", "new_password2": "p"
-        })
+        serializer = PasswordResetConfirmSerializer(
+            data={"uid": "u", "new_password": "p", "new_password2": "p"}
+        )
         assert not serializer.is_valid()
         assert "token" in serializer.errors

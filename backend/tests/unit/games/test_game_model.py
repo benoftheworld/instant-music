@@ -1,8 +1,6 @@
 """Tests unitaires du modèle Game — introspection des champs et métadonnées."""
 
-from unittest.mock import MagicMock, PropertyMock
-
-from django.db import models
+from unittest.mock import MagicMock
 
 from apps.games.models import Game
 from apps.games.models.enums import AnswerMode, GameMode, GameStatus, GuessTarget
