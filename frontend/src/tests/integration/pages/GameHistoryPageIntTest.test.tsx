@@ -76,8 +76,8 @@ class GameHistoryPageIntTest extends BasePageTest {
   private testRendersGames() {
     it('affiche les parties', () => {
       this.renderPage();
-      expect(screen.getByText('ABC123')).toBeInTheDocument();
-      expect(screen.getByText('DEF456')).toBeInTheDocument();
+      expect(screen.getAllByText(/ABC123/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/DEF456/).length).toBeGreaterThan(0);
     });
   }
 

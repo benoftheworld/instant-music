@@ -12,11 +12,14 @@ vi.mock('@/hooks/pages/useTeamPage', () => ({
       name: 'Team Alpha',
       description: 'Une équipe de test',
       avatar: null,
-      members: [
-        { id: 1, username: 'alice', avatar: null, role: 'owner' },
-        { id: 2, username: 'bob', avatar: null, role: 'member' },
+      member_count: 2,
+      total_games: 20,
+      total_wins: 12,
+      total_points: 5000,
+      members_list: [
+        { id: 1, user: { id: 1, username: 'alice', avatar: null, total_points: 3000, total_wins: 8 }, role: 'owner' },
+        { id: 2, user: { id: 2, username: 'bob', avatar: null, total_points: 2000, total_wins: 4 }, role: 'member' },
       ],
-      stats: { total_points: 5000, total_games: 20, win_rate: 60 },
     },
     loading: false,
     processing: false,

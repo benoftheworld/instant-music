@@ -58,16 +58,13 @@ class RegisterPageIntTest extends BaseFormTest {
   private testDuplicateUsername() {
     it('affiche une erreur si le pseudonyme est pris', async () => {
       const { user } = this.renderPage();
-      await this.fillField(user, /Nom d'utilisateur/, 'alice');
-      await this.fillField(user, /Email/, 'alice@test.com');
-      await this.fillField(user, 'Mot de passe', 'StrongPass1!');
-      await this.fillField(user, /Confirmer/, 'StrongPass1!');
-      const checkbox = screen.getByLabelText(/politique de confidentialité/);
-      await user.click(checkbox);
-      await this.submitForm(user, "S'inscrire");
+      const usernameInput = screen.getByLabelText(/Nom d'utilisateur/);
+      await user.type(usernameInput, 'alice');
+      // Trigger blur to fire availability check
+      await user.tab();
 
       await waitFor(() => {
-        expect(screen.getByText(/Erreur lors de l'inscription/)).toBeInTheDocument();
+        expect(screen.getByText(/Ce pseudonyme est déjà utilisé/)).toBeInTheDocument();
       });
     });
   }

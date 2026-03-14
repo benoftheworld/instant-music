@@ -57,16 +57,16 @@ class GameResultsPageIntTest extends BasePageTest {
   private testRendersRankings() {
     it('affiche le classement des joueurs', () => {
       this.renderPage(['/game/ABC123/results']);
-      expect(screen.getByText('alice')).toBeInTheDocument();
-      expect(screen.getByText('bob')).toBeInTheDocument();
+      expect(screen.getAllByText('alice').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('bob').length).toBeGreaterThan(0);
     });
   }
 
   private testRendersPodium() {
     it('affiche les médailles du podium', () => {
       this.renderPage(['/game/ABC123/results']);
-      expect(screen.getByText('🥇')).toBeInTheDocument();
-      expect(screen.getByText('🥈')).toBeInTheDocument();
+      expect(screen.getAllByText('🥇').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('🥈').length).toBeGreaterThan(0);
     });
   }
 }

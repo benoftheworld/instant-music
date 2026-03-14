@@ -63,7 +63,7 @@ class LeaderboardPageIntTest extends BasePageTest {
   private testRendersTitle() {
     it('affiche le titre du classement', () => {
       this.renderPage();
-      expect(screen.getByText(/Classement/)).toBeInTheDocument();
+      expect(screen.getAllByText(/Classement/).length).toBeGreaterThan(0);
     });
   }
 

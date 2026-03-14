@@ -26,7 +26,7 @@ class ResetPasswordPageIntTest extends BaseFormTest {
   private testRendersForm() {
     it('affiche le formulaire de nouveau mot de passe', () => {
       this.renderPage(['/reset-password/abc123/token456']);
-      expect(screen.getByText('Nouveau mot de passe')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Nouveau mot de passe/ })).toBeInTheDocument();
       expect(screen.getByLabelText(/Nouveau mot de passe/)).toBeInTheDocument();
       expect(screen.getByLabelText(/Confirmer/)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Réinitialiser/ })).toBeInTheDocument();
