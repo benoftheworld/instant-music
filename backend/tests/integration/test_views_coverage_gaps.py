@@ -32,9 +32,7 @@ class TestLobbyPatchBroadcastException(BaseAPIIntegrationTest):
         "apps.games.views.game_lobby_mixin.broadcast_game_update",
         side_effect=Exception("WS fail"),
     )
-    def test_patch_broadcast_fails_still_returns_ok(
-        self, mock_bc, auth_client, user
-    ):
+    def test_patch_broadcast_fails_still_returns_ok(self, mock_bc, auth_client, user):
         game = GameFactory(host=user, status="waiting")
         GamePlayerFactory(game=game, user=user)
         resp = auth_client.patch(
@@ -79,9 +77,7 @@ class TestLobbyLeaveHost(BaseAPIIntegrationTest):
         mock_bc.assert_called_once()
 
     @patch("apps.games.views.game_lobby_mixin.broadcast_player_leave")
-    def test_nonhost_leave_broadcasts(
-        self, mock_bc, auth_client2, user, user2
-    ):
+    def test_nonhost_leave_broadcasts(self, mock_bc, auth_client2, user, user2):
         game = GameFactory(host=user, status="waiting")
         GamePlayerFactory(game=game, user=user)
         GamePlayerFactory(game=game, user=user2)
@@ -175,6 +171,7 @@ class TestRoundEndNoActiveRound(BaseAPIIntegrationTest):
         resp = auth_client.post(f"{BASE}{game.room_code}/end-round/")
         self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
 
+
 # ═══════════════════════════════════════════════════════════════════
 #  TeamViewSet WS notification exception gaps
 # ═══════════════════════════════════════════════════════════════════
@@ -243,6 +240,7 @@ class TestTeamWsNotificationExceptions(BaseAPIIntegrationTest):
         )
         self.assert_status(resp, status.HTTP_200_OK)
 
+
 @pytest.mark.django_db
 class TestNextRoundNoMoreRounds(BaseAPIIntegrationTest):
     """Line 170 — next_round when no unstarted next round exists."""
@@ -252,9 +250,7 @@ class TestNextRoundNoMoreRounds(BaseAPIIntegrationTest):
 
     @patch("apps.games.views.game_round_mixin.broadcast_game_finish")
     @patch("apps.games.views.game_round_mixin.broadcast_round_end")
-    def test_next_round_no_unstarted_round(
-        self, mock_bre, mock_bgf, auth_client, user
-    ):
+    def test_next_round_no_unstarted_round(self, mock_bre, mock_bgf, auth_client, user):
         from django.utils import timezone
 
         game = GameFactory(host=user, status="in_progress")
