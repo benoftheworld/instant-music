@@ -49,12 +49,12 @@ class TestLeaderboardByModeWithData(BaseAPIIntegrationTest):
 
     def test_leaderboard_mode_classic(self, api_client):
         u1 = UserFactory()
-        game = GameFactory(host=u1, status="finished", mode="classic")
+        game = GameFactory(host=u1, status="finished", mode="classique")
         GamePlayerFactory(game=game, user=u1, score=300, rank=1)
         u1.total_points = 300  # type: ignore[attr-defined]
         u1.total_games_played = 1  # type: ignore[attr-defined]
         u1.save()  # type: ignore[attr-defined]
-        resp = api_client.get(f"{self.get_base_url()}classic/")
+        resp = api_client.get(f"{self.get_base_url()}classique/")
         self.assert_status(resp, status.HTTP_200_OK)
 
 

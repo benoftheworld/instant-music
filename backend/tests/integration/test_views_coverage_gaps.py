@@ -122,7 +122,7 @@ class TestLobbyStartPartyMode(BaseAPIIntegrationTest):
         GamePlayerFactory(game=game, user=user)
         other = UserFactory()
         GamePlayerFactory(game=game, user=other)
-        round_obj = MagicMock()
+        round_obj = GameRoundFactory(game=game, round_number=1)
         mock_gs.start_game.return_value = (game, [round_obj])
         resp = auth_client.post(f"{BASE}{game.room_code}/start/")
         self.assert_status(resp, status.HTTP_200_OK)
@@ -145,7 +145,7 @@ class TestLobbyStartBroadcasts(BaseAPIIntegrationTest):
             host=user, status="waiting", is_online=False, playlist_id="123"
         )
         GamePlayerFactory(game=game, user=user)
-        round_obj = MagicMock()
+        round_obj = GameRoundFactory(game=game, round_number=1)
         mock_gs.start_game.return_value = (game, [round_obj])
         resp = auth_client.post(f"{BASE}{game.room_code}/start/")
         self.assert_status(resp, status.HTTP_200_OK)
