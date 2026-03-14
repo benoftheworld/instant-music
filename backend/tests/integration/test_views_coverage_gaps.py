@@ -174,3 +174,71 @@ class TestRoundEndNoActiveRound(BaseAPIIntegrationTest):
         GamePlayerFactory(game=game, user=user)
         resp = auth_client.post(f"{BASE}{game.room_code}/end-round/")
         self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
+
+# ═══════════════════════════════════════════════════════════════════
+#  TeamViewSet WS notification exception gaps
+# ═══════════════════════════════════════════════════════════════════
+
+TEAM_BASE = "/api/users/teams/"
+
+
+@pytest.mark.django_db
+class TestTeamWsNotificationExceptions(BaseAPIIntegrationTest):
+    """Lines 95, 128-129, 217-218, 261-262, 439-440, 485-486 in team_viewset.py."""
+
+    def get_base_url(self):
+        return TEAM_BASE
+
+    @patch("apps.users.views.team_viewset.async_to_sync")
+    def test_join_ws_exception(self, mock_ats, auth_client2, user, user2):
+        from apps.users.models import Team, TeamMember
+
+        team = Team.objects.create(name="TestTeam", owner=user)
+        TeamMember.objects.create(team=team, user=user, role="owner")
+        mock_ats.return_value = MagicMock(side_effect=Exception("WS fail"))
+        resp = auth_client2.post(f"{TEAM_BASE}{team.id}/join/")
+        self.assert_status(resp, status.HTTP_201_CREATED)
+
+    @patch("apps.users.views.team_viewset.async_to_sync")
+    def test_approve_ws_exception(self, mock_ats, auth_client, user, user2):
+        from apps.users.models import (
+            Team,
+            TeamJoinRequest,
+            TeamJoinRequestStatus,
+            TeamMember,
+        )
+
+        team = Team.objects.create(name="TestTeam", owner=user)
+        TeamMember.objects.create(team=team, user=user, role="owner")
+        join_req = TeamJoinRequest.objects.create(
+            team=team, user=user2, status=TeamJoinRequestStatus.PENDING
+        )
+        mock_ats.return_value = MagicMock(side_effect=Exception("WS fail"))
+        resp = auth_client.post(
+            f"{TEAM_BASE}{team.id}/approve/",
+            {"request_id": str(join_req.id)},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_200_OK)
+
+    @patch("apps.users.views.team_viewset.async_to_sync")
+    def test_reject_ws_exception(self, mock_ats, auth_client, user, user2):
+        from apps.users.models import (
+            Team,
+            TeamJoinRequest,
+            TeamJoinRequestStatus,
+            TeamMember,
+        )
+
+        team = Team.objects.create(name="TestTeam", owner=user)
+        TeamMember.objects.create(team=team, user=user, role="owner")
+        join_req = TeamJoinRequest.objects.create(
+            team=team, user=user2, status=TeamJoinRequestStatus.PENDING
+        )
+        mock_ats.return_value = MagicMock(side_effect=Exception("WS fail"))
+        resp = auth_client.post(
+            f"{TEAM_BASE}{team.id}/reject/",
+            {"request_id": str(join_req.id)},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_200_OK)
