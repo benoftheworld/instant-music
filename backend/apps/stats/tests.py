@@ -5,7 +5,6 @@ from django.urls import reverse
 from rest_framework import status
 
 from apps.achievements.models import Achievement
-from apps.games.models import Game, GameAnswer, GamePlayer
 
 
 @pytest.mark.django_db

@@ -22,6 +22,7 @@ class JwtWebSocketMiddleware(BaseMiddleware):
     """Injecte scope['user'] depuis un JWT en query param, ou ferme avec 4003."""
 
     async def __call__(self, scope, receive, send):
+        """Handle the connection, injecting the JWT user into the WebSocket scope."""
         if scope["type"] != "websocket":
             return await super().__call__(scope, receive, send)
 

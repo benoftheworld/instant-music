@@ -34,7 +34,10 @@ class SiteConfiguration(models.Model):
     )
     maintenance_message = models.TextField(
         _("message de maintenance"),
-        default="Le site est temporairement indisponible pour maintenance. Merci de réessayer dans quelques instants.",
+        default=(
+            "Le site est temporairement indisponible pour maintenance. "
+            "Merci de réessayer dans quelques instants."
+        ),
         blank=True,
         help_text=_("Message affiché aux utilisateurs pendant la maintenance."),
     )
@@ -90,6 +93,7 @@ class SiteConfiguration(models.Model):
             )
 
     def delete(self, *args, **kwargs):
+        """Prevent deletion of the singleton instance."""
         pass  # Prevent deletion
 
     @classmethod
@@ -108,6 +112,7 @@ class SiteConfiguration(models.Model):
         return obj  # type: ignore[no-any-return]
 
     def save(self, *args, **kwargs) -> None:
+        """Save the singleton, forcing pk=1 and clearing the cache."""
         self.pk = 1  # Force singleton
         super().save(*args, **kwargs)
         # Invalider le cache lors de la modification
@@ -118,6 +123,7 @@ class SiteConfiguration(models.Model):
 
 class LegalPage(models.Model):
     """Editable legal pages (privacy policy, legal notices).
+
     Each page_type can only exist once (unique constraint).
     """
 
@@ -147,7 +153,7 @@ class LegalPage(models.Model):
 
 
 # Audit log — traçabilité des modifications admin
-from auditlog.registry import auditlog
+from auditlog.registry import auditlog  # noqa: E402
 
 auditlog.register(SiteConfiguration)
 auditlog.register(LegalPage)

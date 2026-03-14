@@ -1,5 +1,4 @@
-"""Serializers for stats.
-"""
+"""Serializers for stats."""
 
 from rest_framework import serializers
 

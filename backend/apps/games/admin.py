@@ -1,5 +1,4 @@
-"""Admin configuration for games.
-"""
+"""Admin configuration for games."""
 
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
@@ -19,6 +18,8 @@ from .models import (
 
 
 class GamePlayerInline(admin.TabularInline):
+    """Inline d'administration des joueurs d'une partie."""
+
     model = GamePlayer
     extra = 0
     readonly_fields = [
@@ -42,6 +43,8 @@ class GamePlayerInline(admin.TabularInline):
 
 
 class GameRoundInline(admin.TabularInline):
+    """Inline d'administration des rounds d'une partie."""
+
     model = GameRound
     extra = 0
     readonly_fields = [
@@ -152,6 +155,7 @@ class GameAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("UUID"))
     def uuid_short(self, obj):
+        """Return a shortened UUID for display."""
         short = str(obj.id)[:8]
         return format_html(
             '<span title="{}" style="font-family:monospace;font-size:11px;'
@@ -162,6 +166,7 @@ class GameAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Joueurs"))
     def player_count(self, obj):
+        """Return the current player count relative to max players."""
         count = obj.players.count()
         return format_html(
             '<span style="font-weight:bold;">{}/{}</span>',
@@ -171,10 +176,12 @@ class GameAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Nom"))
     def name_display(self, obj):
+        """Return the game name or an em dash if unset."""
         return obj.name or "—"
 
     @admin.display(description=_("Mode"))
     def mode_badge(self, obj):
+        """Return a colored badge for the game mode."""
         colors = {
             "classique": "#6366f1",
             "rapide": "#f59e0b",
@@ -192,6 +199,7 @@ class GameAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Statut"))
     def status_badge(self, obj):
+        """Return a colored badge for the game status."""
         colors = {
             "waiting": "#3b82f6",
             "in_progress": "#f59e0b",
@@ -208,6 +216,8 @@ class GameAdmin(admin.ModelAdmin):
 
 
 class GameAnswerInline(admin.TabularInline):
+    """Inline d'administration des réponses d'une partie."""
+
     model = GameAnswer
     extra = 0
     readonly_fields = [
@@ -283,6 +293,7 @@ class GamePlayerAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("UUID"))
     def uuid_short(self, obj):
+        """Return a shortened UUID for display."""
         short = str(obj.id)[:8]
         return format_html(
             '<span title="{}" style="font-family:monospace;font-size:11px;'
@@ -293,6 +304,7 @@ class GamePlayerAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Partie"))
     def game_link(self, obj):
+        """Return an admin link to the related game."""
         url = reverse("admin:games_game_change", args=[obj.game.pk])
         return format_html(
             '<a href="{}">{}</a>',
@@ -383,6 +395,7 @@ class GameRoundAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("UUID"))
     def uuid_short(self, obj):
+        """Return a shortened UUID for display."""
         short = str(obj.id)[:8]
         return format_html(
             '<span title="{}" style="font-family:monospace;font-size:11px;'
@@ -393,6 +406,7 @@ class GameRoundAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Réponses"))
     def answer_count(self, obj):
+        """Return the number of answers submitted for this round."""
         return obj.answers.count()
 
 
@@ -456,6 +470,7 @@ class GameAnswerAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("UUID"))
     def uuid_short(self, obj):
+        """Return a shortened UUID for display."""
         short = str(obj.id)[:8]
         return format_html(
             '<span title="{}" style="font-family:monospace;font-size:11px;'
@@ -466,6 +481,7 @@ class GameAnswerAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Résultat"))
     def correct_badge(self, obj):
+        """Return a styled badge indicating whether the answer was correct."""
         if obj.is_correct:
             return format_html(
                 '<span style="color:#10b981; font-weight:bold;">✓ Correct</span>'
@@ -474,6 +490,7 @@ class GameAnswerAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Temps"))
     def response_time_display(self, obj):
+        """Return the response time formatted as a string with one decimal."""
         return f"{obj.response_time:.1f}s"
 
 
@@ -519,9 +536,11 @@ class KaraokeSongAdmin(admin.ModelAdmin):
                     "lrclib_search_button",
                 ),
                 "description": _(
-                    "youtube_video_id : copier l'ID depuis l'URL YouTube (ex: dQw4w9WgXcQ). "
-                    "lrclib_id : ID numérique sur lrclib.net — laisser vide pour une recherche "
-                    "automatique par titre/artiste. Utilisez le bouton ci-dessous pour rechercher."
+                    "youtube_video_id : copier l'ID depuis l'URL YouTube"
+                    " (ex: dQw4w9WgXcQ). "
+                    "lrclib_id : ID numérique sur lrclib.net — laisser vide"
+                    " pour une recherche automatique par titre/artiste."
+                    " Utilisez le bouton ci-dessous pour rechercher."
                 ),
             },
         ),
@@ -534,6 +553,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
     # ── Custom URLs ──────────────────────────────────────────────────────────
 
     def get_urls(self):
+        """Return admin URLs, including the custom LRCLib search view."""
         urls = super().get_urls()
         custom = [
             path(
@@ -574,7 +594,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
             headers={"User-Agent": "InstantMusic/1.0 (admin lyrics search)"},
         )
         try:
-            with urllib.request.urlopen(
+            with urllib.request.urlopen(  # nosec B310
                 req,
                 context=_lrclib_ssl_context(),
                 timeout=self._ADMIN_LRCLIB_TIMEOUT,
@@ -597,7 +617,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
             return f"Erreur inattendue : {exc}"
 
     def lrclib_search_view(self, request, object_id):
-        """Custom admin view to search lrclib.net candidates for a KaraokeSong.
+        """Handle the lrclib.net candidate search for a KaraokeSong.
 
         GET  — display search form pre-filled with artist+title; show results
                when query params are present.
@@ -704,7 +724,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
     # ── Display helpers ──────────────────────────────────────────────────────
 
     def lrclib_search_button(self, obj):
-        """Renders a button linking to the LRCLib search view."""
+        """Render a button linking to the LRCLib search view."""
         if obj and obj.pk:
             url = reverse("admin:games_karaokesong_lrclib_search", args=[obj.pk])
             return format_html(
@@ -716,13 +736,15 @@ class KaraokeSongAdmin(admin.ModelAdmin):
                 url,
             )
         return format_html(
-            '<em style="color:#999;">Sauvegardez d\'abord le morceau pour activer la recherche.</em>'
+            '<em style="color:#999;">Sauvegardez d\'abord le morceau'
+            " pour activer la recherche.</em>"
         )
 
     lrclib_search_button.short_description = _("Outil LRCLib")  # type: ignore[attr-defined]
 
     @admin.display(description=_("UUID"))
     def uuid_short(self, obj):
+        """Return a shortened UUID for display."""
         short = str(obj.id)[:8]
         return format_html(
             '<span title="{}" style="font-family:monospace;font-size:11px;'
@@ -733,6 +755,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("YouTube"))
     def youtube_link(self, obj):
+        """Return a link to the YouTube video, or a dash if unset."""
         if obj.youtube_video_id:
             return format_html(
                 '<a href="https://youtu.be/{0}" target="_blank" '
@@ -743,6 +766,7 @@ class KaraokeSongAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Durée"))
     def duration_display(self, obj):
+        """Return the formatted duration as mm:ss."""
         if not obj.duration_ms:
             return "—"
         total_seconds = obj.duration_ms // 1000
@@ -799,6 +823,7 @@ class GameInvitationAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("UUID"))
     def uuid_short(self, obj):
+        """Return a shortened UUID for display."""
         short = str(obj.id)[:8]
         return format_html(
             '<span title="{}" style="font-family:monospace;font-size:11px;'
@@ -809,6 +834,7 @@ class GameInvitationAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Partie"))
     def game_link(self, obj):
+        """Return an admin link to the related game."""
         url = reverse("admin:games_game_change", args=[obj.game.pk])
         return format_html(
             '<a href="{}">{}</a>',
@@ -818,6 +844,7 @@ class GameInvitationAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Statut"))
     def status_badge(self, obj):
+        """Return a colored badge for the invitation status."""
         colors = {
             "pending": "#3b82f6",
             "accepted": "#10b981",

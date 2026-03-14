@@ -25,6 +25,7 @@ def add_coins(user_id: int, amount: int, reason: str) -> int:
 
     Returns:
         Le nouveau solde après crédit.
+
     """
     if amount <= 0:
         return get_balance(user_id)
@@ -52,6 +53,7 @@ def deduct_coins(user_id: int, amount: int, reason: str) -> int:
 
     Returns:
         Le nouveau solde après débit.
+
     """
     if amount <= 0:
         return get_balance(user_id)

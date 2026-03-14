@@ -124,7 +124,9 @@ class FriendshipViewSet(viewsets.ViewSet):
                         },
                     )
                 except Exception:  # noqa: BLE001
-                    logger.exception("Échec de la notification WS pour la demande d'ami")
+                    logger.exception(
+                        "Échec de la notification WS pour la demande d'ami"
+                    )
 
                 return Response(
                     FriendshipSerializer(friendship).data,

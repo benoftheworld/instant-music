@@ -1,5 +1,4 @@
-"""Serializers for authentication.
-"""
+"""Serializers for authentication."""
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -34,7 +33,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         """Vérifie que l'utilisateur a accepté la politique de confidentialité."""
         if not value:
             raise serializers.ValidationError(
-                "Vous devez accepter la politique de confidentialité pour créer un compte."
+                "Vous devez accepter la politique de confidentialité"
+                " pour créer un compte."
             )
         return value
 
@@ -86,6 +86,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     new_password2 = serializers.CharField(write_only=True, required=True)
 
     def validate(self, attrs):
+        """Validate that the two new passwords match."""
         if attrs["new_password"] != attrs["new_password2"]:
             raise serializers.ValidationError(
                 {"new_password": "Les mots de passe ne correspondent pas."}

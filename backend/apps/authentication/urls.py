@@ -1,5 +1,4 @@
-"""URL configuration for authentication app.
-"""
+"""URL configuration for authentication app."""
 
 from django.urls import path
 

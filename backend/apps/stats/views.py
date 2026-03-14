@@ -1,5 +1,4 @@
-"""Views for stats.
-"""
+"""Views for stats."""
 
 import logging
 
@@ -29,6 +28,7 @@ class UserDetailedStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        """Return detailed statistics for the authenticated user."""
         user = request.user
 
         # Game stats from GamePlayer records
@@ -88,6 +88,7 @@ class LeaderboardView(APIView):
 
     @method_decorator(cache_page(300))
     def get(self, request):
+        """Return the global leaderboard of top players by total points."""
         page, page_size, offset = parse_pagination_params(request)
         leaderboard, total_count = get_global_leaderboard(offset, page_size)
         return Response(paginated_response(leaderboard, total_count, page, page_size))
@@ -100,6 +101,7 @@ class LeaderboardByModeView(APIView):
     authentication_classes: list[type] = []
 
     def get(self, request, mode):
+        """Return the leaderboard for a specific game mode."""
         page, page_size, offset = parse_pagination_params(request)
 
         # Validate mode
@@ -174,6 +176,7 @@ class TeamLeaderboardView(APIView):
 
     @method_decorator(cache_page(300))
     def get(self, request):
+        """Return the team leaderboard ordered by total points."""
         page, page_size, offset = parse_pagination_params(request)
 
         # Utilise les stats dénormalisées (correctement dédupliquées par le signal)
@@ -219,6 +222,7 @@ class MyRankView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        """Return the current user's rank in the global and per-mode leaderboards."""
         user = request.user
 
         # General rank (exclude superusers)
@@ -274,6 +278,7 @@ class UserPublicStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, user_id):
+        """Return public statistics for the specified user."""
         try:
             user = User.objects.prefetch_related("team_memberships__team").get(
                 id=user_id

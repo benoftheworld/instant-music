@@ -45,7 +45,7 @@ class GameHistorySerializer(serializers.ModelSerializer):
         ]
 
     def _sorted_players(self, obj):
-        """Tri en mémoire sur le prefetch — évite toute requête DB supplémentaire.
+        """Trier en mémoire sur le prefetch — évite toute requête DB supplémentaire.
 
         Nécessite que le queryset appelant prefetch_related("players__user").
         """

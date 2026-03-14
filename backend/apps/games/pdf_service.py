@@ -1,4 +1,5 @@
 """PDF generation service for game results.
+
 Uses ReportLab to produce a polished multi-page results document.
 
 Layout:
@@ -244,10 +245,15 @@ class PdfBuilder:
     # ── Section 1: Title + info card ─────────────────────────────────────────
 
     def add_header(self) -> "PdfBuilder":
+        """Add the title and game info header section."""
         S = self.S
         COL_W = self.COL_W
 
-        title_label = self.game_name if self.game_name else f"Partie {self.room_code}<br/><br/>"
+        title_label = (
+            self.game_name
+            if self.game_name
+            else f"Partie {self.room_code}<br/><br/>"
+        )
         self.elements.append(Paragraph(title_label, S["title"]))
         sub_parts = [f"Salle <b>{self.room_code}</b>"]
         if self.date_display:
@@ -302,11 +308,14 @@ class PdfBuilder:
     # ── Section 2: Podium ────────────────────────────────────────────────────
 
     def add_podium(self) -> "PdfBuilder":
+        """Add the top-3 podium section."""
         S = self.S
         COL_W = self.COL_W
         _s = self._s
 
-        top3_by_rank = {p.get("rank"): p for p in self.rankings if p.get("rank", 99) <= 3}
+        top3_by_rank = {
+            p.get("rank"): p for p in self.rankings if p.get("rank", 99) <= 3
+        }
         if not top3_by_rank:
             return self
 
@@ -407,6 +416,7 @@ class PdfBuilder:
     # ── Section 3: Full ranking table ────────────────────────────────────────
 
     def add_ranking_table(self) -> "PdfBuilder":
+        """Add the full player ranking table."""
         S = self.S
         COL_W = self.COL_W
         _s = self._s
@@ -501,6 +511,7 @@ class PdfBuilder:
     # ── Section 4: Round-by-round detail ─────────────────────────────────────
 
     def add_round_details(self) -> "PdfBuilder":
+        """Add the round-by-round detail section."""
         S = self.S
         COL_W = self.COL_W
         _s = self._s
@@ -587,7 +598,12 @@ class PdfBuilder:
             round_bonuses = rd.get("bonuses", [])
             if round_bonuses:
                 bonus_parts = [
-                    f"{b.get('username', '?')} — {_BONUS_LABELS.get(b.get('bonus_type', ''), b.get('bonus_type', ''))}"
+                    "{} — {}".format(
+                        b.get("username", "?"),
+                        _BONUS_LABELS.get(
+                            b.get("bonus_type", ""), b.get("bonus_type", "")
+                        ),
+                    )
                     for b in round_bonuses
                 ]
                 bonus_tbl = Table(
@@ -602,13 +618,19 @@ class PdfBuilder:
                 bonus_tbl.setStyle(
                     TableStyle(
                         [
-                            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F9EFE7")),
+                            (
+                                "BACKGROUND", (0, 0), (-1, -1),
+                                colors.HexColor("#F9EFE7"),
+                            ),
                             ("TOPPADDING", (0, 0), (-1, -1), 3),
                             ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
                             ("LEFTPADDING", (0, 0), (-1, -1), 8),
                             ("RIGHTPADDING", (0, 0), (-1, -1), 6),
                             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                            ("LINEBELOW", (0, 0), (-1, -1), 0.5, colors.HexColor("#EDE3DA")),
+                            (
+                                "LINEBELOW", (0, 0), (-1, -1),
+                                0.5, colors.HexColor("#EDE3DA"),
+                            ),
                         ]
                     )
                 )
@@ -640,7 +662,6 @@ class PdfBuilder:
                         and float(a.get("response_time", 9999)) == min_time
                     )
                     streak_n = a.get("consecutive_correct") or 0
-                    streak_b = a.get("streak_bonus", 0)
 
                     icon = "✓" if is_ok else "✗"
                     ans_text = f"{icon} {a.get('answer', '')}"
@@ -732,6 +753,7 @@ class PdfBuilder:
     # ── Section 5: Score system ──────────────────────────────────────────────
 
     def add_score_chart(self) -> "PdfBuilder":
+        """Add the score system reference chart."""
         S = self.S
         COL_W = self.COL_W
 
@@ -743,7 +765,8 @@ class PdfBuilder:
             [
                 Paragraph("<b>Base</b>", S["bold_sm"]),
                 Paragraph(
-                    f"max({SCORE_MIN_CORRECT}, {SCORE_BASE_POINTS} − temps × {SCORE_TIME_PENALTY_PER_SEC})",
+                    f"max({SCORE_MIN_CORRECT}, {SCORE_BASE_POINTS}"
+                    f" − temps × {SCORE_TIME_PENALTY_PER_SEC})",
                     S["body_sm"],
                 ),
             ],
@@ -757,7 +780,8 @@ class PdfBuilder:
             [
                 Paragraph("<b>Bonus rang</b>", S["bold_sm"]),
                 Paragraph(
-                    f"+{first_bonus} pts pour le 1er joueur à répondre correctement, 5 pts pour le 2e, 3 pts pour le 3e",
+                    f"+{first_bonus} pts pour le 1er joueur à répondre"
+                    " correctement, 5 pts pour le 2e, 3 pts pour le 3e",
                     S["body_sm"],
                 ),
             ],

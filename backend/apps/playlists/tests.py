@@ -58,7 +58,6 @@ class TestDeezerPlaylistDetail:
     @patch("apps.playlists.deezer_service.deezer_service.get_playlist")
     def test_unknown_playlist_returns_404(self, mock_get, api_client):
         mock_get.return_value = None
-        url = reverse("playlist-get_playlist") + "?playlist_id=999999"
         # Direct URL pattern approach
         response = api_client.get("/api/playlists/999999/")
         assert response.status_code in (

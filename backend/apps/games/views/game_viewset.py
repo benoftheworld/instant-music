@@ -40,6 +40,7 @@ class GameViewSet(
     lookup_field = "room_code"
 
     def get_throttles(self):
+        """Return throttle classes based on the current action."""
         if self.action == "create":
             return [GameCreateThrottle()]
         if self.action == "join":
@@ -47,6 +48,7 @@ class GameViewSet(
         return super().get_throttles()
 
     def get_serializer_class(self):
+        """Return the appropriate serializer class for the current action."""
         if self.action == "create":
             return CreateGameSerializer
         return GameSerializer

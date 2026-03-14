@@ -1,17 +1,15 @@
-"""Service principal de gestion du flux de jeu (démarrage, rounds, scoring, fin).
-"""
+"""Service principal de gestion du flux de jeu (démarrage, rounds, scoring, fin)."""
 
 import json
 import logging
 from typing import Any
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
 from apps.achievements.tasks import check_achievements_async
-from apps.users.coin_service import add_coins as _add_coins
-from django.contrib.auth import get_user_model
 from apps.core.prometheus_metrics import (
     ANSWER_RESPONSE_TIME,
     ANSWERS_TOTAL,
@@ -20,6 +18,7 @@ from apps.core.prometheus_metrics import (
     GAMES_FINISHED_TOTAL,
     SCORES_EARNED,
 )
+from apps.users.coin_service import add_coins as _add_coins
 
 from ..lyrics_service import (
     get_synced_lyrics,
@@ -47,9 +46,9 @@ from .scoring import (
     SCORE_TIME_PENALTY_PER_SEC,
     calculate_streak_bonus,
 )
+from .text_matching import fuzzy_match
 
 User = get_user_model()
-from .text_matching import fuzzy_match
 
 logger = logging.getLogger(__name__)
 
@@ -294,6 +293,7 @@ class GameService:
         return game, [round_obj]
 
     def get_current_round(self, game: Game) -> GameRound | None:
+        """Return the current in-progress round for the game, or None."""
         return (  # type: ignore[no-any-return]
             game.rounds.filter(started_at__isnull=False, ended_at__isnull=True)
             .order_by("round_number")
@@ -301,17 +301,20 @@ class GameService:
         )
 
     def get_next_round(self, game: Game) -> GameRound | None:
+        """Return the next unstarted round for the game, or None."""
         return (  # type: ignore[no-any-return]
             game.rounds.filter(started_at__isnull=True).order_by("round_number").first()
         )
 
     def start_round(self, round_obj: GameRound) -> GameRound:
+        """Mark the round as started and save it."""
         round_obj.started_at = timezone.now()
         round_obj.save()
         return round_obj
 
     @transaction.atomic
     def end_round(self, round_obj: GameRound) -> GameRound:
+        """Mark the round as ended and save it atomically."""
         round_obj.ended_at = timezone.now()
         round_obj.save()
         return round_obj
@@ -352,7 +355,8 @@ class GameService:
         answer_mode = (extra_data or {}).get("answer_mode", "mcq")
 
         if answer_mode == AnswerMode.TEXT:
-            # For classique/rapide in text mode, check if user submitted both artist+title
+            # For classique/rapide in text mode, check if user submitted
+            # both artist+title
             if game_mode in (GameMode.CLASSIQUE, GameMode.RAPIDE):
                 return self._check_classique_text_answer(
                     answer, correct_answer, extra_data
@@ -690,7 +694,7 @@ class GameService:
         )
 
         # Batch-count fast correct answers per player (1 query)
-        from django.db.models import Count, Q
+        from django.db.models import Count
 
         fast_counts_qs = (
             GameAnswer.objects.filter(

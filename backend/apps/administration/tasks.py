@@ -30,7 +30,7 @@ def purge_expired_invitations(self):
         return deleted
     except Exception as exc:
         logger.exception("purge_expired_invitations failed")
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc)  # noqa: B904
 
 
 @shared_task(

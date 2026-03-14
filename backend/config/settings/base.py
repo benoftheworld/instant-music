@@ -1,5 +1,4 @@
-"""Base Django settings for InstantMusic project.
-"""
+"""Base Django settings for InstantMusic project."""
 
 import os
 from pathlib import Path
@@ -101,7 +100,8 @@ JAZZMIN_SETTINGS = {
     "related_modal_active": True,
     "custom_css": None,
     "custom_js": "admin/js/jazzmin_tabs_fix.js",
-    "use_google_fonts_cdn": False,  # 👈 Désactiver CDN externe, utiliser polices système
+    # 👈 Désactiver CDN externe, utiliser polices système
+    "use_google_fonts_cdn": False,
     "changeform_format": "collapsible",
     "changeform_format_overrides": {
         "games.Game": "horizontal_tabs",
@@ -205,7 +205,10 @@ AUTH_USER_MODEL = "users.User"
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": (
+            "django.contrib.auth.password_validation"
+            ".UserAttributeSimilarityValidator"
+        ),
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
@@ -267,7 +270,7 @@ REST_FRAMEWORK = {
 }
 
 # JWT Settings
-from datetime import timedelta
+from datetime import timedelta  # noqa: E402
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
@@ -328,7 +331,8 @@ BACKEND_BASE_URL = env("BACKEND_BASE_URL", default="http://localhost:8000")
 
 # ─── Chiffrement des données personnelles (RGPD) ─────────────────────
 # Clé Fernet (AES-128) pour le chiffrement des emails au repos.
-# Générer avec : python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# Générer avec : python -c
+#   "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 EMAIL_ENCRYPTION_KEY = env(
     "EMAIL_ENCRYPTION_KEY",
     default="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",  # À REMPLACER en production
@@ -427,6 +431,6 @@ LOGGING = {
 
 # ── OpenTelemetry (optionnel) ────────────────────────────────────────
 # Activé par OTEL_ENABLED=true dans l'environnement.
-from config.otel import setup_otel
+from config.otel import setup_otel  # noqa: E402
 
 setup_otel()

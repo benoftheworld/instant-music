@@ -16,7 +16,7 @@ logger = logging.getLogger("apps.core.exceptions")
 
 
 def custom_exception_handler(exc, context):
-    """Handler DRF : log + enrichissement de chaque erreur API."""
+    """Gérer les exceptions DRF : log + enrichissement de chaque erreur API."""
     response = exception_handler(exc, context)
 
     request = context.get("request")
@@ -28,7 +28,11 @@ def custom_exception_handler(exc, context):
     )
 
     user = getattr(request, "user", None) if request else None
-    user_id = user.id if user and hasattr(user, "is_authenticated") and user.is_authenticated else None
+    user_id = (
+        user.id
+        if user and hasattr(user, "is_authenticated") and user.is_authenticated
+        else None
+    )
     method = getattr(request, "method", None)
     path = getattr(request, "path", None)
     request_id = getattr(request, "_request_id", None)

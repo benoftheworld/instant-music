@@ -1,5 +1,4 @@
-"""Prometheus metrics endpoint for Django.
-"""
+"""Prometheus metrics endpoint for Django."""
 
 import os
 
@@ -22,7 +21,9 @@ def metrics(request):
     is set and points to an existing directory. Otherwise fall back to the
     default global registry to avoid ValueError at import/runtime.
     """
-    allowed_ips = os.environ.get("ALLOWED_METRICS_IPS", "127.0.0.1,172.16.0.0/12,10.0.0.0/8").split(",")
+    allowed_ips = os.environ.get(
+        "ALLOWED_METRICS_IPS", "127.0.0.1,172.16.0.0/12,10.0.0.0/8"
+    ).split(",")
     # Utiliser REMOTE_ADDR uniquement pour éviter le spoofing via X-Forwarded-For.
     # Nginx en amont set REMOTE_ADDR correctement via le proxy.
     client_ip = request.META.get("REMOTE_ADDR", "").strip()
@@ -47,7 +48,11 @@ def metrics(request):
     except ValueError:
         pass
 
-    if not is_allowed and not (hasattr(request, "user") and request.user.is_authenticated and request.user.is_staff):
+    if not is_allowed and not (
+        hasattr(request, "user")
+        and request.user.is_authenticated
+        and request.user.is_staff
+    ):
         return HttpResponseForbidden("Forbidden")
 
     mp_dir = os.environ.get("PROMETHEUS_MULTIPROC_DIR")

@@ -1,5 +1,4 @@
-"""GamePlayer model — players in a game.
-"""
+"""GamePlayer model — players in a game."""
 
 import uuid
 

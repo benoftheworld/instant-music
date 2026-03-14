@@ -1,5 +1,4 @@
-"""Views for authentication.
-"""
+"""Views for authentication."""
 
 import logging
 from base64 import urlsafe_b64decode, urlsafe_b64encode
@@ -29,7 +28,11 @@ from apps.core.throttles import (
 from apps.users.encryption import hash_email
 from apps.users.serializers import UserSerializer
 
-from .cookies import clear_refresh_cookie, get_refresh_from_cookie, set_refresh_cookie
+from .cookies import (
+    clear_refresh_cookie,
+    get_refresh_from_cookie,
+    set_refresh_cookie,
+)
 from .serializers import (
     LoginSerializer,
     PasswordResetConfirmSerializer,
@@ -53,6 +56,7 @@ class ThrottledTokenRefreshView(TokenRefreshView):
     throttle_classes = [TokenRefreshThrottle]
 
     def post(self, request, *args, **kwargs):
+        """Handle token refresh using the HttpOnly refresh cookie."""
         # Injecte le refresh token du cookie dans request.data pour que
         # simplejwt le traite normalement via son serializer.
         refresh = get_refresh_from_cookie(request)
@@ -249,7 +253,7 @@ def password_reset_request(request):
 @permission_classes([AllowAny])
 @throttle_classes([PasswordResetThrottle])
 def password_reset_confirm(request):
-    """Confirmation de la réinitialisation du mot de passe.
+    """Confirm password reset.
 
     Valide le token reçu par email et met à jour le mot de passe.
     """

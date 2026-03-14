@@ -37,7 +37,8 @@ class SiteConfigurationAdmin(admin.ModelAdmin):
                     "banner_dismissible",
                 ),
                 "description": _(
-                    "Un bandeau visible en haut du site pour communiquer avec les joueurs "
+                    "Un bandeau visible en haut du site pour communiquer "
+                    "avec les joueurs "
                     "(annonce de maintenance prévue, nouvelle fonctionnalité, etc.)."
                 ),
             },

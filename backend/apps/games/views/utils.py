@@ -41,7 +41,10 @@ def _maintenance_response_if_needed(user) -> Response | None:
 
     return Response(
         {
-            "error": "Le site est en cours de maintenance. Impossible de créer ou rejoindre une partie pour le moment.",
+            "error": (
+                "Le site est en cours de maintenance."
+                " Impossible de créer ou rejoindre une partie pour le moment."
+            ),
             "maintenance": True,
             "maintenance_title": cfg.maintenance_title,
         },

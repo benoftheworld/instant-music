@@ -1,6 +1,6 @@
-"""WebSocket consumers for games.
-"""
+"""WebSocket consumers for games."""
 
+import contextlib
 import json
 import logging
 import time
@@ -86,7 +86,7 @@ MAX_WS_MESSAGE_SIZE = 16 * 1024
 
 
 def validate_ws_message(data: dict) -> str | None:
-    """Valide un message WS entrant. Retourne un message d'erreur ou None."""
+    """Validate an incoming WS message. Returns an error string or None."""
     msg_type = data.get("type")
     if not isinstance(msg_type, str):
         return "Le champ 'type' est requis et doit être une chaîne."
@@ -106,6 +106,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     """WebSocket consumer for user-specific notifications (invitations, etc.)."""
 
     async def connect(self):
+        """Accept WebSocket connection after authenticating the user."""
         user = self.scope.get("user")
         if not user or not user.is_authenticated:
             await self.close()
@@ -123,6 +124,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         )
 
     async def disconnect(self, close_code):
+        """Remove the user from their notification group on disconnect."""
         if hasattr(self, "group_name"):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
@@ -153,7 +155,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     }
 
     def __getattr__(self, name: str):
-        """Generic handler for all notification types defined in _NOTIFICATION_MAP."""
+        """Handle all notification types defined in _NOTIFICATION_MAP."""
         entry = self._NOTIFICATION_MAP.get(name)
         if entry is None:
             raise AttributeError(name)
@@ -318,9 +320,10 @@ class GameConsumer(AsyncWebsocketConsumer):
                 },
             )
             await self.send(
-                text_data=json.dumps(
-                    {"type": "error", "message": "Trop de messages. Veuillez patienter."}
-                )
+                text_data=json.dumps({
+                    "type": "error",
+                    "message": "Trop de messages. Veuillez patienter.",
+                })
             )
             return
 
@@ -392,7 +395,10 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {
                 "type": "broadcast_player_join",
-                "player": {"user": str(self.scope["user"].id), "username": self.scope["user"].username},
+                "player": {
+                    "user": str(self.scope["user"].id),
+                    "username": self.scope["user"].username,
+                },
                 "game_data": game_data,
             },
         )
@@ -520,8 +526,9 @@ class GameConsumer(AsyncWebsocketConsumer):
         return False
     @database_sync_to_async
     def _check_all_party_players_answered(self) -> bool:
-        """En mode soirée : vérifie si tous les joueurs non-hôte ont soumis une réponse
-        pour le round en cours. Retourne False si la partie n'est pas en mode soirée,
+        """Vérifie si tous les joueurs non-hôte ont soumis une réponse ce round.
+
+        Retourne False si la partie n'est pas en mode soirée,
         si aucun round n'est actif, ou si aucun joueur non-hôte n'existe.
 
         Optimized: uses a single query with subquery instead of multiple counts.
@@ -597,7 +604,9 @@ class GameConsumer(AsyncWebsocketConsumer):
         if not await self._require_host("start_round"):
             return
 
-        round_data = await self._enrich_round_data_with_fog(data.get("round_data") or {})
+        round_data = await self._enrich_round_data_with_fog(
+            data.get("round_data") or {}
+        )
 
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -621,7 +630,9 @@ class GameConsumer(AsyncWebsocketConsumer):
         if not await self._require_host("next_round"):
             return
 
-        round_data = await self._enrich_round_data_with_fog(data.get("round_data") or {})
+        round_data = await self._enrich_round_data_with_fog(
+            data.get("round_data") or {}
+        )
 
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -661,7 +672,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def _do_activate_bonus(self, user, bonus_type: str) -> dict:
-        """Synchronous DB calls for bonus activation."""
+        """Perform synchronous DB calls for bonus activation."""
         from apps.shop.services import (
             BonusActivationError,
             BonusAlreadyActiveError,
@@ -697,7 +708,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             return {"error": str(e)}
 
     async def _enrich_round_data_with_fog(self, round_data: dict) -> dict:
-        """Injecte les données de brouillard dans round_data si un bonus fog est actif."""
+        """Injecter les données de brouillard dans round_data si bonus fog actif."""
         round_number = round_data.get("round_number") if round_data else None
         if round_number is not None:
             fog_active, fog_activator = await self._check_and_consume_fog(round_number)
@@ -709,8 +720,9 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def _check_and_consume_fog(self, round_number: int) -> tuple[bool, str | None]:
-        """Vérifie si un bonus brouillard est actif pour ce round, le consomme et
-        retourne (fog_active, username_activateur).
+        """Vérifie si un bonus brouillard est actif pour ce round et le consomme.
+
+        Retourne (fog_active, username_activateur).
         """
         from django.utils import timezone
 
@@ -795,12 +807,12 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
 
     async def broadcast_all_answered(self, event):
-        """Notifie que tous les joueurs (hors présentateur) ont répondu — mode soirée."""
+        """Notifier que tous les joueurs hors présentateur ont répondu — mode soirée."""
         await self.send(text_data=json.dumps({"type": "all_players_answered"}))
 
     async def broadcast_game_start(self, event):
         """Send game start to WebSocket."""
-        try:
+        with contextlib.suppress(RuntimeError):
             await self.send(
                 text_data=json.dumps(
                     {
@@ -809,9 +821,6 @@ class GameConsumer(AsyncWebsocketConsumer):
                     }
                 )
             )
-        except RuntimeError:
-            # Connection already closed (client navigated away during start)
-            pass
 
     async def broadcast_round_start(self, event):
         """Send round start to WebSocket."""

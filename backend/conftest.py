@@ -1,5 +1,4 @@
-"""Fixtures partagées pour les tests backend.
-"""
+"""Fixtures partagées pour les tests backend."""
 
 import pytest
 from django.contrib.auth import get_user_model

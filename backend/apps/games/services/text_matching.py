@@ -32,7 +32,7 @@ def _levenshtein_similarity(g: str, c: str) -> float:
     max_len = max(len(g), len(c))
     if max_len > 50:
         # For very long strings, fall back to character-based only
-        common = sum(1 for a, b in zip(g, c) if a == b)
+        common = sum(1 for a, b in zip(g, c, strict=False) if a == b)
         return common / max_len
     dp = list(range(len(c) + 1))
     for i in range(1, len(g) + 1):
@@ -90,7 +90,7 @@ def fuzzy_match(
 
     # 5. Character-based positional similarity
     max_len = max(len(g), len(c))
-    common = sum(1 for a, b in zip(g, c) if a == b)
+    common = sum(1 for a, b in zip(g, c, strict=False) if a == b)
     char_sim = common / max_len
 
     similarity = max(edit_sim, char_sim)

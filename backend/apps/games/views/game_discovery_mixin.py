@@ -39,7 +39,9 @@ class GameDiscoveryMixin:
         total_count = games.count()
         page_games = games[offset : offset + page_size]
         serializer = GameSerializer(page_games, many=True)
-        return Response(paginated_response(serializer.data, total_count, page, page_size))
+        return Response(
+            paginated_response(serializer.data, total_count, page, page_size)
+        )
 
     @action(
         detail=False,

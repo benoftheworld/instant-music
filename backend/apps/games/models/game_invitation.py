@@ -13,6 +13,8 @@ from .game import Game
 
 
 class InvitationStatus(models.TextChoices):
+    """Statuts possibles d'une invitation de partie."""
+
     PENDING = "pending", _("En attente")
     ACCEPTED = "accepted", _("Acceptée")
     DECLINED = "declined", _("Refusée")
@@ -69,10 +71,12 @@ class GameInvitation(models.Model):
         )
 
     def save(self, *args, **kwargs):
+        """Save the invitation, setting expires_at if not already provided."""
         if not self.expires_at:
             self.expires_at = timezone.now() + timedelta(minutes=INVITATION_TTL_MINUTES)
         super().save(*args, **kwargs)
 
     @property
     def is_expired(self) -> bool:
+        """Check whether the invitation has expired."""
         return timezone.now() > self.expires_at  # type: ignore[no-any-return]

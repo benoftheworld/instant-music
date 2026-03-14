@@ -1,4 +1,5 @@
 """Deezer API service for searching playlists and tracks.
+
 Replaces YouTube as the music source — uses free 30-second MP3 previews.
 No API key required.
 """
@@ -128,7 +129,8 @@ class DeezerService(BaseAPIService):
             image_url, total_tracks, owner, external_url
 
         """
-        cache_key = f"dz_search_pl_{hashlib.md5(query.encode()).hexdigest()}_{limit}"
+        _digest = hashlib.md5(query.encode(), usedforsecurity=False).hexdigest()
+        cache_key = f"dz_search_pl_{_digest}_{limit}"
         cached = cache.get(cache_key)
         if cached:
             return cached  # type: ignore[no-any-return]
@@ -184,6 +186,7 @@ class DeezerService(BaseAPIService):
 
     def get_playlist_tracks(self, playlist_id: str, limit: int = 50) -> list[dict]:
         """Get tracks from a Deezer playlist.
+
         Filters out tracks without a preview URL.
 
         Args:
@@ -248,7 +251,8 @@ class DeezerService(BaseAPIService):
             List of track dicts (only those with preview URLs)
 
         """
-        cache_key = f"dz_search_tr_{hashlib.md5(query.encode()).hexdigest()}_{limit}"
+        _digest = hashlib.md5(query.encode(), usedforsecurity=False).hexdigest()
+        cache_key = f"dz_search_tr_{_digest}_{limit}"
         cached = cache.get(cache_key)
         if cached:
             return cached  # type: ignore[no-any-return]
@@ -267,8 +271,7 @@ class DeezerService(BaseAPIService):
         return tracks
 
     def search_music_videos(self, query: str, limit: int = 50) -> list[dict]:
-        """Alias for search_tracks — interface compat with YouTubeService.
-        """
+        """Alias for search_tracks — interface compat with YouTubeService."""
         return self.search_tracks(query, limit)
 
     def get_track_details(self, track_id: str) -> dict | None:
@@ -301,6 +304,7 @@ class DeezerService(BaseAPIService):
 
     def _parse_track(self, item: dict) -> dict | None:
         """Parse a Deezer track item into our normalised format.
+
         Returns None if the track has no preview URL.
 
         Keys:

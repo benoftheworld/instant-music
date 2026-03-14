@@ -1,5 +1,4 @@
-"""Enums / TextChoices for the games app.
-"""
+"""Enums / TextChoices for the games app."""
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _

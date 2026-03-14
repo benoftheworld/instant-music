@@ -1,5 +1,4 @@
-"""URLs de la boutique.
-"""
+"""URLs de la boutique."""
 
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter

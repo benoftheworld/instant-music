@@ -55,10 +55,12 @@ class TeamSerializer(serializers.ModelSerializer):
         ]
 
     def get_members_list(self, obj):
+        """Return up to 10 serialized team memberships."""
         memberships = obj.memberships.select_related("user").all()[:10]
         return TeamMemberSerializer(memberships, many=True).data
 
     def get_member_count(self, obj):
+        """Return the total number of team memberships."""
         return obj.memberships.count()
 
 
@@ -93,6 +95,7 @@ class TeamJoinRequestWithTeamSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "user", "team", "status", "created_at"]
 
     def get_team(self, obj):
+        """Return the team ID and name as a dict."""
         return {"id": str(obj.team_id), "name": obj.team.name}
 
 
@@ -100,6 +103,7 @@ class TeamJoinRequestCreateSerializer(serializers.Serializer):
     """Serializer to create a join request (no body required)."""
 
     def validate(self, attrs):
+        """Validate that the user is not already a member or has a pending request."""
         request = self.context.get("request")
         team = self.context.get("team")
 

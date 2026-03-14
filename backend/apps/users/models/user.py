@@ -16,7 +16,10 @@ from apps.users.validators import validate_avatar
 
 
 class UserManager(BaseUserManager):
+    """Gestionnaire personnalisé pour le modèle User."""
+
     def create_user(self, username, email, password=None, **extra_fields):
+        """Create and return a regular user with the given credentials."""
         if not username:
             raise ValueError("The Username must be set")
         if not email:
@@ -29,6 +32,7 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, username, email, password=None, **extra_fields):
+        """Create and return a superuser with staff and superuser flags set."""
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)
@@ -134,7 +138,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.username  # type: ignore[no-any-return]
 
     def save(self, *args, **kwargs):
-        """Calcule automatiquement le hash de l'email avant chaque sauvegarde."""
+        """Calculate the email hash automatically before each save."""
         if self.email:
             # Normalise en minuscules (cohérence avec encrypt_email/hash_email)
             if isinstance(self.email, str):
@@ -144,12 +148,13 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def win_rate(self) -> float:
+        """Return the win rate as a percentage of games played."""
         if self.total_games_played == 0:
             return 0.0
         return (self.total_wins / self.total_games_played) * 100  # type: ignore[no-any-return]
 
 
 # Audit log — traçabilité des modifications admin
-from auditlog.registry import auditlog
+from auditlog.registry import auditlog  # noqa: E402
 
 auditlog.register(User, exclude_fields=["email", "email_hash", "password"])

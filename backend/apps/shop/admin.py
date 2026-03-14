@@ -1,5 +1,4 @@
-"""Configuration de l'admin Django pour la boutique.
-"""
+"""Configuration de l'admin Django pour la boutique."""
 
 from django.contrib import admin
 from django.urls import reverse
@@ -11,6 +10,8 @@ from .models import GameBonus, ShopItem, UserInventory
 
 @admin.register(ShopItem)
 class ShopItemAdmin(admin.ModelAdmin):
+    """Administration des articles de la boutique."""
+
     list_display = [
         "uuid_short",
         "name",
@@ -66,6 +67,7 @@ class ShopItemAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("UUID"))
     def uuid_short(self, obj):
+        """Return a shortened UUID for display."""
         short = str(obj.id)[:8]
         return format_html(
             '<span title="{}" style="font-family:monospace;font-size:11px;'
@@ -76,6 +78,7 @@ class ShopItemAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Stock"))
     def stock_display(self, obj):
+        """Return a formatted stock count or an infinity symbol for unlimited stock."""
         if obj.stock is None:
             return format_html('<span style="color:#10b981;font-weight:bold;">∞</span>')
         if obj.stock == 0:
@@ -85,6 +88,8 @@ class ShopItemAdmin(admin.ModelAdmin):
 
 @admin.register(UserInventory)
 class UserInventoryAdmin(admin.ModelAdmin):
+    """Administration de l'inventaire des utilisateurs."""
+
     list_display = [
         "uuid_short",
         "user",
@@ -114,6 +119,7 @@ class UserInventoryAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("UUID"))
     def uuid_short(self, obj):
+        """Return a shortened UUID for display."""
         short = str(obj.id)[:8]
         return format_html(
             '<span title="{}" style="font-family:monospace;font-size:11px;'
@@ -125,6 +131,8 @@ class UserInventoryAdmin(admin.ModelAdmin):
 
 @admin.register(GameBonus)
 class GameBonusAdmin(admin.ModelAdmin):
+    """Administration des bonus de partie."""
+
     list_display = [
         "uuid_short",
         "player_username",
@@ -169,6 +177,7 @@ class GameBonusAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("UUID"))
     def uuid_short(self, obj):
+        """Return a shortened UUID for display."""
         short = str(obj.id)[:8]
         return format_html(
             '<span title="{}" style="font-family:monospace;font-size:11px;'
@@ -179,10 +188,12 @@ class GameBonusAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Joueur"))
     def player_username(self, obj):
+        """Return the username of the player who used the bonus."""
         return obj.player.user.username
 
     @admin.display(description=_("Salle"))
     def game_room_link(self, obj):
+        """Return an admin link to the related game room."""
         url = reverse("admin:games_game_change", args=[obj.game.pk])
         return format_html(
             '<a href="{}">{}</a>',
@@ -192,6 +203,7 @@ class GameBonusAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Bonus"))
     def bonus_type_badge(self, obj):
+        """Return a colored badge for the bonus type."""
         colors = {
             "double_points": "#8b5cf6",
             "max_points": "#ec4899",

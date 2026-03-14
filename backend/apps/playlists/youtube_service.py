@@ -1,4 +1,5 @@
 """YouTube Data API v3 service for searching playlists and videos.
+
 Music streaming service integration for InstantMusic.
 """
 
@@ -279,7 +280,8 @@ class YouTubeService(BaseAPIService):
                     "album": snippet.get("videoOwnerChannelTitle", "YouTube"),
                     "album_image": image_url,
                     "duration_ms": duration_ms,
-                    "preview_url": None,  # YouTube doesn't have preview URLs - we use the iframe player
+                    # YouTube doesn't have preview URLs - we use the iframe player
+                    "preview_url": None,
                     "external_url": f"https://www.youtube.com/watch?v={vid_id}",
                 }
             )
@@ -289,6 +291,7 @@ class YouTubeService(BaseAPIService):
 
     def search_music_videos(self, query: str, limit: int = 50) -> list[dict]:
         """Search for music videos on YouTube.
+
         Useful as a fallback when playlist access fails.
 
         Args:
@@ -397,7 +400,8 @@ class YouTubeService(BaseAPIService):
     @staticmethod
     def _parse_iso_duration(duration: str) -> int:
         """Parse ISO 8601 duration to milliseconds.
-        Example: 'PT4M13S' -> 253000
+
+        Example: 'PT4M13S' -> 253000.
         """
         match = _ISO_DURATION_RE.match(duration)
         if not match:

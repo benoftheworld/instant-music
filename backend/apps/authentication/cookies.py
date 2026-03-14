@@ -9,7 +9,6 @@ from typing import cast
 
 from django.conf import settings
 
-
 # Nom du cookie — configurable via settings, fallback par défaut.
 REFRESH_COOKIE_NAME = getattr(settings, "JWT_REFRESH_COOKIE_NAME", "refresh_token")
 

@@ -23,7 +23,8 @@ BONUS_ITEMS = [
     {
         "name": "Points Maximum",
         "description": (
-            "Obtenez 100 points (score maximum de base) sur votre prochain round correct, "
+            "Obtenez 100 points (score maximum de base) sur votre prochain"
+            " round correct, "
             "peu importe votre temps de réponse. Parfait pour les indécis !"
         ),
         "item_type": ItemType.BONUS,
@@ -45,7 +46,8 @@ BONUS_ITEMS = [
     {
         "name": "50/50",
         "description": (
-            "Deux mauvaises réponses disparaissent de vos choix pour le round en cours. "
+            "Deux mauvaises réponses disparaissent de vos choix"
+            " pour le round en cours. "
             "Ne fonctionne qu'en mode QCM."
         ),
         "item_type": ItemType.BONUS,
@@ -78,8 +80,10 @@ BONUS_ITEMS = [
     {
         "name": "Mode Brouillard",
         "description": (
-            "Floute les options de réponse QCM de tous les adversaires pendant 5 secondes "
-            "au début du prochain round. Vous seul voyez clair — jouez stratégiquement !"
+            "Floute les options de réponse QCM de tous les adversaires"
+            " pendant 5 secondes "
+            "au début du prochain round. Vous seul voyez clair"
+            " — jouez stratégiquement !"
         ),
         "item_type": ItemType.BONUS,
         "bonus_type": BonusType.FOG,
@@ -153,9 +157,10 @@ PHYSICAL_ITEMS = [
 
 
 class Command(BaseCommand):
-    help = "Pré-remplir la boutique avec les articles par défaut"
+    """Commande de gestion pour pré-remplir la boutique avec des articles par défaut."""
 
     def add_arguments(self, parser):
+        """Add the --force flag to allow updating existing items."""
         parser.add_argument(
             "--force",
             action="store_true",
@@ -163,6 +168,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        """Seed the shop with default bonus and physical items."""
         force = options["force"]
         created_count = 0
         updated_count = 0

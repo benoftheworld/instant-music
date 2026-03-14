@@ -1,5 +1,4 @@
-"""Views for playlists app (Deezer + YouTube search helpers).
-"""
+"""Views for playlists app (Deezer + YouTube search helpers)."""
 
 import logging
 
@@ -21,7 +20,7 @@ logger = logging.getLogger("apps.playlists.views")
 
 
 class PlaylistViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
+    """ViewSet pour la gestion des playlists Deezer."""
 
     # Actions Deezer accessibles sans authentification (previews publics)
     PUBLIC_ACTIONS = {
@@ -32,11 +31,13 @@ class PlaylistViewSet(viewsets.ViewSet):
     }
 
     def get_permissions(self):
+        """Return permission classes based on whether the action is public."""
         if self.action in self.PUBLIC_ACTIONS:
             return [AllowAny()]
         return [IsAuthenticated()]
 
     def get_throttles(self):
+        """Return throttle classes, applying search throttle for search actions."""
         if self.action == "search":
             return [PlaylistSearchThrottle()]
         return super().get_throttles()
@@ -50,6 +51,7 @@ class PlaylistViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"])
     @handle_deezer_call("search_playlists")
     def search(self, request):
+        """Search Deezer playlists by query string."""
         query = request.query_params.get("query", "")
         if not query:
             return Response(
@@ -70,6 +72,7 @@ class PlaylistViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path=r"(?P<playlist_id>\d+)")
     @handle_deezer_call("get_playlist")
     def get_playlist(self, request, playlist_id=None):
+        """Return details for a single Deezer playlist by ID."""
         playlist = deezer_service.get_playlist(playlist_id)
         if not playlist:
             logger.info(
@@ -86,6 +89,7 @@ class PlaylistViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path=r"(?P<playlist_id>\d+)/tracks")
     @handle_deezer_call("get_playlist_tracks")
     def get_playlist_tracks(self, request, playlist_id=None):
+        """Return the tracks for a Deezer playlist."""
         try:
             limit = int(request.query_params.get("limit", 50))
         except ValueError:
@@ -96,6 +100,7 @@ class PlaylistViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path=r"(?P<playlist_id>\d+)/validate")
     @handle_deezer_call("get_playlist_tracks")
     def validate_playlist_access(self, request, playlist_id=None):
+        """Validate that the Deezer playlist is accessible and return track count."""
         try:
             tracks = deezer_service.get_playlist_tracks(playlist_id, limit=5)
             return Response(

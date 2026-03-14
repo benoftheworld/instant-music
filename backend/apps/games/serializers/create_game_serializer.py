@@ -44,7 +44,8 @@ class CreateGameSerializer(serializers.ModelSerializer):
         if mode == "karaoke":
             if not data.get("karaoke_song"):
                 raise serializers.ValidationError(
-                    "Le mode karaoké nécessite un morceau sélectionné dans le catalogue."
+                    "Le mode karaoké nécessite un morceau sélectionné"
+                    " dans le catalogue."
                 )
             data["is_online"] = False
             data["max_players"] = 1
@@ -62,7 +63,8 @@ class CreateGameSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     "Le mode soirée nécessite une partie en ligne."
                 )
-            # Mode hors ligne (solo) : forcer 1 joueur max et partie privée, bonus désactivés
+            # Mode hors ligne (solo) : forcer 1 joueur max et partie privée,
+            # bonus désactivés
             if not data.get("is_online", True):
                 data["max_players"] = 1
                 data["is_public"] = False
@@ -72,6 +74,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
         return data
 
     def validate_round_duration(self, value):
+        """Validate that round duration is between 10 and 300 seconds."""
         if value < 10 or value > 300:
             raise serializers.ValidationError(
                 "La durée d'une manche doit être entre 10 et 300 secondes."
@@ -79,6 +82,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
         return value
 
     def validate_score_display_duration(self, value):
+        """Validate that score display duration is between 0 and 30 seconds."""
         if value < 0 or value > 30:
             raise serializers.ValidationError(
                 "Le temps d'affichage du score doit être entre 0 et 30 secondes."
@@ -86,6 +90,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
         return value
 
     def validate_lyrics_words_count(self, value):
+        """Validate that the lyrics word count is between 2 and 10."""
         if value < 2 or value > 10:
             raise serializers.ValidationError(
                 "Le nombre de mots à deviner doit être entre 2 et 10."
@@ -93,7 +98,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        """Always force timer_start_round=5 and populate legacy karaoke_track JSON."""
+        """Force timer_start_round=5 and populate legacy karaoke_track JSON."""
         validated_data["timer_start_round"] = 5
         song: KaraokeSong | None = validated_data.get("karaoke_song")
         if song:

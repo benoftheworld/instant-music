@@ -176,7 +176,7 @@ class GameBonus(models.Model):
 
 
 # Audit log — traçabilité des modifications admin
-from auditlog.registry import auditlog
+from auditlog.registry import auditlog  # noqa: E402
 
 auditlog.register(ShopItem)
 auditlog.register(UserInventory)

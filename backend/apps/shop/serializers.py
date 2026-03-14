@@ -1,5 +1,4 @@
-"""Serialiseurs de la boutique.
-"""
+"""Serialiseurs de la boutique."""
 
 from rest_framework import serializers
 

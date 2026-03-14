@@ -22,10 +22,16 @@ class GameInvitationMixin:
     """Actions liées aux invitations de partie."""
 
     if TYPE_CHECKING:
-        def get_object(self) -> Any: ...
-        def _broadcast_player_join(self, game: Any, player: Any, room_code: Any, request: Any) -> None: ...
+        def get_object(self) -> Any: ...  # noqa: D102
+        def _broadcast_player_join(
+            self, game: Any, player: Any, room_code: Any, request: Any
+        ) -> None: ...  # noqa: D102
 
-    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsGameHost])
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[IsAuthenticated, IsGameHost],
+    )
     def invite(self, request, room_code=None):
         """Invite a friend to the current lobby (host only)."""
         game = self.get_object()

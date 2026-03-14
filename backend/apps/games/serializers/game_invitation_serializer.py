@@ -8,12 +8,16 @@ from ..models import GameInvitation
 
 
 class UserMiniSerializer(serializers.ModelSerializer):
+    """Sérialiseur minimal pour les informations utilisateur."""
+
     class Meta:
         model = User
         fields = ["id", "username"]
 
 
 class GameInvitationSerializer(serializers.ModelSerializer):
+    """Sérialiseur d'invitation de partie."""
+
     sender = UserMiniSerializer(read_only=True)
     recipient = UserMiniSerializer(read_only=True)
     room_code = serializers.CharField(source="game.room_code", read_only=True)

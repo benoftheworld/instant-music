@@ -1,5 +1,4 @@
-"""Vues de la boutique.
-"""
+"""Vues de la boutique."""
 
 import logging
 
@@ -47,10 +46,11 @@ class ShopViewSet(ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"])
     def summary(self, request):
-        """Retourne un résumé de la boutique :
+        """Retourne un résumé de la boutique.
+
         - total_coins_available : total de pièces déblocables (tous achievements)
         - user_balance          : solde actuel de l'utilisateur
-        - items_count           : nombre d'articles disponibles
+        - items_count           : nombre d'articles disponibles.
         """
         total_available = (
             Achievement.objects.aggregate(total=Sum("points"))["total"] or 0

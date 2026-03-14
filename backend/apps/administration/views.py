@@ -58,7 +58,7 @@ def site_status(request):
 @authentication_classes([])
 @permission_classes([AllowAny])
 def legal_page(request, page_type: str):
-    """Retourne le contenu d'une page légale. 
+    """Retourne le contenu d'une page légale.
     
     Args:
         request: HTTP request
@@ -72,6 +72,7 @@ def legal_page(request, page_type: str):
             "updated_at": "2024-01-01T12:00:00Z"
         }
         404: {"detail": "Page introuvable."}
+
     """
     try:
         page = LegalPage.objects.get(page_type=page_type)

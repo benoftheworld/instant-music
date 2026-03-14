@@ -33,7 +33,7 @@ class GameRoundMixin:
     """Actions liées au déroulement des manches (réponses, transitions)."""
 
     if TYPE_CHECKING:
-        def get_object(self) -> Any: ...
+        def get_object(self) -> Any: ...  # noqa: D102
 
     @action(detail=True, methods=["get"], url_path="current-round")
     def current_round(self, request, room_code=None):
@@ -196,7 +196,12 @@ class GameRoundMixin:
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @action(detail=True, methods=["post"], url_path="next-round", permission_classes=[IsAuthenticated, IsGameHost])
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="next-round",
+        permission_classes=[IsAuthenticated, IsGameHost],
+    )
     def next_round(self, request, room_code=None):
         """Move to the next round (host only)."""
         game = self.get_object()

@@ -46,7 +46,9 @@ class ShopService:
                 id=item_id, is_available=True
             )
         except ShopItem.DoesNotExist:
-            raise ItemNotAvailableError(_("Cet article n'est pas disponible."))
+            raise ItemNotAvailableError(
+                _("Cet article n'est pas disponible.")
+            ) from None
 
         # Les produits événement sans coût ne peuvent pas être achetés en boutique
         if item.is_event_only and item.cost == 0:
@@ -58,15 +60,17 @@ class ShopService:
             )
 
         # Vérification du stock
-        if item.stock is not None:
-            if item.stock < quantity:
-                raise ItemNotAvailableError(_("Stock insuffisant pour cet article."))
+        if item.stock is not None and item.stock < quantity:
+            raise ItemNotAvailableError(_("Stock insuffisant pour cet article."))
 
         total_cost = item.cost * quantity
 
-        # Déduction atomique des pièces (lève InsufficientCoinsError si solde insuffisant)
+        # Déduction atomique des pièces
+        # (lève InsufficientCoinsError si solde insuffisant)
+        from apps.users.coin_service import (
+            InsufficientCoinsError as _InsuffErr,
+        )
         from apps.users.coin_service import deduct_coins
-        from apps.users.coin_service import InsufficientCoinsError as _InsuffErr
 
         try:
             deduct_coins(user.id, total_cost, f"shop_purchase:{item.name}x{quantity}")
@@ -120,8 +124,8 @@ class ShopService:
         )
 
     def get_total_coins_available(self) -> int:
-        """Retourne le total de pièces qu'un joueur peut obtenir en débloquant
-        tous les achievements existants.
+        """Retourner le total de pièces obtenues en débloquant tous les achievements.
+
         Utilisé pour afficher le total max dans la boutique.
         """
         from apps.achievements.models import Achievement
@@ -136,7 +140,9 @@ class BonusActivationError(Exception):
 class BonusService:
     """Service d'activation et de vérification des bonus en partie."""
 
-    def resolve_round_number(self, game, bonus_type: str) -> tuple[int | None, "GameRound | None"]:
+    def resolve_round_number(
+        self, game, bonus_type: str
+    ) -> tuple[int | None, "GameRound | None"]:
         """Détermine le round_number effectif pour un bonus donné.
 
         Retourne ``(round_number, current_round)``.
@@ -157,7 +163,8 @@ class BonusService:
         elif bonus_type == "joker":
             if current_round is None:
                 raise BonusActivationError(
-                    "Aucun round en cours. Le joker ne peut être activé que pendant un round."
+                    "Aucun round en cours. Le joker ne peut être"
+                    " activé que pendant un round."
                 )
 
         return round_number, current_round
@@ -190,7 +197,7 @@ class BonusService:
         try:
             player = GamePlayer.objects.get(game=game, user=user)
         except GamePlayer.DoesNotExist:
-            raise ValueError(_("Vous ne participez pas à cette partie."))
+            raise ValueError(_("Vous ne participez pas à cette partie.")) from None
 
         # Vérification de l'inventaire
         try:
@@ -203,7 +210,7 @@ class BonusService:
         except (ShopItem.DoesNotExist, UserInventory.DoesNotExist):
             raise ItemNotAvailableError(
                 _("Vous ne possédez pas ce bonus dans votre inventaire.")
-            )
+            ) from None
 
         # Vérification unicité (ex : bouclier)
         if bonus_type in self.UNIQUE_BONUSES:
@@ -319,6 +326,7 @@ class BonusService:
         correct_answer: str,
     ) -> list[str]:
         """Retourne les 2 mauvaises réponses à masquer pour le 50/50.
+
         Consomme le bonus si présent.
         """
         bonus_qs = GameBonus.objects.filter(
@@ -339,7 +347,8 @@ class BonusService:
         return excluded
 
     def apply_steal_bonus(self, player, game, round_number: int) -> int:
-        """Applique le bonus 'vol de points' :
+        """Applique le bonus 'vol de points'.
+
         Vole STEAL_POINTS au joueur en tête (si bouclier absent).
         Retourne les points volés (0 si personne à voler ou bouclier actif).
         """
@@ -407,7 +416,8 @@ class BonusService:
         return stolen  # type: ignore[no-any-return]
 
     def apply_time_bonus(self, player, round_obj) -> int:
-        """Applique le bonus 'temps bonus' :
+        """Applique le bonus 'temps bonus'.
+
         Ajoute TIME_BONUS_SECONDS à la durée du round en cours.
         Retourne la nouvelle durée totale du round (0 si bonus absent).
         """

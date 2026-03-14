@@ -38,7 +38,7 @@ def _detect_image_type(file) -> str | None:
 
 
 def validate_avatar(file):
-    """Valide la taille et le type MIME d'un fichier avatar."""
+    """Validate the size and MIME type of an avatar file."""
     # Vérification de la taille
     if file.size > MAX_AVATAR_SIZE:
         raise ValidationError(

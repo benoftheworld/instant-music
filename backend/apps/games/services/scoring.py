@@ -1,5 +1,4 @@
-"""Constantes et fonctions de scoring pour les parties.
-"""
+"""Constantes et fonctions de scoring pour les parties."""
 
 # ─── Constants ──────────────────────────────────────────
 

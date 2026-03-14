@@ -117,7 +117,8 @@ class UserViewSet(viewsets.ModelViewSet):
             "account_deletion_started",
             extra={"user_id": user_id},
         )
-        # Invalider tous les tokens avant suppression pour déconnecter les sessions actives
+        # Invalider tous les tokens avant suppression pour déconnecter
+        # les sessions actives
         for token in OutstandingToken.objects.filter(user=user):
             BlacklistedToken.objects.get_or_create(token=token)
         with transaction.atomic():
@@ -148,7 +149,12 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = UserMinimalSerializer(users, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=["get"], permission_classes=[AllowAny], url_path="exists")
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[AllowAny],
+        url_path="exists",
+    )
     def exists(self, request):
         """Check whether a username or email is already taken.
 
@@ -256,7 +262,9 @@ class UserViewSet(viewsets.ModelViewSet):
                     if hasattr(inv, "acquired_at")
                     else None,
                 }
-                for inv in UserInventory.objects.filter(user=user).select_related("item")
+                for inv in UserInventory.objects.filter(
+                    user=user
+                ).select_related("item")
             ],
             "friends": [
                 {

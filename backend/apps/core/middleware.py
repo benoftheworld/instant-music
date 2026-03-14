@@ -41,6 +41,7 @@ class PrometheusMetricsMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        """Process the request, recording Prometheus HTTP metrics."""
         path = request.path
 
         # Ne pas traquer les endpoints exclus

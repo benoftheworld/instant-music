@@ -12,9 +12,15 @@ from apps.users.models import Team
 
 
 class Command(BaseCommand):
-    help = "Recalcule les stats dénormalisées de toutes les équipes (dédupliquées par partie)."
+    """Commande de gestion pour recalculer les stats dénormalisées des équipes."""
+
+    help = (
+        "Recalcule les stats dénormalisées de toutes les équipes"
+        " (dédupliquées par partie)."
+    )
 
     def handle(self, *args, **options):
+        """Recalculate denormalized stats for all teams."""
         teams = Team.objects.all()
         updated = 0
 

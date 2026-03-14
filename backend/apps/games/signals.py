@@ -16,7 +16,6 @@ import logging
 from typing import Any
 
 from django.db.models import Count as models_Count
-
 from django.db.models import Q, Sum
 from django.db.models.signals import post_save
 from django.dispatch import receiver

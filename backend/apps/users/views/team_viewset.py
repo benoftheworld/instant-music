@@ -113,7 +113,11 @@ class TeamViewSet(viewsets.ModelViewSet):
                 "user": {
                     "id": str(request.user.id),
                     "username": request.user.username,
-                    "avatar": request.user.avatar.url if getattr(request.user, "avatar", None) else None,
+                    "avatar": (
+                        request.user.avatar.url
+                        if getattr(request.user, "avatar", None)
+                        else None
+                    ),
                 },
             }
             for admin_id in admin_ids:
@@ -131,7 +135,7 @@ class TeamViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def my_pending_requests(self, request):
-        """Return all pending join requests for teams where the current user is owner/admin."""
+        """Return all pending join requests for teams where the user is owner/admin."""
         admin_team_ids = TeamMember.objects.filter(
             user=request.user,
             role__in=[TeamMemberRole.OWNER, TeamMemberRole.ADMIN],

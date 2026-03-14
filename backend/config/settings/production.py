@@ -1,5 +1,4 @@
-"""Production settings for InstantMusic project.
-"""
+"""Production settings for InstantMusic project."""
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -31,7 +30,8 @@ if not env("JWT_SIGNING_KEY", default=None):
 # Mettre True UNIQUEMENT si Django est exposé directement sans reverse proxy.
 SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
 # Indique à Django que les requêtes sont HTTPS via le header X-Forwarded-Proto de Nginx.
-# Requis pour que SESSION_COOKIE_SECURE, CSRF_COOKIE_SECURE et HSTS fonctionnent correctement.
+# Requis pour que SESSION_COOKIE_SECURE, CSRF_COOKIE_SECURE et HSTS
+# fonctionnent correctement.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
@@ -49,8 +49,10 @@ CORS_ALLOW_CREDENTIALS = True
 # CSRF trusted origins (must include scheme, e.g. https://example.com)
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
-# Logging : surcharge la config de base pour ajouter des handlers fichier rotatifs en prod
-# Fichier principal : tous les logs WARNING+ avec rotation par taille (10 MB × 10 = max 100 MB)
+# Logging : surcharge la config de base pour ajouter des handlers
+# fichier rotatifs en prod
+# Fichier principal : tous les logs WARNING+ avec rotation par taille
+# (10 MB × 10 = max 100 MB)
 LOGGING["handlers"]["file"] = {  # noqa: F405
     "class": "logging.handlers.RotatingFileHandler",
     "filename": BASE_DIR / "logs" / "django.log",  # noqa: F405
@@ -62,7 +64,8 @@ LOGGING["handlers"]["file"] = {  # noqa: F405
     "encoding": "utf-8",
     "delay": True,                  # Ne crée le fichier qu'au premier log
 }
-# Fichier erreurs : ERROR+ uniquement avec rotation temporelle (1 fichier/jour × 30 jours)
+# Fichier erreurs : ERROR+ uniquement avec rotation temporelle
+# (1 fichier/jour × 30 jours)
 LOGGING["handlers"]["file_errors"] = {  # noqa: F405
     "class": "logging.handlers.TimedRotatingFileHandler",
     "filename": BASE_DIR / "logs" / "errors.log",  # noqa: F405
@@ -79,10 +82,18 @@ LOGGING["handlers"]["file_errors"] = {  # noqa: F405
 LOGGING["root"]["handlers"] = ["console", "file", "file_errors"]  # noqa: F405
 LOGGING["loggers"]["django"]["handlers"] = ["console", "file", "file_errors"]  # noqa: F405
 LOGGING["loggers"].setdefault("apps", {}).update(  # noqa: F405
-    {"handlers": ["console", "file", "file_errors"], "level": "INFO", "propagate": False}
+    {
+        "handlers": ["console", "file", "file_errors"],
+        "level": "INFO",
+        "propagate": False,
+    }
 )
 # Exceptions DRF : toujours loggées dans les deux fichiers
-LOGGING["loggers"]["apps.core.exceptions"]["handlers"] = ["console", "file", "file_errors"]  # noqa: F405
+LOGGING["loggers"]["apps.core.exceptions"]["handlers"] = [  # noqa: F405
+    "console",
+    "file",
+    "file_errors",
+]
 # HTTP structuré : warning+ dans le fichier, errors dans file_errors
 LOGGING["loggers"]["apps.core.http"]["handlers"] = ["console", "file", "file_errors"]  # noqa: F405
 # Celery en prod

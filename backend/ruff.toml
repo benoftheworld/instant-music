@@ -34,7 +34,7 @@ exclude = [
 ]
 
 # Same as Black.
-line-length = 79
+line-length = 88
 indent-width = 4
 
 [lint]
@@ -43,7 +43,15 @@ indent-width = 4
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
 select = ["I", "D", "E", "F", "UP", "B", "SIM"]
-ignore = ["D203", "D211", "D213", "UP007"]
+ignore = [
+    "D203",  # one-blank-line-before-class (conflicts with D211)
+    "D211",  # no-blank-line-before-class
+    "D213",  # multi-line-summary-second-line (conflicts with D212)
+    "UP007", # use-x-or-y-union
+    "D105",  # missing-docstring-in-magic-method (__str__, etc.)
+    "D106",  # missing-docstring-in-public-nested-class (Django Meta classes)
+    "D107",  # missing-docstring-in-__init__
+]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
@@ -51,6 +59,13 @@ unfixable = []
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[lint.per-file-ignores]
+# Django settings split pattern: star import from base is intentional
+"config/settings/production.py" = ["F405"]
+# Test files: docstrings on test methods are not required
+"**/tests*.py" = ["D100", "D101", "D102", "D103"]
+"**/conftest.py" = ["D100", "D101", "D102", "D103"]
 
 [format]
 

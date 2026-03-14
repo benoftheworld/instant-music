@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -84,7 +85,7 @@ class TestGameModel:
     def test_unique_player_per_game(self):
         game = Game.objects.create(host=self.user, room_code="JKL012", mode="classique")
         GamePlayer.objects.create(game=game, user=self.user)
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             GamePlayer.objects.create(game=game, user=self.user)
 
 

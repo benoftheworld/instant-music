@@ -9,6 +9,7 @@ from ..serializers import KaraokeSongSerializer
 
 class KaraokeSongViewSet(viewsets.ReadOnlyModelViewSet):
     """Read-only viewset exposing the KaraokeSong catalogue to authenticated players.
+
     Admins manage entries via Django admin.
     """
 
@@ -17,4 +18,5 @@ class KaraokeSongViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
+        """Return active karaoke songs ordered by artist and title."""
         return KaraokeSong.objects.filter(is_active=True).order_by("artist", "title")

@@ -9,4 +9,5 @@ class IsGameHost(permissions.BasePermission):
     message = "Seul l'hôte peut effectuer cette action."
 
     def has_object_permission(self, request, view, obj):
+        """Check that the requesting user is the game host."""
         return obj.host == request.user

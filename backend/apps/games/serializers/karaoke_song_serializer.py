@@ -25,6 +25,7 @@ class KaraokeSongSerializer(serializers.ModelSerializer):
         ]
 
     def get_duration_display(self, obj):
+        """Return a formatted mm:ss duration string."""
         if not obj.duration_ms:
             return "--:--"
         total_seconds = obj.duration_ms // 1000

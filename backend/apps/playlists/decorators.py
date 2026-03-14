@@ -29,7 +29,7 @@ def handle_deezer_call(endpoint: str):
                 return func(*args, **kwargs)
             except DeezerAPIError as e:
                 logger.error(
-                    "deezer_%s_error" % endpoint,
+                    f"deezer_{endpoint}_error",
                     extra={"endpoint": endpoint, "error": str(e)},
                 )
                 return Response(

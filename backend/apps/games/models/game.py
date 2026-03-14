@@ -1,5 +1,4 @@
-"""Game model — represents a game session.
-"""
+"""Game model — represents a game session."""
 
 import uuid
 
@@ -119,7 +118,10 @@ class Game(models.Model):
     bonuses_enabled = models.BooleanField(
         _("bonus activés"),
         default=True,
-        help_text=_("Si désactivé, les joueurs ne peuvent pas utiliser de bonus pendant la partie"),
+        help_text=_(
+            "Si désactivé, les joueurs ne peuvent pas utiliser"
+            " de bonus pendant la partie"
+        ),
     )
     karaoke_track = models.JSONField(
         _("morceau karaoké (legacy)"),
@@ -143,7 +145,9 @@ class Game(models.Model):
 
     created_at = models.DateTimeField(_("créé le"), auto_now_add=True, db_index=True)
     started_at = models.DateTimeField(_("démarré le"), null=True, blank=True)
-    finished_at = models.DateTimeField(_("terminé le"), null=True, blank=True, db_index=True)
+    finished_at = models.DateTimeField(
+        _("terminé le"), null=True, blank=True, db_index=True
+    )
 
     class Meta:
         verbose_name = _("partie")
@@ -165,6 +169,6 @@ class Game(models.Model):
 
 
 # Audit log — traçabilité des modifications admin
-from auditlog.registry import auditlog
+from auditlog.registry import auditlog  # noqa: E402
 
 auditlog.register(Game)

@@ -1,4 +1,5 @@
 """Lyrics service — fetches song lyrics from LRCLib and lyrics.ovh (free, no key).
+
 Used by the 'paroles' game mode (fill-in-the-blank) and 'karaoke' mode (synced lyrics).
 """
 
@@ -77,7 +78,7 @@ def _lrclib_fetch(url: str, params: dict | None = None) -> dict | None:
         headers={"User-Agent": "InstantMusic/1.0 (lyrics fetcher)"},
     )
     try:
-        with urllib.request.urlopen(
+        with urllib.request.urlopen(  # nosec B310
             req, context=_lrclib_ssl_context(), timeout=_LRCLIB_READ_TIMEOUT
         ) as resp:
             if resp.status == 200:
@@ -99,7 +100,7 @@ def _lrclib_fetch(url: str, params: dict | None = None) -> dict | None:
 
 
 def _lrclib_is_down() -> bool:
-    """True when the circuit breaker flag is set (lrclib recently failed)."""
+    """Return True when the circuit breaker flag is set (lrclib recently failed)."""
     return bool(cache.get(_LRCLIB_DOWN_KEY))
 
 
@@ -214,10 +215,7 @@ def parse_lrc(lrc_text: str) -> list[dict]:
         seconds = int(m.group(2))
         centiseconds = m.group(3) or "0"
         # Normalise to milliseconds (handles .xx and .xxx)
-        if len(centiseconds) == 2:
-            ms = int(centiseconds) * 10
-        else:
-            ms = int(centiseconds)
+        ms = int(centiseconds) * 10 if len(centiseconds) == 2 else int(centiseconds)
         time_ms = minutes * 60_000 + seconds * 1000 + ms
         text = m.group(4).strip()
         lines.append({"time_ms": time_ms, "text": text})
@@ -282,9 +280,10 @@ def get_lyrics(artist: str, title: str) -> str | None:
         Lyrics text or None
 
     """
-    cache_key = (
-        f"lyrics_{hashlib.md5(f'{artist}|{title}'.lower().encode()).hexdigest()}"
-    )
+    _h = hashlib.md5(
+        f"{artist}|{title}".lower().encode(), usedforsecurity=False
+    ).hexdigest()
+    cache_key = f"lyrics_{_h}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached if cached != "__NONE__" else None
@@ -347,12 +346,16 @@ def get_synced_lyrics(
     On a successful fetch from LRCLib the result is written to Redis cache.
 
     Returns:
-        Tuple of (List of {"time_ms": int, "text": str}, found_lrclib_id) or (None, None).
+        Tuple of (List of {"time_ms": int, "text": str}, found_lrclib_id)
+        or (None, None).
         ``found_lrclib_id`` is the numeric ID on lrclib.net for the matched entry;
         callers can persist it to avoid future search-based lookups.
 
     """
-    key = f"synced_{hashlib.md5(f'{artist}|{title}'.lower().encode()).hexdigest()}"
+    _h = hashlib.md5(
+        f"{artist}|{title}".lower().encode(), usedforsecurity=False
+    ).hexdigest()
+    key = f"synced_{_h}"
     cached = cache.get(key)
     if cached is not None:
         if cached == "__NONE__":
@@ -491,7 +494,7 @@ def create_lyrics_question(
         wrong_phrases: list[str] = []
         seen_lower = {correct_phrase.lower()}
 
-        other_lines = [l for i, l in enumerate(lines) if i != chosen_idx]
+        other_lines = [line for i, line in enumerate(lines) if i != chosen_idx]
         random.shuffle(other_lines)
         for other_line in other_lines:
             for _, seq in _extract_line_sequences(other_line, words_to_blank):

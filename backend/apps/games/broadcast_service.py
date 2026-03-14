@@ -135,11 +135,14 @@ def broadcast_game_start(room_code: str, game: Game) -> None:
     )
 
 
-def _check_and_consume_fog(game: Game, round_number: int, broadcast_label: str = "") -> tuple[bool, str | None]:
+def _check_and_consume_fog(
+    game: Game, round_number: int, broadcast_label: str = ""
+) -> tuple[bool, str | None]:
     """Vérifie si un bonus brouillard est actif pour ce round, le consomme.
 
     Returns:
         (fog_active, activator_username)
+
     """
     from django.utils import timezone
 
@@ -177,7 +180,9 @@ def broadcast_round_start(room_code: str, round_obj: GameRound, game: Game) -> N
     """Broadcast that a round has started with its data."""
     round_data = _serialize_to_dict(GameRoundSerializer(round_obj))
 
-    fog_active, fog_activator = _check_and_consume_fog(game, round_obj.round_number, "round_start")
+    fog_active, fog_activator = _check_and_consume_fog(
+        game, round_obj.round_number, "round_start"
+    )
     if fog_active:
         round_data["fog_active"] = True
         round_data["fog_activator"] = fog_activator
@@ -210,7 +215,7 @@ def _build_round_bonuses(game: Game, round_number: int) -> list[dict[str, Any]]:
 
 
 def broadcast_round_end(room_code: str, round_obj: GameRound, game: Game) -> None:
-    """Broadcast round end with correct answer, per-player scores, and updated totals."""
+    """Broadcast round end with correct answer, per-player scores, and totals."""
     # Réinitialiser la série des joueurs qui n'ont pas répondu ce round
     answered_player_ids = set(
         GameAnswer.objects.filter(round=round_obj).values_list("player_id", flat=True)
@@ -240,7 +245,9 @@ def broadcast_next_round(room_code: str, round_obj: GameRound, game: Game) -> No
     """Broadcast that the game has moved to the next round."""
     round_data = _serialize_to_dict(GameRoundSerializer(round_obj))
 
-    fog_active, fog_activator = _check_and_consume_fog(game, round_obj.round_number, "next_round")
+    fog_active, fog_activator = _check_and_consume_fog(
+        game, round_obj.round_number, "next_round"
+    )
     if fog_active:
         round_data["fog_active"] = True
         round_data["fog_activator"] = fog_activator

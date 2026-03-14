@@ -1,5 +1,4 @@
-"""Configuration de l'application shop.
-"""
+"""Configuration de l'application shop."""
 
 from django.apps import AppConfig
 from django.utils.translation import gettext_lazy as _

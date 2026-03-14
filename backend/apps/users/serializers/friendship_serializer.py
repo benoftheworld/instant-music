@@ -37,8 +37,9 @@ class FriendshipCreateSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
 
     def validate_username(self, value):
+        """Validate that the username corresponds to an existing user."""
         try:
             User.objects.get(username=value)
         except User.DoesNotExist:
-            raise serializers.ValidationError("Utilisateur introuvable.")
+            raise serializers.ValidationError("Utilisateur introuvable.") from None
         return value

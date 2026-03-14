@@ -1,5 +1,4 @@
-"""Service de génération de questions à partir de playlists Deezer.
-"""
+"""Service de génération de questions à partir de playlists Deezer."""
 
 import hashlib
 import logging
@@ -57,7 +56,10 @@ class QuestionGeneratorService:
         Results are cached for 24 h to avoid hammering the service.
         Returns the year as int, or None if the lookup fails.
         """
-        cache_key = "mb_year_" + hashlib.md5(f"{artist}|{title}".encode()).hexdigest()
+        _h = hashlib.md5(
+            f"{artist}|{title}".encode(), usedforsecurity=False
+        ).hexdigest()
+        cache_key = f"mb_year_{_h}"
         cached = cache.get(cache_key)
         if cached is not None:
             return cached  # type: ignore[no-any-return]
@@ -184,7 +186,7 @@ class QuestionGeneratorService:
                 playlist_id,
                 e,
             )
-            raise ValueError(f"Erreur lors de l'accès à la playlist Deezer: {e}")
+            raise ValueError(f"Erreur lors de l'accès à la playlist Deezer: {e}") from e
 
         if not tracks or len(tracks) < 4:
             found = len(tracks) if tracks else 0
@@ -413,7 +415,10 @@ class QuestionGeneratorService:
             "preview_url": track.get("preview_url"),
             "album_image": track.get("album_image"),
             "question_type": "guess_year",
-            "question_text": f"En quelle année est sorti « {track['name']} » de {artist} ?",
+            "question_text": (
+                f"En quelle année est sorti « {track['name']} »"
+                f" de {artist} ?"
+            ),
             "correct_answer": str(year),
             "options": options,
             "extra_data": {
@@ -492,7 +497,6 @@ class QuestionGeneratorService:
         # 2. Find the YouTube video for full playback
         youtube_video_id = None
         video_duration_ms = 0
-        album_image = track.get("album_image", "")
 
         if not youtube_video_id:
             try:
@@ -505,8 +509,6 @@ class QuestionGeneratorService:
                 if results:
                     youtube_video_id = results[0]["track_id"]
                     video_duration_ms = results[0].get("duration_ms", 0)
-                    if results[0].get("album_image"):
-                        album_image = results[0]["album_image"]
             except YouTubeAPIError as e:
                 logger.warning("YouTube search failed for karaoke: %s", e)
 

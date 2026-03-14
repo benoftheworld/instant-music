@@ -27,9 +27,12 @@ class RedactSensitiveParamsFilter(logging.Filter):
     """
 
     def filter(self, record: logging.LogRecord) -> bool:  # noqa: A003
+        """Filter the log record, masking sensitive parameters in URLs."""
         if record.args:
             record.args = tuple(
-                _SENSITIVE_PARAMS.sub(r"\1[REDACTED]", arg) if isinstance(arg, str) else arg
+                _SENSITIVE_PARAMS.sub(r"\1[REDACTED]", arg)
+                if isinstance(arg, str)
+                else arg
                 for arg in record.args
             )
         if isinstance(record.msg, str):
@@ -40,10 +43,13 @@ logger = logging.getLogger("apps.core.http")
 
 
 class StructuredLoggingMiddleware:
+    """Middleware de journalisation structurée des requêtes HTTP."""
+
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
+        """Process the request, logging structured HTTP request/response info."""
         request_id = str(uuid.uuid4())
         request._request_id = request_id
         start = time.monotonic()

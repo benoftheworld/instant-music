@@ -1,5 +1,6 @@
 """Django management command to recalculate user statistics from finished games.
-Usage: python manage.py recalculate_user_stats
+
+Usage: python manage.py recalculate_user_stats.
 """
 
 from django.core.management.base import BaseCommand
@@ -10,9 +11,15 @@ from apps.users.models import User
 
 
 class Command(BaseCommand):
-    help = "Recalculate user statistics (games played, wins, total points) from finished games"
+    """Commande de gestion pour recalculer les statistiques des utilisateurs."""
+
+    help = (
+        "Recalculate user statistics (games played, wins, total points)"
+        " from finished games"
+    )
 
     def handle(self, *args, **options):
+        """Recalculate statistics for all users from finished game records."""
         self.stdout.write(
             self.style.NOTICE("Starting user statistics recalculation...")
         )
@@ -50,7 +57,8 @@ class Command(BaseCommand):
 
             if total_games > 0:
                 self.stdout.write(
-                    f"  {user.username}: {total_games} parties, {total_wins} victoires, {total_points} points"
+                    f"  {user.username}: {total_games} parties,"
+                    f" {total_wins} victoires, {total_points} points"
                 )
 
         self.stdout.write(

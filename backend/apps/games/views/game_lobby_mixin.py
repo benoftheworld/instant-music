@@ -35,7 +35,7 @@ class GameLobbyMixin:
     """Actions liées à la gestion du lobby (création, rejoindre, quitter, démarrer)."""
 
     if TYPE_CHECKING:
-        def get_object(self) -> Any: ...
+        def get_object(self) -> Any: ...  # noqa: D102
 
     def _broadcast_player_join(self, game, player, room_code, request):
         """Refresh game, serialize, and broadcast a player_join event."""
@@ -157,7 +157,11 @@ class GameLobbyMixin:
 
         return Response({"message": "Vous avez quitté la partie."})
 
-    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsGameHost])
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[IsAuthenticated, IsGameHost],
+    )
     def start(self, request, room_code=None):
         """Start a game and generate rounds."""
         game = self.get_object()
@@ -182,7 +186,12 @@ class GameLobbyMixin:
             non_host_players = game.competitive_players().count()
             if non_host_players < 1:
                 return Response(
-                    {"error": "Il faut au moins 1 joueur (hors présentateur) pour démarrer en mode soirée."},
+                    {
+                        "error": (
+                            "Il faut au moins 1 joueur (hors présentateur)"
+                            " pour démarrer en mode soirée."
+                        )
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         elif game.players.count() < min_players:
