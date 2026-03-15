@@ -199,7 +199,7 @@ export default function RoundResultsScreen({
           {/* Right Column: Top 5 Players */}
           <div className="lg:col-span-8 p-4 flex flex-col min-h-0">
             <h3 className="text-lg font-bold text-gray-800 mb-3 shrink-0 flex items-center gap-2">
-              <span>🏆</span> Classement
+              Classement
             </h3>
 
             <div className="space-y-2 flex-1 min-h-0 overflow-y-auto">

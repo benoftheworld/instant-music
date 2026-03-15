@@ -47,15 +47,15 @@ export default function ProfileStats({ user, detailedStats }: Props) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon="🎮" label="Parties jouées" value={user.total_games_played} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
-        <StatCard icon="🏆" label="Victoires" value={user.total_wins} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
-        <StatCard icon="📈" label="Taux de victoire" value={`${(user.win_rate ?? 0).toFixed(1)}%`} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
-        <StatCard icon="⭐" label="Points totaux" value={user.total_points} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
+        <StatCard icon="" label="Parties jouées" value={user.total_games_played} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
+        <StatCard icon="" label="Victoires" value={user.total_wins} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
+        <StatCard icon="" label="Taux de victoire" value={`${(user.win_rate ?? 0).toFixed(1)}%`} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
+        <StatCard icon="" label="Points totaux" value={user.total_points} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
       </div>
 
       {detailedStats ? (
         <div className="card space-y-6">
-          <SectionTitle icon="🎯" title="Performance" />
+          <SectionTitle icon="" title="Performance" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <MiniStat label="Score moyen" value={detailedStats.avg_score_per_game.toFixed(0)} />
             <MiniStat label="Meilleur score" value={String(detailedStats.best_score)} highlight />

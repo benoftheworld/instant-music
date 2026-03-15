@@ -61,7 +61,6 @@ export default function ProfileHeader({ user, avatarPreview, detailedStats, onAc
             onClick={onAchievementsClick}
             className="flex-shrink-0 text-center bg-primary-50 hover:bg-primary-100 rounded-xl p-4 border border-primary-200 transition-colors"
           >
-            <div className="text-3xl mb-1">🏆</div>
             <div className="text-xl font-bold text-primary-700">
               {detailedStats.achievements_unlocked}/{detailedStats.achievements_total}
             </div>
