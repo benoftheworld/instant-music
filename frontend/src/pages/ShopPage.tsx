@@ -337,7 +337,7 @@ export default function ShopPage() {
                             </p>
                             {entry.item.item_type === 'bonus' && (
                               <p className="text-xs text-dark-300">
-                                Activable en partie via le panneau bonus ⚡
+                                Activable en partie via le panneau bonus
                               </p>
                             )}
                           </div>

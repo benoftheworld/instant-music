@@ -19,7 +19,6 @@ export default function HomePage() {
 
         <div className="grid md:grid-cols-3 gap-8 mb-12">
           <div className="card">
-            <div className="text-4xl mb-4" aria-hidden="true">❓</div>
             <h3 className="text-xl font-bold mb-2">Quiz Musical</h3>
             <p className="text-gray-600">
               Testez vos connaissances musicales avec différents modes de jeu
@@ -27,7 +26,6 @@ export default function HomePage() {
           </div>
 
           <div className="card">
-            <div className="text-4xl mb-4" aria-hidden="true">🎤</div>
             <h3 className="text-xl font-bold mb-2">Karaoké</h3>
             <p className="text-gray-600">
               Chantez vos morceaux préférés avec les paroles synchronisées
@@ -35,7 +33,6 @@ export default function HomePage() {
           </div>
 
           <div className="card">
-            <div className="text-4xl mb-4" aria-hidden="true">👥</div>
             <h3 className="text-xl font-bold mb-2">Multijoueur</h3>
             <p className="text-gray-600">
               Affrontez vos amis en temps réel dans des parties endiablées
