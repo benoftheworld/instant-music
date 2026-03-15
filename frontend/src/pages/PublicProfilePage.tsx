@@ -62,7 +62,7 @@ export default function PublicProfilePage() {
 
       {/* Statistiques */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-700">📊 Statistiques</h2>
+        <h2 className="text-lg font-semibold text-gray-700">Statistiques</h2>
 
         {/* Main stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

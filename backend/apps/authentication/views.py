@@ -209,7 +209,7 @@ def password_reset_request(request):
         status=status.HTTP_200_OK,
     )
 
-    # Résolution par email (si '@') ou par pseudonyme — réponse identique dans tous les cas
+    # Résolution par email (si '@') ou par pseudonyme
     try:
         if "@" in identifier:
             user = User.objects.get(email_hash=hash_email(identifier))

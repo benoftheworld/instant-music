@@ -7,7 +7,7 @@ from tests.factories import UserFactory
 
 
 class TestPasswordResetRequest(BaseAPIIntegrationTest):
-    """Vérifie la demande de réinitialisation de mot de passe par pseudonyme ou email."""
+    """Vérifie la demande de réinitialisation de password par pseudo ou email."""
 
     def get_base_url(self):
         return "/api/auth/password/reset/"
@@ -16,14 +16,22 @@ class TestPasswordResetRequest(BaseAPIIntegrationTest):
         user = UserFactory()
         client = self.get_client()
         with patch("apps.authentication.views.send_mail"):
-            resp = client.post(self.get_base_url(), {"identifier": user.username}, format="json")
+            resp = client.post(
+                self.get_base_url(), 
+                {"identifier": user.username}, 
+                format="json"
+            )
         self.assert_status(resp, 200)
 
     def test_reset_request_existing_email(self):
         user = UserFactory()
         client = self.get_client()
         with patch("apps.authentication.views.send_mail"):
-            resp = client.post(self.get_base_url(), {"identifier": user.email}, format="json")
+            resp = client.post(
+                self.get_base_url(), 
+                {"identifier": user.email}, 
+                format="json"
+            )
         self.assert_status(resp, 200)
 
     def test_reset_request_nonexistent_identifier(self):

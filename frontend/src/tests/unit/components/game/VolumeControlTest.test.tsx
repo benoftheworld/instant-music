@@ -45,7 +45,7 @@ class VolumeControlTest {
   private testCardRenders() {
     it('affiche le variant card avec les sliders', () => {
       render(<VolumeControl variant="card" />);
-      expect(screen.getByText('🔊 Réglages du son')).toBeInTheDocument();
+      expect(screen.getByText('Réglages du son')).toBeInTheDocument();
       expect(screen.getByText('Effets sonores')).toBeInTheDocument();
       expect(screen.getByText('Volume musique')).toBeInTheDocument();
     });

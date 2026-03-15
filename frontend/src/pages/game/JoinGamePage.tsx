@@ -92,15 +92,10 @@ export default function JoinGamePage() {
             {/* Empty State */}
             {!publicLoading && publicGames.length === 0 && (
               <div className="card text-center py-12">
-                <div className="text-5xl mb-4">🎮</div>
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">
                   Aucune partie publique disponible
                 </h3>
-                <p className="text-gray-500 mb-6">
-                  {publicSearch
-                    ? 'Aucun résultat pour cette recherche. Essayez un autre terme.'
-                    : 'Soyez le premier à créer une partie publique !'}
-                </p>
+
                 <button
                   onClick={() => navigate('/game/create')}
                   className="btn-primary"
@@ -256,17 +251,6 @@ export default function JoinGamePage() {
             </div>
           </div>
         )}
-
-        {/* Create Game Link */}
-        <div className="mt-8 text-center">
-          <p className="text-gray-600 mb-3">Vous n'avez pas de code ?</p>
-          <button
-            onClick={() => navigate('/game/create')}
-            className="btn-secondary"
-          >
-            Créer votre propre partie
-          </button>
-        </div>
       </div>
     </div>
   );
