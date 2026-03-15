@@ -82,9 +82,12 @@ class LoginSerializer(serializers.Serializer):
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
-    """Demande de réinitialisation de mot de passe par pseudonyme."""
+    """Demande de réinitialisation de mot de passe par pseudonyme ou email."""
 
-    username = serializers.CharField(required=True, max_length=20)
+    identifier = serializers.CharField(
+        required=True,
+        help_text="Pseudonyme ou adresse email du compte.",
+    )
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):

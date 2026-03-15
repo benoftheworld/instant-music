@@ -192,10 +192,10 @@ class TestAuthPasswordReset(BaseAPIIntegrationTest):
         return "/api/auth/"
 
     def test_password_reset_request_always_200(self, api_client):
-        """Toujours 200 pour éviter l'énumération de pseudonymes."""
+        """Toujours 200 pour éviter l'énumération d'identifiants."""
         resp = api_client.post(
             f"{self.get_base_url()}password/reset/",
-            {"username": "nonexistentuser"},
+            {"identifier": "nonexistentuser"},
             format="json",
         )
         self.assert_status(resp, status.HTTP_200_OK)
@@ -205,13 +205,23 @@ class TestAuthPasswordReset(BaseAPIIntegrationTest):
         with patch("apps.authentication.views.send_mail"):
             resp = api_client.post(
                 f"{self.get_base_url()}password/reset/",
-                {"username": user.username},
+                {"identifier": user.username},
                 format="json",
             )
         self.assert_status(resp, status.HTTP_200_OK)
 
-    def test_password_reset_request_missing_username(self, api_client):
-        """Le champ username est obligatoire."""
+    def test_password_reset_request_with_existing_email(self, api_client, user):
+        """Toujours 200 même si l'email existe (anti-énumération)."""
+        with patch("apps.authentication.views.send_mail"):
+            resp = api_client.post(
+                f"{self.get_base_url()}password/reset/",
+                {"identifier": user.email},
+                format="json",
+            )
+        self.assert_status(resp, status.HTTP_200_OK)
+
+    def test_password_reset_request_missing_identifier(self, api_client):
+        """Le champ identifier est obligatoire."""
         resp = api_client.post(
             f"{self.get_base_url()}password/reset/",
             {},
@@ -335,7 +345,18 @@ class TestPasswordResetFlow(BaseAPIIntegrationTest):
     def test_password_reset_request_existing_user(self, mock_mail, api_client, user):
         resp = api_client.post(
             f"{self.get_base_url()}password/reset/",
-            {"username": user.username},
+            {"identifier": user.username},
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_200_OK)
+        mock_mail.assert_called_once()
+
+    @patch("apps.authentication.views.send_mail")
+    def test_password_reset_request_by_email(self, mock_mail, api_client, user):
+        """La réinitialisation fonctionne aussi avec l'adresse email."""
+        resp = api_client.post(
+            f"{self.get_base_url()}password/reset/",
+            {"identifier": user.email},
             format="json",
         )
         self.assert_status(resp, status.HTTP_200_OK)
@@ -346,7 +367,7 @@ class TestPasswordResetFlow(BaseAPIIntegrationTest):
         """Lines 271-272 — send_mail fails but response is still 200."""
         resp = api_client.post(
             f"{self.get_base_url()}password/reset/",
-            {"username": user.username},
+            {"identifier": user.username},
             format="json",
         )
         self.assert_status(resp, status.HTTP_200_OK)

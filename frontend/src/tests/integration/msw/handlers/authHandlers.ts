@@ -55,8 +55,8 @@ export const authHandlers = [
 
   http.post(`${BASE}/auth/password/reset/`, async ({ request }) => {
     const body = (await request.json()) as Record<string, string>;
-    if (!body.username) {
-      return HttpResponse.json({ username: ['Ce champ est obligatoire.'] }, { status: 400 });
+    if (!body.identifier) {
+      return HttpResponse.json({ identifier: ['Ce champ est obligatoire.'] }, { status: 400 });
     }
     return HttpResponse.json({ detail: 'Si ce compte existe, un lien de réinitialisation a été envoyé.' });
   }),

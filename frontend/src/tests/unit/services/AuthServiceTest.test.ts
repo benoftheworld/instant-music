@@ -116,12 +116,20 @@ class AuthServiceTest extends BaseServiceTest {
   }
 
   private testRequestPasswordReset() {
-    it('requestPasswordReset — succès', async () => {
+    it('requestPasswordReset — succès avec pseudonyme', async () => {
       (api.post as ReturnType<typeof vi.fn>).mockResolvedValue({ data: {} });
 
       await authService.requestPasswordReset('monpseudo');
 
-      expect(api.post).toHaveBeenCalledWith('/auth/password/reset/', { username: 'monpseudo' });
+      expect(api.post).toHaveBeenCalledWith('/auth/password/reset/', { identifier: 'monpseudo' });
+    });
+
+    it('requestPasswordReset — succès avec email', async () => {
+      (api.post as ReturnType<typeof vi.fn>).mockResolvedValue({ data: {} });
+
+      await authService.requestPasswordReset('user@exemple.com');
+
+      expect(api.post).toHaveBeenCalledWith('/auth/password/reset/', { identifier: 'user@exemple.com' });
     });
   }
 

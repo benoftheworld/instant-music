@@ -4,7 +4,7 @@ import { authService } from '@/services/authService';
 import { Button, Alert, FormField } from '@/components/ui';
 
 export default function ForgotPasswordPage() {
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -12,7 +12,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await authService.requestPasswordReset(username);
+      await authService.requestPasswordReset(identifier);
     } finally {
       setIsLoading(false);
       setSubmitted(true);
@@ -27,7 +27,7 @@ export default function ForgotPasswordPage() {
         {submitted ? (
           <div className="space-y-4">
             <Alert variant="success">
-              Si un compte existe avec ce pseudonyme, un lien de réinitialisation vous a été envoyé par email.
+              Si un compte existe avec cet identifiant, un lien de réinitialisation vous a été envoyé par email.
             </Alert>
             <p className="text-center text-gray-600">
               <Link to="/login" className="text-primary-600 hover:underline">
@@ -38,19 +38,18 @@ export default function ForgotPasswordPage() {
         ) : (
           <>
             <p className="text-gray-600 mb-6">
-              Saisissez votre pseudonyme. Si un compte associé existe, vous recevrez un lien de réinitialisation par email.
+              Saisissez votre pseudonyme ou votre adresse email. Si un compte associé existe, vous recevrez un lien de réinitialisation.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <FormField
-                label="Pseudonyme"
+                label="Pseudonyme ou email"
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
                 autoComplete="username"
-                placeholder="Votre pseudonyme (ex : monpseudo)"
-                maxLength={20}
+                placeholder="Ex : monpseudo ou exemple@domaine.com"
               />
 
               <Button type="submit" loading={isLoading} className="w-full">

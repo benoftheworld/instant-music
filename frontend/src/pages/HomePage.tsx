@@ -1,20 +1,10 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { useLogin } from '@/hooks/useAuth';
 import RecentGames from '@/components/home/RecentGames';
 import TopPlayers from '@/components/home/TopPlayers';
-import { Alert, FormField } from '@/components/ui';
 
 export default function HomePage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const loginMutation = useLogin();
-  const [loginData, setLoginData] = useState({ username: '', password: '' });
-
-  const handleLoginSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    loginMutation.mutate(loginData);
-  };
 
   return (
     <div className="container mx-auto px-4 py-16">
@@ -65,49 +55,12 @@ export default function HomePage() {
             </>
           ) : (
             <>
-              <div className="flex justify-center gap-4 mb-8">
-                <Link to="/register" className="btn-primary text-lg px-8 py-3">
-                  Commencer à jouer
-                </Link>
-              </div>
-
-              {/* Formulaire de connexion rapide */}
-              <div className="max-w-sm mx-auto card">
-                <h2 className="text-xl font-bold mb-4 text-center">Déjà inscrit ?</h2>
-                <form onSubmit={handleLoginSubmit} className="space-y-3">
-                  <FormField
-                    label="Identifiant (email ou pseudonyme)"
-                    type="text"
-                    value={loginData.username}
-                    onChange={(e) => setLoginData((d) => ({ ...d, username: e.target.value }))}
-                    required
-                    autoComplete="username"
-                  />
-                  <FormField
-                    label="Mot de passe"
-                    type="password"
-                    value={loginData.password}
-                    onChange={(e) => setLoginData((d) => ({ ...d, password: e.target.value }))}
-                    required
-                    autoComplete="current-password"
-                    labelRight={
-                      <Link to="/forgot-password" className="text-sm text-primary-600 hover:underline">
-                        Mot de passe oublié ?
-                      </Link>
-                    }
-                  />
-                  {loginMutation.isError && (
-                    <Alert variant="error">Identifiants invalides</Alert>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={loginMutation.isPending}
-                    className="btn-secondary w-full"
-                  >
-                    {loginMutation.isPending ? 'Connexion…' : 'Se connecter'}
-                  </button>
-                </form>
-              </div>
+              <Link to="/register" className="btn-primary text-lg px-8 py-3">
+                Commencer à jouer
+              </Link>
+              <Link to="/login" className="btn-secondary text-lg px-8 py-3">
+                Se connecter
+              </Link>
             </>
           )}
         </div>
