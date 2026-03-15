@@ -29,7 +29,7 @@ class TestBuildRankings(BaseServiceUnitTest):
 
         mock_game = MagicMock()
         mock_game.is_party_mode = False
-        chain = mock_game.competitive_players.return_value.order_by.return_value.select_related.return_value.prefetch_related.return_value # noqa: E501
+        chain = mock_game.competitive_players.return_value.order_by.return_value.select_related.return_value.prefetch_related.return_value  # noqa: E501
         chain.__iter__ = lambda s: iter([mock_player])
 
         result = build_rankings(mock_game)
@@ -44,7 +44,7 @@ class TestBuildRankings(BaseServiceUnitTest):
         mock_game = MagicMock()
         mock_game.is_party_mode = True
         mock_game.host = MagicMock()
-        chain = mock_game.competitive_players.return_value.order_by.return_value.select_related.return_value.prefetch_related.return_value # noqa: E501
+        chain = mock_game.competitive_players.return_value.order_by.return_value.select_related.return_value.prefetch_related.return_value  # noqa: E501
         chain.exclude.return_value = []
 
         result = build_rankings(mock_game)
@@ -72,7 +72,7 @@ class TestBuildRankings(BaseServiceUnitTest):
 
         mock_game = MagicMock()
         mock_game.is_party_mode = False
-        chain = mock_game.competitive_players.return_value.order_by.return_value.select_related.return_value.prefetch_related.return_value # noqa: E501
+        chain = mock_game.competitive_players.return_value.order_by.return_value.select_related.return_value.prefetch_related.return_value  # noqa: E501
         chain.__iter__ = lambda s: iter([mock_player])
 
         result = build_rankings(mock_game)
@@ -196,7 +196,7 @@ class TestBuildRoundsDetail(BaseServiceUnitTest):
 
         mock_game = MagicMock()
         mock_game.is_party_mode = False
-        chain = mock_game.competitive_players.return_value.order_by.return_value.select_related.return_value.prefetch_related.return_value # noqa: E501
+        chain = mock_game.competitive_players.return_value.order_by.return_value.select_related.return_value.prefetch_related.return_value  # noqa: E501
         chain.__iter__ = lambda s: iter([mock_player])
 
         result = build_rankings(mock_game)
