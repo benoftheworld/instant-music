@@ -33,6 +33,7 @@ export default function LoginPage() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
+            placeholder="Ex : monpseudo ou email@exemple.com"
           />
 
           <FormField
@@ -46,6 +47,7 @@ export default function LoginPage() {
                 Mot de passe oublié ?
               </Link>
             }
+            placeholder="Ex: MonMotDePasse123!"
           />
 
           {loginMutation.isError && (
