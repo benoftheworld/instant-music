@@ -28,7 +28,7 @@ export abstract class BasePageTest extends BaseIntegrationTest {
         { client: queryClient },
         React.createElement(
           MemoryRouter,
-          { initialEntries: entries },
+          { initialEntries: entries, future: { v7_relativeSplatPath: true } },
           React.createElement(
             Routes,
             null,

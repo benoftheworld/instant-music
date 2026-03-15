@@ -10,9 +10,11 @@ import TeamLeaderboard from '@/components/leaderboard/TeamLeaderboard';
 
 function makeTeams(n: number) {
   return Array.from({ length: n }, (_, i) => ({
-    id: i + 1,
+    team_id: i + 1,
+    rank: i + 1,
     name: `Team ${i + 1}`,
     avatar: null,
+    owner_name: null,
     member_count: 3,
     total_games: 10,
     total_wins: 5,
@@ -34,7 +36,7 @@ class TeamLeaderboardTest {
       render(
         <MemoryRouter>
           <TeamLeaderboard
-            teams={makeTeams(3) as any}
+            teams={makeTeams(3)}
             page={1}
             totalCount={3}
             pageSize={10}
@@ -51,7 +53,7 @@ class TeamLeaderboardTest {
   private testEmptyState() {
     it('affiche "Aucune équipe" si vide', () => {
       render(
-        <MemoryRouter>
+        <MemoryRouter future={{ v7_relativeSplatPath: true }}>
           <TeamLeaderboard
             teams={[]}
             page={1}

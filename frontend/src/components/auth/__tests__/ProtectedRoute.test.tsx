@@ -6,7 +6,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 function renderWithRouter(initialEntry: string) {
   return render(
-    <MemoryRouter initialEntries={[initialEntry]}>
+    <MemoryRouter initialEntries={[initialEntry]} future={{ v7_relativeSplatPath: true }}>
       <Routes>
         <Route path="/login" element={<div>Login Page</div>} />
         <Route element={<ProtectedRoute />}>

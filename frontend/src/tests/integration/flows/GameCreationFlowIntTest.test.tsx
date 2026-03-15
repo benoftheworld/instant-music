@@ -81,7 +81,7 @@ class GameCreationFlowIntTest extends BaseIntegrationTest {
         { client: queryClient },
         React.createElement(
           MemoryRouter,
-          { initialEntries: ['/game/create'] },
+          { initialEntries: ['/game/create'], future: { v7_relativeSplatPath: true } },
           React.createElement(
             Routes,
             null,

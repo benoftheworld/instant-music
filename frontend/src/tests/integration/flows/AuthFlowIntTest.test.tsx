@@ -34,7 +34,7 @@ class AuthFlowIntTest extends BaseIntegrationTest {
         { client: queryClient },
         React.createElement(
           MemoryRouter,
-          { initialEntries },
+          { initialEntries, future: { v7_relativeSplatPath: true } },
           React.createElement(
             Routes,
             null,

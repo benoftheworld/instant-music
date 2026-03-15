@@ -63,7 +63,7 @@ export function renderWithProviders(
       { client: queryClient },
       React.createElement(
         MemoryRouter,
-        { initialEntries },
+        { initialEntries, future: { v7_relativeSplatPath: true } },
         children,
       ),
     );
@@ -86,7 +86,7 @@ export function renderWithRouter(
   function Wrapper({ children }: { children: React.ReactNode }) {
     return React.createElement(
       MemoryRouter,
-      { initialEntries },
+      { initialEntries, future: { v7_relativeSplatPath: true } },
       children,
     );
   }
