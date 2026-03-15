@@ -46,7 +46,7 @@ export default function ProfileAchievements({
   return (
     <div className="card">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <SectionTitle icon="🏆" title={`Succès (${unlockedCount}/${achievements.length})`} />
+        <SectionTitle icon="" title={`Succès (${unlockedCount}/${achievements.length})`} />
         <div className="flex gap-2">
           {(
             [

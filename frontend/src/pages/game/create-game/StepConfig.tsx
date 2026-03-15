@@ -77,7 +77,7 @@ export default function StepConfig({
 
               <div className="flex flex-col gap-2 w-full">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  🏆 Temps affichage score fin de round
+                  Temps affichage score fin de round
                 </label>
                 <div className="flex gap-4 w-full justify-center">
                   <input

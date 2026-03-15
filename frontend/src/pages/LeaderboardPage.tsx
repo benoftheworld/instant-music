@@ -27,7 +27,7 @@ export default function LeaderboardPage() {
       <div className="container mx-auto max-w-5xl px-4 py-10 space-y-8">
         {/* ── Header ──────────────────────────────────────────── */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">🏆 Classement</h1>
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">Classement</h1>
           <p className="text-dark-300 text-sm sm:text-base">
             {subtitleMap[selectedMode] ?? ''}
           </p>

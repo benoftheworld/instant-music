@@ -66,10 +66,10 @@ export default function PublicProfilePage() {
 
         {/* Main stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard icon="🎮" label="Parties jouées" value={stats.total_games_played} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
-          <StatCard icon="🏆" label="Victoires" value={stats.total_wins} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
-          <StatCard icon="⭐" label="Points totaux" value={stats.total_points.toLocaleString()} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
-          <StatCard icon="📈" label="Taux de victoire" value={`${stats.win_rate}%`} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
+          <StatCard icon="" label="Parties jouées" value={stats.total_games_played} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
+          <StatCard icon="" label="Victoires" value={stats.total_wins} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
+          <StatCard icon="" label="Points totaux" value={stats.total_points.toLocaleString()} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
+          <StatCard icon="" label="Taux de victoire" value={`${stats.win_rate}%`} textColor="text-primary-600" bgClass="bg-primary-50 border-primary-200" />
         </div>
 
         {/* Detailed stats */}

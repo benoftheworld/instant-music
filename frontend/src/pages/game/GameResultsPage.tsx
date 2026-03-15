@@ -245,7 +245,7 @@ export default function GameResultsPage() {
         {/* ── Podium ─────────────────────────────────────────────── */}
         {top3.length > 0 && (
           <div className="space-y-6">
-            <h2 className="text-center text-2xl font-bold text-dark-500">🏆 Podium</h2>
+            <h2 className="text-center text-2xl font-bold text-dark-500">Podium</h2>
             <div className="flex items-end justify-center gap-3 sm:gap-6">
               {podiumOrder.map((player, colIdx) => {
                 if (!player) return <div key={colIdx} className="w-28 sm:w-36" />;
