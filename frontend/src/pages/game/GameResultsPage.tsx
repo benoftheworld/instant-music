@@ -222,7 +222,6 @@ export default function GameResultsPage() {
 
         {/* ── Header ─────────────────────────────────────────────── */}
         <div className="text-center space-y-4">
-          <div className="text-6xl animate-bounce inline-block">🎉</div>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">Partie terminée !</h1>
           <p className="text-dark-400 text-lg">Salle {roomCode}</p>
           <div className="flex flex-wrap justify-center gap-2 mt-3">

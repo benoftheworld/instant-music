@@ -93,7 +93,6 @@ export default function RoundResultsScreen({
         {/* Compact Header */}
         <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-t-2xl px-6 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">🎉</span>
             <div>
               <h2 className="text-xl font-bold text-white">
                 Fin du Round {round.round_number}

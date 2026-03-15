@@ -76,7 +76,6 @@ export default function GameLobbyPage() {
             {game.is_party_mode && (
               <div className="card border-2 border-primary-200 bg-primary-50">
                 <div className="flex items-start gap-3">
-                  <span className="text-3xl">🎉</span>
                   <div>
                     <h3 className="font-bold text-primary-800 mb-1">Mode Soirée activé</h3>
                     {isHost ? (
