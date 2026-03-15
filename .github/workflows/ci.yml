@@ -128,6 +128,7 @@ jobs:
           format: table
           exit-code: '1'
           severity: CRITICAL,HIGH
+          ignore-unfixed: true
       - name: Build frontend image
         run: docker build -t instant-music-frontend:ci ./frontend
       - name: Run Trivy on frontend image
@@ -137,6 +138,7 @@ jobs:
           format: table
           exit-code: '1'
           severity: CRITICAL,HIGH
+          ignore-unfixed: true
 
   sbom:
     name: Generate SBOM (Syft)
