@@ -20,9 +20,13 @@ class TestPasswordResetRequestSerializer(BaseSerializerUnitTest):
         assert "identifier" in serializer.errors
 
     def test_valid_username(self):
-        serializer = PasswordResetRequestSerializer(data={"identifier": "monpseudo"})
+        serializer = PasswordResetRequestSerializer(
+            data={"identifier": "monpseudo"}
+        )
         assert serializer.is_valid()
 
     def test_valid_email(self):
-        serializer = PasswordResetRequestSerializer(data={"identifier": "user@exemple.com"})
+        serializer = PasswordResetRequestSerializer(
+            data={"identifier": "user@exemple.com"}
+        )
         assert serializer.is_valid()
