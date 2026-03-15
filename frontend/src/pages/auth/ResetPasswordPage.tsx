@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { authService } from '@/services/authService';
-import { Button, Alert, FormField } from '@/components/ui';
+import { Button, Alert, PasswordInput, PasswordStrengthBar } from '@/components/ui';
 
 export default function ResetPasswordPage() {
   const { uid, token } = useParams<{ uid: string; token: string }>();
@@ -45,23 +45,39 @@ export default function ResetPasswordPage() {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <FormField
-            label="Nouveau mot de passe"
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            required
-            autoComplete="new-password"
-          />
+          <div>
+            <PasswordInput
+              label="Nouveau mot de passe"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              autoComplete="new-password"
+              placeholder="8+ car., majuscule, chiffre, symbole (ex: MonP@ss1)"
+            />
+            <PasswordStrengthBar password={newPassword} />
+          </div>
 
-          <FormField
+          <PasswordInput
             label="Confirmer le mot de passe"
-            type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             autoComplete="new-password"
+            placeholder="Répétez votre nouveau mot de passe"
           />
+
+          <p className="text-xs text-gray-500 bg-gray-50 rounded p-2">
+            💡 <strong>Conseil :</strong> utilisez un gestionnaire de mots de passe comme{' '}
+            <a
+              href="https://keepass.info"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary-600 hover:underline"
+            >
+              KeePass
+            </a>{' '}
+            pour générer et stocker un mot de passe sécurisé.
+          </p>
 
           {error && <Alert variant="error">{error}</Alert>}
 

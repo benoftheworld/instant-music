@@ -29,6 +29,14 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ["username", "email", "password", "password2", "accept_privacy_policy"]
 
+    def validate_username(self, value):
+        """Vérifie que le pseudonyme ne dépasse pas 20 caractères."""
+        if len(value) > 20:
+            raise serializers.ValidationError(
+                "Le pseudonyme ne peut pas dépasser 20 caractères."
+            )
+        return value
+
     def validate_accept_privacy_policy(self, value):
         """Vérifie que l'utilisateur a accepté la politique de confidentialité."""
         if not value:
@@ -39,7 +47,11 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate_email(self, value):
-        """Vérifie l'unicité de l'email via son hash HMAC (email stocké chiffré)."""
+        """Vérifie la longueur et l'unicité de l'email."""
+        if len(value) > 50:
+            raise serializers.ValidationError(
+                "L'adresse email ne peut pas dépasser 50 caractères."
+            )
         if User.objects.filter(email_hash=hash_email(value)).exists():
             raise serializers.ValidationError("Un compte avec cet email existe déjà.")
         return value
@@ -70,9 +82,9 @@ class LoginSerializer(serializers.Serializer):
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
-    """Demande de réinitialisation de mot de passe par email."""
+    """Demande de réinitialisation de mot de passe par pseudonyme."""
 
-    email = serializers.EmailField(required=True)
+    username = serializers.CharField(required=True, max_length=20)
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):

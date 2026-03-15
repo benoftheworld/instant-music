@@ -197,21 +197,21 @@ def login(request):
 def password_reset_request(request):
     """Demande de réinitialisation de mot de passe.
 
-    Envoie un email avec un lien de réinitialisation si l'adresse existe.
-    Retourne toujours 200 pour éviter l'énumération d'adresses email.
+    Envoie un email avec un lien de réinitialisation si le pseudonyme existe.
+    Retourne toujours 200 pour éviter l'énumération de comptes.
     """
     serializer = PasswordResetRequestSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    email = serializer.validated_data["email"]
+    username = serializer.validated_data["username"]
     success_response = Response(
         {"message": "Si ce compte existe, un lien de réinitialisation a été envoyé."},
         status=status.HTTP_200_OK,
     )
 
-    # Recherche par hash — ne révèle pas si l'email existe (réponse identique)
+    # Recherche par pseudonyme — ne révèle pas si l'utilisateur existe (réponse identique)
     try:
-        user = User.objects.get(email_hash=hash_email(email))
+        user = User.objects.get(username=username)
     except User.DoesNotExist:
         return success_response
 

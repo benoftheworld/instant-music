@@ -29,8 +29,8 @@ export const authService = {
     });
   },
 
-  async requestPasswordReset(email: string): Promise<void> {
-    await api.post('/auth/password/reset/', { email });
+  async requestPasswordReset(username: string): Promise<void> {
+    await api.post('/auth/password/reset/', { username });
   },
 
   async confirmPasswordReset(

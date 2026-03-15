@@ -66,6 +66,73 @@ class TestAuthRegister(BaseAPIIntegrationTest):
         )
         self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
 
+    def test_register_username_too_long(self, api_client):
+        """Un pseudonyme de plus de 20 caractères doit être rejeté."""
+        resp = api_client.post(
+            f"{self.get_base_url()}register/",
+            {
+                "username": "a" * 21,
+                "email": "toolong_username@example.com",
+                "password": "Str0ngP@ss!1",
+                "password2": "Str0ngP@ss!1",
+                "accept_privacy_policy": True,
+            },
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
+        assert "username" in resp.data
+
+    def test_register_username_exactly_20(self, api_client):
+        """Un pseudonyme de exactement 20 caractères doit être accepté."""
+        resp = api_client.post(
+            f"{self.get_base_url()}register/",
+            {
+                "username": "a" * 20,
+                "email": "exactly20@example.com",
+                "password": "Str0ngP@ss!1",
+                "password2": "Str0ngP@ss!1",
+                "accept_privacy_policy": True,
+            },
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_201_CREATED)
+
+    def test_register_email_too_long(self, api_client):
+        """Un email de plus de 50 caractères doit être rejeté."""
+        long_email = "a" * 40 + "@example.com"  # 52 chars
+        resp = api_client.post(
+            f"{self.get_base_url()}register/",
+            {
+                "username": "validuser",
+                "email": long_email,
+                "password": "Str0ngP@ss!1",
+                "password2": "Str0ngP@ss!1",
+                "accept_privacy_policy": True,
+            },
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_400_BAD_REQUEST)
+        assert "email" in resp.data
+
+    def test_register_email_exactly_50(self, api_client):
+        """Un email de exactement 50 caractères doit être accepté."""
+        # Construct: prefix + "@" + domain so total = 50
+        # "a" * 38 + "@example.com" = 38 + 12 = 50
+        email_50 = "a" * 38 + "@example.com"
+        assert len(email_50) == 50
+        resp = api_client.post(
+            f"{self.get_base_url()}register/",
+            {
+                "username": "validuser2",
+                "email": email_50,
+                "password": "Str0ngP@ss!1",
+                "password2": "Str0ngP@ss!1",
+                "accept_privacy_policy": True,
+            },
+            format="json",
+        )
+        self.assert_status(resp, status.HTTP_201_CREATED)
+
 
 @pytest.mark.django_db
 class TestAuthLogin(BaseAPIIntegrationTest):
@@ -125,15 +192,26 @@ class TestAuthPasswordReset(BaseAPIIntegrationTest):
         return "/api/auth/"
 
     def test_password_reset_request_always_200(self, api_client):
-        """Toujours 200 pour éviter l'énumération d'adresses."""
+        """Toujours 200 pour éviter l'énumération de pseudonymes."""
         resp = api_client.post(
             f"{self.get_base_url()}password/reset/",
-            {"email": "nonexistent@example.com"},
+            {"username": "nonexistentuser"},
             format="json",
         )
         self.assert_status(resp, status.HTTP_200_OK)
 
-    def test_password_reset_request_missing_email(self, api_client):
+    def test_password_reset_request_with_existing_username(self, api_client, user):
+        """Toujours 200 même si le pseudonyme existe (anti-énumération)."""
+        with patch("apps.authentication.views.send_mail"):
+            resp = api_client.post(
+                f"{self.get_base_url()}password/reset/",
+                {"username": user.username},
+                format="json",
+            )
+        self.assert_status(resp, status.HTTP_200_OK)
+
+    def test_password_reset_request_missing_username(self, api_client):
+        """Le champ username est obligatoire."""
         resp = api_client.post(
             f"{self.get_base_url()}password/reset/",
             {},
@@ -257,7 +335,7 @@ class TestPasswordResetFlow(BaseAPIIntegrationTest):
     def test_password_reset_request_existing_user(self, mock_mail, api_client, user):
         resp = api_client.post(
             f"{self.get_base_url()}password/reset/",
-            {"email": user.email},
+            {"username": user.username},
             format="json",
         )
         self.assert_status(resp, status.HTTP_200_OK)
@@ -268,7 +346,7 @@ class TestPasswordResetFlow(BaseAPIIntegrationTest):
         """Lines 271-272 — send_mail fails but response is still 200."""
         resp = api_client.post(
             f"{self.get_base_url()}password/reset/",
-            {"email": user.email},
+            {"username": user.username},
             format="json",
         )
         self.assert_status(resp, status.HTTP_200_OK)

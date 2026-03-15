@@ -6,3 +6,5 @@ export { default as Avatar } from './Avatar';
 export { default as EmptyState } from './EmptyState';
 export { default as PageLoader } from './PageLoader';
 export { default as FormField } from './FormField';
+export { default as PasswordInput } from './PasswordInput';
+export { default as PasswordStrengthBar } from './PasswordStrengthBar';

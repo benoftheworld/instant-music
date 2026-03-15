@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRegister } from '@/hooks/useAuth';
 import { userService } from '@/services/userService';
-import { Button, Alert, FormField } from '@/components/ui';
+import { Button, Alert, FormField, PasswordInput, PasswordStrengthBar } from '@/components/ui';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -45,7 +45,9 @@ export default function RegisterPage() {
     // Inline validation
     if (e.target.name === 'username') {
       setUsernameAvailable(null);
-      if (!usernameRegex.test(String(value))) {
+      if (String(value).length > 20) {
+        setUsernameError("Le pseudonyme ne peut pas dépasser 20 caractères.");
+      } else if (!usernameRegex.test(String(value))) {
         setUsernameError("Nom d'utilisateur invalide : caractères non autorisés.");
       } else {
         setUsernameError(null);
@@ -54,7 +56,9 @@ export default function RegisterPage() {
 
     if (e.target.name === 'email') {
       setEmailAvailable(null);
-      if (!emailRegex.test(String(value))) {
+      if (String(value).length > 50) {
+        setEmailError("L'adresse email ne peut pas dépasser 50 caractères.");
+      } else if (!emailRegex.test(String(value))) {
         setEmailError('Email invalide : caractères non autorisés.');
       } else {
         setEmailError(null);
@@ -108,6 +112,8 @@ export default function RegisterPage() {
             onChange={handleChange}
             onBlur={handleUsernameBlur}
             required
+            maxLength={20}
+            placeholder="Ex : monpseudo (max 20 caractères, lettres, chiffres, - _ ')"
             error={usernameError ?? undefined}
             hint={usernameAvailable ? 'Pseudonyme disponible.' : checkingUsername ? 'Vérification...' : undefined}
           />
@@ -120,27 +126,47 @@ export default function RegisterPage() {
             onChange={handleChange}
             onBlur={handleEmailBlur}
             required
+            maxLength={50}
+            placeholder="Ex : exemple@domaine.com (max 50 caractères)"
             error={emailError ?? undefined}
             hint={emailAvailable ? 'Email disponible.' : checkingEmail ? 'Vérification...' : undefined}
           />
 
-          <FormField
-            label="Mot de passe"
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
+          <div>
+            <PasswordInput
+              label="Mot de passe"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              autoComplete="new-password"
+              placeholder="8+ car., majuscule, chiffre, symbole (ex: MonP@ss1)"
+            />
+            <PasswordStrengthBar password={formData.password} />
+          </div>
 
-          <FormField
+          <PasswordInput
             label="Confirmer le mot de passe"
-            type="password"
             name="password2"
             value={formData.password2}
             onChange={handleChange}
             required
+            autoComplete="new-password"
+            placeholder="Répétez votre mot de passe"
           />
+
+          <p className="text-xs text-gray-500 bg-gray-50 rounded p-2">
+            💡 <strong>Conseil :</strong> utilisez un gestionnaire de mots de passe comme{' '}
+            <a
+              href="https://keepass.info"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary-600 hover:underline"
+            >
+              KeePass
+            </a>{' '}
+            pour générer et stocker un mot de passe sécurisé.
+          </p>
 
           <div className="flex items-start gap-2">
             <input

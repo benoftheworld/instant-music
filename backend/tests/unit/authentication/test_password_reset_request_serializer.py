@@ -5,25 +5,25 @@ from tests.base import BaseSerializerUnitTest
 
 
 class TestPasswordResetRequestSerializer(BaseSerializerUnitTest):
-    """Vérifie les champs du serializer de demande de reset."""
+    """Vérifie les champs du serializer de demande de reset par pseudonyme."""
 
     def get_serializer_class(self):
         return PasswordResetRequestSerializer
 
     def test_fields(self):
         serializer = PasswordResetRequestSerializer()
-        assert set(serializer.fields.keys()) == {"email"}
+        assert set(serializer.fields.keys()) == {"username"}
 
-    def test_email_required(self):
+    def test_username_required(self):
         serializer = PasswordResetRequestSerializer(data={})
         assert not serializer.is_valid()
-        assert "email" in serializer.errors
+        assert "username" in serializer.errors
 
-    def test_invalid_email_rejected(self):
-        serializer = PasswordResetRequestSerializer(data={"email": "not-an-email"})
+    def test_username_too_long_rejected(self):
+        serializer = PasswordResetRequestSerializer(data={"username": "a" * 21})
         assert not serializer.is_valid()
-        assert "email" in serializer.errors
+        assert "username" in serializer.errors
 
-    def test_valid_email(self):
-        serializer = PasswordResetRequestSerializer(data={"email": "test@example.com"})
+    def test_valid_username(self):
+        serializer = PasswordResetRequestSerializer(data={"username": "monpseudo"})
         assert serializer.is_valid()

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { BasePageTest } from '../base/BasePageTest';
 import { seedDB } from '../msw/db';
 import { createSeededDB } from '../msw/fixtures';
@@ -34,6 +34,7 @@ class HomePageIntTest extends BasePageTest {
 
       this.testRendersHero();
       this.testGuestCTAs();
+      this.testGuestLoginForm();
       this.testAuthenticatedCTAs();
       this.testShowsRecentGamesWhenAuthenticated();
     });
@@ -48,10 +49,19 @@ class HomePageIntTest extends BasePageTest {
   }
 
   private testGuestCTAs() {
-    it('affiche les boutons pour les visiteurs', () => {
+    it('affiche le bouton d\'inscription pour les visiteurs', () => {
       this.renderPage();
       expect(screen.getByText('Commencer à jouer')).toBeInTheDocument();
-      expect(screen.getByText('Se connecter')).toBeInTheDocument();
+    });
+  }
+
+  private testGuestLoginForm() {
+    it('affiche un formulaire de connexion pour les visiteurs non connectés', () => {
+      this.renderPage();
+      expect(screen.getByText('Déjà inscrit ?')).toBeInTheDocument();
+      expect(screen.getByLabelText(/Identifiant/)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Mot de passe/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Se connecter/ })).toBeInTheDocument();
     });
   }
 

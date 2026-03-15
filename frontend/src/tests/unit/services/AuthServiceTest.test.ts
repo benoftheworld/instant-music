@@ -119,9 +119,9 @@ class AuthServiceTest extends BaseServiceTest {
     it('requestPasswordReset — succès', async () => {
       (api.post as ReturnType<typeof vi.fn>).mockResolvedValue({ data: {} });
 
-      await authService.requestPasswordReset('test@example.com');
+      await authService.requestPasswordReset('monpseudo');
 
-      expect(api.post).toHaveBeenCalledWith('/auth/password/reset/', { email: 'test@example.com' });
+      expect(api.post).toHaveBeenCalledWith('/auth/password/reset/', { username: 'monpseudo' });
     });
   }
 

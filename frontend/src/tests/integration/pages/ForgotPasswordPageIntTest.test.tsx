@@ -18,24 +18,24 @@ class ForgotPasswordPageIntTest extends BaseFormTest {
       });
 
       this.testRendersForm();
-      this.testSubmitEmail();
+      this.testSubmitUsername();
       this.testBackToLoginLink();
     });
   }
 
   private testRendersForm() {
-    it('affiche le formulaire de réinitialisation', () => {
+    it('affiche le formulaire de réinitialisation avec un champ pseudonyme', () => {
       this.renderPage();
       expect(screen.getByText('Mot de passe oublié')).toBeInTheDocument();
-      expect(screen.getByLabelText(/Adresse email/)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Pseudonyme/)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Envoyer le lien/ })).toBeInTheDocument();
     });
   }
 
-  private testSubmitEmail() {
-    it('affiche la confirmation après soumission', async () => {
+  private testSubmitUsername() {
+    it('affiche la confirmation après soumission du pseudonyme', async () => {
       const { user } = this.renderPage();
-      await this.fillField(user, /Adresse email/, 'alice@test.com');
+      await this.fillField(user, /Pseudonyme/, 'alice');
       await this.submitForm(user, 'Envoyer le lien');
 
       await waitFor(() => {

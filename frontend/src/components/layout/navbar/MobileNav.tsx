@@ -33,13 +33,11 @@ export default function MobileNav({
   return (
     <div id="mobile-menu" className="md:hidden border-t border-primary-700 bg-dark">
       <div className="container mx-auto px-4 py-3 flex flex-col gap-1">
-
-        <Link to="/leaderboard" onClick={onClose} className={MOBILE_LINK_CLASS}>
-          <IconLeaderboard />Classement
-        </Link>
-
         {isAuthenticated ? (
           <>
+            <Link to="/leaderboard" onClick={onClose} className={MOBILE_LINK_CLASS}>
+              <IconLeaderboard />Classement
+            </Link>
             <Link to="/friends" onClick={onClose} className={MOBILE_LINK_CLASS}>
               <IconFriends />Amis
             </Link>

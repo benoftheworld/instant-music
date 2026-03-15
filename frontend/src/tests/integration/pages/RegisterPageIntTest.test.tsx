@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import { BaseFormTest } from '../base/BaseFormTest';
 import { seedDB } from '../msw/db';
 import { createSeededDB } from '../msw/fixtures';
@@ -22,6 +22,12 @@ class RegisterPageIntTest extends BaseFormTest {
       this.testDuplicateUsername();
       this.testPrivacyCheckbox();
       this.testLoginLink();
+      this.testUsernameTooLong();
+      this.testEmailTooLong();
+      this.testPasswordEyeToggle();
+      this.testPasswordStrengthBar();
+      this.testPasswordPlaceholders();
+      this.testKeePassTip();
     });
   }
 
@@ -80,6 +86,74 @@ class RegisterPageIntTest extends BaseFormTest {
     it('affiche le lien vers la connexion', () => {
       this.renderPage();
       expect(screen.getByText(/Connectez-vous/)).toBeInTheDocument();
+    });
+  }
+
+  private testUsernameTooLong() {
+    it('affiche une erreur si le pseudonyme dépasse 20 caractères', async () => {
+      this.renderPage();
+      const input = screen.getByLabelText(/Nom d'utilisateur/);
+      // fireEvent bypasses the maxLength HTML attribute to test JS validation
+      fireEvent.change(input, { target: { name: 'username', value: 'a'.repeat(21) } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/ne peut pas dépasser 20 caractères/)).toBeInTheDocument();
+      });
+    });
+  }
+
+  private testEmailTooLong() {
+    it('affiche une erreur si l\'email dépasse 50 caractères', async () => {
+      this.renderPage();
+      const input = screen.getByLabelText(/Email/);
+      // fireEvent bypasses the maxLength HTML attribute to test JS validation
+      fireEvent.change(input, { target: { name: 'email', value: 'a'.repeat(40) + '@example.com' } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/ne peut pas dépasser 50 caractères/)).toBeInTheDocument();
+      });
+    });
+  }
+
+  private testPasswordEyeToggle() {
+    it('permet d\'afficher/masquer le mot de passe via l\'icône œil', async () => {
+      const { user } = this.renderPage();
+      const passwordInput = screen.getByLabelText('Mot de passe');
+      expect(passwordInput).toHaveAttribute('type', 'password');
+
+      // Both password fields have eye-toggle buttons; take the first one
+      const toggleBtns = screen.getAllByRole('button', { name: /Afficher le mot de passe/i });
+      await user.click(toggleBtns[0]);
+      expect(passwordInput).toHaveAttribute('type', 'text');
+
+      await user.click(screen.getAllByRole('button', { name: /Masquer le mot de passe/i })[0]);
+      expect(passwordInput).toHaveAttribute('type', 'password');
+    });
+  }
+
+  private testPasswordStrengthBar() {
+    it('affiche la barre de force du mot de passe lors de la saisie', async () => {
+      const { user } = this.renderPage();
+      const passwordInput = screen.getByLabelText('Mot de passe');
+      await user.type(passwordInput, 'StrongP@ss1!');
+
+      await waitFor(() => {
+        expect(screen.getByText(/Force/)).toBeInTheDocument();
+      });
+    });
+  }
+
+  private testPasswordPlaceholders() {
+    it('affiche des placeholders décrivant les règles du mot de passe', () => {
+      this.renderPage();
+      expect(screen.getByPlaceholderText(/8\+ car\./i)).toBeInTheDocument();
+    });
+  }
+
+  private testKeePassTip() {
+    it('affiche le conseil KeePass', () => {
+      this.renderPage();
+      expect(screen.getByText(/KeePass/)).toBeInTheDocument();
     });
   }
 }

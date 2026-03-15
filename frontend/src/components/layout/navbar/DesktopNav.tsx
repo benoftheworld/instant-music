@@ -22,12 +22,11 @@ interface DesktopNavProps {
 export default function DesktopNav({ isAuthenticated, user, onLogout }: DesktopNavProps) {
   return (
     <div className="hidden md:flex items-center gap-6">
-      <Link to="/leaderboard" className={DESKTOP_LINK_CLASS}>
-        <IconLeaderboard /><span>Classement</span>
-      </Link>
-
       {isAuthenticated ? (
         <>
+          <Link to="/leaderboard" className={DESKTOP_LINK_CLASS}>
+            <IconLeaderboard /><span>Classement</span>
+          </Link>
           <Link to="/friends" className={DESKTOP_LINK_CLASS}>
             <IconFriends /><span>Amis</span>
           </Link>

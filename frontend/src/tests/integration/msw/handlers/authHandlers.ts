@@ -53,8 +53,12 @@ export const authHandlers = [
     return HttpResponse.json({ access: db.accessToken });
   }),
 
-  http.post(`${BASE}/auth/password/reset/`, () => {
-    return HttpResponse.json({ detail: 'Email de réinitialisation envoyé.' });
+  http.post(`${BASE}/auth/password/reset/`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, string>;
+    if (!body.username) {
+      return HttpResponse.json({ username: ['Ce champ est obligatoire.'] }, { status: 400 });
+    }
+    return HttpResponse.json({ detail: 'Si ce compte existe, un lien de réinitialisation a été envoyé.' });
   }),
 
   http.post(`${BASE}/auth/password/reset/confirm/`, () => {
