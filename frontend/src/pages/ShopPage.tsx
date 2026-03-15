@@ -46,11 +46,10 @@ function ShopItemCard({
         <div className="flex items-start justify-between gap-2">
           <div>
             <span className="inline-block bg-primary-100 text-primary-700 text-xs font-bold px-2 py-0.5 rounded-full mb-2">
-              🎁 Produit physique
+              Produit physique
             </span>
             <h3 className="font-bold text-dark text-lg">{item.name}</h3>
           </div>
-          <span className="text-2xl">📦</span>
         </div>
         <p className="text-dark-400 text-sm flex-1">{item.description}</p>
         {inventoryQuantity > 0 && (
@@ -170,7 +169,7 @@ export default function ShopPage() {
         {/* ── En-tête ── */}
         <div className="mb-8">
           <h1 className="text-3xl font-extrabold text-dark-700 mb-1">
-            🏪 Boutique
+            Boutique
           </h1>
           <p className="text-gray-600 text-sm">
             Dépensez vos pièces pour acheter des bonus à activer en partie, ou
@@ -222,13 +221,13 @@ export default function ShopPage() {
         {/* ── Onglets ── */}
         <div className="flex gap-2 mb-6">
           <button className={tabClass('bonus')} onClick={() => setActiveTab('bonus')}>
-            ⚡ Bonus de jeu ({bonusItems.length})
+            Bonus de jeu ({bonusItems.length})
           </button>
           <button className={tabClass('physical')} onClick={() => setActiveTab('physical')}>
-            🎁 Produits physiques ({physicalItems.length})
+            Produits physiques ({physicalItems.length})
           </button>
           <button className={tabClass('inventory')} onClick={() => setActiveTab('inventory')}>
-            🎒 Mon inventaire ({inventory.filter((e) => e.quantity > 0).length})
+            Mon inventaire ({inventory.filter((e) => e.quantity > 0).length})
           </button>
         </div>
 

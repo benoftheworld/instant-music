@@ -137,7 +137,7 @@ export default function ProfileSettings({
       {activeTab === 'profile' && (
         <div className="space-y-6">
           <div className="card">
-            <SectionTitle icon="👤" title="Informations du profil" />
+            <SectionTitle icon="" title="Informations du profil" />
             {message && (
               <div className="mt-4">
                 <Alert variant={message.type}>{message.text}</Alert>
@@ -288,7 +288,7 @@ export default function ProfileSettings({
 
           {/* My Data */}
           <div className="card">
-            <SectionTitle icon="💾" title="Mes données" />
+            <SectionTitle icon="" title="Mes données" />
             <p className="text-sm text-gray-500 mt-2 mb-4">
               Téléchargez une copie de toutes vos données personnelles au format JSON
               (RGPD — droit à la portabilité, art. 20).

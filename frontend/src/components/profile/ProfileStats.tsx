@@ -88,7 +88,6 @@ export default function ProfileStats({ user, detailedStats }: Props) {
         </div>
       ) : (
         <div className="card text-center py-12 text-gray-400">
-          <div className="text-4xl mb-3">📊</div>
           <p>Chargement des statistiques…</p>
         </div>
       )}

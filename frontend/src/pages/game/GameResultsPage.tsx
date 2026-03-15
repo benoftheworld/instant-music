@@ -285,7 +285,7 @@ export default function GameResultsPage() {
         {/* ── Classement complet ─────────────────────────────────── */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-dark-500">📊 Classement</h2>
+            <h2 className="text-xl font-bold text-dark-500">Classement</h2>
             {others.length > 0 && (
               <button
                 onClick={() => setShowFullRanking(!showFullRanking)}

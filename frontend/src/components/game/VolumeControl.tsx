@@ -112,7 +112,7 @@ export default function VolumeControl({ variant = 'floating' }: VolumeControlPro
     return (
       <div className="card">
         <h2 className="text-2xl font-bold mb-4 flex items-center">
-          🔊 Réglages du son
+          Réglages du son
         </h2>
 
         <div className="space-y-5">

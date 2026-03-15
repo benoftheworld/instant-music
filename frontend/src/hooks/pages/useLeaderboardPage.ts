@@ -51,7 +51,7 @@ export function useLeaderboardPage() {
 
   const subtitleMap: Record<string, string> = {
     general: 'Les meilleurs joueurs de tous les temps',
-    teams: 'Les meilleures équipes — stats dédupliquées par partie',
+    teams: 'Les meilleures équipes de tous les temps',
     classique: 'Classement par points en mode Classique',
     rapide: 'Classement par points en mode Rapide',
     generation: 'Classement par points en mode Génération',
